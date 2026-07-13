@@ -23,11 +23,53 @@ Usage:
 """
 
 import json
+import re
 import sys
 import time
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+
+TAG_RE = re.compile(r"<[^>]+>")
+# Set descriptions name their contents in prose -- "features the Renewed Entry IGT,
+# Flat Burner, and Stainless Tray 1 Unit" -- and every one of those names is a link
+# to the component's own product page. Stripping tags throws the SKUs away.
+LINK_RE = re.compile(r'href="[^"]*?/products/([a-z0-9-]+)', re.I)
+
+
+def plain(html):
+    """body_html -> text. The description is where Snow Peak states unit counts that
+    the product name leaves out ("The single-unit insert...")."""
+    return re.sub(r"\s+", " ", TAG_RE.sub(" ", html or "")).strip()
+
+
+def linked_handles(html):
+    """Product handles the description links to, in order, deduped."""
+    seen, out = set(), []
+    for h in LINK_RE.findall(html or ""):
+        if h not in seen:
+            seen.add(h)
+            out.append(h)
+    return out
+
+
+ANCHOR_RE = re.compile(r'<a\b[^>]*href="[^"]*?/products/([a-z0-9-]+)"[^>]*>(.*?)</a>', re.I | re.S)
+
+
+def marked(html):
+    """Plain text with each product link kept inline as `Text[[handle]]`.
+
+    A set's description both lists what is in the box and suggests what to buy next:
+
+        "The set includes the aluminum IGT Three Unit Frame and four 400mm Legs."
+        "Pair the IGT 3 Unit Low Set with the Double Unit BBQ Box."
+
+    Both sentences link products. Flattening the description to a bag of links makes
+    the BBQ box look like part of every set -- so the links have to survive sentence
+    splitting, which means keeping them anchored where they appear in the text.
+    """
+    kept = ANCHOR_RE.sub(lambda m: f"{TAG_RE.sub('', m.group(2))}[[{m.group(1)}]]", html or "")
+    return re.sub(r"\s+", " ", TAG_RE.sub(" ", kept)).strip()
 
 BASE = "https://www.snowpeak.com"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -96,6 +138,9 @@ def main():
                     "handle": h,
                     "us_title": p.get("title", ""),
                     "us_url": f"{BASE}/products/{h}",
+                    "description": plain(p.get("body_html")),
+                    "description_marked": marked(p.get("body_html")),
+                    "linked_handles": linked_handles(p.get("body_html")),
                     "product_type": p.get("product_type", ""),
                     "tags": p.get("tags", []),
                     "collections": [],

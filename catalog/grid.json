@@ -1,0 +1,46 @@
+{
+ "unit_pitch_mm": 250.0,
+ "half_unit_mm": 125.0,
+ "cross_family_spread_mm": 0.0,
+ "families": {
+  "collapsible": {
+   "end_overhead_mm": 96.0,
+   "pitch_mm": 250.0,
+   "worst_residual_mm": 0.0,
+   "frames": [
+    {
+     "sku": "CK-902",
+     "units": 2,
+     "width_mm": 596.0
+    },
+    {
+     "sku": "CK-903",
+     "units": 3,
+     "width_mm": 846.0
+    },
+    {
+     "sku": "CK-904",
+     "units": 4,
+     "width_mm": 1096.0
+    }
+   ]
+  },
+  "standard": {
+   "end_overhead_mm": 96.0,
+   "pitch_mm": 250.0,
+   "worst_residual_mm": 0.0,
+   "frames": [
+    {
+     "sku": "CK-149",
+     "units": 3,
+     "width_mm": 846.0
+    },
+    {
+     "sku": "CK-150",
+     "units": 4,
+     "width_mm": 1096.0
+    }
+   ]
+  }
+ }
+}

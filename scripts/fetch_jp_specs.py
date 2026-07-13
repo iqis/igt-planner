@@ -46,11 +46,18 @@ DT_RE = re.compile(r"<dt.*?>(.*?)</dt>", re.S)
 DD_RE = re.compile(r"<dd.*?>(.*?)</dd>", re.S)
 TAG_RE = re.compile(r"<[^>]+>")
 
-# "846×496×28(h)mm" / "846x496x28mm" / "φ100×250(h)mm"
+# "846×496×28(h)mm" / "846x496x28mm" / "1,096×496×30(h)mm"
+# The thousands comma is not decoration: every 4-unit frame is written "1,096",
+# and a regex that stops at the comma silently reads it as 96mm.
+NUM = r"(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)"
 DIM_RE = re.compile(
-    r"(\d+(?:\.\d+)?)\s*[×x*]\s*(\d+(?:\.\d+)?)\s*[×x*]\s*(\d+(?:\.\d+)?)\s*\(?h?\)?\s*mm",
+    rf"{NUM}\s*[×x*]\s*{NUM}\s*[×x*]\s*{NUM}\s*[（(]?\s*h?\s*[）)]?\s*mm",
     re.I,
 )
+
+
+def to_mm(s):
+    return float(s.replace(",", ""))
 WEIGHT_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(kg|g)\b", re.I)
 
 
@@ -67,8 +74,19 @@ def fetch(url, tries=3):
     return ""
 
 
+# The spec table mixes fullwidth and halfwidth forms freely -- every burner writes
+# its size as "250x360x175ｍｍ" with a FULLWIDTH ｍｍ. A parser that only knows the
+# ASCII "mm" silently drops the dimensions of every cooker in the catalog.
+FULLWIDTH = str.maketrans({
+    "ｍ": "m", "Ｍ": "M", "ｃ": "c", "Ｃ": "C", "（": "(", "）": ")",
+    "，": ",", "．": ".", "０": "0", "１": "1", "２": "2", "３": "3", "４": "4",
+    "５": "5", "６": "6", "７": "7", "８": "8", "９": "9",
+})
+
+
 def clean(s):
-    return re.sub(r"\s+", " ", TAG_RE.sub("", s)).replace("&gt;", ">").replace("&amp;", "&").strip()
+    s = TAG_RE.sub("", s).translate(FULLWIDTH)
+    return re.sub(r"\s+", " ", s).replace("&gt;", ">").replace("&amp;", "&").strip()
 
 
 def parse_specs(html):
@@ -91,16 +109,29 @@ def parse_dims(size_text):
     """
     if not size_text:
         return None, None
+    size_text = size_text.translate(FULLWIDTH)  # idempotent; also fixes already-stored size_raw
     idx = size_text.find("収納")
     head = size_text[:idx] if idx != -1 else size_text
     tail = size_text[idx:] if idx != -1 else ""
 
     def first_box(t):
+        # Some entries label their axes instead of relying on order:
+        #   "(H)110 x (W)360 x (D)250mm"   -- the gear bags
+        # Read the labels when they are there; the positional default puts 110 in
+        # `w` and turns a 250mm (one full unit) bag into a 110mm one.
+        labelled = re.findall(r"[(]\s*([HWD])\s*[)]\s*(\d{1,4}(?:,\d{3})?)", t, re.I)
+        if len(labelled) >= 3:
+            got = {}
+            for axis, val in labelled:
+                got.setdefault(axis.upper(), to_mm(val))
+            if {"H", "W", "D"} <= set(got):
+                return {"w": got["W"], "d": got["D"], "h": got["H"]}
+
         m = DIM_RE.search(t)
         if not m:
             return None
-        # JP convention is W x D x H(h).
-        return {"w": float(m.group(1)), "d": float(m.group(2)), "h": float(m.group(3))}
+        # Otherwise the JP convention is W x D x H(h).
+        return {"w": to_mm(m.group(1)), "d": to_mm(m.group(2)), "h": to_mm(m.group(3))}
 
     return first_box(head), first_box(tail)
 
@@ -154,7 +185,26 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="stop after N items (smoke test)")
     ap.add_argument("--delay", type=float, default=0.15, help="per-worker pause between requests")
     ap.add_argument("--workers", type=int, default=6, help="concurrent fetchers")
+    ap.add_argument("--reparse", action="store_true",
+                    help="re-derive dims from the stored size_raw, no network")
     args = ap.parse_args()
+
+    # size_raw is kept verbatim precisely so a parser bug costs a second, not a
+    # second crawl of 2,100 pages.
+    if args.reparse:
+        path = OUT / "jp_specs_latest.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        changed = 0
+        for r in payload["items"]:
+            asm, pk = parse_dims(r.get("size_raw", ""))
+            if asm != r.get("assembled_mm") or pk != r.get("packed_mm"):
+                changed += 1
+            r["assembled_mm"], r["packed_mm"] = asm, pk
+        payload["with_dims"] = sum(1 for r in payload["items"] if r.get("assembled_mm"))
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"reparsed {len(payload['items'])} items, {changed} changed, "
+              f"with_dims={payload['with_dims']}")
+        return 0
 
     urls = re.findall(r"<loc>([^<]+)</loc>", fetch(SITEMAP))
     urls = [u for u in urls if "/item/" in u]

@@ -1,0 +1,54 @@
+{
+ "_comment": [
+  "Human-curated corrections, kept OUT of the scrapers so the line between what",
+  "Snow Peak published and what a person decided stays visible. build_catalog.py",
+  "applies these last and stamps span_source='curated'.",
+  "",
+  "Every entry needs a `reason`. If a reason cannot be written, the part stays",
+  "unresolved -- an honest gap beats a confident guess."
+ ],
+
+ "GS-450R": {
+  "span": 2,
+  "reason": "Along-rail 270mm against a 250mm unit. The extra 20mm is the rim resting on the rails, the way any drop-in cooktop overlaps its cutout -- the burner body drops through one unit. Snow Peak's own copy says only 'compatible with the Iron Grill Table System' and never states a count.",
+  "confidence": "high"
+ },
+
+ "GS-230": {
+  "span": 4,
+  "reason": "Along-rail 563mm against two units (500mm), same rim logic as GS-450R. Corroborated by the product copy: 'Pair the Double Burner Stove with the IGT 4 Unit Standing Set and the Double Bamboo Insert' -- the double insert takes 2 units, so the stove takes the remaining 2.",
+  "confidence": "high"
+ },
+
+ "S-029HA": {
+  "role": "accessory",
+  "system": "takibi",
+  "reason": "Not an IGT part. It is a Takibi Fire & Grill accessory that the US storefront files under `cookers`. Its 'half-unit size' copy refers to the Takibi grill, not an IGT unit -- measured along-rail is 206mm against a 125mm half unit, which the fit cross-check flagged at +81mm.",
+  "confidence": "high"
+ },
+
+ "S-029HD": {
+  "role": "accessory",
+  "system": "takibi",
+  "reason": "Same as S-029HA. Its own description says 'Use the Grill Plate Half Deep Depth within the Takibi Fire & Grill'.",
+  "confidence": "high"
+ },
+
+ "GS-1000": {
+  "role": "accessory",
+  "reason": "Round stove (JP size is written as a diameter, φ350x420). It does not sit in the grid on its own -- it mounts via the GP-040 joint frame, which is the part that occupies units.",
+  "confidence": "high"
+ },
+
+ "UG-472": {
+  "span": 2,
+  "reason": "Snow Peak's own spec string is malformed: '(H)220x(W)360x(W)250mm' labels two axes W and none D. It is the same body as UG-471 ((H)110x(W)360x(D)250) at double height -- 110/220 in the names are the heights -- so the trailing 250 is the depth, one full unit along the rail.",
+  "confidence": "high"
+ },
+
+ "GP-040": {
+  "span": null,
+  "reason": "UNRESOLVED on purpose. The JP name is 'IGT剛炎ジョイントフレーム' (joint frame) at 362x377mm, which is neither 250 (1 unit) nor 375 (1.5 units) cleanly. It is the mount that holds the GS-1000 in a frame, so it does occupy units, but the count is not derivable from any published number. Needs the manual PDF or a physical measurement.",
+  "confidence": "none"
+ }
+}

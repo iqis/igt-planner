@@ -83,14 +83,42 @@ actually reads.
 | `rails`           | mandatory partner for a collapsible frame            | CK-903-1       |
 | `leg`             | sets build height; 4 discrete heights                | CK-114 (830mm) |
 | `height_adjuster` | modifies leg height                                  | CK-151         |
-| `slot_module`     | consumes `span` half-slots                           | CK-225, bamboo |
+| `slot_module`     | consumes `span` half-slots                           | CK-225, GS-355 |
+| `full_top`        | rests on the whole frame, covers `covers_units`      | CK-116TR       |
+| `extension`       | bolts to the frame's outside; adds space, takes none | CK-090, CK-118TR|
 | `rail_accessory`  | clamps to a rail, consumes no slot                   | CK-301 (TTA)   |
 | `hanger`          | hangs off an edge, consumes no slot                  | CK-020, DB-005 |
 | `connector`       | joins two frames (L / U kitchens)                    | LV-312         |
 | `case`            | pack target; has an inner volume                     | UG-903         |
-| `set`             | bundle; `contains` other SKUs                        | CK-904SET      |
+| `set`             | bundle; `contains` other SKUs                        | CK-148S        |
 | `standalone`      | integrated frame+legs, not extensible                | CK-180 IGT Slim|
-| `accessory`       | sits on a surface, no grid interaction               | CS-208         |
+| `accessory`       | no grid interaction; may belong to another system    | S-029HA (Takibi)|
+
+`full_top` deserves its own role rather than a very wide `slot_module`. A top's width
+is the frame's **outer** width, overhead included (846 / 1096), because it rests on
+the frame instead of dropping between the rails — so it is not a multiple of the unit
+and never packs like one. The arithmetic that falls out of this is the classic IGT
+setup: a Regular top (846) on a 4-unit frame (1096) leaves `1096 − 846 = 250`, exactly
+one unit, for the burner.
+
+## Set decomposition
+
+A bundle's components come from, in order:
+
+1. **`jp-set-contents`** — the JP spec table's セット内容 names components by SKU. Authoritative, but only exists for parts sold in Japan; 15 of the US sets are US-only SKUs with no JP page.
+2. **`name-derived`** — a foundation set *is* its name: "IGT 3 Unit Sitting Set" is the 3-unit frame plus the 660mm legs. Deterministic, and needed because CK-145's description names its frame and legs without linking either.
+3. **`us-description-includes`** — links inside a sentence that claims inclusion.
+
+Step 3 has to be sentence-scoped, because a set description does two jobs at once:
+
+> "The set **includes** the aluminum IGT Three Unit Frame and four 400mm Legs.
+>  **Pair** the IGT 3 Unit Low Set with the Double Unit BBQ Box."
+
+Both sentences link products. Flattened to a bag of links, the BBQ box lands inside
+every set in the catalog — which is exactly what happened before the split.
+
+**Known gap: quantities are not modelled.** "The set also includes *two* Stainless Half
+Box" records one CK-025. Set-vs-parts pricing is therefore a lower bound on the saving.
 
 ## Constraints the planner must enforce
 
@@ -109,15 +137,42 @@ actually reads.
 
 ## Derived grid constants
 
-The unit pitch is **not published** — it is recovered from frame dimensions by
-differencing frames of known unit count:
+The unit pitch is **not published**. It is recovered by differencing frames of
+known unit count *within one family*:
 
-    pitch = (W of the 4-unit frame − W of the 3-unit frame)
-    end_overhead = W_3unit − 3 × pitch
+    pitch = W(4-unit) − W(3-unit)          # end overhead cancels
 
-`scripts/derive_grid.py` computes this and asserts it holds across the whole frame
-family (standard, collapsible, and the sets). If a frame disagrees, the assertion
-fails loudly rather than silently corrupting every downstream placement.
+Families are kept apart deliberately. The standard frame and the collapsible
+(セパレート) frame are built differently at the ends, so requiring them to share an
+end overhead would be inventing a constraint that does not exist.
+
+The check that **is** kept is a physical one: modules are interchangeable between
+frame types, and that is only possible if every family shares the same pitch. End
+overhead may differ between families; pitch may not. `derive_grid.py` fails loudly
+if they disagree, rather than averaging its way to a plausible wrong number.
+
+## Span: why the label alone is not enough
+
+`span` is a discrete truth — the number of half-slots a module claims — and where
+Snow Peak states it ("1 Unit", "Half Unit") that statement wins outright.
+
+But only **9 of 35** slot-capable parts carry such a label, and the silent ones are
+the ones that matter: every burner (GS-355, GS-450R, GS-230) and every bamboo table
+(CK-116TR, CK-117TR). So width has to fill the gap — carefully.
+
+Width must **not** be rounded to the nearest half-unit. A module is dropped *into*
+its slots, so it is built narrower than the space it claims, and that slack is
+designed in, not error:
+
+    (span − 1) × half  <  width  ≤  span × half        ⟹   span = ceil(width / half)
+
+This is a containment test, not a rounding. Clearance is what the inequality
+*expects*, so tolerance stops being noise the model has to survive.
+
+The leftover slack is then a free diagnostic. Real designed-in clearance is small
+and consistent; a part that implies 40mm of slack is not sitting in a slot at all —
+it is a rail clamp or a hanger that was misclassified. Parts carry `clearance_mm`
+and `span_source` (`label` | `width`) so this stays auditable rather than baked in.
 
 ## Open questions
 
