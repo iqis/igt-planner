@@ -1,0 +1,152 @@
+:root {
+  --bg: #14161a;
+  --panel: #1b1e24;
+  --line: #2b3038;
+  --ink: #e6e8ec;
+  --dim: #8b93a1;
+  --accent: #d8813f;
+  --ok: #5fbf8f;
+  --bad: #e2635a;
+  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: .7rem 1rem;
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
+.grid-facts { font-size: .72rem; color: var(--dim); }
+.grid-facts b { color: var(--accent); font-weight: 600; }
+
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 250px 1fr 330px;
+  min-height: 0;
+}
+
+aside {
+  overflow-y: auto;
+  padding: .8rem;
+  background: var(--panel);
+}
+#palette { border-right: 1px solid var(--line); }
+#bom { border-left: 1px solid var(--line); }
+
+section { margin-bottom: 1.1rem; }
+h2 {
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: .45rem;
+}
+.hint { text-transform: none; letter-spacing: 0; color: #5c6472; }
+
+.chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+.chip {
+  padding: .3rem .5rem;
+  font-size: .72rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #22262d;
+  color: var(--ink);
+  cursor: pointer;
+}
+.chip:hover { border-color: var(--accent); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #14161a; font-weight: 600; }
+
+.parts { display: flex; flex-direction: column; gap: .25rem; }
+.part {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem .45rem;
+  font-size: .72rem;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: #22262d;
+  cursor: pointer;
+}
+.part:hover { border-color: var(--accent); }
+.part.on { border-color: var(--accent); }
+.part .sw { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.part .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.part .sp { color: var(--dim); font-size: .66rem; flex: none; }
+.part.dead { opacity: .35; cursor: not-allowed; }
+
+#stage { position: relative; min-width: 0; }
+#canvas { width: 100%; height: 100%; display: block; }
+
+#slotbar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 2.2rem;
+  display: flex;
+  gap: 2px;
+}
+.cell {
+  width: 26px; height: 10px;
+  background: #262b33;
+  border-radius: 1px;
+}
+.cell.used { background: var(--accent); }
+.cell.top { background: #7d5a34; }
+.cell.over { background: var(--bad); }
+
+#hint {
+  position: absolute;
+  bottom: .7rem; left: 50%;
+  transform: translateX(-50%);
+  font-size: .66rem;
+  color: #5c6472;
+}
+
+/* Fixed layout, or a long part name ("IGT Standing Height 830mm Leg Set") shoves
+   the price column clean out of the panel. */
+#bomtable { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .72rem; }
+#bomtable td { padding: .3rem .2rem; border-bottom: 1px solid #23272e; }
+#bomtable .x { color: var(--dim); cursor: pointer; width: 1.1rem; }
+#bomtable .x:hover { color: var(--bad); }
+#bomtable .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#bomtable .p { text-align: right; color: var(--dim); white-space: nowrap; width: 3.4rem; }
+
+#totals { margin-top: .7rem; font-size: .72rem; }
+#totals .row { display: flex; justify-content: space-between; padding: .2rem 0; }
+#totals .row.big { border-top: 1px solid var(--line); margin-top: .3rem; padding-top: .4rem; }
+#totals .cheap { color: var(--ok); }
+#totals .dear { color: var(--bad); }
+#totals .note { color: #5c6472; font-size: .66rem; margin-top: .5rem; line-height: 1.45; }
+
+#warnings { margin-bottom: .6rem; }
+.warn {
+  font-size: .69rem;
+  padding: .4rem .5rem;
+  margin-bottom: .3rem;
+  border-left: 2px solid var(--bad);
+  background: #2a1f1f;
+  color: #f0b4ae;
+  line-height: 1.4;
+}
+.warn.info { border-color: var(--accent); background: #2a241c; color: #e6c9a4; }
+
+@media (max-width: 1000px) {
+  main { grid-template-columns: 1fr; grid-template-rows: auto 55vh auto; }
+  #palette, #bom { border: none; border-top: 1px solid var(--line); }
+}

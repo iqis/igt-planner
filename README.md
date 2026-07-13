@@ -93,3 +93,25 @@ scripts/     the four build steps above
 catalog/     committed output: grid.json + igt-catalog.json (the knowledge base)
 data/        raw fetches and timestamped archives (gitignored)
 ```
+
+## The planner (phase 2)
+
+```sh
+py serve.py            # -> http://localhost:8795/web/
+```
+
+Vanilla three.js, vendored — no build step, no CDN, works offline. It reads
+`catalog/igt-catalog.json` directly, so a scraper fix shows up on reload.
+
+- **Frame** and **legs** are chips; **tabletops** and **modules** click to drop into the
+  first free run of half-slots. Drag a placed module along the rail — it snaps to the
+  125mm grid and refuses to overlap.
+- The occupancy bar under the table is the grid itself: one cell per half-slot.
+- The BOM prices the build in **US / JP / UK** and shows the delta. The reference build
+  (4-unit frame + Bamboo Regular + Flat Burner + 830mm legs) comes out **11.8 kg,
+  $570 US, $392 JP (−31%)** — matching what the catalog computes on the command line.
+
+Modules are drawn at their **own width, centred in the slots they claim**, never
+stretched to fill them. That is the whole point: a tray built 5mm narrower than its unit
+shows a real gap, and the Flat Burner's 20mm-wider rim really does sit on the rails.
+Stretching parts to their allocation would hide the one thing worth seeing.

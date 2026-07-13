@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IGT Planner</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/controls/OrbitControls.js": "./vendor/OrbitControls.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<header>
+  <h1>IGT Planner</h1>
+  <div class="grid-facts">
+    unit <b>250mm</b> · half <b>125mm</b> · derived, not published
+  </div>
+</header>
+
+<main>
+  <aside id="palette">
+    <section>
+      <h2>Frame</h2>
+      <div id="frames" class="chips"></div>
+    </section>
+    <section>
+      <h2>Legs</h2>
+      <div id="legs" class="chips"></div>
+    </section>
+    <section>
+      <h2>Tabletop <span class="hint">covers whole units</span></h2>
+      <div id="tops" class="parts"></div>
+    </section>
+    <section>
+      <h2>Modules <span class="hint">click to drop in</span></h2>
+      <div id="modules" class="parts"></div>
+    </section>
+  </aside>
+
+  <div id="stage">
+    <canvas id="canvas"></canvas>
+    <div id="slotbar" title="half-slot occupancy"></div>
+    <div id="hint">drag a placed module along the rail · scroll to zoom</div>
+  </div>
+
+  <aside id="bom">
+    <h2>Build</h2>
+    <div id="warnings"></div>
+    <table id="bomtable"></table>
+    <div id="totals"></div>
+  </aside>
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
