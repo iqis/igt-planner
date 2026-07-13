@@ -147,10 +147,19 @@ def parse_weight(w_text):
     return round(val * 1000) if m.group(2).lower() == "kg" else round(val)
 
 
+# Canonical copies of these live in snowpeak-sale-watch/snapshot_regions.py, which is
+# where the daily crawl happens. Kept here so the bootstrap path is not lossier than
+# the one it stands in for.
+IMG_RE = re.compile(r'https://img\.snowpeak\.co\.jp/img/item/[^"\'\s\\]+?\.(?:jpe?g|png|webp)', re.I)
+PDF_RE = re.compile(r'href="(https://[^"]+?\.pdf)"', re.I)
+
+
 def record_for(url, html):
     specs = parse_specs(html)
     if not specs:
         return None
+    code = url.rstrip("/").rsplit("/", 1)[-1]
+    imgs = sorted(set(IMG_RE.findall(html)))
 
     sku = specs.get("メーカー品番", "")
     # "CK-903 (店舗でお問い合わせの際には、上記品番をお伝え下さい。)" -> "CK-903"
@@ -177,6 +186,8 @@ def record_for(url, html):
         "weight_raw": specs.get("重量", ""),
         "material": specs.get("素材", ""),
         "set_contents": specs.get("セット内容", ""),
+        "images": [u for u in imgs if code in u],
+        "manuals": sorted(set(PDF_RE.findall(html))),
     }
 
 

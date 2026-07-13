@@ -325,6 +325,8 @@ def main():
             "price": region_prices(sku, u.get("price_usd"), regions),
             "available": {"us": u.get("available", False)},
             "image": (u.get("images") or [None])[0],
+            "images_jp": j.get("images") or [],
+            "manuals": j.get("manuals") or [],   # the only source of assembly/clearance rules
             "url": {"us": u["us_url"], "jp": j.get("jp_url")},
         }
 

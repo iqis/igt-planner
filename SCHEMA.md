@@ -176,8 +176,11 @@ and `span_source` (`label` | `width`) so this stays auditable rather than baked 
 
 ## Open questions
 
-- **Heat clearance rules.** Manuals are linked as PDFs from the JP pages
-  (`取扱方法`). Parsing them is the only sourced way to get this right.
+- **Heat clearance rules.** Every JP product page links its manual PDF
+  (`CK-903_manual.pdf`), and the snapshot now captures those links (`manuals` on each
+  part). The manuals are the only place Snow Peak documents assembly and compatibility
+  — what may sit beside a burner, and very likely GP-040's unit count. Parsing them is
+  the next unblocked step; until then these rules stay unenforced rather than guessed.
 - **Rail accessory positioning.** TTA clamps slide continuously; whether they
   collide with slot modules depends on module height above the rail. Needs the
   rail cross-section, which no spec table gives — likely measured off product

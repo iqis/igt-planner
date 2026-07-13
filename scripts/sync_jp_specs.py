@@ -73,6 +73,13 @@ def main():
             "material": specs.get("素材", ""),
             "set_contents": specs.get("セット内容", ""),
             "price_jpy": r.get("html_price"),
+            "images": r.get("images") or [],
+            # Every product links its manual PDF. That is the only place Snow Peak
+            # documents assembly and compatibility -- heat clearances, what may sit
+            # beside a burner, and very likely GP-040's unit count. Carried through
+            # so those open questions have somewhere to go.
+            "manuals": r.get("manuals") or [],
+            "related": r.get("related") or [],
         })
 
     items.sort(key=lambda r: r["sku"])
