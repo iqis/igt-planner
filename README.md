@@ -57,15 +57,30 @@ across the whole frame family.
 ## Build the catalog
 
 ```sh
-py scripts/fetch_us.py          # US Shopify collections      -> data/us_products_latest.json
-py scripts/fetch_jp_specs.py    # JP spec tables (whole site) -> data/jp_specs_latest.json
-py scripts/fetch_regions.py     # JP + UK prices              -> data/regions_latest.json
+py scripts/fetch_us.py          # the 6 IGT collections       -> data/us_products_latest.json
+py scripts/sync_jp_specs.py     # JP specs, from the snapshot -> data/jp_specs_latest.json
+py scripts/fetch_regions.py     # JP + UK prices, from snaps  -> data/regions_latest.json
 py scripts/derive_grid.py       # recover the unit pitch      -> catalog/grid.json
 py scripts/build_catalog.py     # join + classify             -> catalog/igt-catalog.json
 ```
 
-`fetch_jp_specs.py --reparse` re-derives dimensions from the stored `size_raw` with no
-network, so a parser bug costs a second rather than another crawl of 2,100 pages.
+### It does not crawl what is already being crawled
+
+[`snowpeak-sale-watch`](../tools/snowpeak-sale-watch) already fetches all ~2,100 JP
+product pages, plus the US and UK catalogs, **every day** — and was throwing the JP spec
+table away. It now keeps it (`specs` on each raw row), so this project *parses* the
+dimensional data instead of re-crawling for it:
+
+- **JP specs** — read from the daily snapshot. No network, and they refresh for free.
+- **JP / UK prices** — read from the same snapshots.
+- **US** — the only live fetch, and only the 6 IGT collection handles, because
+  `/products.json` does not carry collection membership and the planner's whole taxonomy
+  hangs off it. Six requests.
+
+`fetch_jp_specs.py` is the bootstrap crawler, kept for the case where the newest snapshot
+predates that change. `--reparse` re-derives dimensions from the stored `size_raw` with no
+network, so a parser bug costs a second rather than another pass over 2,100 pages — which
+is how four of them were found and fixed.
 
 `fetch_jp_specs.py` crawls the entire JP catalog (~2,100 items), not just IGT — the
 spec table has the same shape for every product, so this doubles as a full

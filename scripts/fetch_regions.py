@@ -55,8 +55,29 @@ def fetch_json(url, tries=3):
 
 
 def uk_prices():
-    """{sku: pence}. Read per variant: the UK sells 3-unit and 4-unit frames as two
-    variants of one product, so a per-product read would price them identically."""
+    """{sku: pence}, from the sale-watch snapshot -- it already pulls the UK catalog
+    daily, so re-fetching it here would be a second crawl for data we have.
+
+    Read per VARIANT, not per product: the UK sells the 3-unit and 4-unit frames as
+    two variants of one listing (the US splits them into separate products), so a
+    per-product read prices the 4-unit frame at the 3-unit's price.
+    """
+    snaps = sorted(glob.glob(str(SALE_WATCH / "uk" / "raw_*.json.gz")))
+    if not snaps:
+        print("no UK snapshot; falling back to a live fetch", file=sys.stderr)
+        return uk_prices_live()
+
+    prods = json.loads(gzip.open(snaps[-1]).read().decode("utf-8"))["raw"]
+    out = {}
+    for p in prods:
+        for v in p.get("variants", []):
+            sku = (v.get("sku") or "").strip()
+            if sku and v.get("price"):
+                out[sku] = int(round(float(v["price"]) * 100))
+    return out
+
+
+def uk_prices_live():
     out, page = {}, 1
     while True:
         d = fetch_json(f"{UK_BASE}/products.json?limit=250&page={page}")
