@@ -150,3 +150,12 @@ h2 {
   main { grid-template-columns: 1fr; grid-template-rows: auto 55vh auto; }
   #palette, #bom { border: none; border-top: 1px solid var(--line); }
 }
+
+/* layout-system additions */
+.muted { color: #5c6472; }
+h3 {
+  font-size: .64rem; letter-spacing: .08em; text-transform: uppercase;
+  color: #5c6472; margin: .6rem 0 .3rem;
+}
+.selbox { border-top: 1px solid var(--line); padding-top: .8rem; }
+#selname { text-transform: none; letter-spacing: 0; color: var(--accent); }

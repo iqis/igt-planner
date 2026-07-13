@@ -1,5 +1,51 @@
 # IGT knowledge base — schema
 
+## IGT is not a table
+
+Snow Peak calls it the **Layout System** (レイアウトシステム). A frame is one node in it.
+Frames join to each other, and to a family of other tables — Connection Table, Jikaro
+Firering Table, Takibi Garden Table, Takibi My Table, the Stainless Kitchen Table.
+
+Two constants hold that family together. Snow Peak publishes neither; both are read off
+the dimensions, the same way the 250mm unit pitch was.
+
+**400mm — the datum.** Every low table in the system stands exactly 400mm tall:
+
+```
+LV-381  Connection Table        840 × 420 × 400
+LV-039  Takibi My Table         496 × 332 × 400
+ST-050  Jikaro Firering Table  1120 ×1120 × 400
+GF-051  Takibi Garden Table    1200 ×1200 × 400
+CK-090  Extension IGT          1348 × 498 × 400
+CK-080R Entry IGT                          400
+```
+
+…and the IGT **Low** leg (CK-112) is 400mm. So the copy on the Connection Table —
+*"compatible with most IGT Extensions using Low Height Legs"* — is not a suggestion. It is
+arithmetic. A frame on 830mm legs cannot meet one of these flush, and the planner says so.
+
+**496mm — the shared depth.** The IGT frame is 496 deep. The Takibi My Table is 496 wide.
+The corner pieces are 496 square. They butt flush by construction.
+
+### The Height Adjuster is a joint, not a leg part
+
+`CK-151` is filed under `joint`, not under legs. The English name ("IGT Height Adjuster")
+suggests it adjusts a table's height. The Japanese name says what it is: **IGT段差ジョイント**
+— *段差* is a step, a difference in level. It is a 320mm post, 25.4mm across (a leg's
+diameter), sold in pairs, and its job is to let **two touching tables stand at different
+heights**:
+
+> "allow for integration of different table heights. Set your cooking space to a standing
+> height, then dining while seated. To use, slide into the edge of the IGT Frame, then
+> attach the next table at preferred height."
+
+So the planner adds one automatically wherever two connected tables' tops differ. Modelling
+it as a leg modifier — which is what the English name invites — would have made the one
+configuration the part exists for impossible to express.
+
+`catalog/layout.json` holds the datum, the shared depth, the tables, the joints and the
+corners, each with the quote it was sourced from.
+
 The Iron Grill Table is a **linear grid at half-unit granularity**, not a 3D
 packing problem. A frame is a run of N unit slots; every module claims a whole
 number of half-slots. That single fact is what makes a planner tractable: slot

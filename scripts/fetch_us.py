@@ -81,6 +81,12 @@ OUT = Path(__file__).resolve().parent.parent / "data"
 # readability of the membership lists.
 COLLECTIONS = ["iron-grill-table", "frames", "legs", "cookers", "surfaces", "storage"]
 
+# The other tables in Snow Peak's Layout System. They connect to IGT frames -- the
+# vendor's own copy says so -- but none of them sit in an IGT collection, so no
+# collection sweep will ever find them. Handles come from catalog/layout.json, which
+# is where the connection rules and their sources live.
+LAYOUT_HANDLES_FROM = "catalog/layout.json"
+
 
 def fetch_json(url, tries=3):
     for i in range(tries):
@@ -109,11 +115,29 @@ def fetch_collection(handle):
     return prods
 
 
+def fetch_product(handle):
+    d = fetch_json(f"{BASE}/products/{handle}.json")
+    return d.get("product")
+
+
+def layout_handles():
+    p = OUT.parent / "catalog" / "layout.json"
+    if not p.exists():
+        return []
+    lay = json.loads(p.read_text(encoding="utf-8"))
+    return [t["handle"] for t in lay.get("tables", {}).values() if t.get("handle")]
+
+
 def main():
     by_handle = {}
 
-    for coll in COLLECTIONS:
-        prods = fetch_collection(coll)
+    sources = [(c, None) for c in COLLECTIONS] + [("layout-system", layout_handles())]
+
+    for coll, handles in sources:
+        if handles is None:
+            prods = fetch_collection(coll)
+        else:
+            prods = [p for p in (fetch_product(h) for h in handles) if p]
         print(f"{coll:20s} {len(prods):3d} products", flush=True)
 
         for p in prods:

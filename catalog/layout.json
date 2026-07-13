@@ -1,0 +1,101 @@
+{
+ "_comment": [
+  "IGT is not a table. Snow Peak calls it the LAYOUT SYSTEM (レイアウトシステム), and the",
+  "frame is one node in it: frames join to each other and to a family of other tables.",
+  "",
+  "Two constants hold that family together, and Snow Peak publishes neither -- they are",
+  "read off the dimensions, the same way the 250mm unit pitch was:",
+  "",
+  "  400mm  the fire-side datum. EVERY table in the system stands 400mm tall, and the",
+  "         IGT Low leg (CK-112) is 400mm. So 'the Connection Table is compatible with",
+  "         IGT using Low Height Legs' is not a suggestion, it is arithmetic.",
+  "  496mm  the shared depth. The IGT frame is 496 deep; the Takibi My Table is 496 deep;",
+  "         the corner pieces are 496 square. They meet flush.",
+  "",
+  "Every rule below quotes the vendor copy it came from. Where no rule could be sourced,",
+  "none is asserted."
+ ],
+
+ "datum_height_mm": 400,
+ "shared_depth_mm": 496,
+ "leg_at_datum": "CK-112",
+
+ "tables": {
+  "LV-381": {
+   "name": "Connection Table",
+   "handle": "connection-table",
+   "size_mm": {"w": 840, "d": 420, "h": 400},
+   "connects_to": ["igt", "ST-050"],
+   "requires_leg": "CK-112",
+   "evidence": "\"compatible with most IGT Extensions using Low Height Legs, and can be connected with the Jikaro Firering Table to create an extended fire-safe table space.\""
+  },
+  "ST-050": {
+   "name": "Jikaro Firering Table",
+   "handle": "jikaro-table",
+   "size_mm": {"w": 1120, "d": 1120, "h": 400},
+   "opening_mm": 600,
+   "connects_to": ["igt", "LV-381"],
+   "evidence": "\"compatible with the Iron Grill Table for additional extension possibilities.\" Built to ring a Takibi Fire & Grill -- the 600mm opening is the fire pit."
+  },
+  "GF-051": {
+   "name": "Takibi Garden Table",
+   "handle": "gf-051-takibi-garden-table",
+   "size_mm": {"w": 1200, "d": 1200, "h": 400},
+   "connects_to": ["igt"],
+   "evidence": "\"Use the Takibi Garden Table with the Takibi Fire & Grill and Bamboo Extensions\" -- the Bamboo Extensions are IGT parts (CK-118TR etc)."
+  },
+  "GF-052": {
+   "name": "Takibi Garden Table XL",
+   "handle": "gf-052-takibi-garden-table-xl",
+   "size_mm": null,
+   "connects_to": ["igt"],
+   "evidence": "XL sibling of GF-051."
+  },
+  "LV-039": {
+   "name": "Takibi My Table",
+   "handle": "stainless-steel-my-table",
+   "size_mm": {"w": 496, "d": 332, "h": 400},
+   "connects_to": ["igt"],
+   "evidence": "Not stated in the copy, but it is 496mm wide -- exactly the IGT frame depth -- and 400mm tall, the system datum. It is built to butt against a frame's short side."
+  },
+  "LV-310": {
+   "name": "Stainless Kitchen Table",
+   "handle": "stainless-kitchen-table",
+   "size_mm": {"w": 1175, "d": 545, "h": 1100},
+   "connects_to": ["igt"],
+   "requires_connector": "LV-312",
+   "evidence": "\"tabletop that seamlessly integrates with the Iron Grill Table\"; LV-312: \"attaches to the Stainless Steel Kitchen Table to allow the insertion of an IGT Four Unit Frame within the length of the table. Set includes two Connectors.\" Note the 1100mm height -- this one does NOT sit at the datum."
+  }
+ },
+
+ "joints": {
+  "CK-151": {
+   "name": "IGT Height Adjuster",
+   "name_jp": "IGT段差ジョイント",
+   "kind": "step",
+   "note": "Joins two tables at DIFFERENT heights. It is not a leg modifier -- the English name misleads; the Japanese one (段差 = level difference) says exactly what it does. A 320mm post, 25.4mm across, the same diameter as a leg, sold in pairs.",
+   "evidence": "\"allow for integration of different table heights. Set your cooking space to a standing height, then dining while seated. To use, slide into the edge of the IGT Frame, then attach the next table at preferred height and tighten the knobs.\""
+  },
+  "CK-175": {
+   "name": "IGT Connection Hook",
+   "kind": "same_level",
+   "size_mm": {"w": 28, "d": 53, "h": 40},
+   "note": "JP-only. 45g each. Joins frames at the same height.",
+   "evidence": "JP catalog: IGTコネクションフック."
+  },
+  "LV-312": {
+   "name": "Stainless Kitchen Table IGT Frame Connector",
+   "kind": "inline",
+   "note": "Drops a 4-unit frame INTO the length of the Stainless Kitchen Table. Ships as a pair.",
+   "evidence": "\"Attach the Connectors to either side of the Stainless Steel Kitchen Table, add the IGT Four Unit Frame, and continue building out a custom IGT setup. Set includes two Connectors.\""
+  }
+ },
+
+ "corners": {
+  "CK-118TR": {"turn": "left", "size_mm": {"w": 496, "d": 496, "h": 25},
+   "evidence": "\"Use it to extend the table 90 degrees to the left and create a wraparound cooking and dining space.\" JP name: マルチファンクションテーブルコーナーL竹."},
+  "CK-119TR": {"turn": "right", "size_mm": {"w": 496, "d": 496, "h": 25}, "evidence": "Mirror of CK-118TR."},
+  "CK-218": {"turn": "left", "size_mm": null, "evidence": "Bamboo Left Angle Extension."},
+  "CK-219": {"turn": "right", "size_mm": null, "evidence": "Bamboo Right Angle Extension."}
+ }
+}

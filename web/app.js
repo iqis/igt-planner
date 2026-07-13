@@ -1,16 +1,17 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-// Everything is in millimetres, then scaled once on the way into the scene. The
-// catalog speaks mm; converting at the boundary keeps every number below readable
-// against the spec table it came from.
+// Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
+// mm; converting at the boundary keeps every number here readable against the spec
+// table it came from.
 const MM = 0.001;
 
-const FRAME_THICK = 30;   // frame slab; the rails a module hangs from
-const RAIL_SPAN = 360;    // default depth when a part does not state one
+const FRAME_THICK = 30;
+const RAIL_SPAN = 360;
 const LEG_R = 13;
+const SNAP = 25;        // ground grid the tables slide on
+const TOUCH = 30;       // two tables closer than this are connected
 
-// Prices are stored in minor units per region. Rates are for orientation only.
 const TO_USD = { us: c => c / 100, jp: y => y / 157, uk: p => (p / 100) * 1.27 };
 
 const MATERIALS = [
@@ -21,22 +22,68 @@ const MATERIALS = [
   [/ポリエステル|ナイロン|polyester|nylon/i, 0x5c6b63],
 ];
 const colorFor = m => (MATERIALS.find(([re]) => re.test(m || "")) || [null, 0x8a929c])[1];
-
 const $ = id => document.getElementById(id);
 
-let CAT, GRID, HALF, PARTS;
-const state = { frame: "CK-150", leg: "CK-114", top: null, placed: [] };
+let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE;
 
-// ---------------------------------------------------------------- geometry
+// A layout is a set of tables. An IGT frame is one kind of table -- the kind with a
+// grid in it. Snow Peak calls the whole thing the Layout System, and the frame is a
+// node in it, not the thing itself.
+const state = { nodes: [], sel: null, nextId: 1 };
 
-const unitsOf = sku => PARTS[sku]?.units || 0;
-const runMM = () => unitsOf(state.frame) * 250;          // the usable rail length
-const slots = () => unitsOf(state.frame) * 2;            // in half-units
-const legH = () => PARTS[state.leg]?.height_mm || 0;
-const frameTop = () => legH() + FRAME_THICK;
+// ---------------------------------------------------------------- node geometry
 
-/** A part's size along the rail. The catalog already resolved which axis that is --
- *  the JP spec table writes dimensions longest-first, so it is not always `w`. */
+const overhead = () => GRID.families?.standard?.end_overhead_mm ?? 96;
+
+function footprint(n) {
+  const p = PARTS[n.sku];
+  if (n.kind === "frame") return { w: 250 * p.units + overhead(), d: p.assembled_mm?.d ?? 496 };
+  const a = p.assembled_mm;
+  return { w: a?.w ?? 496, d: a?.d ?? 496 };
+}
+
+/** Top surface height. Frames get it from their legs; everything else stands on its own. */
+function topOf(n) {
+  if (n.kind === "frame") return (PARTS[n.leg]?.height_mm ?? 0) + FRAME_THICK;
+  return PARTS[n.sku].height_mm ?? PARTS[n.sku].assembled_mm?.h ?? LAYOUT.datum_height_mm;
+}
+
+/** World-space AABB, honouring the node's 90-degree rotation. */
+function aabb(n) {
+  const f = footprint(n);
+  const turned = n.rot % 180 !== 0;
+  const w = turned ? f.d : f.w, d = turned ? f.w : f.d;
+  return { x0: n.x - w / 2, x1: n.x + w / 2, z0: n.z - d / 2, z1: n.z + d / 2, w, d };
+}
+
+/** Two tables are connected if their footprints touch. */
+function neighbours(n) {
+  const a = aabb(n);
+  return state.nodes.filter(m => {
+    if (m === n) return false;
+    const b = aabb(m);
+    const gapX = Math.max(a.x0 - b.x1, b.x0 - a.x1);
+    const gapZ = Math.max(a.z0 - b.z1, b.z0 - a.z1);
+    return gapX < TOUCH && gapZ < TOUCH && !(gapX > 0 && gapZ > 0);
+  });
+}
+
+/** Every adjacency where the two tops sit at different heights. Each one needs a
+ *  step joint (CK-151) -- that is what the part is for, and the only thing it is for. */
+function steps() {
+  const out = [];
+  for (const n of state.nodes)
+    for (const m of neighbours(n))
+      if (n.id < m.id && Math.abs(topOf(n) - topOf(m)) > 5) out.push([n, m]);
+  return out;
+}
+
+// ---------------------------------------------------------------- slots (per frame)
+
+const slotsOf = n => PARTS[n.sku].units * 2;
+const runOf = n => PARTS[n.sku].units * 250;
+const slotX = (n, i) => -runOf(n) / 2 + i * HALF;
+
 function railW(p) {
   return p.along_rail_mm || (p.span ? p.span * HALF : (p.assembled_mm?.w ?? HALF));
 }
@@ -45,20 +92,16 @@ function depthOf(p) {
   if (!a) return RAIL_SPAN;
   return Math.abs(a.w - railW(p)) < 1 ? a.d : a.w;
 }
+const spanOf = p => (p.role === "full_top" ? p.covers_units * 2 : p.span);
 
-/** Left edge of half-slot i, in mm, with the frame centred on the origin. */
-const slotX = i => -runMM() / 2 + i * HALF;
-
-function occupancy() {
-  const cells = new Array(slots()).fill(null);
-  for (const pl of state.placed)
+function occupancy(n) {
+  const cells = new Array(slotsOf(n)).fill(null);
+  for (const pl of n.placements)
     for (let i = pl.start; i < pl.start + pl.span && i < cells.length; i++) cells[i] = pl;
   return cells;
 }
-
-/** First run of `span` free half-slots, or -1. */
-function firstFit(span, ignore = null) {
-  const cells = occupancy();
+function firstFit(n, span, ignore = null) {
+  const cells = occupancy(n);
   for (let s = 0; s + span <= cells.length; s++) {
     let ok = true;
     for (let i = s; i < s + span; i++) if (cells[i] && cells[i] !== ignore) { ok = false; break; }
@@ -66,10 +109,9 @@ function firstFit(span, ignore = null) {
   }
   return -1;
 }
-
-function canPlaceAt(start, span, ignore) {
-  if (start < 0 || start + span > slots()) return false;
-  const cells = occupancy();
+function canPlaceAt(n, start, span, ignore) {
+  if (start < 0 || start + span > slotsOf(n)) return false;
+  const cells = occupancy(n);
   for (let i = start; i < start + span; i++) if (cells[i] && cells[i] !== ignore) return false;
   return true;
 }
@@ -83,22 +125,20 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x14161a);
 
-const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 60);
-camera.position.set(1.15, 1.05, 1.5);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 80);
+camera.position.set(1.6, 1.5, 2.1);
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
-controls.target.set(0, 0.5, 0);
+controls.target.set(0, 0.35, 0);
 
 scene.add(new THREE.HemisphereLight(0xdfe6f0, 0x33383f, 1.5));
-const key = new THREE.DirectionalLight(0xffffff, 1.5);
+const key = new THREE.DirectionalLight(0xffffff, 1.4);
 key.position.set(2, 3.4, 1.8);
 scene.add(key);
+scene.add(new THREE.GridHelper(8, 32, 0x2b3038, 0x21252b));
 
-const floor = new THREE.GridHelper(6, 24, 0x2b3038, 0x21252b);
-scene.add(floor);
-
-const build = new THREE.Group();   // everything that a state change rebuilds
+const build = new THREE.Group();
 scene.add(build);
 
 const box = (w, h, d, color, opts = {}) => new THREE.Mesh(
@@ -106,222 +146,336 @@ const box = (w, h, d, color, opts = {}) => new THREE.Mesh(
   new THREE.MeshStandardMaterial({ color, roughness: 0.62, metalness: 0.12, ...opts }),
 );
 
-const draggable = [];   // meshes carrying a .placement
+const nodeMeshes = [];   // meshes carrying .node (for picking + dragging tables)
+const slotMeshes = [];   // meshes carrying .placement (for dragging modules)
 
-function rebuild() {
-  build.clear();
-  draggable.length = 0;
+function drawFrame(g, n) {
+  const p = PARTS[n.sku];
+  const f = footprint(n);
+  const top = topOf(n);
+  const railD = (f.d - RAIL_SPAN) / 2;
+  const sel = state.sel === n.id;
+  const alu = sel ? 0xc9a06a : 0x8f979f;
 
-  const f = PARTS[state.frame];
-  const n = unitsOf(state.frame);
-  const outerW = 250 * n + (GRID.families?.standard?.end_overhead_mm ?? 96);
-  const depth = f.assembled_mm?.d ?? 496;
-  const top = frameTop();
-
-  // Frame: drawn as two rails plus two ends, so the units read as openings rather
-  // than as a solid slab -- which is what they are. There are no dividers.
-  const railD = (depth - RAIL_SPAN) / 2;
-  const alu = 0x8f979f;
+  // Two rails and two ends -- not a slab. There are no dividers; a "unit" is a 250mm
+  // notion along the run, and drawing it solid would invent a compartment.
   for (const z of [-(RAIL_SPAN + railD) / 2, (RAIL_SPAN + railD) / 2]) {
-    const rail = box(outerW, FRAME_THICK, railD, alu);
-    rail.position.set(0, (top - FRAME_THICK / 2) * MM, z * MM);
-    build.add(rail);
+    const r = box(f.w, FRAME_THICK, railD, alu);
+    r.position.set(0, top - FRAME_THICK / 2, z).multiplyScalar(MM);
+    r.userData.node = n; g.add(r); nodeMeshes.push(r);
   }
-  for (const x of [-(outerW - 48) / 2, (outerW - 48) / 2]) {
-    const end = box(48, FRAME_THICK, RAIL_SPAN, alu);
-    end.position.set(x * MM, (top - FRAME_THICK / 2) * MM, 0);
-    build.add(end);
+  for (const x of [-(f.w - 48) / 2, (f.w - 48) / 2]) {
+    const e = box(48, FRAME_THICK, RAIL_SPAN, alu);
+    e.position.set(x, top - FRAME_THICK / 2, 0).multiplyScalar(MM);
+    e.userData.node = n; g.add(e); nodeMeshes.push(e);
   }
-
-  // Unit ticks along the front rail: the 250mm grid, made visible.
-  for (let i = 1; i < n; i++) {
-    const tick = box(3, FRAME_THICK + 1, railD, 0x596069);
-    tick.position.set((slotX(i * 2)) * MM, (top - FRAME_THICK / 2) * MM, -(RAIL_SPAN + railD) / 2 * MM);
-    build.add(tick);
+  for (let i = 1; i < p.units; i++) {
+    const t = box(3, FRAME_THICK + 1, railD, 0x596069);
+    t.position.set(slotX(n, i * 2), top - FRAME_THICK / 2, -(RAIL_SPAN + railD) / 2).multiplyScalar(MM);
+    g.add(t);
   }
 
-  // Legs
-  const leg = PARTS[state.leg];
+  const leg = PARTS[n.leg];
   if (leg?.height_mm) {
-    const h = leg.height_mm;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
       const m = new THREE.Mesh(
-        new THREE.CylinderGeometry(LEG_R * MM, LEG_R * MM, h * MM, 12),
+        new THREE.CylinderGeometry(LEG_R * MM, LEG_R * MM, leg.height_mm * MM, 12),
         new THREE.MeshStandardMaterial({ color: 0x767d86, roughness: 0.5, metalness: 0.3 }),
       );
-      m.position.set(sx * (outerW / 2 - 40) * MM, (h / 2) * MM, sz * (depth / 2 - 40) * MM);
-      build.add(m);
+      m.position.set(sx * (f.w / 2 - 40), leg.height_mm / 2, sz * (f.d / 2 - 40)).multiplyScalar(MM);
+      g.add(m);
     }
   }
 
-  // Slot modules. Each is drawn at its OWN width, centred in the slots it claims --
-  // so a tray that is 5mm narrower than its unit shows a real gap, and a burner whose
-  // rim is 20mm wider really does overlap the rails. Stretching parts to fill their
-  // allocation would hide exactly the thing worth seeing.
-  for (const pl of state.placed) {
-    const p = PARTS[pl.sku];
-    const alloc = pl.span * HALF;
-    const cx = slotX(pl.start) + alloc / 2;
-    const w = railW(p), d = depthOf(p), h = p.assembled_mm?.h ?? 40;
-    const onTop = p.role === "full_top";
-
-    const m = box(w, h, d, colorFor(p.material));
-    m.position.set(cx * MM, (onTop ? top + h / 2 : top - h / 2) * MM, 0);
-    m.userData.placement = pl;
-    build.add(m);
-    draggable.push(m);
+  // Modules: drawn at their OWN width, centred in the slots they claim. A tray 5mm
+  // narrower than its unit shows a real gap; the Flat Burner's 20mm-wider rim really
+  // does overlap the rails. Stretching parts to fill their allocation would hide it.
+  for (const pl of n.placements) {
+    const p2 = PARTS[pl.sku];
+    const cx = slotX(n, pl.start) + (pl.span * HALF) / 2;
+    const w = railW(p2), d = depthOf(p2), h = p2.assembled_mm?.h ?? 40;
+    const onTop = p2.role === "full_top";
+    const m = box(w, h, d, colorFor(p2.material));
+    m.position.set(cx, onTop ? top + h / 2 : top - h / 2, 0).multiplyScalar(MM);
+    m.userData.placement = pl; m.userData.node = n;
+    g.add(m); slotMeshes.push(m);
   }
 }
 
-// ---------------------------------------------------------------- drag
+function drawTable(g, n) {
+  const p = PARTS[n.sku];
+  const f = footprint(n);
+  const top = topOf(n);
+  const sel = state.sel === n.id;
+  const thick = p.role === "corner" ? (p.assembled_mm?.h ?? 25) : 30;
+
+  const m = box(f.w, thick, f.d, sel ? 0xc9a06a : colorFor(p.material));
+  m.position.set(0, top - thick / 2, 0).multiplyScalar(MM);
+  m.userData.node = n; g.add(m); nodeMeshes.push(m);
+
+  // A corner is a bridging surface between two tables; it has no legs of its own.
+  if (p.role === "corner") return;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const leg = new THREE.Mesh(
+      new THREE.CylinderGeometry(10 * MM, 10 * MM, (top - thick) * MM, 10),
+      new THREE.MeshStandardMaterial({ color: 0x6c737c, roughness: 0.55, metalness: 0.3 }),
+    );
+    leg.position.set(sx * (f.w / 2 - 35), (top - thick) / 2, sz * (f.d / 2 - 35)).multiplyScalar(MM);
+    g.add(leg);
+  }
+}
+
+function rebuild() {
+  build.clear();
+  nodeMeshes.length = 0;
+  slotMeshes.length = 0;
+
+  for (const n of state.nodes) {
+    const g = new THREE.Group();
+    g.position.set(n.x * MM, 0, n.z * MM);
+    g.rotation.y = (n.rot * Math.PI) / 180;
+    (n.kind === "frame" ? drawFrame : drawTable)(g, n);
+    build.add(g);
+  }
+
+  // Step joints, where two touching tables stand at different heights. Drawn as the
+  // 320mm post the part actually is.
+  for (const [a, b] of steps()) {
+    const mid = new THREE.Vector3((a.x + b.x) / 2, 0, (a.z + b.z) / 2);
+    const hi = Math.max(topOf(a), topOf(b));
+    const post = new THREE.Mesh(
+      new THREE.CylinderGeometry(12.7 * MM, 12.7 * MM, 320 * MM, 10),
+      new THREE.MeshStandardMaterial({ color: 0xd8813f, roughness: 0.4, metalness: 0.4 }),
+    );
+    post.position.set(mid.x * MM, (hi - 160) * MM, mid.z * MM);
+    build.add(post);
+  }
+}
+
+// ---------------------------------------------------------------- interaction
 
 const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
-let dragging = null;
+let dragNode = null, dragMod = null, dragOff = new THREE.Vector3();
 
 const toPtr = e => {
   const r = canvas.getBoundingClientRect();
   ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
 };
+const hitPlane = y => {
+  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -y * MM);
+  const at = new THREE.Vector3();
+  return ray.ray.intersectPlane(plane, at) ? at : null;
+};
 
 canvas.addEventListener("pointerdown", e => {
   toPtr(e);
   ray.setFromCamera(ptr, camera);
-  const hit = ray.intersectObjects(draggable, false)[0];
-  if (!hit) return;
-  dragging = hit.object.userData.placement;
-  controls.enabled = false;
-});
 
-canvas.addEventListener("pointermove", e => {
-  if (!dragging) return;
-  toPtr(e);
-  ray.setFromCamera(ptr, camera);
-  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -frameTop() * MM);
-  const at = new THREE.Vector3();
-  if (!ray.ray.intersectPlane(plane, at)) return;
-
-  // Snap to the half-unit grid: the atom of the system.
-  const x = at.x / MM;
-  const start = Math.round((x + runMM() / 2 - (dragging.span * HALF) / 2) / HALF);
-  if (start !== dragging.start && canPlaceAt(start, dragging.span, dragging)) {
-    dragging.start = start;
-    rebuild();
+  const mod = ray.intersectObjects(slotMeshes, false)[0];
+  if (mod) {
+    dragMod = { pl: mod.object.userData.placement, node: mod.object.userData.node };
+    state.sel = dragMod.node.id;
+    controls.enabled = false;
     paint();
+    return;
+  }
+  const nd = ray.intersectObjects(nodeMeshes, false)[0];
+  if (nd) {
+    dragNode = nd.object.userData.node;
+    state.sel = dragNode.id;
+    const at = hitPlane(0);
+    if (at) dragOff.set(dragNode.x - at.x / MM, 0, dragNode.z - at.z / MM);
+    controls.enabled = false;
+    render();
   }
 });
 
-addEventListener("pointerup", () => { dragging = null; controls.enabled = true; });
+canvas.addEventListener("pointermove", e => {
+  if (!dragNode && !dragMod) return;
+  toPtr(e);
+  ray.setFromCamera(ptr, camera);
+
+  if (dragMod) {
+    const { pl, node } = dragMod;
+    const at = hitPlane(topOf(node));
+    if (!at) return;
+    // Undo the node's own rotation to get a position along its rail.
+    const rad = (-node.rot * Math.PI) / 180;
+    const lx = (at.x / MM - node.x) * Math.cos(rad) - (at.z / MM - node.z) * Math.sin(rad);
+    const start = Math.round((lx + runOf(node) / 2 - (pl.span * HALF) / 2) / HALF);
+    if (start !== pl.start && canPlaceAt(node, start, pl.span, pl)) {
+      pl.start = start;
+      rebuild(); paint();
+    }
+    return;
+  }
+
+  const at = hitPlane(0);
+  if (!at) return;
+  dragNode.x = Math.round((at.x / MM + dragOff.x) / SNAP) * SNAP;
+  dragNode.z = Math.round((at.z / MM + dragOff.z) / SNAP) * SNAP;
+  snapToNeighbours(dragNode);
+  rebuild(); paint();
+});
+
+addEventListener("pointerup", () => { dragNode = dragMod = null; controls.enabled = true; });
+
+/** Pull a dragged table flush against whatever it is nearly touching. Layout tables are
+ *  meant to butt edge to edge -- that is the whole point of a shared 496mm depth. */
+function snapToNeighbours(n) {
+  const a = aabb(n);
+  for (const m of state.nodes) {
+    if (m === n) continue;
+    const b = aabb(m);
+    const nearZ = a.z0 < b.z1 + 200 && b.z0 < a.z1 + 200;
+    const nearX = a.x0 < b.x1 + 200 && b.x0 < a.x1 + 200;
+    if (nearZ && Math.abs(a.x0 - b.x1) < 80) { n.x = b.x1 + a.w / 2; return; }
+    if (nearZ && Math.abs(a.x1 - b.x0) < 80) { n.x = b.x0 - a.w / 2; return; }
+    if (nearX && Math.abs(a.z0 - b.z1) < 80) { n.z = b.z1 + a.d / 2; return; }
+    if (nearX && Math.abs(a.z1 - b.z0) < 80) { n.z = b.z0 - a.d / 2; return; }
+  }
+}
+
+// ---------------------------------------------------------------- state ops
+
+const sel = () => state.nodes.find(n => n.id === state.sel);
+
+function addNode(sku) {
+  const p = PARTS[sku];
+  const kind = p.role === "frame" ? "frame" : "table";
+  const n = {
+    id: state.nextId++, sku, kind, x: 0, z: 0, rot: 0,
+    leg: kind === "frame" ? "CK-114" : null,
+    placements: [],
+  };
+  // Land it flush against the right edge of what is already there. This is a layout
+  // system -- tables connect. Dropping the new one in open space and making you drag
+  // it into contact would be a worse default than the thing the system is for.
+  const right = state.nodes.length ? Math.max(...state.nodes.map(m => aabb(m).x1)) : null;
+  n.x = right === null ? 0 : right + footprint(n).w / 2;
+  if (state.nodes.length) n.z = state.nodes[state.nodes.length - 1].z;
+  state.nodes.push(n);
+  state.sel = n.id;
+  render();
+}
+
+function placeModule(sku) {
+  const n = sel();
+  if (!n || n.kind !== "frame") return;
+  const p = PARTS[sku];
+  const span = spanOf(p);
+  const start = firstFit(n, span);
+  if (start < 0) return;
+  if (p.role === "full_top") n.placements = n.placements.filter(x => PARTS[x.sku].role !== "full_top");
+  n.placements.push({ sku, span, start });
+  render();
+}
 
 // ---------------------------------------------------------------- ui
 
-function place(sku) {
-  const p = PARTS[sku];
-  const span = p.role === "full_top" ? p.covers_units * 2 : p.span;
-  const start = firstFit(span);
-  if (start < 0) return false;
-  if (p.role === "full_top") state.placed = state.placed.filter(x => PARTS[x.sku].role !== "full_top");
-  state.placed.push({ sku, span, start });
-  return true;
+function chip(label, on, title, fn) {
+  const c = document.createElement("button");
+  c.className = "chip" + (on ? " on" : "");
+  c.textContent = label;
+  c.title = title || "";
+  c.onclick = fn;
+  return c;
 }
 
-function partRow(p, onClick) {
+function partRow(p, fn, dead) {
   const el = document.createElement("div");
-  el.className = "part";
-  const span = p.role === "full_top" ? p.covers_units * 2 : p.span;
+  el.className = "part" + (dead ? " dead" : "");
+  const s = spanOf(p);
   el.innerHTML = `<span class="sw" style="background:#${colorFor(p.material).toString(16).padStart(6, "0")}"></span>`
     + `<span class="nm">${p.title_en}</span>`
-    + `<span class="sp">${span / 2}u</span>`;
-  el.onclick = () => onClick(p);
+    + `<span class="sp">${s ? s / 2 + "u" : ""}</span>`;
+  el.title = `${p.sku} — ${p.title_en}`;
+  if (!dead) el.onclick = () => fn(p);
   return el;
 }
 
 function paintPalette() {
-  const frames = $("frames"); frames.innerHTML = "";
-  for (const p of PARTS_BY_ROLE.frame) {
-    const c = document.createElement("button");
-    c.className = "chip" + (state.frame === p.sku ? " on" : "");
-    c.textContent = `${p.units}u${p.collapsible ? " ⤢" : ""}`;
-    c.title = p.title_en;
-    c.onclick = () => { state.frame = p.sku; state.placed = []; state.top = null; render(); };
-    frames.append(c);
-  }
+  const add = $("add"); add.innerHTML = "";
+  for (const p of BY_ROLE.frame) add.append(chip(`${p.units}u${p.collapsible ? " ⤢" : ""}`, false, p.title_en, () => addNode(p.sku)));
+  for (const p of BY_ROLE.corner) add.append(chip("corner", false, p.title_en, () => addNode(p.sku)));
 
+  const tab = $("tables"); tab.innerHTML = "";
+  for (const p of [...BY_ROLE.layout_table, ...BY_ROLE.standalone])
+    tab.append(partRow(p, () => addNode(p.sku), false));
+
+  const n = sel();
   const legs = $("legs"); legs.innerHTML = "";
-  for (const p of PARTS_BY_ROLE.leg.sort((a, b) => a.height_mm - b.height_mm)) {
-    const c = document.createElement("button");
-    c.className = "chip" + (state.leg === p.sku ? " on" : "");
-    c.textContent = `${p.height_mm}`;
-    c.title = p.title_en;
-    c.onclick = () => { state.leg = p.sku; render(); };
-    legs.append(c);
-  }
+  for (const p of BY_ROLE.leg)
+    legs.append(chip(`${p.height_mm}`, n?.kind === "frame" && n.leg === p.sku, p.title_en, () => {
+      if (n?.kind === "frame") { n.leg = p.sku; render(); }
+    }));
 
   const tops = $("tops"); tops.innerHTML = "";
-  for (const p of PARTS_BY_ROLE.full_top) {
-    const el = partRow(p, () => { if (place(p.sku)) render(); });
-    if (p.covers_units * 2 > slots()) el.classList.add("dead");
-    tops.append(el);
-  }
-
   const mods = $("modules"); mods.innerHTML = "";
-  for (const p of PARTS_BY_ROLE.slot_module) {
-    const el = partRow(p, () => { if (place(p.sku)) render(); });
-    if (firstFit(p.span) < 0) el.classList.add("dead");
-    mods.append(el);
-  }
+  const frame = n?.kind === "frame" ? n : null;
+  for (const p of BY_ROLE.full_top)
+    tops.append(partRow(p, () => placeModule(p.sku), !frame || firstFit(frame, spanOf(p)) < 0));
+  for (const p of BY_ROLE.slot_module)
+    mods.append(partRow(p, () => placeModule(p.sku), !frame || firstFit(frame, p.span) < 0));
+
+  $("selname").textContent = n ? PARTS[n.sku].title_en : "nothing selected";
 }
 
 function paintSlots() {
   const bar = $("slotbar"); bar.innerHTML = "";
-  const cells = occupancy();
-  for (const c of cells) {
+  const n = sel();
+  if (!n || n.kind !== "frame") return;
+  for (const c of occupancy(n)) {
     const d = document.createElement("div");
     d.className = "cell" + (c ? (PARTS[c.sku].role === "full_top" ? " top" : " used") : "");
     bar.append(d);
   }
 }
 
+function bomLines() {
+  const lines = [];
+  for (const n of state.nodes) {
+    lines.push({ sku: n.sku, node: n });
+    if (n.kind === "frame") {
+      if (n.leg) lines.push({ sku: n.leg });
+      const rails = PARTS[n.sku].requires_rails;
+      if (rails && PARTS[rails]) lines.push({ sku: rails, req: true });
+      for (const pl of n.placements) lines.push({ sku: pl.sku, node: n, pl });
+    }
+    const conn = PARTS[n.sku].requires_connector;
+    if (conn && PARTS[conn]) lines.push({ sku: conn, req: true });
+  }
+  // One step joint per height change between touching tables.
+  for (let i = 0; i < steps().length; i++) lines.push({ sku: "CK-151", req: true });
+  return lines;
+}
+
 function paintBOM() {
-  const rows = [
-    { sku: state.frame, kind: "frame" },
-    { sku: state.leg, kind: "legs" },
-    ...state.placed.map(pl => ({ sku: pl.sku, pl })),
-  ];
-
-  // A collapsible frame is inert without its rails: they are a separate SKU and the
-  // build is not buildable if you forget them, so the BOM adds them rather than
-  // letting a plan quietly ship incomplete.
-  const req = PARTS[state.frame]?.requires_rails;
-  if (req && PARTS[req]) rows.splice(1, 0, { sku: req, kind: "required" });
-
   const t = $("bomtable"); t.innerHTML = "";
   const tot = { us: 0, jp: 0, uk: 0, g: 0 };
-  let missing = false;
 
-  for (const r of rows) {
-    const p = PARTS[r.sku];
-    const tr = document.createElement("tr");
-    for (const k of ["us", "jp", "uk"]) {
-      if (p.price[k]) tot[k] += TO_USD[k](p.price[k]);
-      else if (k === "us") missing = true;
-    }
+  for (const l of bomLines()) {
+    const p = PARTS[l.sku];
+    if (!p) continue;
+    for (const k of ["us", "jp", "uk"]) if (p.price[k]) tot[k] += TO_USD[k](p.price[k]);
     tot.g += p.weight_g || 0;
 
+    const tr = document.createElement("tr");
     const usd = p.price.us ? "$" + TO_USD.us(p.price.us).toFixed(0) : "—";
-    tr.innerHTML = `<td class="x">${r.pl ? "×" : ""}</td>`
-      + `<td class="nm" title="${p.sku} — ${p.title_en}">${p.title_en}</td>`
+    tr.innerHTML = `<td class="x">${l.node && !l.pl ? "×" : ""}</td>`
+      + `<td class="nm" title="${p.sku} — ${p.title_en}">${l.req ? "↳ " : ""}${p.title_en}</td>`
       + `<td class="p">${usd}</td>`;
-    if (r.pl) tr.querySelector(".x").onclick = () => {
-      state.placed = state.placed.filter(x => x !== r.pl);
+    if (l.node && !l.pl) tr.querySelector(".x").onclick = () => {
+      state.nodes = state.nodes.filter(n => n !== l.node);
+      if (state.sel === l.node.id) state.sel = state.nodes[0]?.id ?? null;
       render();
     };
     t.append(tr);
   }
 
   const cheapest = ["us", "jp", "uk"].filter(k => tot[k] > 0).sort((a, b) => tot[a] - tot[b])[0];
-  const box = $("totals");
-  box.innerHTML = `
+  $("totals").innerHTML = `
     <div class="row"><span>weight</span><b>${(tot.g / 1000).toFixed(1)} kg</b></div>
     ${["us", "jp", "uk"].map(k => {
       const d = tot.us ? ((tot[k] - tot.us) / tot.us) * 100 : 0;
@@ -330,31 +484,44 @@ function paintBOM() {
       return `<div class="row ${k === cheapest ? "big" : ""}"><span>${k.toUpperCase()}</span>`
         + `<b class="${cls}">$${tot[k].toFixed(0)}${pct}</b></div>`;
     }).join("")}
-    <div class="note">JP/UK converted at fixed rates for orientation, not for
-      checkout.${missing ? " Some parts have no US price." : ""}</div>`;
+    <div class="note">JP/UK converted at fixed rates for orientation, not for checkout.</div>`;
 }
 
 function paintWarnings() {
   const w = $("warnings"); w.innerHTML = "";
-  const used = occupancy().filter(Boolean).length;
   const add = (msg, cls = "warn") => {
     const d = document.createElement("div");
-    d.className = cls;
-    d.textContent = msg;
-    w.append(d);
+    d.className = cls; d.textContent = msg; w.append(d);
   };
 
-  const req = PARTS[state.frame]?.requires_rails;
-  if (req) add(`This frame folds — it needs ${req} rails, which are sold separately. Added to the build.`, "warn info");
-  if (used === slots() && slots()) add(`Full: ${used}/${slots()} half-slots.`, "warn info");
+  for (const [a, b] of steps())
+    add(`${PARTS[a.sku].title_en} and ${PARTS[b.sku].title_en} meet at different heights `
+      + `(${topOf(a)} vs ${topOf(b)}mm). That needs an IGT Height Adjuster — added.`, "warn info");
+
+  // The datum is the reason the fire-side tables specify low legs: they are all 400mm,
+  // and so is the IGT Low leg. A frame at 830mm simply cannot meet one flush.
+  for (const n of state.nodes) {
+    if (n.kind !== "frame") continue;
+    for (const m of neighbours(n)) {
+      const p = PARTS[m.sku];
+      if (p.role !== "layout_table" || !p.requires_leg) continue;
+      if (n.leg !== p.requires_leg)
+        add(`${p.title_en} stands at ${p.height_mm}mm — it needs the `
+          + `${PARTS[p.requires_leg].title_en} on the frame it joins.`);
+    }
+  }
+
+  for (const n of state.nodes) {
+    if (n.kind !== "frame") continue;
+    const used = occupancy(n).filter(Boolean).length;
+    if (used === slotsOf(n)) add(`${PARTS[n.sku].title_en}: full, ${used}/${slotsOf(n)} half-slots.`, "warn info");
+  }
 }
 
-function paint() { paintSlots(); paintBOM(); paintWarnings(); paintPalette(); }
+function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); }
 function render() { rebuild(); paint(); }
 
 // ---------------------------------------------------------------- boot
-
-let PARTS_BY_ROLE;
 
 function resize() {
   const r = $("stage").getBoundingClientRect();
@@ -370,14 +537,12 @@ addEventListener("resize", resize);
   renderer.render(scene, camera);
 })();
 
-const res = await fetch("../catalog/igt-catalog.json");
-CAT = await res.json();
+CAT = await (await fetch("../catalog/igt-catalog.json")).json();
 GRID = CAT.grid;
+LAYOUT = CAT.layout;
 HALF = GRID.half_unit_mm;
-
 PARTS = Object.fromEntries(CAT.parts.map(p => [p.sku, p]));
 
-// Collapsible frames name their rails by convention: CK-903 -> CK-903-1.
 for (const p of CAT.parts) {
   if (p.role !== "frame") continue;
   const rails = `${p.sku}-1`;
@@ -385,14 +550,18 @@ for (const p of CAT.parts) {
 }
 
 const by = r => CAT.parts.filter(p => p.role === r);
-PARTS_BY_ROLE = {
-  frame: by("frame").filter(p => p.units).sort((a, b) => a.units - b.units || a.sku.localeCompare(b.sku)),
-  leg: by("leg").filter(p => p.height_mm),
+BY_ROLE = {
+  frame: by("frame").filter(p => p.units).sort((a, b) => a.units - b.units),
+  leg: by("leg").filter(p => p.height_mm).sort((a, b) => a.height_mm - b.height_mm),
   full_top: by("full_top").filter(p => p.covers_units),
-  // Only parts whose span is actually known can be placed on a grid.
   slot_module: by("slot_module").filter(p => p.span && p.assembled_mm)
     .sort((a, b) => a.span - b.span || a.title_en.localeCompare(b.title_en)),
+  layout_table: by("layout_table").filter(p => p.assembled_mm),
+  standalone: by("standalone").filter(p => p.assembled_mm),
+  corner: by("corner").filter(p => p.assembled_mm),
 };
 
+$("datum").textContent = `${LAYOUT.datum_height_mm}mm`;
+
 resize();
-render();
+addNode("CK-150");

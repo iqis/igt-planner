@@ -45,12 +45,16 @@ def sku_keys(sku):
 # Titles are the only signal for some roles. Ordered: first match wins.
 TITLE_RULES = [
     (r"\brails?\b", "rails"),
-    # Extensions bolt onto the OUTSIDE of a frame -- corner, angle, sliding, and the
-    # Extension IGT itself. They add space rather than consuming a slot, and treating
-    # them as slot modules is what produced a "span 4, fit +848mm" reading.
-    (r"extension|angle|corner", "extension"),
+    # A corner turns the layout 90 degrees; it is a node in the layout graph, not a
+    # part of any one frame. CK-118TR is 496mm square -- the frame's depth both ways.
+    (r"corner|angle", "corner"),
+    (r"extension|sliding", "extension"),
     (r"carrying case|\bcase\b", "case"),
-    (r"height adjuster", "height_adjuster"),
+    # NOT a leg modifier, despite the English name. The Japanese one is IGT段差ジョイント
+    # -- 段差 is "level difference". It is a 320mm post that joins two tables standing at
+    # DIFFERENT heights: standing-height cooking beside seated-height dining.
+    (r"height adjuster", "joint"),
+    (r"connection hook", "joint"),
     (r"leg set|\bleg\b", "leg"),
     (r"frame connector|connector", "connector"),
     (r"\bset\b", "set"),
@@ -403,6 +407,62 @@ def main():
         seen.add(sku)
         jp_only += 1
 
+    # The rest of the Layout System. These are full tables, not IGT parts, and none of
+    # them sits in an IGT collection -- but the vendor's copy says they connect to a
+    # frame, and their dimensions agree: they all stand 400mm tall (the IGT Low leg is
+    # 400mm) and the shallow ones are 496mm deep (the frame's depth).
+    lay_path = CATALOG / "layout.json"
+    layout = json.loads(lay_path.read_text(encoding="utf-8")) if lay_path.exists() else {}
+    us_by_sku = {r["sku"]: r for r in us["items"] if r.get("sku")}
+
+    # layout.json is the AUTHORITY for these roles, not a supplement to the title rules.
+    # Otherwise LV-310 stays an "accessory" because it happens to sit in an IGT
+    # collection, and CK-175 stays one because its title is in Japanese.
+    by_sku = {p["sku"]: p for p in parts}
+    for sku in (layout.get("joints") or {}):
+        if sku in by_sku:
+            by_sku[sku]["role"] = "joint"
+    for sku in (layout.get("corners") or {}):
+        if sku in by_sku:
+            by_sku[sku]["role"] = "corner"
+    for sku, t in (layout.get("tables") or {}).items():
+        if sku in by_sku:
+            p = by_sku[sku]
+            p["role"] = "layout_table"
+            p["height_mm"] = (t.get("size_mm") or {}).get("h") or p.get("height_mm")
+            p["connects_to"] = t.get("connects_to", [])
+            p["requires_connector"] = t.get("requires_connector")
+            p["evidence"] = t.get("evidence")
+
+    for sku, t in (layout.get("tables") or {}).items():
+        if sku in by_sku:
+            continue
+        u = us_by_sku.get(sku)
+        j = next((jp_by_sku[k] for k in sku_keys(sku) if k in jp_by_sku), {})
+        parts.append({
+            "sku": sku,
+            "handle": t.get("handle"),
+            "title_en": t["name"],
+            "title_jp": j.get("jp_title", ""),
+            "role": "layout_table",
+            "collections": [],
+            "assembled_mm": j.get("assembled_mm") or (
+                {"w": t["size_mm"]["w"], "d": t["size_mm"]["d"], "h": t["size_mm"]["h"]}
+                if t.get("size_mm") else None),
+            "packed_mm": j.get("packed_mm"),
+            "weight_g": j.get("weight_g"),
+            "material": j.get("material", ""),
+            "height_mm": (t.get("size_mm") or {}).get("h"),
+            "connects_to": t.get("connects_to", []),
+            "requires_leg": t.get("requires_leg"),
+            "requires_connector": t.get("requires_connector"),
+            "evidence": t.get("evidence"),
+            "price": region_prices(sku, (u or {}).get("price_usd"), regions),
+            "available": {"us": (u or {}).get("available", False)},
+            "image": ((u or {}).get("images") or [None])[0],
+            "url": {"us": (u or {}).get("us_url"), "jp": j.get("jp_url")},
+        })
+
     # Curated corrections come last, and say who made them and why.
     ov_path = CATALOG / "overrides.json"
     overrides = json.loads(ov_path.read_text(encoding="utf-8")) if ov_path.exists() else {}
@@ -436,6 +496,7 @@ def main():
             "jp": jp["captured_at"],
         },
         "grid": grid,
+        "layout": layout,      # the Layout System: datum height, shared depth, joints
         "count": len(parts),
         "unmatched_sku": unmatched,
         "parts": parts,

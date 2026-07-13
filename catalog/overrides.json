@@ -40,6 +40,12 @@
   "confidence": "high"
  },
 
+ "CK-090": {
+  "role": "standalone",
+  "reason": "Not an extension piece — it is a table in its own right. The copy: 'The Extension IGT is a two-unit expandable Iron Grill Table... does not require any connection tools or extension pieces... two laminated bamboo tabletops and an aluminum alloy stand.' JP size gives it away too: 1348×498×400(h)mm at 11kg, with its own legs. It stands at 400mm — the Layout System datum — so it joins the system as a node, not as a part bolted to a frame.",
+  "confidence": "high"
+ },
+
  "UG-472": {
   "span": 2,
   "reason": "Snow Peak's own spec string is malformed: '(H)220x(W)360x(W)250mm' labels two axes W and none D. It is the same body as UG-471 ((H)110x(W)360x(D)250) at double height -- 110/220 in the names are the heights -- so the trailing 250 is the depth, one full unit along the rail.",
