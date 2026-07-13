@@ -115,6 +115,23 @@ def set_contents(title, marked_desc, handle_to_sku):
     return None, None, None
 
 
+# Systems that live in an IGT collection without being IGT parts. Snow Peak's own
+# taxonomy is porous in BOTH directions: the US files Takibi grill plates under
+# `cookers`, and the JP files the TUGUCA wooden shelving line under IGT&キッチン.
+# Neither can enter a unit slot.
+FOREIGN_SYSTEMS = re.compile(r"TUGUCA", re.I)
+
+
+def region_prices(sku, price_usd, regions):
+    """Minor units per region. UK and JP are joined on SKU; TW/KR are absent because
+    their SPA rows carry no SKU to join on."""
+    out = {"us": int(round(price_usd * 100)) if price_usd else None, "jp": None, "uk": None}
+    for key in sku_keys(sku):
+        out["jp"] = out["jp"] or regions.get("jp", {}).get(key)
+        out["uk"] = out["uk"] or regions.get("uk", {}).get(key)
+    return out
+
+
 def load(name):
     p = DATA / name
     if not p.exists():
@@ -279,6 +296,9 @@ def main():
     # set can include a part that is not itself in the IGT collection.
     handle_to_sku = {r["handle"]: r["sku"] for r in us["items"] if r.get("sku")}
 
+    reg_path = DATA / "regions_latest.json"
+    regions = json.loads(reg_path.read_text(encoding="utf-8")) if reg_path.exists() else {"jp": {}, "uk": {}}
+
     parts, unmatched = [], []
     for u in igt:
         sku = u["sku"]
@@ -302,9 +322,7 @@ def main():
             "packed_mm": j.get("packed_mm"),
             "weight_g": j.get("weight_g"),
             "material": j.get("material", ""),
-            "price": {
-                "us": int(round(u["price_usd"] * 100)) if u.get("price_usd") else None,
-            },
+            "price": region_prices(sku, u.get("price_usd"), regions),
             "available": {"us": u.get("available", False)},
             "image": (u.get("images") or [None])[0],
             "url": {"us": u["us_url"], "jp": j.get("jp_url")},
@@ -349,6 +367,39 @@ def main():
                 rec["contains_evidence"] = ev
 
         parts.append(rec)
+
+    # Neither region is a superset. The US has 83 IGT products (Renewed/TR lines,
+    # US-only sets); the JP category has 70, of which 20 exist nowhere in the US.
+    # Taking either storefront as "the" catalog silently drops real parts, so the
+    # universe is the union -- minus the systems that are only filed here by accident.
+    seen = {p["sku"] for p in parts}
+    jp_only = 0
+    for j in jp["items"]:
+        sku = j.get("sku")
+        if not sku or sku in seen or "IGT" not in j.get("jp_category", ""):
+            continue
+        if FOREIGN_SYSTEMS.search(j.get("jp_title", "")):
+            continue
+        parts.append({
+            "sku": sku,
+            "handle": None,
+            "title_en": j.get("jp_title", ""),   # no English name exists for these
+            "title_jp": j.get("jp_title", ""),
+            "barcode": "",
+            "role": "set" if re.match(r"(FK|SET)-", sku) else "accessory",
+            "collections": [],
+            "region_exclusive": "jp",
+            "assembled_mm": j.get("assembled_mm"),
+            "packed_mm": j.get("packed_mm"),
+            "weight_g": j.get("weight_g"),
+            "material": j.get("material", ""),
+            "price": region_prices(sku, None, regions),
+            "available": {},
+            "image": None,
+            "url": {"us": None, "jp": j.get("jp_url")},
+        })
+        seen.add(sku)
+        jp_only += 1
 
     # Curated corrections come last, and say who made them and why.
     ov_path = CATALOG / "overrides.json"

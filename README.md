@@ -16,14 +16,31 @@ hangers). See [SCHEMA.md](SCHEMA.md) for the model.
 
 ## Where the data comes from
 
-Neither storefront has everything, so the catalog is a join:
+No storefront has everything, so the catalog is a join on SKU (`CK-149`), which every
+region carries. What each one is actually good for, measured rather than assumed:
 
-| source | gives us |
-|---|---|
-| `snowpeak.com` (Shopify) | SKU, JAN barcode, USD price, stock, images, and Snow Peak's own collection tree |
-| `ec.snowpeak.co.jp` | the engineering data the US site omits: **mm dimensions, packed size, weight, material, and set contents** |
+| region | good for | not good for |
+|---|---|---|
+| **US** `snowpeak.com` | SKU, JAN, USD price, stock, images, collections, and descriptions (which state unit counts the product names omit, and link set components) | weight is *shipping* weight — 74–1200g heavier than the part |
+| **JP** `ec.snowpeak.co.jp` | **the only source of geometry**: mm dimensions, 収納サイズ (packed size), true weight, material, set contents | — |
+| **UK** `snowpeak.co.uk` | GBP price (Shopify, so the SKU join is clean) | **publishes no dimensions at all**, and its variant weights are duplicated: CK-149 and CK-150 are both listed at 4900g, though the 4-unit frame is 700g heavier |
+| TW / KR | — | SPA storefronts whose scraped rows carry no SKU; nothing to join on, so they are left out rather than guessed at |
 
-They join on SKU (`CK-149`), which both sides carry — coverage is 100% on the US side.
+**Neither the US nor the JP catalog is a superset.** The US has 83 IGT products (the
+Renewed/TR lines, US-only sets); the JP category has 70, of which 20 exist nowhere in the
+US. The universe is the union.
+
+And neither storefront's taxonomy is clean, in *both* directions: the US files Takibi
+grill plates under `cookers` and 24 buckets and coolers under `storage`; the JP files the
+TUGUCA wooden shelving line under IGT&キッチン. None of them can enter a unit slot, so
+membership is gated on rules rather than on either vendor's own tree.
+
+Two facts make the rest work:
+
+- The JP spec table publishes **収納サイズ** (packed size), so "will this build fit in the
+  carrying case / the car" is a data question, not a guess.
+- The JP **セット内容** field lists a bundle's components *by SKU*, so official sets
+  decompose into parts.
 
 Two facts make the rest work:
 
@@ -42,9 +59,13 @@ across the whole frame family.
 ```sh
 py scripts/fetch_us.py          # US Shopify collections      -> data/us_products_latest.json
 py scripts/fetch_jp_specs.py    # JP spec tables (whole site) -> data/jp_specs_latest.json
+py scripts/fetch_regions.py     # JP + UK prices              -> data/regions_latest.json
 py scripts/derive_grid.py       # recover the unit pitch      -> catalog/grid.json
 py scripts/build_catalog.py     # join + classify             -> catalog/igt-catalog.json
 ```
+
+`fetch_jp_specs.py --reparse` re-derives dimensions from the stored `size_raw` with no
+network, so a parser bug costs a second rather than another crawl of 2,100 pages.
 
 `fetch_jp_specs.py` crawls the entire JP catalog (~2,100 items), not just IGT — the
 spec table has the same shape for every product, so this doubles as a full
