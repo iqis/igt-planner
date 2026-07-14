@@ -192,7 +192,21 @@ export function boardMaterial(p, colors, texture, w, d, selected) {
   const r = responseFor(p.material);
   texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.repeat.set(1 / w, -1 / d);
+
+  // Work the v out rather than guess at the sign, because the wrong one is a 180 degrees
+  // that only a corner can show you:
+  //
+  //   ExtrudeGeometry's cap UVs are the shape's own coordinates, so UV.y = pz. rotateX
+  //   puts the shape's +pz at world -z, hence UV.y = -world_z.
+  //   three samples v = 1 at the image's TOP row, and the image's top row is the SMALLEST
+  //   mm z (that is how outline_mm and hooks_mm were read out of it).
+  //   So we need v = 0 at world_z = +d/2 and v = 1 at -d/2, i.e. v = 0.5 - world_z/d.
+  //   v = UV.y * repeat.y + 0.5 = -world_z * repeat.y + 0.5   =>   repeat.y = +1/d.
+  //
+  // It was -1/d, so the photograph was laid on every board FLIPPED IN z. A bamboo table is
+  // nearly symmetric and hid it completely; the corner is not, and it showed up there as
+  // the arc of the painted photo running one way and the arc of the board the other.
+  texture.repeat.set(1 / w, 1 / d);
   texture.offset.set(0.5, 0.5);
   texture.needsUpdate = true;
 
@@ -229,14 +243,7 @@ export function flatRect(w, d, thickness, radius = 6) {
   s.lineTo(-x, -y + r);
   s.quadraticCurveTo(-x, -y, -x + r, -y);
 
-  const g = new THREE.ExtrudeGeometry(s, {
-    depth: thickness, bevelEnabled: true,
-    bevelThickness: thickness * 0.15, bevelSize: thickness * 0.15,
-    bevelSegments: 2, curveSegments: 6,
-  });
-  g.rotateX(-Math.PI / 2);
-  g.translate(0, thickness / 2, 0);
-  return g;
+  return slab(s, thickness);   // top face at y = 0, exactly `thickness` thick
 }
 
 /** A board built from the outline traced off its own photograph.
@@ -253,18 +260,48 @@ export function flatRect(w, d, thickness, radius = 6) {
 export function boardFromOutline(points, thickness, mm = 0.001) {
   const s = new THREE.Shape();
   points.forEach(([x, z], i) => {
-    const px = x * mm, pz = z * mm;
+    // NEGATE z going in. slab() lays the shape down with rotateX(-PI/2), and that maps the
+    // shape's +y to world -z -- so a shape built at the traced millimetres comes out
+    // MIRRORED IN Z, and every board in this project was.
+    //
+    // On a bamboo rectangle it is invisible. On the corner it is fatal: the arc lands on
+    // the same side as the hooks, and since the pins are drawn at their true measured
+    // millimetres, one of the corner's two hook pins ended up hanging in mid-air, 280mm
+    // clear of any board. The silhouette said one thing and the hardware said another.
+    //
+    // boardMaterial's `-1/d` was a patch ON TOP of this: it flipped the photo to match the
+    // flipped geometry, so the alpha lined up and the bug hid behind it. Fixing the sign
+    // alone just grew the leaf back. Fix the geometry; the texture then wants +1/d.
+    const px = x * mm, pz = -z * mm;
     if (i === 0) s.moveTo(px, pz);
     else s.lineTo(px, pz);
   });
   s.closePath();
+  return slab(s, thickness);
+}
 
-  const g = new THREE.ExtrudeGeometry(s, {
-    depth: thickness, bevelEnabled: true,
-    bevelThickness: thickness * 0.14, bevelSize: thickness * 0.14, bevelSegments: 2,
+/** Extrude a ground-plane shape into a board of EXACTLY `thickness`, hanging below y = 0.
+ *
+ *  Two things, both of which were wrong and which together lifted every bamboo table 28mm
+ *  into the air above the frame it was supposed to be flush with:
+ *
+ *  1. three's bevel is added OUTSIDE `depth`. Extruding a 25mm board at depth 25 with a
+ *     14% bevel gives a 32mm board (25 + 2x3.5). Solve for the depth that lands on 25.
+ *  2. The extrusion runs 0..depth, so it is NOT centred, and `translate(+t/2)` -- meant to
+ *     centre it -- pushed it up by a whole thickness instead of pulling it down by half.
+ *
+ *  So: put the TOP FACE at y = 0. A tabletop is defined by its working surface, and now
+ *  the caller sets `position.y = <the height of that surface>` and cannot get it wrong.
+ */
+function slab(shape, thickness, bevel = 0.14) {
+  const depth = thickness / (1 + 2 * bevel);
+  const bt = depth * bevel;
+  const g = new THREE.ExtrudeGeometry(shape, {
+    depth, bevelEnabled: true, bevelThickness: bt, bevelSize: bt,
+    bevelSegments: 2, curveSegments: 6,
   });
-  g.rotateX(-Math.PI / 2);
-  g.translate(0, thickness / 2, 0);
+  g.rotateX(-Math.PI / 2);        // shape lies in the ground plane, extruded up
+  g.translate(0, -(depth + bt), 0);  // ...then hung from its top face
   return g;
 }
 

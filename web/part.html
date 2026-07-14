@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IGT Part Bench</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="part.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/controls/OrbitControls.js": "./vendor/OrbitControls.js",
+    "three/addons/environments/RoomEnvironment.js": "./vendor/RoomEnvironment.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<header>
+  <h1>IGT Part Bench</h1>
+  <div class="grid-facts">
+    one part, alone, next to the photograph it was measured from
+    <span class="muted">— <a href="./">back to the planner</a></span>
+  </div>
+</header>
+
+<main class="bench">
+  <aside id="parts"></aside>
+
+  <div id="stage">
+    <canvas id="canvas"></canvas>
+    <div id="viewbar" class="chips"></div>
+    <div id="axes"></div>
+  </div>
+
+  <aside id="detail">
+    <h2>Photograph <span class="hint" id="photohint"></span></h2>
+    <!-- The photo and the model are shown in the SAME frame: +x right, +z down, origin at
+         the board's centre. If the model does not look like the photo, one of them is
+         lying, and this is where you see which. -->
+    <div id="shot"><img id="photo" alt=""><svg id="marks"></svg></div>
+    <div id="facts"></div>
+  </aside>
+</main>
+
+<script type="module" src="part.js"></script>
+</body>
+</html>

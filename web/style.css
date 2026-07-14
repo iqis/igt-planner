@@ -202,6 +202,7 @@ h2 {
 /* layout-system additions */
 .muted { color: #5c6472; }
 #hint b { color: var(--accent); font-weight: 600; }
+a { color: var(--accent); }
 h3 {
   font-size: .64rem; letter-spacing: .08em; text-transform: uppercase;
   color: #5c6472; margin: .6rem 0 .3rem;

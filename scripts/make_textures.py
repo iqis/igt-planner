@@ -236,8 +236,19 @@ def measure_fittings(img, box):
     found = blobs(metal, area * 0.0006)
     legs = sorted(to_mm(x, y) for s_, x, y in found[:2])
 
+    # Where the BOARD sits inside the saved image, as fractions of it. The image is cropped
+    # to the whole silhouette (hooks included) but every millimetre here is measured from
+    # the BOARD's box, so the two frames differ by the length of a hook. Without this you
+    # cannot draw a measurement back onto the photograph it came from -- and being able to
+    # do exactly that is how you find out whether the model or the measurement is lying.
+    # Fractions, not pixels: they survive the thumbnail.
+    h_px, w_px = alpha.shape
+    board_frac = [round(bx0 / w_px, 5), round(by0 / h_px, 5),
+                  round((bx1 + 1) / w_px, 5), round((by1 + 1) / h_px, 5)]
+
     return {
         "scale_mm_per_px": [round(mmx, 3), round(mmy, 3)],
+        "board_frac": board_frac,        # [x0, y0, x1, y1] of the board within the image
         "hooks_mm": sorted(hooks)[:4],
         "legs_mm": legs,                 # the legs screw into the brackets
         "brackets_found": len(found),    # != 2 means look at the photo before trusting it

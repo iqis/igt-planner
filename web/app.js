@@ -422,15 +422,20 @@ function drawTable(g, n) {
   const f = footprint(n);
   const top = topOf(n);
   const isSel = state.sel === n.id;
-  const thick = p.role === "corner" ? (p.assembled_mm?.h ?? 25) : 30;
+  // The board's REAL thickness. A hook-on board was being drawn 30mm thick because that is
+  // what the frame's rail is; the spec says 25mm, and the spec is right there.
+  const thick = p.assembled_mm?.h ?? 25;
 
   // The silhouette comes from the photograph, not from a guess about what shape the
   // bounding box implies -- and crucially, from the SAME photograph that paints it.
+  //
+  // boardFromOutline/flatRect hang from their TOP FACE; roundedBox is centred on its
+  // middle. Two conventions, so say which one out loud rather than remember it.
   const ring = TEXTURES[p.sku]?.outline_mm;
-  let geo;
+  let geo, hangs = true;
   if (ring) geo = boardFromOutline(ring, thick * MM);
   else if (n.kind === "ext") geo = flatRect(f.w * MM, f.d * MM, thick * MM, 8 * MM);
-  else geo = roundedBox(f.w * MM, thick * MM, f.d * MM, 2.2 * MM);
+  else { geo = roundedBox(f.w * MM, thick * MM, f.d * MM, 2.2 * MM); hangs = false; }
 
   // The plan-view photograph is of the UNDERSIDE -- that is where the leg brackets and the
   // hook pins live, and it is why they are visible in it at all. Painting it on the top
@@ -440,7 +445,7 @@ function drawTable(g, n) {
   const m = new THREE.Mesh(geo, grain
     ? grainMaterial(p, COLORS, grain, f.w, f.d, isSel)
     : materialFor(p, COLORS, isSel));
-  m.position.set(0, top - thick / 2, 0).multiplyScalar(MM);
+  m.position.set(0, hangs ? top : top - thick / 2, 0).multiplyScalar(MM);
   m.userData.node = n; g.add(m); nodeMeshes.push(m);
 
   const tex = textureOf(p.sku);
