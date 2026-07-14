@@ -115,9 +115,13 @@ def main():
         fit = measure_fittings(cut, box)
         ring = outline_mm(cut, box)
 
+        grain_from(cut).save(TEX / f"{p['sku']}_grain.jpg", quality=88)
+
         cut.thumbnail((1024, 1024), Image.LANCZOS)
         cut.save(TEX / f"{p['sku']}.png")
-        out[p["sku"]] = {"file": f"tex/{p['sku']}.png", "aspect": round(aspect, 3),
+        out[p["sku"]] = {"file": f"tex/{p['sku']}.png",
+                         "grain": f"tex/{p['sku']}_grain.jpg",
+                         "aspect": round(aspect, 3),
                          "wanted": round(want, 3), "aspect_error": round(err, 3),
                          "source": url, "outline_mm": ring, **(fit or {})}
         nh = len(fit["hooks_mm"]) if fit else 0
@@ -222,6 +226,24 @@ def measure_fittings(img, box):
     }
 
 
+
+
+def grain_from(img):
+    """A clean patch of the board's own surface, for the TOP face.
+
+    The plan view is of the UNDERSIDE -- brackets and hook pins are down there, which is
+    why they show in it. Painting it on the tabletop put two leg brackets on the work
+    surface. But dropping the photo entirely leaves a flat slab of colour, which is worse
+    than a wrong texture in a different way.
+
+    The middle of the board is neither: it is just bamboo. Crop it, tile it, and the top
+    gets real grain from the same photograph that gives the underside its ironmongery.
+    """
+    w, h = img.size
+    cw, ch = int(w * 0.30), int(h * 0.34)
+    patch = img.convert("RGB").crop(((w - cw) // 2, (h - ch) // 2,
+                                     (w + cw) // 2, (h + ch) // 2))
+    return patch.resize((256, 256), Image.LANCZOS)
 
 
 def outline_mm(img, box, samples=48):

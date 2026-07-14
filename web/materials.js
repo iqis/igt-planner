@@ -267,3 +267,25 @@ export function boardFromOutline(points, thickness, mm = 0.001) {
   g.translate(0, thickness / 2, 0);
   return g;
 }
+
+/** The tabletop: real grain, cropped from the middle of the board's own photograph.
+ *
+ *  The plan view goes UNDERNEATH, where the brackets and hook pins actually are. The top
+ *  gets the part of the same photo that is only bamboo, tiled. Both faces come from the
+ *  one photograph; neither shows the other's hardware.
+ */
+export function grainMaterial(p, colors, grain, wMM, dMM, selected, tileMM = 320) {
+  const r = responseFor(p.material);
+  grain.wrapS = grain.wrapT = THREE.RepeatWrapping;
+  grain.colorSpace = THREE.SRGBColorSpace;
+  grain.repeat.set(Math.max(1, wMM / tileMM), Math.max(1, dMM / tileMM));
+  grain.needsUpdate = true;
+
+  return new THREE.MeshStandardMaterial({
+    map: grain,
+    color: new THREE.Color(colors[p.sku]?.color_hex || 0xb98b53),
+    metalness: r.metalness,
+    roughness: r.roughness,
+    emissive: new THREE.Color(selected ? 0x2e1806 : 0x000000),
+  });
+}

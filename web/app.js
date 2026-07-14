@@ -3,7 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, railProfile, meshWires, isMesh,
          quarterRound, angleBoard, boardMaterial, flatRect,
-         boardFromOutline } from "./materials.js";
+         boardFromOutline, grainMaterial } from "./materials.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -23,11 +23,11 @@ const $ = id => document.getElementById(id);
 let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAMES;
 const texLoader = new THREE.TextureLoader();
 const texCache = {};
-const textureOf = sku => {
-  const t = TEXTURES[sku];
-  if (!t) return null;
-  if (!texCache[sku]) texCache[sku] = texLoader.load(t.file);
-  return texCache[sku];
+const textureOf = (sku, key = "file") => {
+  const path = TEXTURES[sku]?.[key];
+  if (!path) return null;
+  if (!texCache[path]) texCache[path] = texLoader.load(path);
+  return texCache[path];
 };
 
 // Colours come from Snow Peak's product photography (catalog/colors.json). The swatch in
@@ -288,13 +288,26 @@ function drawTable(g, n) {
   else if (n.kind === "ext") geo = flatRect(f.w * MM, f.d * MM, thick * MM, 8 * MM);
   else geo = roundedBox(f.w * MM, thick * MM, f.d * MM, 2.2 * MM);
 
-  const tex = textureOf(p.sku);
-  const mat = tex
-    ? boardMaterial(p, COLORS, tex, f.w * MM, f.d * MM, sel)
-    : materialFor(p, COLORS, sel);
-  const m = new THREE.Mesh(geo, mat);
+  // The plan-view photograph is of the UNDERSIDE -- that is where the leg brackets and the
+  // hook pins live, and it is why they are visible in it at all. Painting it on the top
+  // face put two leg brackets on the work surface. The board is a board: clean bamboo up,
+  // the ironmongery down.
+  const grain = textureOf(p.sku, "grain");
+  const m = new THREE.Mesh(geo, grain
+    ? grainMaterial(p, COLORS, grain, f.w, f.d, sel)
+    : materialFor(p, COLORS, sel));
   m.position.set(0, top - thick / 2, 0).multiplyScalar(MM);
   m.userData.node = n; g.add(m); nodeMeshes.push(m);
+
+  const tex = textureOf(p.sku);
+  if (tex) {
+    const decal = new THREE.Mesh(
+      boardFromOutline(ring, 0.4 * MM),
+      boardMaterial(p, COLORS, tex, f.w * MM, f.d * MM, sel),
+    );
+    decal.position.set(0, top - thick - 0.6, 0).multiplyScalar(MM);
+    g.add(decal);
+  }
 
   if (n.kind === "ext") {
     const legH = top - thick;

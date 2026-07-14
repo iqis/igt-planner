@@ -3,6 +3,7 @@
  "textures": {
   "GF-010": {
    "file": "tex/GF-010.png",
+   "grain": "tex/GF-010_grain.jpg",
    "aspect": 0.8,
    "wanted": 0.694,
    "aspect_error": 0.152,
@@ -423,6 +424,7 @@
   },
   "CK-118TR": {
    "file": "tex/CK-118TR.png",
+   "grain": "tex/CK-118TR_grain.jpg",
    "aspect": 0.945,
    "wanted": 1.0,
    "aspect_error": 0.055,
@@ -839,6 +841,7 @@
   },
   "CK-119TR": {
    "file": "tex/CK-119TR.png",
+   "grain": "tex/CK-119TR_grain.jpg",
    "aspect": 0.951,
    "wanted": 1.0,
    "aspect_error": 0.049,
@@ -1264,6 +1267,7 @@
   },
   "CK-218": {
    "file": "tex/CK-218.png",
+   "grain": "tex/CK-218_grain.jpg",
    "aspect": 2.137,
    "wanted": 1.996,
    "aspect_error": 0.071,
@@ -1680,6 +1684,7 @@
   },
   "CK-219": {
    "file": "tex/CK-219.png",
+   "grain": "tex/CK-219_grain.jpg",
    "aspect": 2.132,
    "wanted": 1.996,
    "aspect_error": 0.068,
@@ -2096,6 +2101,7 @@
   },
   "CK-116TR": {
    "file": "tex/CK-116TR.png",
+   "grain": "tex/CK-116TR_grain.jpg",
    "aspect": 1.755,
    "wanted": 1.706,
    "aspect_error": 0.029,
@@ -2521,6 +2527,7 @@
   },
   "CK-117TR": {
    "file": "tex/CK-117TR.png",
+   "grain": "tex/CK-117TR_grain.jpg",
    "aspect": 2.24,
    "wanted": 2.21,
    "aspect_error": 0.014,
@@ -2946,6 +2953,7 @@
   },
   "CK-125TR": {
    "file": "tex/CK-125TR.png",
+   "grain": "tex/CK-125TR_grain.jpg",
    "aspect": 0.692,
    "wanted": 0.694,
    "aspect_error": 0.004,
@@ -3353,6 +3361,7 @@
   },
   "CK-126TR": {
    "file": "tex/CK-126TR.png",
+   "grain": "tex/CK-126TR_grain.jpg",
    "aspect": 1.406,
    "wanted": 1.389,
    "aspect_error": 0.012,
