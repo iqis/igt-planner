@@ -1546,6 +1546,37 @@
    "manual": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h6b/hf7/8974914256926/CK-904_manual.pdf"
   },
   {
+   "sku": "CK-175",
+   "handle": null,
+   "title_en": "IGTコネクションフック",
+   "title_jp": "IGTコネクションフック",
+   "barcode": "",
+   "role": "frame_hook",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 28.0,
+    "d": 53.0,
+    "h": 40.0
+   },
+   "packed_mm": null,
+   "weight_g": 90,
+   "material": "アルミニウム合金、ステンレス",
+   "price": {
+    "us": null,
+    "jp": 2800,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0115A0030"
+   },
+   "published_weight_g": 45,
+   "curated_reason": "IGTコネクションフック -- what joins two frames END TO END. A frame's end already has the HOLES (measured on CK-149: x = +/-406.5, z = +/-143.9); CK-175 supplies the other half by turning the neighbouring end into a HOOK. It is JP-only, has no manual, and exactly ONE real photograph in its gallery -- which happens to be of exactly this: two frames butted end to end, black end pieces face to face, two knurled thumbscrews spanning the joint, and TWO PAIRS OF LEGS bunched at it (so the frames do not share legs; each keeps its own four). The JP spec table says セット内容 本体×2 and 45g(本体一つあたり) -- a pair, 45g EACH -- so one set makes one joint (one hook per hole) and the SET weighs 90g. The scraper took the 45 as the item weight, which is what the page literally says and is not what it means."
+  },
+  {
    "sku": "CK-020",
    "handle": "igt-joint-hanger-set-ck-143",
    "title_en": "IGT Stainless Steel Box Hanger",
@@ -1736,35 +1767,6 @@
    "needs_legs": false,
    "attach_evidence": "Built to last, the IGT Height Adjusters allow for integration of different table heights.",
    "manual": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h7f/hae/8804112302110/CK-151_manual.pdf"
-  },
-  {
-   "sku": "CK-175",
-   "handle": null,
-   "title_en": "IGTコネクションフック",
-   "title_jp": "IGTコネクションフック",
-   "barcode": "",
-   "role": "joint",
-   "collections": [],
-   "region_exclusive": "jp",
-   "assembled_mm": {
-    "w": 28.0,
-    "d": 53.0,
-    "h": 40.0
-   },
-   "packed_mm": null,
-   "weight_g": 45,
-   "material": "アルミニウム合金、ステンレス",
-   "price": {
-    "us": null,
-    "jp": 2800,
-    "uk": null
-   },
-   "available": {},
-   "image": null,
-   "url": {
-    "us": null,
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0115A0030"
-   }
   },
   {
    "sku": "LV-312",

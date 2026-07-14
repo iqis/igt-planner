@@ -543,6 +543,9 @@ def main():
             if "attach" in ov:
                 rec["attach"] = ov["attach"]
                 rec["attach_evidence"] = ov.get("reason")
+            if "weight_g" in ov:
+                rec["published_weight_g"] = rec.get("weight_g")
+                rec["weight_g"] = ov["weight_g"]
             if "assembled_mm" in ov:
                 # THE PLAN VIEW WINS. It is the only orthographic, in-system, checkable
                 # record of a part's shape, and where it disagrees with the spec table the

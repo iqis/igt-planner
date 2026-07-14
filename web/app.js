@@ -176,6 +176,19 @@ function bracketNormal(sku) {
 const hookAnchor = sku => mean(TEXTURES[sku]?.hooks_mm || [[0, 0]]);
 const bracketAnchor = sku => mean(TEXTURES[sku]?.legs_mm || [[0, 0]]);
 
+/** The half of the joint that THIS node brings, in its own coordinates.
+ *
+ *  A bamboo board brings wire hooks, measured off its own plan view. A FRAME brings CK-175,
+ *  which turns its end piece into a hook -- so what mates is the end FACE, and the two
+ *  frames butt. Same placement rule either way; only the half differs. */
+function hookGeometry(n) {
+  if (n.kind === "frame") {
+    const f = footprint(n);
+    return { normal: { x: -1, z: 0 }, anchor: { x: -f.w / 2, z: 0 } };
+  }
+  return { normal: hookNormal(n.sku), anchor: hookAnchor(n.sku) };
+}
+
 // The rail joint. Two of them come in the box with a corner, and they are sold on their
 // own as XCK-128-01 (マルチファンクションテーブル レールジョイント2個セット) -- which is
 // filed under spare parts and sits in none of the IGT collections, so a collection sweep
@@ -189,6 +202,18 @@ const RAIL_JOINT = "XCK-128-01";
 // using the hook spacing as a RULER -- and it is how CK-218's published depth was caught.
 const HOLE_INSET = 16.5;
 
+// CK-175, IGTコネクションフック. JP-only, no manual, and exactly ONE real photograph in its
+// gallery -- which happens to be of exactly the thing: two IGT frames butted END TO END,
+// their black end pieces face to face, two knurled thumbscrews spanning the joint.
+//
+// A frame's end already has the HOLES. CK-175 supplies the other half -- it gives the end
+// a HOOK -- and two frames become one run. The spec table says セット内容 本体x2 (a pair,
+// 45g each), and a frame's end has two holes, so ONE set makes ONE joint.
+//
+// The frames do NOT share legs. Each keeps its own four, and the photograph shows it: two
+// pairs of legs bunched together at the joint.
+const FRAME_HOOK = "CK-175";
+
 /** An attachment edge, resolved in the host's OWN coordinates.
  *
  *  An edge is not an axis. It is a place where two named holes are, facing a particular
@@ -196,11 +221,17 @@ const HOLE_INSET = 16.5;
  *  So an edge carries an ANCHOR (the midpoint of the holes) and a NORMAL (which way it
  *  faces), and both are measured.
  */
-function hostEdge(n, key) {
+function hostEdge(n, key, guest = "ext") {
   const f = footprint(n);
   if (n.kind === "frame") {
-    if (key === "end+x") return { anchor: { x: f.w / 2 - HOLE_INSET, z: 0 }, normal: { x: 1, z: 0 }, len: f.d };
-    if (key === "end-x") return { anchor: { x: -(f.w / 2 - HOLE_INSET), z: 0 }, normal: { x: -1, z: 0 }, len: f.d };
+    // A BOARD's wire hooks drop INTO the holes, 16.5mm in from the end face, so the board
+    // ends up resting 4mm onto the end piece. A FRAME does not: with CK-175 the two end
+    // pieces butt FACE TO FACE and the fitting spans them. Two guests, two anchors, one
+    // edge -- and aligning a frame to the hole line instead would bury it 33mm into its
+    // neighbour, which is what the first version did.
+    const inset = guest === "frame" ? 0 : HOLE_INSET;
+    if (key === "end+x") return { anchor: { x: f.w / 2 - inset, z: 0 }, normal: { x: 1, z: 0 }, len: f.d };
+    if (key === "end-x") return { anchor: { x: -(f.w / 2 - inset), z: 0 }, normal: { x: -1, z: 0 }, len: f.d };
     // The long rail. The joints SLIDE, so there is no fixed hole to aim at -- anchor at the
     // middle of the run and let the joints go wherever the board's hooks land.
     if (key === "rail+z") return { anchor: { x: 0, z: f.d / 2 }, normal: { x: 0, z: 1 }, len: f.w, rail: true };
@@ -240,8 +271,7 @@ const EDGE_KEYS = { frame: ["end+x", "end-x", "rail+z", "rail-z"], ext: ["bracke
  *  hold both its legs and the holes for the next board.
  */
 function openEdges(n) {
-  const taken = new Set(state.nodes.filter(m => m.kind === "ext" && m.host === n.id)
-                                   .map(m => m.edge));
+  const taken = new Set(state.nodes.filter(m => m.host === n.id).map(m => m.edge));
   const out = [];
   for (const key of EDGE_KEYS[n.kind] || []) {
     if (taken.has(key)) continue;
@@ -271,32 +301,37 @@ const anyOpenEdge = () => state.nodes.some(n => openEdges(n).length > 0);
 function place(n) {
   const h = byId(n.host);
   if (!h) return;
-  const e = hostEdge(h, n.edge);
+  const e = hostEdge(h, n.edge, n.kind);
   if (!e) return;
 
   const dir = rotv(e.normal, h.rot);
   const a = rotv(e.anchor, h.rot);
   const at = { x: h.x + a.x, z: h.z + a.z };
+  const mine = hookGeometry(n);
 
-  n.rot = norm(angleOf({ x: -dir.x, z: -dir.z }) - angleOf(hookNormal(n.sku)));
+  n.rot = norm(angleOf({ x: -dir.x, z: -dir.z }) - angleOf(mine.normal));
 
-  const w = rotv(hookAnchor(n.sku), n.rot);
+  const w = rotv(mine.anchor, n.rot);
   n.x = at.x - w.x;
   n.z = at.z - w.z;
 
   // A board flush with its host stands at its host's height, so it takes its host's legs.
-  // Arithmetic, not preference -- the same argument as the 400mm datum.
+  // Arithmetic, not preference -- the same argument as the 400mm datum. Two frames hooked
+  // end to end are the same case: they are one work surface, so they are one height.
   n.leg = h.leg;
 }
 
-/** Extensions are not free: they hang where they hook. Re-derive the whole chain from its
- *  roots whenever anything moves. Hosts first, then what hangs off them. */
+/** Hooked things are not free: they are where their hooks are. Re-derive the whole chain
+ *  from its roots whenever anything moves. Roots first, then what hangs off them.
+ *
+ *  A FRAME can be hooked too now (CK-175), so the test is "does it have a host", not "is it
+ *  an extension". Frames used to be the roots by definition; they are not any more. */
 function resolve() {
-  const done = new Set(state.nodes.filter(n => n.kind !== "ext").map(n => n.id));
+  const done = new Set(state.nodes.filter(n => !n.host).map(n => n.id));
   for (let pass = 0; pass < 16; pass++) {
     let moved = false;
     for (const n of state.nodes) {
-      if (n.kind !== "ext" || done.has(n.id) || !done.has(n.host)) continue;
+      if (!n.host || done.has(n.id) || !done.has(n.host)) continue;
       place(n);
       done.add(n.id);
       moved = true;
@@ -725,6 +760,21 @@ addEventListener("keydown", e => { if (e.key === "Escape") setHover(null); });
  *  attach and their plan views show no hooks, so the planner does not know which edge
  *  they hang from. Offering them anyway would mean guessing an orientation, and a guess
  *  sitting next to twelve measurements is worse than an absence. */
+/** What may legally go on this edge.
+ *
+ *  A frame's END takes a board (its wire hooks drop into the holes) OR another FRAME (via
+ *  CK-175, which turns the neighbouring end into a hook). A frame's RAIL takes boards only:
+ *  the rail joint gives a wire hook something to hang from, and a frame does not have wire
+ *  hooks -- it has an end piece. A board's BRACKET edge takes boards.
+ *
+ *  Could a frame hook onto a board's brackets? CK-175 does give it a hook, and the brackets
+ *  do receive hooks. But nothing says so, and a frame hanging off a bamboo board held up by
+ *  that board's two legs is not a thing I am going to invent. Not offered. */
+function legalOn(e) {
+  const ends = e.node.kind === "frame" && !e.rail;
+  return ends ? [...HOOKABLE, ...BY_ROLE.frame] : HOOKABLE;
+}
+
 function paintMenu() {
   menu.innerHTML = "";
   const head = document.createElement("div");
@@ -732,17 +782,19 @@ function paintMenu() {
   head.textContent = hover.rail
     ? "hooks onto the LONG rail — needs a rail joint set (added)"
     : hover.node.kind === "frame"
-      ? "hooks into the frame's end holes"
+      ? "the frame's end: a board hooks into the holes, or another frame joins with a CK-175"
       : "hooks into the brackets on this edge";
   menu.append(head);
 
-  for (const p of HOOKABLE) {
+  for (const p of legalOn(hover)) {
     const row = document.createElement("div");
     row.className = "part";
     const usd = p.price?.us ? "$" + TO_USD.us(p.price.us).toFixed(0) : "";
     row.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
       + `<span class="nm">${p.title_en}</span><span class="sp">${usd}</span>`;
-    row.title = `${p.sku} — ${p.assembled_mm.w}×${p.assembled_mm.d}mm`;
+    const f = footprintOf(p.sku, kindOf(p));
+    row.title = `${p.sku} — ${Math.round(f.w)}×${Math.round(f.d)}mm`
+      + (kindOf(p) === "frame" ? " — joins end to end (+ CK-175)" : "");
     row.onclick = () => { attach(p.sku, hover.node, hover.key); setHover(null); };
     menu.append(row);
   }
@@ -800,7 +852,7 @@ canvas.addEventListener("pointerdown", e => {
   state.sel = n.id;
   // A hooked board hangs where its hooks are. Dragging it would be asking the model to
   // lie: it cannot be anywhere else. Select it, do not move it.
-  if (n.kind !== "ext") {
+  if (!n.host) {
     dragNode = n;
     const at = hitPlane(0);
     if (at) dragOff.set(n.x - at.x / MM, 0, n.z - at.z / MM);
@@ -868,7 +920,7 @@ addEventListener("pointerup", () => { dragNode = dragMod = null; controls.enable
 function snapToNeighbours(n) {
   const a = aabb(n);
   for (const m of state.nodes) {
-    if (m === n || m.kind === "ext") continue;
+    if (m === n || m.host) continue;
     const b = aabb(m);
     const nearZ = a.z0 < b.z1 + 200 && b.z0 < a.z1 + 200;
     const nearX = a.x0 < b.x1 + 200 && b.x0 < a.x1 + 200;
@@ -931,7 +983,7 @@ function addNode(sku) {
  *  Two per board, and they come as a pair (XCK-128-01 is a 2-piece set) -- so one set. */
 function attach(sku, host, key) {
   const n = {
-    id: state.nextId++, sku, kind: "ext", host: host.id, edge: key,
+    id: state.nextId++, sku, kind: kindOf(PARTS[sku]), host: host.id, edge: key,
     x: 0, z: 0, rot: 0, leg: host.leg, placements: [],
     rail: key.startsWith("rail"),
   };
@@ -947,7 +999,7 @@ function removeNode(n) {
   const doomed = new Set([n.id]);
   for (let i = 0; i < 16; i++)
     for (const m of state.nodes)
-      if (m.kind === "ext" && doomed.has(m.host)) doomed.add(m.id);
+      if (m.host && doomed.has(m.host)) doomed.add(m.id);
   state.nodes = state.nodes.filter(m => !doomed.has(m.id));
   if (doomed.has(state.sel)) state.sel = state.nodes[0]?.id ?? null;
   setHover(null);
@@ -957,7 +1009,7 @@ function removeNode(n) {
 /** Turn a free node a quarter turn. Hooked boards follow, because they are resolved from
  *  their host's edge, not from a remembered position. */
 function rotateNode(n) {
-  if (n.kind === "ext") return;
+  if (n.host) return;
   n.rot = norm(n.rot + Math.PI / 2);
   render();
 }
@@ -1075,6 +1127,10 @@ function bomLines() {
       lines.push({ sku: n.leg, req: n.kind === "ext" });
     // Hooked onto the frame's long rail: that hangs from a pair of rail joints.
     if (n.rail && PARTS[RAIL_JOINT]) lines.push({ sku: RAIL_JOINT, req: true });
+    // Two frames end to end: CK-175 is what turns one end into a hook. Sold as a pair
+    // (本体x2), and an end has two holes -- so one set makes one joint.
+    if (n.host && n.kind === "frame" && PARTS[FRAME_HOOK])
+      lines.push({ sku: FRAME_HOOK, req: true });
     if (n.kind === "frame") {
       const rails = PARTS[n.sku].requires_rails;
       if (rails && PARTS[rails]) lines.push({ sku: rails, req: true });
@@ -1148,6 +1204,17 @@ function paintWarnings() {
     if (n.kind !== "frame") continue;
     const used = occupancy(n).filter(Boolean).length;
     if (used === slotsOf(n)) add(`${PARTS[n.sku].title_en}: full, ${used}/${slotsOf(n)} half-slots.`, "warn info");
+  }
+
+  // Two frames end to end. Their end pieces butt -- 49.4mm each, so the joint eats 99mm --
+  // and the unit grid does NOT carry across it. Nothing can be placed spanning the seam,
+  // and the planner shows that by giving each frame its own slots, but say it out loud.
+  const joined = state.nodes.filter(n => n.kind === "frame" && n.host);
+  for (const n of joined) {
+    const h = byId(n.host);
+    add(`${PARTS[h.sku].title_en} + ${PARTS[n.sku].title_en} joined end to end with an `
+      + `IGT Connection Hook. Their end pieces take up ~99mm at the seam, so the unit grid `
+      + `does not run through it — no module spans the joint.`, "warn info");
   }
 
   // What the run actually does. A corner turns it 90°, an angle extension 60° -- measured

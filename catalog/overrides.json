@@ -16,6 +16,12 @@
   }
  },
 
+ "CK-175": {
+  "role": "frame_hook",
+  "weight_g": 90,
+  "reason": "IGTコネクションフック -- what joins two frames END TO END. A frame's end already has the HOLES (measured on CK-149: x = +/-406.5, z = +/-143.9); CK-175 supplies the other half by turning the neighbouring end into a HOOK. It is JP-only, has no manual, and exactly ONE real photograph in its gallery -- which happens to be of exactly this: two frames butted end to end, black end pieces face to face, two knurled thumbscrews spanning the joint, and TWO PAIRS OF LEGS bunched at it (so the frames do not share legs; each keeps its own four). The JP spec table says セット内容 本体×2 and 45g(本体一つあたり) -- a pair, 45g EACH -- so one set makes one joint (one hook per hole) and the SET weighs 90g. The scraper took the 45 as the item weight, which is what the page literally says and is not what it means."
+ },
+
  "CK-218": {
   "attach": "hook_on",
   "assembled_mm": {"w": 990.0, "d": 465.0, "h": 25.0},
