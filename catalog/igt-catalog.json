@@ -365,6 +365,7 @@
    "span": null,
    "span_source": null,
    "span_evidence": null,
+   "attach": "slot_in",
    "curated_reason": "Round stove (JP size is written as a diameter, φ350x420). It does not sit in the grid on its own -- it mounts via the GP-040 joint frame, which is the part that occupies units."
   },
   {
@@ -445,6 +446,7 @@
    "span": null,
    "span_source": null,
    "span_evidence": null,
+   "attach": "slot_in",
    "system": "takibi",
    "curated_reason": "Same as S-029HA. Its own description says 'Use the Grill Plate Half Deep Depth within the Takibi Fire & Grill'."
   },
@@ -2795,7 +2797,8 @@
    "span_source": "title",
    "span_evidence": "Waterproof Gear Box 1 Unit",
    "along_rail_mm": 260.0,
-   "fit_delta_mm": 10.0
+   "fit_delta_mm": 10.0,
+   "attach": "slot_in"
   },
   {
    "sku": "BG-032",
@@ -2878,7 +2881,8 @@
    "span_source": "title",
    "span_evidence": "Stainless Box Half Unit",
    "along_rail_mm": 125.0,
-   "fit_delta_mm": 0.0
+   "fit_delta_mm": 0.0,
+   "attach": "slot_in"
   },
   {
    "sku": "CK-026",
@@ -2961,7 +2965,8 @@
    "span_source": "title",
    "span_evidence": "Stainless Tray 1 Unit",
    "along_rail_mm": 250.0,
-   "fit_delta_mm": 0.0
+   "fit_delta_mm": 0.0,
+   "attach": "slot_in"
   },
   {
    "sku": "CK-125TR",
@@ -3091,7 +3096,8 @@
    "span_source": "description",
    "span_evidence": "Double Unit BBQ Box",
    "along_rail_mm": 605.0,
-   "fit_delta_mm": 105.0
+   "fit_delta_mm": 105.0,
+   "attach": "slot_in"
   },
   {
    "sku": "CK-225",
@@ -3298,6 +3304,7 @@
    "span": null,
    "span_source": null,
    "span_evidence": "UNRESOLVED on purpose. The JP name is 'IGT剛炎ジョイントフレーム' (joint frame) at 362x377mm, which is neither 250 (1 unit) nor 375 (1.5 units) cleanly. It is the mount that holds the GS-1000 in a frame, so it does occupy units, but the count is not derivable from any published number. Needs the manual PDF or a physical measurement.",
+   "attach": "slot_in",
    "curated_reason": "UNRESOLVED on purpose. The JP name is 'IGT剛炎ジョイントフレーム' (joint frame) at 362x377mm, which is neither 250 (1 unit) nor 375 (1.5 units) cleanly. It is the mount that holds the GS-1000 in a frame, so it does occupy units, but the count is not derivable from any published number. Needs the manual PDF or a physical measurement."
   },
   {
@@ -3341,6 +3348,7 @@
    "span": 4,
    "span_source": "curated",
    "span_evidence": "Along-rail 563mm against two units (500mm), same rim logic as GS-450R. Corroborated by the product copy: 'Pair the Double Burner Stove with the IGT 4 Unit Standing Set and the Double Bamboo Insert' -- the double insert takes 2 units, so the stove takes the remaining 2.",
+   "attach": "slot_in",
    "fit_delta_mm": 63.0,
    "curated_reason": "Along-rail 563mm against two units (500mm), same rim logic as GS-450R. Corroborated by the product copy: 'Pair the Double Burner Stove with the IGT 4 Unit Standing Set and the Double Bamboo Insert' -- the double insert takes 2 units, so the stove takes the remaining 2."
   },
@@ -3382,7 +3390,8 @@
    "span_source": "mm-exact",
    "span_evidence": "250mm = 2 x 125mm",
    "along_rail_mm": 250.0,
-   "fit_delta_mm": 0.0
+   "fit_delta_mm": 0.0,
+   "attach": "slot_in"
   },
   {
    "sku": "GS-450R-US",
@@ -3429,6 +3438,7 @@
    ],
    "contains_source": "jp-set-contents",
    "contains_evidence": "バーナー本体、収納ケース、結束用バンド1.9ｋｇ（収納ケースを除く）出力：3,000kcal/h対応鍋径：Φ23ｃｍ以下/ダッチオーブン使用不可専用容器：スノーピーク専用容器GP-500GR/ギガパワーガス500プロイソ、GP-250GR/ギガパワーガス250プロイソ、GP-500SR/ギガパワーガス500イソ、GP-250SR/ギガパワーガス250イソ燃焼時間：GP-500GR/210分、GP-250GR/110分",
+   "attach": "slot_in",
    "fit_delta_mm": 20.0,
    "curated_reason": "Along-rail 270mm against a 250mm unit. The extra 20mm is the rim resting on the rails, the way any drop-in cooktop overlaps its cutout -- the burner body drops through one unit. Snow Peak's own copy says only 'compatible with the Iron Grill Table System' and never states a count."
   },

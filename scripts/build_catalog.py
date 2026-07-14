@@ -484,6 +484,10 @@ def main():
     for p in parts:
         a = attach.get(p["sku"])
         if not a:
+            # Definitional, not a guess: a slot module is a thing that goes in a slot.
+            # The copy not restating it for every burner is not a gap in what we know.
+            if p["role"] == "slot_module":
+                p["attach"] = "slot_in"
             continue
         p["attach"] = a["attach"]
         p["needs_legs"] = a["needs_legs"]
