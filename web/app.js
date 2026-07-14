@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, railProfile, meshWires, isMesh,
-         boardMaterial, flatRect, boardFromOutline, grainMaterial } from "./materials.js";
+         boardMaterial, flatRect, boardFromOutline, grainMaterial,
+         jikaroRing, jikaroSeams } from "./materials.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -69,13 +70,25 @@ const norm = r => Math.atan2(Math.sin(r), Math.cos(r));
 
 const overhead = () => GRID.families?.standard?.end_overhead_mm ?? 96;
 
-function footprintOf(sku, kind) {
+// The Jikaro Firering Table is FOUR trapezoid segments, and they go together either way
+// round -- long edge inward (the published 1120mm ring with a 600mm fire hole) or short edge
+// inward (a compact 885mm ring with a 365mm hole). Same four pieces; two different tables.
+// So its footprint is not a property of the SKU, it is a property of the NODE.
+const JIKARO = "ST-050";
+const jikaroCfg = n => (LAYOUT.tables?.[JIKARO]?.configs || {})[n?.config || "long_in"];
+const isJikaro = n => n?.sku === JIKARO && jikaroCfg(n);
+
+function footprintOf(sku, kind, node) {
   const p = PARTS[sku];
   if (kind === "frame") return { w: 250 * p.units + overhead(), d: p.assembled_mm?.d ?? 496 };
+  if (sku === JIKARO && node) {
+    const c = jikaroCfg(node);
+    if (c) return { w: c.outer_mm, d: c.outer_mm };
+  }
   const a = p.assembled_mm;
   return { w: a?.w ?? 496, d: a?.d ?? 496 };
 }
-const footprint = n => footprintOf(n.sku, n.kind);
+const footprint = n => footprintOf(n.sku, n.kind, n);
 
 /** Top surface height.
  *
@@ -246,10 +259,34 @@ function hostEdge(n, key, guest = "ext") {
       len: lg ? Math.hypot(lg[0][0] - lg[1][0], lg[0][1] - lg[1][1]) * 1.35 : 400,
     };
   }
+
+  // The Jikaro's four OUTER STRAIGHT sides. Snow Peak's own photo (JP a011) shows a Bamboo
+  // IGT Table hooked to one of them, standing on 400mm legs -- so the fire ring is a host
+  // like any other, and a board on it inherits the datum.
+  //
+  // The four 45-degree CHAMFERS are NOT offered. Nothing says a board hooks there, and a
+  // 45-degree edge is exactly the kind of thing it is tempting to assume symmetry about.
+  if (isJikaro(n) && JIKARO_EDGES[key]) {
+    const c = jikaroCfg(n);
+    const v = JIKARO_EDGES[key];
+    // The hook engages the same depth in from the edge as it does on a frame -- 16.5mm --
+    // because it is the SAME wire hook. That is a mechanical argument, not a measurement:
+    // I have not measured the Jikaro's slots. Anchoring on the outer FACE instead leaves the
+    // board's edge hanging 12mm clear of the table, which is what the first version did and
+    // what a hook, by construction, does not do.
+    const r = c.outer_mm / 2 - HOLE_INSET;
+    return { anchor: { x: v.x * r, z: v.z * r }, normal: v, len: c.edge_mm };
+  }
   return null;
 }
 
+const JIKARO_EDGES = {
+  "jik+x": { x: 1, z: 0 }, "jik-x": { x: -1, z: 0 },
+  "jik+z": { x: 0, z: 1 }, "jik-z": { x: 0, z: -1 },
+};
+
 const EDGE_KEYS = { frame: ["end+x", "end-x", "rail+z", "rail-z"], ext: ["bracket"], table: [] };
+const edgeKeysOf = n => (isJikaro(n) ? Object.keys(JIKARO_EDGES) : EDGE_KEYS[n.kind] || []);
 
 /** Every edge of this node that an extension could still hook onto.
  *
@@ -273,7 +310,7 @@ const EDGE_KEYS = { frame: ["end+x", "end-x", "rail+z", "rail-z"], ext: ["bracke
 function openEdges(n) {
   const taken = new Set(state.nodes.filter(m => m.host === n.id).map(m => m.edge));
   const out = [];
-  for (const key of EDGE_KEYS[n.kind] || []) {
+  for (const key of edgeKeysOf(n)) {
     if (taken.has(key)) continue;
     const e = hostEdge(n, key);
     if (!e) continue;
@@ -318,7 +355,12 @@ function place(n) {
   // A board flush with its host stands at its host's height, so it takes its host's legs.
   // Arithmetic, not preference -- the same argument as the 400mm datum. Two frames hooked
   // end to end are the same case: they are one work surface, so they are one height.
-  n.leg = h.leg;
+  //
+  // A layout table has no leg SKU of its own -- it comes with legs. But it does have a
+  // height, and the datum tables are all 400mm, so a board hooked to one takes the 400mm
+  // IGT Low leg (CK-112). Snow Peak's photo of a Bamboo table on the Jikaro shows exactly
+  // that, and it is the same arithmetic that made CK-112 the datum leg in the first place.
+  n.leg = h.leg || PARTS[h.sku]?.requires_leg || LAYOUT.leg_at_datum || n.leg;
 }
 
 /** Hooked things are not free: they are where their hooks are. Re-derive the whole chain
@@ -534,7 +576,57 @@ function drawFrame(g, n) {
   }
 }
 
+/** The Jikaro: an octagonal ring of four trapezoid segments, with the fire in the hole.
+ *
+ *  Four pieces, and they go together either way round -- which is two different tables, not
+ *  a detail. Both are here because the app has to be able to plan either.
+ *
+ *  It stands on folding WIRE legs, one pair per segment. They are part of the table; there
+ *  is no leg SKU to buy. What hooks onto it does need legs, and at 400mm.
+ */
+function drawJikaro(g, n) {
+  const p = PARTS[n.sku];
+  const c = jikaroCfg(n);
+  const top = topOf(n);
+  const isSel = state.sel === n.id;
+  const steel = new THREE.Color(swatchOf(n.sku));
+  const thick = 6;
+
+  const ring = new THREE.Mesh(
+    jikaroRing(c.outer_mm, c.opening_mm, c.edge_mm, thick * MM),
+    materialFor(p, COLORS, isSel),
+  );
+  ring.position.y = top * MM;
+  ring.userData.node = n; g.add(ring); nodeMeshes.push(ring);
+
+  // Four pieces that read as one plate is a lie about a table you carry in four bits.
+  const seams = jikaroSeams(c.outer_mm, c.opening_mm, c.edge_mm, 0x6a7079);
+  seams.position.y = (top + 0.4) * MM;
+  g.add(seams);
+
+  // A wire leg under each segment: two uprights and a foot bar, folding, as they really are.
+  const wire = new THREE.MeshStandardMaterial({ color: steel, metalness: 0.9, roughness: 0.28 });
+  const mid = (c.outer_mm / 2 + c.opening_mm / 2) / 2;      // the middle of a segment
+  const half = c.edge_mm * 0.34;
+  for (const [ux, uz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    for (const s of [-1, 1]) {
+      const px = ux ? ux * mid : s * half;
+      const pz = uz ? uz * mid : s * half;
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(4 * MM, top * MM, 4 * MM), wire);
+      leg.position.set(px, top / 2, pz).multiplyScalar(MM);
+      g.add(leg);
+    }
+    const bar = new THREE.Mesh(
+      new THREE.BoxGeometry((ux ? 4 : half * 2) * MM, 4 * MM, (uz ? 4 : half * 2) * MM), wire);
+    if (ux) bar.geometry = new THREE.BoxGeometry(4 * MM, 4 * MM, half * 2 * MM);
+    bar.position.set(ux * mid, 8, uz * mid).multiplyScalar(MM);
+    g.add(bar);
+  }
+}
+
 function drawTable(g, n) {
+  if (isJikaro(n)) return drawJikaro(g, n);
+
   const p = PARTS[n.sku];
   const f = footprint(n);
   const top = topOf(n);
@@ -783,7 +875,10 @@ function paintMenu() {
     ? "hooks onto the LONG rail — needs a rail joint set (added)"
     : hover.node.kind === "frame"
       ? "the frame's end: a board hooks into the holes, or another frame joins with a CK-175"
-      : "hooks into the brackets on this edge";
+      : isJikaro(hover.node)
+        ? `one of the fire ring's four outer edges (${Math.round(hover.len)}mm) — at the `
+          + `400mm datum, so it takes low legs`
+        : "hooks into the brackets on this edge";
   menu.append(head);
 
   for (const p of legalOn(hover)) {
@@ -964,6 +1059,8 @@ function addNode(sku) {
     id: state.nextId++, sku, kind, x: 0, z: 0, rot: 0,
     leg: kind === "frame" ? "CK-114" : null,
     placements: [],
+    // Four pieces, two ways round. Default to the one Snow Peak publishes.
+    ...(sku === JIKARO ? { config: "long_in" } : {}),
   };
   // Land it flush against the right edge of what is already there. This is a layout
   // system -- tables connect. Dropping the new one in open space and making you drag
@@ -1091,8 +1188,17 @@ function paintPalette() {
       () => { if (n) setLeg(n, p.sku); }));
 
   const acts = $("actions"); acts.innerHTML = "";
+  if (n && isJikaro(n)) {
+    // The Jikaro is four trapezoids, and which way round they go is the whole table:
+    // 1120mm with a 600mm fire hole, or 885mm with a 365mm one. Not a finish option.
+    const cfgs = LAYOUT.tables[JIKARO].configs;
+    for (const [key, c] of Object.entries(cfgs))
+      acts.append(chip(c.name, n.config === key,
+        `${c.outer_mm}mm across, ${c.opening_mm}mm fire opening, four ${c.edge_mm}mm edges to hook to`,
+        () => { n.config = key; render(); }));
+  }
   if (n) {
-    if (n.kind !== "ext") acts.append(chip("⟲ turn 90°", false, "rotate this table", () => rotateNode(n)));
+    if (!n.host) acts.append(chip("⟲ turn 90°", false, "rotate this table", () => rotateNode(n)));
     acts.append(chip("× remove", false,
       n.kind === "ext" ? "remove this board and anything hooked to it"
                        : "remove this table and everything hooked to it", () => removeNode(n)));

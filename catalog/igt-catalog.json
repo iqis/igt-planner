@@ -98,7 +98,62 @@
      "igt",
      "LV-381"
     ],
-    "evidence": "\"compatible with the Iron Grill Table for additional extension possibilities.\" Built to ring a Takibi Fire & Grill -- the 600mm opening is the fire pit."
+    "requires_leg": "CK-112",
+    "evidence": "\"compatible with the Iron Grill Table for additional extension possibilities.\" Built to ring a Takibi Fire & Grill -- the 600mm opening is the fire pit. It stands at 400mm, the system datum, so anything hooked to it takes the 400mm IGT Low leg -- and Snow Peak's own photo (JP a011) shows exactly that: a Bamboo IGT Table hooked to one outer edge, standing on 400mm legs, its near end carried by the Jikaro.",
+    "_it_is_four_pieces": [
+     "FOUR identical trapezoid segments, and they go together either way round. That is not",
+     "a detail -- it is two different tables, and the planner needs both.",
+     "",
+     "The two plan views (JP a007 = long edge inward, a008 = short edge inward) are shot at",
+     "DIFFERENT SCALES, by a factor of 1.26, so nothing can be read across them directly.",
+     "What crosses is the SEGMENT: it is the same physical piece in both, so its long side,",
+     "short side and height are the invariant, and they are what ties the photographs",
+     "together.",
+     "",
+     "  a007, long edge in  : outer 1069px, opening 565px, straight sides 347px",
+     "  a008, short edge in : outer 1068px, opening 439px, straight sides 712px",
+     "",
+     "  the scale ratio, read off the segment three ways:",
+     "     long sides   712/565 = 1.260",
+     "     short sides  439/347 = 1.265",
+     "     heights    314.5/252 = 1.248        agree to 1.4%",
+     "",
+     "Calibrate on the published 1120x1120 / opening 600 -- which is the a007 config, because",
+     "its ratio 0.53 matches and a008's 0.41 does not -- and everything falls out, and CHECKS:",
+     "",
+     "  segment: long 600, short 365, height 260mm",
+     "     (slant ~24 deg. The outer chamfer comes out at 45 deg for free, whatever the sides",
+     "      are -- it runs from one segment's outer corner to the next one's, and symmetry",
+     "      does the rest.)",
+     "",
+     "  the SHORT side is measured TWICE, independently: 364mm as a007's outer straight edge,",
+     "  366mm as a008's opening. And a008's bbox comes out 885 predicted vs 890 measured.",
+     "  Two photographs at two scales agree with each other and with the spec table, once the",
+     "  scales are kept apart. That is the check that says the model is right."
+    ],
+    "segments": 4,
+    "segment_mm": {
+     "long": 600,
+     "short": 365,
+     "height": 260
+    },
+    "configs": {
+     "long_in": {
+      "name": "long edge inward",
+      "outer_mm": 1120,
+      "opening_mm": 600,
+      "edge_mm": 365,
+      "note": "The published configuration. A 600mm fire opening, and four short 365mm outer edges to hook onto."
+     },
+     "short_in": {
+      "name": "short edge inward",
+      "outer_mm": 885,
+      "opening_mm": 365,
+      "edge_mm": 600,
+      "note": "Compact. A 365mm opening and four long 600mm outer edges. The same four pieces, turned around."
+     }
+    },
+    "hook_edges": "The four OUTER STRAIGHT sides. Snow Peak's photo (a011) shows a Bamboo IGT Table hooked to one of them, on 400mm legs. The four 45-degree CHAMFERS are not offered: nothing says a board hooks there, and the planner does not guess."
    },
    "GF-051": {
     "name": "Takibi Garden Table",
@@ -2033,9 +2088,9 @@
     "igt",
     "LV-381"
    ],
-   "requires_leg": null,
+   "requires_leg": "CK-112",
    "requires_connector": null,
-   "evidence": "\"compatible with the Iron Grill Table for additional extension possibilities.\" Built to ring a Takibi Fire & Grill -- the 600mm opening is the fire pit.",
+   "evidence": "\"compatible with the Iron Grill Table for additional extension possibilities.\" Built to ring a Takibi Fire & Grill -- the 600mm opening is the fire pit. It stands at 400mm, the system datum, so anything hooked to it takes the 400mm IGT Low leg -- and Snow Peak's own photo (JP a011) shows exactly that: a Bamboo IGT Table hooked to one outer edge, standing on 400mm legs, its near end carried by the Jikaro.",
    "price": {
     "us": 33995,
     "jp": 42240,

@@ -75,6 +75,58 @@ export function roundedBox(w, h, d, radius = 2) {
   return g;
 }
 
+/** The Jikaro Firering Table: an octagonal ring of FOUR trapezoid segments, with the fire
+ *  pit in the hole.
+ *
+ *  It goes together either way round, and that is two different tables:
+ *
+ *      long_in    outer 1120, opening 600, four 365mm straight edges   (the published one)
+ *      short_in   outer  885, opening 365, four 600mm straight edges
+ *
+ *  The outer boundary is an octagon: four straight sides (the segments' outer edges) and
+ *  four 45-degree chamfers, which come out at 45 for free -- a chamfer runs from one
+ *  segment's outer corner to the next one's, and four-fold symmetry does the rest.
+ *
+ *  Takes millimetres. `open` is the fire hole; `edge` the straight side; `outer` the bbox.
+ */
+export function jikaroRing(outer, opening, edge, thickness, mm = 0.001) {
+  const R = (outer / 2) * mm, e = (edge / 2) * mm, o = (opening / 2) * mm;
+
+  const s = new THREE.Shape();
+  s.moveTo(-e, -R);                     // the octagon, clockwise from the top-left
+  s.lineTo(e, -R);
+  s.lineTo(R, -e); s.lineTo(R, e);      // chamfer, then the right straight side
+  s.lineTo(e, R); s.lineTo(-e, R);
+  s.lineTo(-R, e); s.lineTo(-R, -e);
+  s.closePath();
+
+  const hole = new THREE.Path();        // the fire pit
+  hole.moveTo(-o, -o); hole.lineTo(-o, o); hole.lineTo(o, o); hole.lineTo(o, -o);
+  hole.closePath();
+  s.holes.push(hole);
+
+  const g = new THREE.ExtrudeGeometry(s, { depth: thickness, bevelEnabled: false });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, -thickness, 0);        // hang from the top face, like every other board
+  return g;
+}
+
+/** The seams between the four segments: the diagonals from the fire pit's corners out to
+ *  the octagon's. Drawn, because four pieces that read as one plate is a lie about a table
+ *  you have to carry in four bits. */
+export function jikaroSeams(outer, opening, edge, color, mm = 0.001) {
+  const g = new THREE.Group();
+  const R = outer / 2, e = edge / 2, o = opening / 2;
+  const mat = new THREE.LineBasicMaterial({ color });
+  for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+    const a = new THREE.Vector3(sx * o, 0, sz * o);
+    const b = new THREE.Vector3(sx * (R + e) / 2, 0, sz * (R + e) / 2);
+    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), mat));
+  }
+  g.scale.setScalar(mm);
+  return g;
+}
+
 /** The IGT rail, in its real cross-section -- MEASURED off CK-149's plan view, not sketched
  *  from the outside.
  *
