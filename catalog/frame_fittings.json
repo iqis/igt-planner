@@ -1,0 +1,45 @@
+{
+ "_comment": "Measured off the frame's underside plan view. Silver corner plates carry the leg sockets; the black end pieces carry the holes an extension's hooks drop into -- which is why extensions attach to the frame's SHORT end and run the length out.",
+ "frames": {
+  "CK-149": {
+   "scale_mm_per_px": [
+    1.431,
+    1.409
+   ],
+   "end_pieces": 2,
+   "hook_holes_mm": [
+    [
+     -407.1,
+     -144.6
+    ],
+    [
+     -406.5,
+     143.2
+    ],
+    [
+     406.4,
+     -143.2
+    ]
+   ],
+   "leg_sockets_mm": [
+    [
+     -347.8,
+     207.8
+    ],
+    [
+     -347.3,
+     -208.7
+    ],
+    [
+     346.4,
+     -206.1
+    ],
+    [
+     347.0,
+     208.4
+    ]
+   ],
+   "source": "https://www.snowpeak.com/cdn/shop/products/CK-149_alt02.jpg?v=1630023553"
+  }
+ }
+}

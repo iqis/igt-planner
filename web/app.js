@@ -19,7 +19,7 @@ const TO_USD = { us: c => c / 100, jp: y => y / 157, uk: p => (p / 100) * 1.27 }
 
 const $ = id => document.getElementById(id);
 
-let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS, TEXTURES;
+let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAMES;
 const texLoader = new THREE.TextureLoader();
 const texCache = {};
 const textureOf = sku => {
@@ -216,21 +216,34 @@ function drawFrame(g, n) {
   }
 
   // Legs: tapered tube with a foot, the way they actually are.
+  // The legs go in the sockets, and the sockets were measured off the frame's underside:
+  // CK-149's are at x=+/-347, z=+/-207.5. The old code put them 40mm in from each edge --
+  // right by luck in z, 36mm out in x.
   const leg = PARTS[n.leg];
   if (leg?.height_mm) {
     const h = leg.height_mm;
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const measured = FRAMES[n.sku]?.leg_sockets_mm;
+    // Sockets are measured on the 3-unit frame; a longer frame moves them out with its
+    // ends, so hold the inset from the end rather than the absolute x.
+    const ref = FRAMES["CK-149"];
+    const inset = ref ? (846 / 2) - Math.abs(ref.leg_sockets_mm[0][0]) : 40;
+    const sideIn = ref ? (496 / 2) - Math.abs(ref.leg_sockets_mm[0][1]) : 40;
+    const spots = measured || [
+      [-(f.w / 2 - inset), -(f.d / 2 - sideIn)], [-(f.w / 2 - inset), f.d / 2 - sideIn],
+      [f.w / 2 - inset, -(f.d / 2 - sideIn)], [f.w / 2 - inset, f.d / 2 - sideIn],
+    ];
+    for (const [lx, lz] of spots) {
       const shaft = stock(
         new THREE.CylinderGeometry(LEG_R * MM, LEG_R * 0.82 * MM, h * MM, 16),
         new THREE.Color(swatchOf(n.leg)), 0.85, 0.3,
       );
-      shaft.position.set(sx * (f.w / 2 - 40), h / 2, sz * (f.d / 2 - 40)).multiplyScalar(MM);
+      shaft.position.set(lx, h / 2, lz).multiplyScalar(MM);
       g.add(shaft);
       const foot = stock(
         new THREE.CylinderGeometry(LEG_R * 1.25 * MM, LEG_R * 1.35 * MM, 12 * MM, 16),
         0x2a2d31, 0.1, 0.85,
       );
-      foot.position.set(sx * (f.w / 2 - 40), 6, sz * (f.d / 2 - 40)).multiplyScalar(MM);
+      foot.position.set(lx, 6, lz).multiplyScalar(MM);
       g.add(foot);
     }
   }
@@ -709,6 +722,7 @@ addEventListener("resize", resize);
 CAT = await (await fetch("../catalog/igt-catalog.json")).json();
 COLORS = (await (await fetch("../catalog/colors.json")).json()).colors;
 TEXTURES = (await (await fetch("../catalog/textures.json")).json()).textures;
+FRAMES = (await (await fetch("../catalog/frame_fittings.json")).json()).frames;
 GRID = CAT.grid;
 LAYOUT = CAT.layout;
 HALF = GRID.half_unit_mm;
