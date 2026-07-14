@@ -559,9 +559,16 @@ def main():
                 rec["attach_evidence"] = ov.get("reason")
             # Relationship fields, curated with evidence. `mounts` = what this carries;
             # `mounted_by` = what carries this; `attaches_to` = the surfaces it will go on.
-            for rel in ("mounts", "mounted_by", "attaches_to", "needs_legs"):
+            for rel in ("mounts", "mounted_by", "attaches_to", "needs_legs",
+                        "one_per_frame", "tiers", "has_surface", "mounts_over"):
                 if rel in ov:
                     rec[rel] = ov[rel]
+            # CK-220's assembled size is derived (only the packed size is published), so say
+            # so on the record rather than let it read as measured.
+            if "assembled_mm" in ov and rec.get("assembled_mm") and not rec.get("packed_mm"):
+                pass
+            if ov.get("assembled_mm") and rec["sku"] == "CK-220":
+                rec["assembled_estimated"] = True
             if "weight_g" in ov:
                 rec["published_weight_g"] = rec.get("weight_g")
                 rec["weight_g"] = ov["weight_g"]

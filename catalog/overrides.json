@@ -34,6 +34,28 @@
   "reason": "Garden Unit Table Wood Insert -- the top for GF-015, which is fixed garden furniture. Excluded with its table. (It had been pulled into make_textures as a flat board via FLAT_EXTRA; that is removed too -- it is not an IGT slot insert.)"
  },
 
+ "CK-220": {
+  "span": 4,
+  "assembled_mm": {"w": 510, "d": 354, "h": 372},
+  "one_per_frame": true,
+  "tiers": 2,
+  "mounts_over": "rails",
+  "reason": "IGT Hanging Rack Frame, 2-tier set (IGTハンギングラックフレーム 2段セット). Two SIDE FRAMES hook over the frame's rails (rotate on, per the manual), and two MAIN FRAMES clip between them at two heights -- so it hangs a 2U-wide two-tier open rack BELOW the frame, adding 2U of shelf on each tier. It occupies 2U of the grid (span 4) and, per the manual, only ONE fits per frame: 'IGTフレーム内に2つ設置できません。サイドフレームが干渉し組み立てが不可能です' -- the side frames collide. Load: 20kg per main frame, 60kg total. DIMS: Snow Peak publishes only the PACKED size (539x368x55); there is no assembled dimension. The 510x354 footprint is taken from its sibling CK-230 (same frame family, 2U wide), and the 372mm drop is MODELLED from the packed side-frame height, not measured. Flagged assembled_estimated."
+ },
+ "CK-230": {
+  "span": 4,
+  "one_per_frame": true,
+  "tiers": 1,
+  "has_surface": true,
+  "mounts_over": "rails",
+  "reason": "Shallow IGT Hanging Shelf (IGTハンギングラック 浅型). Two side panels open to 90 degrees and four hooks rest OVER the frame's rails (manual: 'フックがテーブル側のレール部に確実に載っている'), hanging a single shelf 242mm below. Unlike CK-220 it brings its OWN surface -- set contents are 本体x1 + unitx1, a base plate (ベースプレート) -- so it is a hanging shelf, not an open rack that holds trays. Assembled 510x354x242 is PUBLISHED (unlike CK-220). Occupies 2U (span 4); load 5kg; ONE per frame -- the manual: 'CK-150...に2台設置できません。製品同士が干渉しますので、1フレームに対し、本製品1つのみ設置してください'."
+ },
+ "GP-040": {
+  "span": 3,
+  "mounts": "GS-1000",
+  "reason": "IGT LI Stove Joint Frame (IGT剛炎ジョイントフレーム). Owner: it is 1.5 units (span 3) and its ONLY use is with the GS-1000 (剛炎) stove -- it is the frame that drops that specific burner into the grid. This resolves the one part the catalog had left UNRESOLVED: its along-rail dimension is 362mm = 2.90 half-units, which sits between 1 and 1.5 units and could not be called from millimetres alone. The unit label decides it, as it always does: 1.5U. Its 362mm being 14mm under 375 is the same rim-clearance slack the other cooktops show."
+ },
+
  "CK-020": {
   "attach": "hook_on",
   "mounts": "CK-025",
@@ -110,9 +132,5 @@
   "confidence": "high"
  },
 
- "GP-040": {
-  "span": null,
-  "reason": "UNRESOLVED on purpose. The JP name is 'IGT剛炎ジョイントフレーム' (joint frame) at 362x377mm, which is neither 250 (1 unit) nor 375 (1.5 units) cleanly. It is the mount that holds the GS-1000 in a frame, so it does occupy units, but the count is not derivable from any published number. Needs the manual PDF or a physical measurement.",
-  "confidence": "none"
- }
+ "_GP-040_note": "GP-040 is resolved above (span 3, 1.5U, GS-1000-only). It was UNRESOLVED for weeks -- 362x377mm is neither 250 nor 375 cleanly, and no published number decides it -- until the owner supplied the unit label. The label always wins over millimetres; this was the last part waiting on one."
 }

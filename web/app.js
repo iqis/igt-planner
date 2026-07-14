@@ -558,6 +558,10 @@ function drawFrame(g, n) {
   for (const pl of n.placements) {
     const p2 = PARTS[pl.sku];
     const cx = slotX(n, pl.start) + (pl.span * HALF) / 2;
+
+    // A hanging rack occupies the slots but hangs BELOW -- it is not a tray in the frame.
+    if (isHangRack(p2)) { drawHangRack(g, n, pl, cx, top); continue; }
+
     const w = railW(p2), d = depthOf(p2), h = p2.assembled_mm?.h ?? 40;
     const y = top - h / 2;   // modules drop IN; nothing sits on the frame any more
 
@@ -572,6 +576,57 @@ function drawFrame(g, n) {
       const wires = meshWires(w, h, d, new THREE.Color(swatchOf(p2.sku)));  // mm; it scales itself
       wires.position.set(cx, y, 0).multiplyScalar(MM);
       g.add(wires);
+    }
+  }
+}
+
+/** A hanging rack, below the frame. Its hooks rest OVER the rails (not in a slot), and it
+ *  drops one or two shelves down inside the frame's depth.
+ *
+ *  CK-230 brings its own base plate (a solid shelf); CK-220 hangs two OPEN frames meant to
+ *  hold trays and boxes. The one fact the drawing must not fudge: CK-220's assembled height
+ *  is NOT published -- only its packed size is -- so the drop is modelled, and it is drawn
+ *  a little translucent to say "this height is an estimate, not a measurement".
+ */
+function drawHangRack(g, n, pl, cx, top) {
+  const p = PARTS[pl.sku];
+  const a = p.assembled_mm;
+  const w = a.w, d = a.d, drop = a.h;
+  const steel = new THREE.Color(swatchOf(p.sku));
+  const est = p.assembled_estimated;
+  const mat = new THREE.MeshStandardMaterial({
+    color: steel, metalness: 0.9, roughness: 0.28,
+    transparent: est, opacity: est ? 0.78 : 1,
+  });
+  const bar = (bw, bh, bd, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(bw * MM, bh * MM, bd * MM), mat);
+    m.position.set((cx + x) * MM, y * MM, z * MM);
+    m.userData.placement = pl; m.userData.node = n;
+    g.add(m); slotMeshes.push(m);
+  };
+
+  // Hooks over both rails, at the top. Two per side, like the manual's four.
+  const railZ = n && (footprint(n).d / 2 - SECTION.rail_width_mm / 2);
+  for (const sz of [-1, 1])
+    for (const sx of [-0.5, 0.5])
+      bar(16, 10, 40, sx * (w - 40), top + 2, sz * railZ);
+
+  // Side panels: one at each end, dropping the full depth. Drawn as thin plates.
+  for (const sx of [-1, 1])
+    bar(6, drop, d, sx * (w / 2 - 3), top - drop / 2, 0);
+
+  // The shelves. CK-230: a single solid base plate at the bottom (its own surface).
+  // CK-220: two open frames -- draw each as a rectangular rim, no floor.
+  const tiers = p.tiers || 1;
+  for (let i = 1; i <= tiers; i++) {
+    const y = top - (drop * i) / tiers;
+    if (p.has_surface) {
+      bar(w - 12, 8, d, 0, y, 0);                 // solid shelf
+    } else {
+      bar(w - 12, 20, 12, 0, y, d / 2 - 6);       // front rail
+      bar(w - 12, 20, 12, 0, y, -(d / 2 - 6));    // back rail
+      bar(12, 20, d, w / 2 - 6, y, 0);            // right rail
+      bar(12, 20, d, -(w / 2 - 6), y, 0);         // left rail
     }
   }
 }
@@ -1123,9 +1178,17 @@ function rootOf(n, depth = 0) {
   return h ? rootOf(h, depth + 1) : n;
 }
 
+// A hanging rack is a hanger with a span: it occupies slots (2U) but hangs below the frame
+// rather than dropping into it. CK-220 (two tiers), CK-230 (one tier, its own surface).
+const isHangRack = p => p?.role === "hanger" && p?.span;
+const hasHangRack = n => n.placements.some(pl => isHangRack(PARTS[pl.sku]));
+
 function placeModule(sku) {
   const n = sel();
   if (!n || n.kind !== "frame") return;
+  // One hanging rack per frame -- the manuals are explicit that a second one's side frames
+  // collide with the first's. Not a soft warning: the second simply does not go on.
+  if (isHangRack(PARTS[sku]) && hasHangRack(n)) return;
   const span = spanOf(PARTS[sku]);
   const start = firstFit(n, span);
   if (start < 0) return;
@@ -1208,6 +1271,17 @@ function paintPalette() {
   const frame = n?.kind === "frame" ? n : null;
   for (const p of BY_ROLE.slot_module)
     mods.append(partRow(p, () => placeModule(p.sku), !frame || firstFit(frame, p.span) < 0));
+
+  // Hanging racks occupy 2U of the grid but hang BELOW the frame instead of sitting in it.
+  // One per frame -- their side frames collide otherwise (both manuals say so). So they are
+  // dead if the frame already has one, or if 2U will not fit.
+  for (const p of BY_ROLE.hang_rack) {
+    const dead = !frame || hasHangRack(frame) || firstFit(frame, p.span) < 0;
+    mods.append(partRow(p, () => placeModule(p.sku), dead,
+      dead && frame && hasHangRack(frame)
+        ? `${p.sku} — one hanging rack per frame; the side frames would collide.`
+        : `${p.sku} — hangs a ${p.tiers === 2 ? "two-tier" : "one-tier"} rack under 2U of the frame.`));
+  }
 
   $("selname").textContent = n ? PARTS[n.sku].title_en : "nothing selected";
 }
@@ -1394,6 +1468,8 @@ BY_ROLE = {
   leg: by("leg").filter(p => p.height_mm).sort((a, b) => a.height_mm - b.height_mm),
   slot_module: by("slot_module").filter(p => p.span && p.assembled_mm)
     .sort((a, b) => a.span - b.span || a.title_en.localeCompare(b.title_en)),
+  hang_rack: by("hanger").filter(p => p.span && p.assembled_mm)
+    .sort((a, b) => (a.tiers || 0) - (b.tiers || 0)),
   layout_table: by("layout_table").filter(p => p.assembled_mm),
   standalone: by("standalone").filter(p => p.assembled_mm),
   unsourced: inScope.filter(p => hookRoles(p) && !HOOKABLE.includes(p)),

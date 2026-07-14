@@ -1687,7 +1687,11 @@
    "collections": [
     "iron-grill-table"
    ],
-   "assembled_mm": null,
+   "assembled_mm": {
+    "w": 510,
+    "d": 354,
+    "h": 372
+   },
    "packed_mm": {
     "w": 539.0,
     "d": 368.0,
@@ -1713,6 +1717,16 @@
    "attach": "hang",
    "needs_legs": true,
    "attach_evidence": "The IGT Hanging Rack 2 Frame is a stainless steel storage accessory for the Iron Grill Table System .",
+   "one_per_frame": true,
+   "tiers": 2,
+   "mounts_over": "rails",
+   "assembled_estimated": true,
+   "published_mm": null,
+   "span": 4,
+   "span_source": "curated",
+   "span_evidence": "IGT Hanging Rack Frame, 2-tier set (IGTハンギングラックフレーム 2段セット). Two SIDE FRAMES hook over the frame's rails (rotate on, per the manual), and two MAIN FRAMES clip between them at two heights -- so it hangs a 2U-wide two-tier open rack BELOW the frame, adding 2U of shelf on each tier. It occupies 2U of the grid (span 4) and, per the manual, only ONE fits per frame: 'IGTフレーム内に2つ設置できません。サイドフレームが干渉し組み立てが不可能です' -- the side frames collide. Load: 20kg per main frame, 60kg total. DIMS: Snow Peak publishes only the PACKED size (539x368x55); there is no assembled dimension. The 510x354 footprint is taken from its sibling CK-230 (same frame family, 2U wide), and the 372mm drop is MODELLED from the packed side-frame height, not measured. Flagged assembled_estimated.",
+   "fit_delta_mm": 10.0,
+   "curated_reason": "IGT Hanging Rack Frame, 2-tier set (IGTハンギングラックフレーム 2段セット). Two SIDE FRAMES hook over the frame's rails (rotate on, per the manual), and two MAIN FRAMES clip between them at two heights -- so it hangs a 2U-wide two-tier open rack BELOW the frame, adding 2U of shelf on each tier. It occupies 2U of the grid (span 4) and, per the manual, only ONE fits per frame: 'IGTフレーム内に2つ設置できません。サイドフレームが干渉し組み立てが不可能です' -- the side frames collide. Load: 20kg per main frame, 60kg total. DIMS: Snow Peak publishes only the PACKED size (539x368x55); there is no assembled dimension. The 510x354 footprint is taken from its sibling CK-230 (same frame family, 2U wide), and the 372mm drop is MODELLED from the packed side-frame height, not measured. Flagged assembled_estimated.",
    "manual": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h14/hce/8896510591006/CK-220_manual.pdf",
    "manual_set_contents": [
     "、サイドフレームx2",
@@ -1759,6 +1773,15 @@
    "attach": "hang",
    "needs_legs": true,
    "attach_evidence": "The Shallow IGT Hanging Shelf is a single-shelf system compatible with IGT Frames.",
+   "one_per_frame": true,
+   "tiers": 1,
+   "has_surface": true,
+   "mounts_over": "rails",
+   "span": 4,
+   "span_source": "curated",
+   "span_evidence": "Shallow IGT Hanging Shelf (IGTハンギングラック 浅型). Two side panels open to 90 degrees and four hooks rest OVER the frame's rails (manual: 'フックがテーブル側のレール部に確実に載っている'), hanging a single shelf 242mm below. Unlike CK-220 it brings its OWN surface -- set contents are 本体x1 + unitx1, a base plate (ベースプレート) -- so it is a hanging shelf, not an open rack that holds trays. Assembled 510x354x242 is PUBLISHED (unlike CK-220). Occupies 2U (span 4); load 5kg; ONE per frame -- the manual: 'CK-150...に2台設置できません。製品同士が干渉しますので、1フレームに対し、本製品1つのみ設置してください'.",
+   "fit_delta_mm": 10.0,
+   "curated_reason": "Shallow IGT Hanging Shelf (IGTハンギングラック 浅型). Two side panels open to 90 degrees and four hooks rest OVER the frame's rails (manual: 'フックがテーブル側のレール部に確実に載っている'), hanging a single shelf 242mm below. Unlike CK-220 it brings its OWN surface -- set contents are 本体x1 + unitx1, a base plate (ベースプレート) -- so it is a hanging shelf, not an open rack that holds trays. Assembled 510x354x242 is PUBLISHED (unlike CK-220). Occupies 2U (span 4); load 5kg; ONE per frame -- the manual: 'CK-150...に2台設置できません。製品同士が干渉しますので、1フレームに対し、本製品1つのみ設置してください'.",
    "manual": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h52/h9d/8963211788318/CK-230_manual.pdf",
    "manual_set_contents": [
     "収納時／503x315",
@@ -3583,11 +3606,13 @@
     "us": "https://www.snowpeak.com/products/li-stove-joint-kit-gp-040",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0107A0015"
    },
-   "span": null,
-   "span_source": null,
-   "span_evidence": "UNRESOLVED on purpose. The JP name is 'IGT剛炎ジョイントフレーム' (joint frame) at 362x377mm, which is neither 250 (1 unit) nor 375 (1.5 units) cleanly. It is the mount that holds the GS-1000 in a frame, so it does occupy units, but the count is not derivable from any published number. Needs the manual PDF or a physical measurement.",
+   "span": 3,
+   "span_source": "curated",
+   "span_evidence": "IGT LI Stove Joint Frame (IGT剛炎ジョイントフレーム). Owner: it is 1.5 units (span 3) and its ONLY use is with the GS-1000 (剛炎) stove -- it is the frame that drops that specific burner into the grid. This resolves the one part the catalog had left UNRESOLVED: its along-rail dimension is 362mm = 2.90 half-units, which sits between 1 and 1.5 units and could not be called from millimetres alone. The unit label decides it, as it always does: 1.5U. Its 362mm being 14mm under 375 is the same rim-clearance slack the other cooktops show.",
    "attach": "slot_in",
-   "curated_reason": "UNRESOLVED on purpose. The JP name is 'IGT剛炎ジョイントフレーム' (joint frame) at 362x377mm, which is neither 250 (1 unit) nor 375 (1.5 units) cleanly. It is the mount that holds the GS-1000 in a frame, so it does occupy units, but the count is not derivable from any published number. Needs the manual PDF or a physical measurement."
+   "mounts": "GS-1000",
+   "fit_delta_mm": -13.0,
+   "curated_reason": "IGT LI Stove Joint Frame (IGT剛炎ジョイントフレーム). Owner: it is 1.5 units (span 3) and its ONLY use is with the GS-1000 (剛炎) stove -- it is the frame that drops that specific burner into the grid. This resolves the one part the catalog had left UNRESOLVED: its along-rail dimension is 362mm = 2.90 half-units, which sits between 1 and 1.5 units and could not be called from millimetres alone. The unit label decides it, as it always does: 1.5U. Its 362mm being 14mm under 375 is the same rim-clearance slack the other cooktops show."
   },
   {
    "sku": "GS-230",
