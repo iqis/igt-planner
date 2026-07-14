@@ -89,6 +89,10 @@ h2 {
 .part .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .part .sp { color: var(--dim); font-size: .66rem; flex: none; }
 .part.dead { opacity: .35; cursor: not-allowed; }
+/* The manual lists specific hosts and this one is not among them -- but the whitelist may
+   simply predate it (the collapsible frames are omitted yet fit). A caution, not a block. */
+.part.caution { border-color: #b8863a; }
+.part.caution .sp { color: #d8a34a; }
 
 #stage { position: relative; min-width: 0; }
 #canvas { width: 100%; height: 100%; display: block; }

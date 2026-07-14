@@ -936,15 +936,25 @@ function paintMenu() {
         : "hooks into the brackets on this edge";
   menu.append(head);
 
+  // The host for a manual whitelist is the ROOT frame -- a corner's manual lists the frames
+  // it goes on, whether it hooks the frame directly or another extension that is on one.
+  const rootSku = rootOf(hover.node).sku;
+
   for (const p of legalOn(hover)) {
+    const c = compat(p.sku, rootSku);
+    if (c.level === "blocked") continue;   // the manual forbids it; do not even offer it
+
     const row = document.createElement("div");
-    row.className = "part";
+    row.className = "part" + (c.level === "unlisted" ? " caution" : "");
     const usd = p.price?.us ? "$" + TO_USD.us(p.price.us).toFixed(0) : "";
     row.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
-      + `<span class="nm">${p.title_en}</span><span class="sp">${usd}</span>`;
+      + `<span class="nm">${p.title_en}</span>`
+      + `<span class="sp">${c.level === "unlisted" ? "?" : usd}</span>`;
     const f = footprintOf(p.sku, kindOf(p));
-    row.title = `${p.sku} — ${Math.round(f.w)}×${Math.round(f.d)}mm`
-      + (kindOf(p) === "frame" ? " — joins end to end (+ CK-175)" : "");
+    row.title = c.level === "unlisted"
+      ? `${p.sku} — ${c.why}`
+      : `${p.sku} — ${Math.round(f.w)}×${Math.round(f.d)}mm`
+        + (kindOf(p) === "frame" ? " — joins end to end (+ CK-175)" : "");
     row.onclick = () => { attach(p.sku, hover.node, hover.key); setHover(null); };
     menu.append(row);
   }
@@ -1079,6 +1089,61 @@ function snapToNeighbours(n) {
     if (nearX && Math.abs(a.z0 - b.z1) < 80) { n.z = b.z1 + a.d / 2; return; }
     if (nearX && Math.abs(a.z1 - b.z0) < 80) { n.z = b.z0 - a.d / 2; return; }
   }
+}
+
+// ---------------------------------------------------------------- compatibility
+//
+// The manuals carry two kinds of rule, mined in parse_manuals.py, and they are NOT
+// symmetric -- treating them the same is how you get one backwards:
+//
+//   BLACKLIST (非対応品番)  "these must NOT be attached; it will tip / it will not fit."
+//                          A definite negative, with a physical reason. It does not expire:
+//                          if it toppled in 2019 it topples now. Enforced HARD.
+//
+//   WHITELIST  (対応品番)   "attaches to these; nothing else is supported." Authoritative
+//                          -- but only as of the manual's date. The corner whitelist names
+//                          CK-149/CK-150 and omits the collapsible frames (CK-902/3/4),
+//                          which have the IDENTICAL footprint and end holes and certainly
+//                          do fit. So "not listed" is a CAUTION, not a block, and it is
+//                          checked only after expanding through frame-equivalence.
+
+const baseSku = sku => sku.replace(/-(US|INT|EC|R)$/i, "");
+
+/** Two frames are interchangeable hosts if they have the same unit count -- established
+ *  when the collapsible frames were confirmed to share the standard ones' footprint to the
+ *  millimetre. So a whitelist that names one frame implies every frame of its size. */
+function hostEquivalents(sku) {
+  const p = PARTS[sku];
+  const out = new Set([sku, baseSku(sku)]);
+  if (p?.role === "frame" && p.units)
+    for (const q of CAT.parts)
+      if (q.role === "frame" && q.units === p.units) { out.add(q.sku); out.add(baseSku(q.sku)); }
+  return out;
+}
+
+/** Is `guest` allowed onto `host`? -> { level: "ok" | "unlisted" | "blocked", why }.
+ *  The manuals speak in base SKUs, so compare on those, and expand the host through
+ *  frame-equivalence before judging a whitelist. */
+function compat(guestSku, hostSku) {
+  const g = PARTS[guestSku];
+  if (!g || !hostSku) return { level: "ok" };
+  const hosts = hostEquivalents(hostSku);
+
+  const black = g.manual_incompatible_with;
+  if (black) for (const bad of Object.keys(black))
+    if (hosts.has(bad) || hosts.has(baseSku(bad)))
+      return { level: "blocked", why: black[bad] || "the manual forbids this pairing" };
+
+  const white = g.manual_compatible_with;
+  if (white?.length) {
+    const ok = white.some(w => hosts.has(w) || hosts.has(baseSku(w)));
+    if (!ok) return {
+      level: "unlisted",
+      why: `its manual lists ${white.join(", ")} — not ${baseSku(hostSku)}. `
+        + `That may just predate this part; check before trusting it.`,
+    };
+  }
+  return { level: "ok" };
 }
 
 // ---------------------------------------------------------------- state ops
@@ -1269,8 +1334,15 @@ function paintPalette() {
 
   const mods = $("modules"); mods.innerHTML = "";
   const frame = n?.kind === "frame" ? n : null;
-  for (const p of BY_ROLE.slot_module)
-    mods.append(partRow(p, () => placeModule(p.sku), !frame || firstFit(frame, p.span) < 0));
+  for (const p of BY_ROLE.slot_module) {
+    const c = frame ? compat(p.sku, frame.sku) : { level: "ok" };
+    const dead = !frame || firstFit(frame, p.span) < 0 || c.level === "blocked";
+    const why = c.level === "blocked" ? `${p.sku} — ${c.why}`
+      : c.level === "unlisted" ? `${p.sku} — ${c.why}` : null;
+    const row = partRow(p, () => placeModule(p.sku), dead, why);
+    if (c.level === "unlisted" && !dead) row.classList.add("caution");
+    mods.append(row);
+  }
 
   // Hanging racks occupy 2U of the grid but hang BELOW the frame instead of sitting in it.
   // One per frame -- their side frames collide otherwise (both manuals say so). So they are
@@ -1384,6 +1456,29 @@ function paintWarnings() {
     if (n.kind !== "frame") continue;
     const used = occupancy(n).filter(Boolean).length;
     if (used === slotsOf(n)) add(`${PARTS[n.sku].title_en}: full, ${used}/${slotsOf(n)} half-slots.`, "warn info");
+  }
+
+  // What the MANUALS say about a pairing, made to speak. A module against its host frame,
+  // and a hooked board against the root frame it hangs from. Blacklisted -> the manual
+  // forbids it (it should not be here at all -- the palette blocks it -- but a saved layout
+  // or a data change could reintroduce it, so check). Unlisted -> the whitelist predates
+  // this host; a caution in the manual's own words, not an error.
+  const seen = new Set();
+  const flag = (guest, hostSku, label) => {
+    const c = compat(guest.sku, hostSku);
+    if (c.level === "ok") return;
+    const key = guest.sku + ">" + hostSku;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const g = PARTS[guest.sku].title_en, h = PARTS[hostSku]?.title_en || hostSku;
+    if (c.level === "blocked")
+      add(`${g} must NOT go on ${h}: ${c.why}`);
+    else
+      add(`${g} on ${h}: ${c.why}`, "warn info");
+  };
+  for (const n of state.nodes) {
+    if (n.kind === "frame") for (const pl of n.placements) flag(PARTS[pl.sku], n.sku);
+    if (n.host) flag(PARTS[n.sku], rootOf(n).sku);
   }
 
   // Two frames end to end. Their end pieces butt -- 49.4mm each, so the joint eats 99mm --
