@@ -173,7 +173,9 @@ def main():
                     "barcode": variants[0]["barcode"] if variants else "",
                     "price_usd": variants[0]["price_usd"] if variants else None,
                     "available": any(v["available"] for v in variants),
-                    "images": [im.get("src", "") for im in p.get("images", [])][:4],
+                    # Keep the whole gallery: the top-down shot is in there somewhere, and which
+                    # one it is gets decided by measuring, not by guessing at index 0.
+                    "images": [im.get("src", "") for im in p.get("images", [])],
                 }
             by_handle[h]["collections"].append(coll)
         time.sleep(0.3)

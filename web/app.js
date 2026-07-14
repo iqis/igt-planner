@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, railProfile, meshWires, isMesh,
-         quarterRound, angleBoard } from "./materials.js";
+         quarterRound, angleBoard, boardMaterial, flatRect } from "./materials.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -19,7 +19,15 @@ const TO_USD = { us: c => c / 100, jp: y => y / 157, uk: p => (p / 100) * 1.27 }
 
 const $ = id => document.getElementById(id);
 
-let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS;
+let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS, TEXTURES;
+const texLoader = new THREE.TextureLoader();
+const texCache = {};
+const textureOf = sku => {
+  const t = TEXTURES[sku];
+  if (!t) return null;
+  if (!texCache[sku]) texCache[sku] = texLoader.load(t.file);
+  return texCache[sku];
+};
 
 // Colours come from Snow Peak's product photography (catalog/colors.json). The swatch in
 // the palette is the same colour the part is rendered in, so the two never drift.
@@ -264,13 +272,57 @@ function drawTable(g, n) {
   let geo;
   if (/corner/i.test(p.title_en)) geo = quarterRound(f.w * MM, thick * MM);
   else if (/angle/i.test(p.title_en)) geo = angleBoard(f.w * MM, f.d * MM, thick * MM, 200 * MM);
+  else if (n.kind === "ext") geo = flatRect(f.w * MM, f.d * MM, thick * MM, 8 * MM);
   else geo = roundedBox(f.w * MM, thick * MM, f.d * MM, 2.2 * MM);
 
-  const m = new THREE.Mesh(geo, materialFor(p, COLORS, sel));
+  const tex = textureOf(p.sku);
+  const mat = tex
+    ? boardMaterial(p, COLORS, tex, f.w * MM, f.d * MM, sel)
+    : materialFor(p, COLORS, sel);
+  const m = new THREE.Mesh(geo, mat);
   m.position.set(0, top - thick / 2, 0).multiplyScalar(MM);
   m.userData.node = n; g.add(m); nodeMeshes.push(m);
 
-  if (!p.needs_legs && n.kind !== "table") return;
+  if (n.kind === "ext") {
+    const legH = top - thick;
+    const legSku = n.leg;
+
+    // Two hook pins on the edge that meets the host: they drop into the holes in the
+    // frame's edge. That side needs no leg -- the frame is already holding it up.
+    const pins = TEXTURES[p.sku]?.hooks_mm || [];
+    for (const [px, pz] of pins) {
+      const pin = stock(new THREE.CylinderGeometry(5 * MM, 5 * MM, 24 * MM, 8), 0xc8ccd2, 0.9, 0.25);
+      pin.position.set(px, top - thick - 10, pz).multiplyScalar(MM);
+      g.add(pin);
+    }
+
+    // The legs go where the BRACKETS are, and the brackets were measured off the plan
+    // view -- CK-117TR's sit at x=-503, z=+/-165mm, 45mm in from the far edge. Placing
+    // them at the corners because that is where legs usually go would be a guess sitting
+    // right next to a measurement.
+    const seats = (TEXTURES[p.sku]?.legs_mm || []);
+    const spots = seats.length
+      ? seats
+      : [[-(f.w / 2 - 45), -f.d * 0.3], [-(f.w / 2 - 45), f.d * 0.3]];
+
+    for (const [bx, bz] of spots) {
+      const bracket = stock(roundedBox(58 * MM, 26 * MM, 40 * MM, 2 * MM), 0xc8ccd2, 0.9, 0.3);
+      bracket.position.set(bx, top - thick - 13, bz).multiplyScalar(MM);
+      g.add(bracket);
+
+      if (legSku && PARTS[legSku]?.height_mm) {
+        const leg = stock(
+          new THREE.CylinderGeometry(12.5 * MM, 10.5 * MM, legH * MM, 14),
+          new THREE.Color(swatchOf(legSku)), 0.85, 0.32,
+        );
+        leg.position.set(bx, legH / 2, bz).multiplyScalar(MM);
+        g.add(leg);
+      }
+    }
+    return;
+  }
+
+  if (n.kind !== "table") return;
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const leg = stock(
       new THREE.CylinderGeometry(10 * MM, 8 * MM, (top - thick) * MM, 14),
@@ -289,7 +341,7 @@ function rebuild() {
   for (const n of state.nodes) {
     const g = new THREE.Group();
     g.position.set(n.x * MM, 0, n.z * MM);
-    g.rotation.y = (n.rot * Math.PI) / 180;
+    g.rotation.y = -orientation(n);
     (n.kind === "frame" ? drawFrame : drawTable)(g, n);
     build.add(g);
   }
@@ -399,6 +451,55 @@ const sel = () => state.nodes.find(n => n.id === state.sel);
 
 const HOOKS_ON = new Set(["extension_table", "corner"]);
 
+// A leg SET is two legs -- "Each purchase includes two legs", and the JP spec agrees
+// (φ25×840mm, 0.45kg ×2). So a frame stands on four legs and needs TWO sets, which the
+// BOM was not doing: every build priced so far was two legs short.
+//
+// An extension needs only TWO. Its hooked edge hangs off the host frame and carries no
+// leg at all; the legs live under the far edge, in the brackets that also hold the holes
+// the NEXT extension hooks into.
+const LEG_SETS = { frame: 2, ext: 1, table: 0 };
+
+/** The node an extension hooks into. Its hooked edge faces this; its legs are opposite. */
+function hostOf(n, seen = new Set()) {
+  if (n.kind !== "ext") return null;
+  seen.add(n.id);
+  return neighbours(n).find(m => !seen.has(m.id)) || null;
+}
+
+/** Unit vector from an extension towards its host: the side the hooks must face. */
+function hookSide(n) {
+  const h = hostOf(n);
+  if (!h) return { x: -1, z: 0 };
+  const dx = h.x - n.x, dz = h.z - n.z;
+  return Math.abs(dx) >= Math.abs(dz)
+    ? { x: Math.sign(dx) || -1, z: 0 }
+    : { x: 0, z: Math.sign(dz) || -1 };
+}
+
+/** Which way the hooks point in the BOARD's own coordinates -- measured off the plan view,
+ *  not assumed. CK-117TR's hooks sit at x=+560, so its hook edge is local +x; the corner's
+ *  are at z=+261, so its hook edge is local +z, which is exactly why a corner turns the
+ *  layout and a straight extension does not. */
+function hookAxis(sku) {
+  const hs = TEXTURES[sku]?.hooks_mm;
+  if (!hs?.length) return { x: -1, z: 0 };
+  const mx = hs.reduce((a, h) => a + h[0], 0) / hs.length;
+  const mz = hs.reduce((a, h) => a + h[1], 0) / hs.length;
+  return Math.abs(mx) >= Math.abs(mz)
+    ? { x: Math.sign(mx), z: 0 }
+    : { x: 0, z: Math.sign(mz) };
+}
+
+/** Turn the board so its hook edge faces its host. Without this the hooks point into open
+ *  air and the legs stand under the joint -- which is what the first render did. */
+function orientation(n) {
+  if (n.kind !== "ext") return (n.rot * Math.PI) / 180;
+  const want = hookSide(n);
+  const have = hookAxis(n.sku);
+  return Math.atan2(want.z, want.x) - Math.atan2(have.z, have.x);
+}
+
 function addNode(sku) {
   const p = PARTS[sku];
   // A bamboo table hooks onto the frame's EDGE and stands on its own legs. It is a node
@@ -495,9 +596,11 @@ function bomLines() {
   const lines = [];
   for (const n of state.nodes) {
     lines.push({ sku: n.sku, node: n });
-    if (n.kind === "ext" && n.leg) lines.push({ sku: n.leg, req: true });
+    // A set is two legs. A frame stands on four.
+    const sets = LEG_SETS[n.kind] ?? 0;
+    if (n.leg) for (let i = 0; i < sets; i++)
+      lines.push({ sku: n.leg, req: n.kind === "ext" });
     if (n.kind === "frame") {
-      if (n.leg) lines.push({ sku: n.leg });
       const rails = PARTS[n.sku].requires_rails;
       if (rails && PARTS[rails]) lines.push({ sku: rails, req: true });
       for (const pl of n.placements) lines.push({ sku: pl.sku, node: n, pl });
@@ -605,6 +708,7 @@ addEventListener("resize", resize);
 
 CAT = await (await fetch("../catalog/igt-catalog.json")).json();
 COLORS = (await (await fetch("../catalog/colors.json")).json()).colors;
+TEXTURES = (await (await fetch("../catalog/textures.json")).json()).textures;
 GRID = CAT.grid;
 LAYOUT = CAT.layout;
 HALF = GRID.half_unit_mm;

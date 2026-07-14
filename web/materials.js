@@ -180,3 +180,61 @@ export function angleBoard(length, depth, thickness, setback = 200) {
   g.translate(0, thickness / 2, 0);
   return g;
 }
+
+/** Snow Peak's own plan view, mapped onto the board.
+ *
+ *  The shape's coordinates ARE the UVs on an ExtrudeGeometry cap, so the photo lands in
+ *  register with the geometry as long as we tell the texture how big the board is. The
+ *  alpha channel carries the silhouette, which is why the corner's quarter round does not
+ *  have to be believed -- it can just be seen.
+ */
+export function boardMaterial(p, colors, texture, w, d, selected) {
+  const r = responseFor(p.material);
+  texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.repeat.set(1 / w, -1 / d);
+  texture.offset.set(0.5, 0.5);
+  texture.needsUpdate = true;
+
+  return new THREE.MeshStandardMaterial({
+    map: texture,
+    color: 0xffffff,
+    metalness: r.metalness,
+    roughness: r.roughness,
+    emissive: new THREE.Color(selected ? 0x2e1806 : 0x000000),
+    transparent: true,
+    alphaTest: 0.5,
+  });
+}
+
+/** A flat board, extruded UPWARD from a shape lying in the ground plane.
+ *
+ *  This matters for texturing, not for looks. roundedBox() extrudes a (width x thickness)
+ *  rectangle sideways, so its cap faces are the board's SIDES -- and an ExtrudeGeometry's
+ *  cap UVs are its shape coordinates, which means the plan-view photo landed on the edge
+ *  of the board instead of on top of it. Building the shape in the ground plane, the way
+ *  quarterRound() already did, puts the caps where the photo belongs.
+ */
+export function flatRect(w, d, thickness, radius = 6) {
+  const r = Math.min(radius, w / 2 - 0.001, d / 2 - 0.001);
+  const s = new THREE.Shape();
+  const x = w / 2, y = d / 2;
+  s.moveTo(-x + r, -y);
+  s.lineTo(x - r, -y);
+  s.quadraticCurveTo(x, -y, x, -y + r);
+  s.lineTo(x, y - r);
+  s.quadraticCurveTo(x, y, x - r, y);
+  s.lineTo(-x + r, y);
+  s.quadraticCurveTo(-x, y, -x, y - r);
+  s.lineTo(-x, -y + r);
+  s.quadraticCurveTo(-x, -y, -x + r, -y);
+
+  const g = new THREE.ExtrudeGeometry(s, {
+    depth: thickness, bevelEnabled: true,
+    bevelThickness: thickness * 0.15, bevelSize: thickness * 0.15,
+    bevelSegments: 2, curveSegments: 6,
+  });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, thickness / 2, 0);
+  return g;
+}

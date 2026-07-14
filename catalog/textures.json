@@ -1,0 +1,216 @@
+{
+ "_comment": "Top-down product photographs, cropped to the object with the white background cut to alpha, used as the top surface of the flat boards. The plan view is CHOSEN by matching the silhouette's aspect to the part's published w:d -- image[0] is often a hero shot and would be stretched into nonsense.",
+ "textures": {
+  "GF-010": {
+   "file": "tex/GF-010.png",
+   "aspect": 0.8,
+   "wanted": 0.694,
+   "aspect_error": 0.152,
+   "source": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/garden_table_wood_insert_gf-010_lifestyle_02.jpg?v=1600364540",
+   "scale_mm_per_px": [
+    0.312,
+    0.36
+   ],
+   "hooks_mm": [],
+   "legs_mm": [
+    [
+     -116.5,
+     -167.7
+    ],
+    [
+     -45.2,
+     -132.5
+    ],
+    [
+     -15.3,
+     -119.7
+    ]
+   ]
+  },
+  "CK-118TR": {
+   "file": "tex/CK-118TR.png",
+   "aspect": 0.945,
+   "wanted": 1.0,
+   "aspect_error": 0.055,
+   "source": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/bamboo_corner_L_ck-118tr_alt_02.jpg?v=1590087313",
+   "scale_mm_per_px": [
+    1.512,
+    1.512
+   ],
+   "hooks_mm": [
+    [
+     -145.3,
+     261.9
+    ],
+    [
+     146.9,
+     261.5
+    ]
+   ],
+   "legs_mm": []
+  },
+  "CK-119TR": {
+   "file": "tex/CK-119TR.png",
+   "aspect": 0.951,
+   "wanted": 1.0,
+   "aspect_error": 0.049,
+   "source": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/bamboo_corner_R_ck-119tr_alt_02.jpg?v=1590087351",
+   "scale_mm_per_px": [
+    1.512,
+    1.508
+   ],
+   "hooks_mm": [
+    [
+     -147.7,
+     261.5
+    ],
+    [
+     143.8,
+     260.3
+    ]
+   ],
+   "legs_mm": [
+    [
+     205.5,
+     179.4
+    ],
+    [
+     209.7,
+     145.2
+    ]
+   ]
+  },
+  "CK-218": {
+   "file": "tex/CK-218.png",
+   "aspect": 2.137,
+   "wanted": 1.996,
+   "aspect_error": 0.071,
+   "source": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/ck-218_hero_01.jpg?v=1654883986",
+   "scale_mm_per_px": [
+    1.387,
+    1.481
+   ],
+   "hooks_mm": [],
+   "legs_mm": [
+    [
+     -420.9,
+     156.9
+    ],
+    [
+     -254.6,
+     -145.7
+    ]
+   ]
+  },
+  "CK-219": {
+   "file": "tex/CK-219.png",
+   "aspect": 2.132,
+   "wanted": 1.996,
+   "aspect_error": 0.068,
+   "source": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/ck-219_hero_01.jpg?v=1654886640",
+   "scale_mm_per_px": [
+    1.4,
+    1.489
+   ],
+   "hooks_mm": [],
+   "legs_mm": [
+    [
+     256.0,
+     -145.7
+    ],
+    [
+     421.2,
+     155.7
+    ]
+   ]
+  },
+  "CK-116TR": {
+   "file": "tex/CK-116TR.png",
+   "aspect": 1.755,
+   "wanted": 1.706,
+   "aspect_error": 0.029,
+   "source": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/renewed_bamboo_table_ck-116tr_alt_02.jpg?v=1590087228",
+   "scale_mm_per_px": [
+    1.492,
+    1.481
+   ],
+   "hooks_mm": [
+    [
+     435.0,
+     146.6
+    ],
+    [
+     435.2,
+     -143.3
+    ]
+   ],
+   "legs_mm": [
+    [
+     -378.4,
+     165.0
+    ],
+    [
+     -360.4,
+     -152.1
+    ]
+   ]
+  },
+  "CK-117TR": {
+   "file": "tex/CK-117TR.png",
+   "aspect": 2.24,
+   "wanted": 2.21,
+   "aspect_error": 0.014,
+   "source": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/renewed_bamboo_table_ck-117tr_alt_02.jpg?v=1590087281",
+   "scale_mm_per_px": [
+    1.503,
+    1.494
+   ],
+   "hooks_mm": [
+    [
+     560.1,
+     -142.4
+    ],
+    [
+     560.1,
+     147.4
+    ]
+   ],
+   "legs_mm": [
+    [
+     -503.9,
+     167.3
+    ],
+    [
+     -502.9,
+     -162.5
+    ]
+   ]
+  },
+  "CK-125TR": {
+   "file": "tex/CK-125TR.png",
+   "aspect": 0.692,
+   "wanted": 0.694,
+   "aspect_error": 0.004,
+   "source": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/bamboo_short_insert_ck-125tr_hero_01.jpg?v=1590087388",
+   "scale_mm_per_px": [
+    0.906,
+    0.907
+   ],
+   "hooks_mm": [],
+   "legs_mm": []
+  },
+  "CK-126TR": {
+   "file": "tex/CK-126TR.png",
+   "aspect": 1.406,
+   "wanted": 1.389,
+   "aspect_error": 0.012,
+   "source": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/bamboo_W_insert_ck-126tr_alt_02.jpg?v=1590087413",
+   "scale_mm_per_px": [
+    0.906,
+    0.907
+   ],
+   "hooks_mm": [],
+   "legs_mm": []
+  }
+ }
+}
