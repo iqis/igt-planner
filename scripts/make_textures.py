@@ -68,10 +68,42 @@ def cut_out(img):
     return Image.fromarray(rgba, "RGBA"), w / h
 
 
+def declared_plan(sku, views, images):
+    """The image a HUMAN said is the plan view, if anyone has said.
+
+    The aspect heuristic below is honest and it works, but it is still a guess: it cannot
+    tell a top-down shot from an underside shot, and it cannot see an image it was never
+    handed. A person who owns the part can do both in a second. When they have, use what
+    they said -- and record that we did.
+    """
+    said = (views or {}).get(sku) or {}
+    plan = [tag for tag, v in said.items() if v == "plan_top"]
+    if not plan:
+        return None
+    for im in images:
+        base = im["tag"].rsplit(".", 1)[0]
+        if base in plan or im["tag"] in plan:
+            return im["url"]
+    return None
+
+
 def main():
     cat = json.loads((CATALOG / "igt-catalog.json").read_text(encoding="utf-8"))
-    us = json.loads((ROOT / "data" / "us_products_latest.json").read_text(encoding="utf-8"))
-    gallery = {r["sku"]: r.get("images", []) for r in us["items"] if r.get("sku")}
+
+    # Every photograph Snow Peak publishes, not just the two the US store carries.
+    imgs_path = CATALOG / "images.json"
+    gallery = {}
+    if imgs_path.exists():
+        gallery = json.loads(imgs_path.read_text(encoding="utf-8"))["images"]
+    else:
+        us = json.loads((ROOT / "data" / "us_products_latest.json").read_text(encoding="utf-8"))
+        gallery = {r["sku"]: {"images": [{"url": u, "tag": u.split("/")[-1], "source": "us"}]
+                              for u in [r.get("images", [])]}  # pragma: no cover
+                   for r in us["items"] if r.get("sku")}
+
+    views_path = CATALOG / "views.json"
+    views = json.loads(views_path.read_text(encoding="utf-8")).get("views", {}) \
+        if views_path.exists() else {}
 
     TEX.mkdir(parents=True, exist_ok=True)
     out, skipped = {}, []
@@ -80,15 +112,18 @@ def main():
         if p["role"] not in FLAT_ROLES and p["sku"] not in FLAT_EXTRA:
             continue
         box = p.get("assembled_mm")
-        imgs = gallery.get(p["sku"], [])
-        if not box or not imgs:
+        images = (gallery.get(p["sku"]) or {}).get("images", [])
+        if not box or not images:
             skipped.append((p["sku"], "no dims or no photo"))
             continue
 
         want = box["w"] / box["d"]          # the aspect a plan view MUST have
-        best = None
+        best, told = None, declared_plan(p["sku"], views, images)
 
-        for url in imgs:
+        # If someone has SAID which image is the plan view, that is the image. No search.
+        urls = [told] if told else [im["url"] for im in images]
+
+        for url in urls:
             try:
                 cut, aspect = cut_out(fetch(url))
             except Exception:  # noqa: BLE001
@@ -105,11 +140,13 @@ def main():
             continue
 
         err, cut, aspect, url = best
-        if err > MAX_ASPECT_ERR:
-            # Honest failure: this product simply has no plan view in its gallery. Say so
-            # rather than stretching a three-quarter hero shot onto a flat board.
+        if not told and err > MAX_ASPECT_ERR:
+            # Honest failure: nobody has said which image is the plan view, and no image in
+            # the gallery has the aspect of one. Say so rather than stretching a
+            # three-quarter hero shot onto a flat board. Point at the fix.
             skipped.append((p["sku"], f"best aspect {aspect:.2f} vs wanted {want:.2f} "
-                                      f"(off by {err:.0%}) -- no plan view in the gallery"))
+                                      f"(off by {err:.0%}) -- no plan view found. "
+                                      f"{len(images)} images: name one in views.json"))
             continue
 
         fit = measure_fittings(cut, box)
@@ -123,11 +160,14 @@ def main():
                          "grain": f"tex/{p['sku']}_grain.jpg",
                          "aspect": round(aspect, 3),
                          "wanted": round(want, 3), "aspect_error": round(err, 3),
-                         "source": url, "outline_mm": ring, **(fit or {})}
+                         "source": url,
+                         "picked_by": "declared" if told else "aspect",
+                         "outline_mm": ring, **(fit or {})}
         nh = len(fit["hooks_mm"]) if fit else 0
         nl = len(fit["legs_mm"]) if fit else 0
         nb = fit.get("brackets_found", 0) if fit else 0
-        print(f"  {p['sku']:11s} aspect {aspect:5.2f} vs {want:5.2f} ({err:3.0%})   "
+        how = "told " if told else "guess"
+        print(f"  {p['sku']:11s} {how} aspect {aspect:5.2f} vs {want:5.2f} ({err:3.0%})   "
               f"hooks={nh}  legs={nl}{'  <-- ' + str(nb) + ' bracket blobs, not 2' if nb != 2 else ''}")
 
     (CATALOG / "textures.json").write_text(json.dumps({

@@ -25,6 +25,11 @@ const $ = id => document.getElementById(id);
 const CAT = await (await fetch("../catalog/igt-catalog.json")).json();
 const COLORS = (await (await fetch("../catalog/colors.json")).json()).colors;
 const TEXTURES = (await (await fetch("../catalog/textures.json")).json()).textures;
+const IMAGES = (await (await fetch("../catalog/images.json")).json()).images;
+// What a human has SAID an image is. A declared view beats a guessed one, and this is the
+// file that records the difference. Absent until someone looks.
+const VIEWS = await fetch("../catalog/views.json")
+  .then(r => r.ok ? r.json() : { views: {} }).then(d => d.views || {}).catch(() => ({}));
 
 const PARTS = Object.fromEntries(CAT.parts.map(p => [p.sku, p]));
 const swatchOf = sku => COLORS[sku]?.color_hex || "#8a929c";
@@ -107,29 +112,33 @@ function drawPart() {
   board.position.y = 0;                       // boardFromOutline hangs from its top face
   stage.add(board);
 
-  // The photograph, as a decal just under the board -- exactly where the planner puts it.
+  // The photograph, laid on the TOP face -- which is where its subject actually is.
+  // Snow Peak's own studio shot settles it: the bracket plates sit ON the bamboo, because
+  // the next board's wire hooks have to drop into them from above.
   const tex = textureOf(sku);
   if (show.photo && tex && ring) {
     const decal = new THREE.Mesh(
       boardFromOutline(ring, 0.4 * MM),
       boardMaterial(p, COLORS, tex, box.w * MM, box.d * MM, false),
     );
-    decal.position.y = (-thick - 0.6) * MM;
+    decal.position.y = 0.5 * MM;
     stage.add(decal);
   }
 
+  // Hooks hang DOWN off the edge; brackets sit ON the surface. Both drawn at the exact
+  // millimetres they were measured at, so they should land on their own photographs.
   if (show.hooks) for (const [x, z] of t.hooks_mm || []) {
-    const pin = stock(new THREE.CylinderGeometry(6 * MM, 6 * MM, 26 * MM, 10), 0xff6b5a, 0.3, 0.5);
-    pin.position.set(x, -thick - 13, z).multiplyScalar(MM);
+    const pin = stock(new THREE.CylinderGeometry(5 * MM, 5 * MM, 26 * MM, 10), 0xff6b5a, 0.3, 0.5);
+    pin.position.set(x, -thick - 11, z).multiplyScalar(MM);
     stage.add(pin);
   }
 
   if (show.legs) for (const [x, z] of t.legs_mm || []) {
-    const br = stock(roundedBox(58 * MM, 26 * MM, 40 * MM, 2 * MM), 0x5aa9ff, 0.3, 0.5);
-    br.position.set(x, -thick - 13, z).multiplyScalar(MM);
+    const br = stock(roundedBox(58 * MM, 7 * MM, 44 * MM, 1 * MM), 0x5aa9ff, 0.3, 0.5);
+    br.position.set(x, 4, z).multiplyScalar(MM);
     stage.add(br);
     const leg = stock(new THREE.CylinderGeometry(12.5 * MM, 12.5 * MM, 90 * MM, 12), 0x5aa9ff, 0.3, 0.5);
-    leg.position.set(x, -thick - 71, z).multiplyScalar(MM);
+    leg.position.set(x, -thick - 45, z).multiplyScalar(MM);
     stage.add(leg);
   }
 
@@ -155,7 +164,7 @@ function drawPart() {
 
 // ---------------------------------------------------------------- views
 
-const VIEWS = {
+const CAM = {
   top:    () => [0, 1, 0],
   bottom: () => [0, -1, 0],
   front:  () => [0, 0.25, 1],
@@ -167,7 +176,7 @@ function setView(v) {
   view = v;
   const box = PARTS[sku].assembled_mm;
   const r = Math.max(box.w, box.d, 400) * MM * 3.2;
-  const [x, y, z] = VIEWS[v]();
+  const [x, y, z] = CAM[v]();
   const L = Math.hypot(x, y, z);
   // Looking straight up or down, `up` must not be the axis you are looking along, or
   // lookAt degenerates and the view spins to some arbitrary heading. Point it at -z, so
@@ -234,24 +243,110 @@ function paintPhoto() {
   }
 }
 
+/** Every photograph Snow Peak publishes of this part.
+ *
+ *  Each carries Snow Peak's OWN tag (a001, a099, alt_02...) because that is the only
+ *  stable name an image has, and it is what you point at when you say what it is. Say it
+ *  and it goes in views.json; make_textures.py then uses the declared view instead of
+ *  guessing the plan shot by matching silhouette aspect to published w:d.
+ *
+ *  The one currently being measured from is marked. Click any image to open it full size.
+ */
+function paintGallery() {
+  const el = $("gallery"); el.innerHTML = "";
+  const rec = IMAGES[sku] || {};
+  const used = TEXTURES[sku]?.source;
+  const said = VIEWS[sku] || {};
+
+  if (!rec.images?.length) {
+    el.innerHTML = `<div class="note">No photographs in the catalog for this part.</div>`;
+    return;
+  }
+  for (const im of rec.images) {
+    const a = document.createElement("a");
+    a.className = "thumb" + (im.url === used ? " used" : "");
+    a.href = im.url; a.target = "_blank"; a.rel = "noreferrer";
+    const view = said[im.tag];
+    a.innerHTML = `<img src="${im.url}" loading="lazy" alt="">`
+      + `<span class="tag">${im.source}·${im.tag.replace(/\.(jpg|jpeg|png)$/i, "")}</span>`
+      + (view ? `<span class="said">${view}</span>` : "")
+      + (im.url === used ? `<span class="using">measured</span>` : "");
+    a.title = view ? `you said: ${view}` : "unlabelled — tell me what this is";
+    el.append(a);
+  }
+}
+
+function paintLinks() {
+  const el = $("links"); el.innerHTML = "";
+  const p = PARTS[sku];
+  const man = IMAGES[sku]?.manual;
+  const link = (label, href, title) => {
+    if (!href) return;
+    const a = document.createElement("a");
+    a.className = "chip"; a.href = href; a.target = "_blank"; a.rel = "noreferrer";
+    a.textContent = label; a.title = title || href;
+    el.append(a);
+  };
+  link("snowpeak.com", p.url?.us);
+  link("ec.snowpeak.co.jp", p.url?.jp);
+  link("manual (pdf)", man, "the only place Snow Peak documents assembly");
+  if (!p.url?.us && !p.url?.jp) el.innerHTML = `<span class="muted">no product page</span>`;
+}
+
+const MM3 = b => b ? `${b.w}×${b.d}×${b.h}mm` : null;
+const money = p => [
+  p.us && `US $${(p.us / 100).toFixed(0)}`,
+  p.jp && `JP ¥${p.jp.toLocaleString()}`,
+  p.uk && `UK £${(p.uk / 100).toFixed(0)}`,
+].filter(Boolean).join("  ·  ") || null;
+
+/** Everything the catalog holds, and nothing invented. A field it does not have is shown
+ *  as absent, not filled in with a plausible number. */
 function paintFacts() {
   const p = PARTS[sku];
   const t = TEXTURES[sku] || {};
-  const box = p.assembled_mm;
   const hook = axisOf(t.hooks_mm);
   const leg = axisOf(t.legs_mm);
-
-  const row = (k, v, cls = "") => `<div class="row ${cls}"><span>${k}</span><b>${v}</b></div>`;
   const turns = hook && leg && (hook.x !== -leg.x || hook.z !== -leg.z);
+
+  const row = (k, v, cls = "") => v == null || v === "" ? ""
+    : `<div class="row ${cls}"><span>${k}</span><b>${v}</b></div>`;
+  const gap = k => `<div class="row none"><span>${k}</span><b>not published</b></div>`;
 
   $("facts").innerHTML =
     row("sku", p.sku)
-    + row("role / attach", `${p.role} / ${p.attach ?? "—"}`)
-    + row("size", `${box.w}×${box.d}×${box.h}mm`)
+    + row("title (jp)", p.title_jp)
+    + row("role", p.role)
+    + row("attach", p.attach ?? null) + (p.attach ? "" : gap("attach"))
+    + row("system", p.system)
+    + row("assembled", MM3(p.assembled_mm)) + (p.assembled_mm ? "" : gap("assembled"))
+    + row("packed", MM3(p.packed_mm)) + (p.packed_mm ? "" : gap("packed"))
+    + row("weight", p.weight_g ? `${(p.weight_g / 1000).toFixed(2)} kg` : null)
+      + (p.weight_g ? "" : gap("weight"))
+    + row("material", p.material) + (p.material ? "" : gap("material"))
+    + row("price", money(p.price || {}))
+    + row("in stock", p.available === undefined ? null : (p.available ? "yes" : "no"))
+    + row("span", p.span ? `${p.span / 2} unit${p.span === 2 ? "" : "s"}` : null)
+    + row("span from", p.span_source)
+    + row("along rail", p.along_rail_mm ? `${p.along_rail_mm}mm` : null)
+    + row("fit vs slot", p.fit_delta_mm ? `${p.fit_delta_mm > 0 ? "+" : ""}${p.fit_delta_mm}mm` : null)
+    + row("units", p.units)
+    + row("height", p.height_mm ? `${p.height_mm}mm` : null)
+    + row("needs legs", p.needs_legs === undefined ? null : (p.needs_legs ? "yes" : "no"))
+    + row("contains", (p.contains || []).join(", ") || null)
+    + row("attaches to", (p.attaches_to || []).join(", ") || null)
+    + row("connects to", (p.connects_to || []).join(", ") || null)
+    + row("barcode", p.barcode)
+    + row("collections", (p.collections || []).join(", ") || null)
     + row("hook edge", nameAxis(hook), hook ? "hook" : "none")
     + row("bracket edge", nameAxis(leg), leg ? "leg" : "none")
-    + row("hooks", (t.hooks_mm || []).map(h => `[${h}]`).join(" ") || "not measured", t.hooks_mm?.length ? "hook" : "none")
-    + row("brackets", (t.legs_mm || []).map(l => `[${l}]`).join(" ") || "not measured", t.legs_mm?.length ? "leg" : "none")
+    + row("hooks", (t.hooks_mm || []).map(h => `[${h}]`).join(" ") || "not measured",
+        t.hooks_mm?.length ? "hook" : "none")
+    + row("brackets", (t.legs_mm || []).map(l => `[${l}]`).join(" ") || "not measured",
+        t.legs_mm?.length ? "leg" : "none")
+    + (p.attach_evidence ? `<div class="note quote">“${p.attach_evidence}”</div>` : "")
+    + (p.span_evidence ? `<div class="note quote">“${p.span_evidence}”</div>` : "")
+    + (p.curated_reason ? `<div class="note">curated: ${p.curated_reason}</div>` : "")
     + (hook && leg
         ? `<div class="note">${turns
             ? "Hook edge and bracket edge are PERPENDICULAR — this part turns the run 90°."
@@ -268,7 +363,7 @@ function paintChrome() {
     b.textContent = label; b.title = title || "";
     b.onclick = fn; bar.append(b);
   };
-  for (const v of Object.keys(VIEWS)) chip(v, view === v, () => setView(v));
+  for (const v of Object.keys(CAM)) chip(v, view === v, () => setView(v));
   chip("photo", show.photo, () => { show.photo = !show.photo; redraw(); },
     "the plan view, laid under the board");
   chip("hooks", show.hooks, () => { show.hooks = !show.hooks; redraw(); });
@@ -312,8 +407,11 @@ function select(next) {
   setView(view);
   paintList();
   paintPhoto();
+  paintGallery();
+  paintLinks();
   paintFacts();
   history.replaceState(null, "", `?sku=${sku}`);
+  $("detail").scrollTop = 0;
 }
 
 // ---------------------------------------------------------------- boot

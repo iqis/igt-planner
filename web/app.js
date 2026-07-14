@@ -437,10 +437,14 @@ function drawTable(g, n) {
   else if (n.kind === "ext") geo = flatRect(f.w * MM, f.d * MM, thick * MM, 8 * MM);
   else { geo = roundedBox(f.w * MM, thick * MM, f.d * MM, 2.2 * MM); hangs = false; }
 
-  // The plan-view photograph is of the UNDERSIDE -- that is where the leg brackets and the
-  // hook pins live, and it is why they are visible in it at all. Painting it on the top
-  // face put two leg brackets on the work surface. The board is a board: clean bamboo up,
-  // the ironmongery down.
+  // The plan view is the TOP. Snow Peak's own studio shot (JP a099) settles it: the two
+  // bracket plates sit ON the bamboo, and the next board's wire hooks drop INTO them from
+  // above -- which they could not do if the plates were underneath. The legs then screw
+  // up into the same plate from below. So the ironmongery you see in the plan view is on
+  // the work surface, because that is where it has to be.
+  //
+  // I had this backwards, moved the photo under the board, and invented a grain crop for
+  // the top to cover for it. The photo goes back where it belongs.
   const grain = textureOf(p.sku, "grain");
   const m = new THREE.Mesh(geo, grain
     ? grainMaterial(p, COLORS, grain, f.w, f.d, isSel)
@@ -454,7 +458,7 @@ function drawTable(g, n) {
       boardFromOutline(ring, 0.4 * MM),
       boardMaterial(p, COLORS, tex, f.w * MM, f.d * MM, isSel),
     );
-    decal.position.set(0, top - thick - 0.6, 0).multiplyScalar(MM);
+    decal.position.set(0, top + 0.5, 0).multiplyScalar(MM);
     g.add(decal);
   }
 
@@ -462,25 +466,28 @@ function drawTable(g, n) {
     const legH = top - thick;
     const legSku = n.leg;
 
-    // Two hook pins on the edge that meets the host: they drop into the holes in the
-    // frame's edge. That side needs no leg -- the frame is already holding it up.
+    // Two wire hooks on the edge that meets the host: they hang over it and drop into the
+    // bracket plates on the far side. That side needs no leg -- the host is holding it up.
     for (const [px, pz] of TEXTURES[p.sku]?.hooks_mm || []) {
-      const pin = stock(new THREE.CylinderGeometry(5 * MM, 5 * MM, 24 * MM, 8), 0xc8ccd2, 0.9, 0.25);
-      pin.position.set(px, top - thick - 10, pz).multiplyScalar(MM);
+      const pin = stock(new THREE.CylinderGeometry(4 * MM, 4 * MM, 26 * MM, 8), 0xc8ccd2, 0.9, 0.25);
+      pin.position.set(px, top - thick - 11, pz).multiplyScalar(MM);
       g.add(pin);
     }
 
     // The legs go where the BRACKETS are, and the brackets were measured off the plan
     // view. Placing them at the corners because that is where legs usually go would be a
     // guess sitting right next to a measurement.
+    //
+    // The plate lies ON the board: the next board's hooks come down into it, and the leg
+    // screws up into it from below.
     const seats = TEXTURES[p.sku]?.legs_mm || [];
     const spots = seats.length
       ? seats
       : [[-(f.w / 2 - 45), -f.d * 0.3], [-(f.w / 2 - 45), f.d * 0.3]];
 
     for (const [bx, bz] of spots) {
-      const bracket = stock(roundedBox(58 * MM, 26 * MM, 40 * MM, 2 * MM), 0xc8ccd2, 0.9, 0.3);
-      bracket.position.set(bx, top - thick - 13, bz).multiplyScalar(MM);
+      const bracket = stock(roundedBox(58 * MM, 6 * MM, 44 * MM, 1 * MM), 0xc8ccd2, 0.9, 0.3);
+      bracket.position.set(bx, top + 3, bz).multiplyScalar(MM);
       g.add(bracket);
 
       if (legSku && PARTS[legSku]?.height_mm) {

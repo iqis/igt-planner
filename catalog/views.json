@@ -1,0 +1,39 @@
+{
+  "_comment": "What a HUMAN says each photograph is. A declared view beats a guessed one.",
+
+  "_why": [
+    "make_textures.py picks the plan view by matching a photo's silhouette aspect to the",
+    "part's published w:d. That is an honest heuristic and it works -- CK-117TR scores 1%",
+    "error, and it correctly REFUSES CK-116TL and CK-117TL at 62-66% because their",
+    "galleries genuinely have no plan view. But it is still a guess, it cannot tell a",
+    "top-down shot from an underside shot, and it cannot see an image nobody gave it.",
+    "",
+    "It cost us: I read the plan view as the UNDERSIDE (brackets and hooks are visible in",
+    "it, and where else would brackets be?), moved the photo beneath the board, and built",
+    "a grain-crop for the top face to cover for it. Snow Peak's own studio shot (JP a099)",
+    "says otherwise: the bracket plates sit ON the bamboo, because the NEXT board's wire",
+    "hooks have to drop into them from above, and the leg screws up into the same plate",
+    "from below. The user said it was the top view. The user was right.",
+    "",
+    "So: look at the images in the part bench, say what each one is, and write it here.",
+    "A sentence from someone who owns the part beats a heuristic every time."
+  ],
+
+  "_schema": {
+    "<SKU>": {
+      "<snow peak's own image tag>": "<view>"
+    },
+    "views": ["plan_top", "plan_bottom", "studio", "hero", "detail", "lifestyle", "spec_drawing"],
+    "note": "'plan_top' is the one make_textures.py wants: flat, orthographic, on white."
+  },
+
+  "views": {
+    "CK-119TR": {
+      "bamboo_corner_R_ck-119tr_alt_02": "plan_top",
+      "a099": "studio"
+    },
+    "CK-118TR": {
+      "bamboo_corner_L_ck-118tr_alt_02": "plan_top"
+    }
+  }
+}
