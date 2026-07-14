@@ -557,6 +557,11 @@ def main():
             if "attach" in ov:
                 rec["attach"] = ov["attach"]
                 rec["attach_evidence"] = ov.get("reason")
+            # Relationship fields, curated with evidence. `mounts` = what this carries;
+            # `mounted_by` = what carries this; `attaches_to` = the surfaces it will go on.
+            for rel in ("mounts", "mounted_by", "attaches_to", "needs_legs"):
+                if rel in ov:
+                    rec[rel] = ov[rel]
             if "weight_g" in ov:
                 rec["published_weight_g"] = rec.get("weight_g")
                 rec["weight_g"] = ov["weight_g"]

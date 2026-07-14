@@ -34,6 +34,21 @@
   "reason": "Garden Unit Table Wood Insert -- the top for GF-015, which is fixed garden furniture. Excluded with its table. (It had been pulled into make_textures as a flat board via FLAT_EXTRA; that is removed too -- it is not an IGT slot insert.)"
  },
 
+ "CK-020": {
+  "attach": "hook_on",
+  "mounts": "CK-025",
+  "reason": "IGT Box Hanger, half unit (ステンボックスハンガー ハーフユニット). It hooks onto the frame's END on wire hooks -- the same end-piece holes the bamboo extensions use -- but it is a HANGER, not a tabletop: instead of extending the surface it carries the Stainless Box Half Unit (CK-025) below the outboard edge. JP a001 shows exactly this: two wire hooks in the frame's black end piece, the stainless box hanging off the outside. Owner: its only job is to mount CK-025, though it works empty too (a rag, tools). So CK-025 -- normally a slot-in module (125x360) -- can instead HANG from the frame's end via CK-020. NOT modelled as a placeable node in the planner: it is a peripheral hanger, not a layout surface, and rendering a box-below-the-edge is more than its role in a LAYOUT tool earns. The relationship is recorded; the geometry is deferred."
+ },
+ "CK-025": {
+  "mounted_by": "CK-020",
+  "reason": "Stainless Box Half Unit. Its default home is a half-unit slot in the frame (attach slot_in, 125x360 = one half-unit x the rail span). But it has a second home: hung off the frame's END by the CK-020 Box Hanger, out of the grid entirely. Two ways to carry the same box, and the planner should not pretend the slot is the only one."
+ },
+ "DB-005": {
+  "attach": "edge_clamp",
+  "attaches_to": ["bamboo_table_top", "any flat tabletop of similar thickness"],
+  "reason": "Garbage Frame (ガビングフレーム) -- a spring-wire frame that CLAMPS OVER a flat tabletop EDGE and holds a bin bag open below it. JP a001 shows it gripping the edge of a bamboo top, bag hanging. Owner: it clamps ANYWHERE along a bamboo tabletop edge (or any table of similar thickness), but NOT on an IGT frame -- the frame's edge is rail and modules, not a flat board, so there is nothing to clamp and it would foul the unit. A free-position edge clamp, not a grid part. Owner flagged it as non-core and skippable; recorded here for completeness, not built into the planner."
+ },
+
  "CK-175": {
   "role": "frame_hook",
   "weight_g": 90,

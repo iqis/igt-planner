@@ -1671,6 +1671,10 @@
     "us": "https://www.snowpeak.com/products/igt-joint-hanger-set-ck-143",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0116A0017"
    },
+   "attach": "hook_on",
+   "attach_evidence": "IGT Box Hanger, half unit (ステンボックスハンガー ハーフユニット). It hooks onto the frame's END on wire hooks -- the same end-piece holes the bamboo extensions use -- but it is a HANGER, not a tabletop: instead of extending the surface it carries the Stainless Box Half Unit (CK-025) below the outboard edge. JP a001 shows exactly this: two wire hooks in the frame's black end piece, the stainless box hanging off the outside. Owner: its only job is to mount CK-025, though it works empty too (a rag, tools). So CK-025 -- normally a slot-in module (125x360) -- can instead HANG from the frame's end via CK-020. NOT modelled as a placeable node in the planner: it is a peripheral hanger, not a layout surface, and rendering a box-below-the-edge is more than its role in a LAYOUT tool earns. The relationship is recorded; the geometry is deferred.",
+   "mounts": "CK-025",
+   "curated_reason": "IGT Box Hanger, half unit (ステンボックスハンガー ハーフユニット). It hooks onto the frame's END on wire hooks -- the same end-piece holes the bamboo extensions use -- but it is a HANGER, not a tabletop: instead of extending the surface it carries the Stainless Box Half Unit (CK-025) below the outboard edge. JP a001 shows exactly this: two wire hooks in the frame's black end piece, the stainless box hanging off the outside. Owner: its only job is to mount CK-025, though it works empty too (a rag, tools). So CK-025 -- normally a slot-in module (125x360) -- can instead HANG from the frame's end via CK-020. NOT modelled as a placeable node in the planner: it is a peripheral hanger, not a layout surface, and rendering a box-below-the-edge is more than its role in a LAYOUT tool earns. The relationship is recorded; the geometry is deferred.",
    "manual": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hb7/h9f/8804683776030/CK-020_manual.pdf"
   },
   {
@@ -1794,7 +1798,14 @@
    "url": {
     "us": "https://www.snowpeak.com/products/garbage-frame",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0104A0041"
-   }
+   },
+   "attach": "edge_clamp",
+   "attach_evidence": "Garbage Frame (ガビングフレーム) -- a spring-wire frame that CLAMPS OVER a flat tabletop EDGE and holds a bin bag open below it. JP a001 shows it gripping the edge of a bamboo top, bag hanging. Owner: it clamps ANYWHERE along a bamboo tabletop edge (or any table of similar thickness), but NOT on an IGT frame -- the frame's edge is rail and modules, not a flat board, so there is nothing to clamp and it would foul the unit. A free-position edge clamp, not a grid part. Owner flagged it as non-core and skippable; recorded here for completeness, not built into the planner.",
+   "attaches_to": [
+    "bamboo_table_top",
+    "any flat tabletop of similar thickness"
+   ],
+   "curated_reason": "Garbage Frame (ガビングフレーム) -- a spring-wire frame that CLAMPS OVER a flat tabletop EDGE and holds a bin bag open below it. JP a001 shows it gripping the edge of a bamboo top, bag hanging. Owner: it clamps ANYWHERE along a bamboo tabletop edge (or any table of similar thickness), but NOT on an IGT frame -- the frame's edge is rail and modules, not a flat board, so there is nothing to clamp and it would foul the unit. A free-position edge clamp, not a grid part. Owner flagged it as non-core and skippable; recorded here for completeness, not built into the planner."
   },
   {
    "sku": "CK-151",
@@ -3117,7 +3128,9 @@
    "span_evidence": "Stainless Box Half Unit",
    "along_rail_mm": 125.0,
    "fit_delta_mm": 0.0,
-   "attach": "slot_in"
+   "attach": "slot_in",
+   "mounted_by": "CK-020",
+   "curated_reason": "Stainless Box Half Unit. Its default home is a half-unit slot in the frame (attach slot_in, 125x360 = one half-unit x the rail span). But it has a second home: hung off the frame's END by the CK-020 Box Hanger, out of the grid entirely. Two ways to carry the same box, and the planner should not pretend the slot is the only one."
   },
   {
    "sku": "CK-026",
