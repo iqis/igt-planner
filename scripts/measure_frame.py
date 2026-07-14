@@ -110,11 +110,56 @@ def measure(img, box):
     # four biggest round blobs are the sockets.
     sockets = [to_mm(b["x"], b["y"]) for b in cand[:4]]
 
+    # The rail, in cross-section. The planner had RAIL_SPAN = 360 -- taken from the slot
+    # modules, which are 250x360 and 500x360, on the reasoning that a module spans the gap
+    # between the rails. It does not. It RESTS on them.
+    #
+    #   z -248.0 .. -241.7   aluminium    6.3mm   outer wall
+    #   z -241.7 .. -181.1   OPEN        60.6mm   the rail's channel
+    #   z -181.1 .. -158.5   aluminium   22.5mm   the inner lip
+    #   z -158.5 .. +158.5   OPEN       317.0mm   the clear drop-through
+    #   ...and the mirror of it.
+    #
+    # So a 360mm module lands at z = +/-180, which is ON the 24mm inner lip -- a seat, not a
+    # gap. The real clear opening is 317mm, and the rail is 89mm wide, not 68. The frame's
+    # rails were being drawn 21mm too narrow on each side for that whole time.
+    #
+    # And the 60mm channel is where the RAIL JOINT goes: レールジョイントを使用する場合は
+    # IGTフレームの長辺のレールに挿入します. The leg sockets sit in it too (z = +/-207.5).
+    # One groove, and it explains the modules, the joints and the legs.
+    solid = ndimage.binary_closing(obj, structure=np.ones((5, 5)))
+    gaps = ndimage.binary_fill_holes(solid) & ~solid
+    glab, gn = ndimage.label(gaps)
+    bands = []
+    for i in range(1, gn + 1):
+        m = glab == i
+        if m.sum() < 0.004 * solid.sum():
+            continue
+        gy, gx = np.nonzero(m)
+        bands.append([round(float((gy.min() - cy) * mmy), 1),
+                      round(float((gy.max() - cy) * mmy), 1),
+                      round(float((gx.max() - gx.min() + 1) * mmx), 1)])
+    bands.sort()
+
+    section = {}
+    thin = [b for b in bands if b[1] - b[0] < 100]
+    wide = [b for b in bands if b[1] - b[0] >= 100]
+    if len(thin) == 2 and len(wide) == 1:
+        section = {
+            "clear_span_mm": round(wide[0][1] - wide[0][0], 1),      # lip to lip
+            "rail_width_mm": round((box["d"] - (wide[0][1] - wide[0][0])) / 2, 1),
+            "channel_mm": [round(thin[1][0], 1), round(thin[1][1], 1)],   # the +z groove
+            "lip_mm": [round(wide[0][1], 1), round(thin[1][0], 1)],       # the +z inner lip
+            "end_piece_mm": round((box["w"] - wide[0][2]) / 2, 1),
+        }
+
     return {
         "scale_mm_per_px": [round(mmx, 3), round(mmy, 3)],
         "end_pieces": len(ends),
         "hook_holes_mm": sorted(hook_holes),
         "leg_sockets_mm": sorted(sockets),
+        "section": section,
+        "bands_z_mm": bands,
     }
 
 
@@ -133,6 +178,15 @@ def main():
         print(f"  end pieces found : {m['end_pieces']}")
         print(f"  hook holes       : {m['hook_holes_mm']}")
         print(f"  leg sockets      : {m['leg_sockets_mm']}")
+        s = m["section"]
+        if s:
+            print(f"\n  RAIL, in cross-section:")
+            print(f"    clear drop-through : {s['clear_span_mm']:6.1f} mm   "
+                  f"(the code said 360, from the modules -- it was the SEAT, not the gap)")
+            print(f"    rail width, each   : {s['rail_width_mm']:6.1f} mm   (the code said 68)")
+            print(f"    channel  z         : {s['channel_mm']}  <- the rail joint slides in here")
+            print(f"    inner lip z        : {s['lip_mm']}  <- a 360mm module rests on this")
+            print(f"    end piece width    : {s['end_piece_mm']:6.1f} mm   (the code said 48)")
 
         # The cross-check. Two products, two photographs, one number.
         ext = tex.get("CK-117TR", {}).get("hooks_mm") or []

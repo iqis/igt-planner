@@ -75,21 +75,46 @@ export function roundedBox(w, h, d, radius = 2) {
   return g;
 }
 
-/** The IGT rail is an extruded aluminium channel, not a bar -- the lip along its inner
- *  edge is the thing every module hangs from, and it is most of what makes the frame
- *  legible as an IGT frame rather than as a rectangle. */
-export function railProfile(length, thickness, width) {
-  const t = thickness, w = width;
+/** The IGT rail, in its real cross-section -- MEASURED off CK-149's plan view, not sketched
+ *  from the outside.
+ *
+ *      z -248.0 .. -241.7   aluminium    6.3mm   outer wall
+ *      z -241.7 .. -181.1   OPEN        60.6mm   the CHANNEL
+ *      z -181.1 .. -158.5   aluminium   22.5mm   the inner LIP
+ *      z -158.5 .. +158.5   OPEN       317.0mm   the clear drop-through
+ *
+ *  Three things follow, and the model had all three wrong:
+ *
+ *  - The slot modules are 250x360 and 500x360, and the code took 360 as the GAP between
+ *    the rails. It is not the gap; it is the SEAT. A 360mm module lands at z = +/-180,
+ *    which is ON the 24mm inner lip. The real clear opening is 317mm and the rail is 89mm
+ *    wide -- so the rails were being drawn 21mm too narrow on each side, throughout.
+ *  - The channel is where the RAIL JOINT slides in: レールジョイントを使用する場合は
+ *    IGTフレームの長辺のレールに挿入します.
+ *  - And the leg sockets sit in the same groove (z = +/-207.5, and the channel runs
+ *    182.5 .. 241.7).
+ *
+ *  One extrusion, and it accounts for the modules, the joints and the legs at once.
+ *
+ *  `section` is in scene units. `outward` says which way the outer wall faces (+1 = +z).
+ */
+export function railProfile(length, thickness, section, outward = 1) {
+  const t = thickness;
+  const { outerWall, channel, lip } = section;
+  const w = outerWall + channel + lip;
 
-  // Profile drawn in XY: x runs across the rail, y is its thickness. The step is the
-  // lip -- the inner edge a module's rim rests on.
+  // Drawn in XY: x runs ACROSS the rail, from its outer face inward; y is its thickness.
+  // The groove is cut DOWN from the top face and has a floor -- it is a channel, not a slot.
+  const floor = t * 0.4;
   const s = new THREE.Shape();
   s.moveTo(-w / 2, -t / 2);
   s.lineTo(w / 2, -t / 2);
-  s.lineTo(w / 2, t / 2);
-  s.lineTo(-w / 2 + w * 0.62, t / 2);
-  s.lineTo(-w / 2 + w * 0.62, -t / 2 + t * 0.45);
-  s.lineTo(-w / 2, -t / 2 + t * 0.45);
+  s.lineTo(w / 2, t / 2);                              // the inner lip: the module's seat
+  s.lineTo(w / 2 - lip, t / 2);
+  s.lineTo(w / 2 - lip, -t / 2 + floor);               // down into the groove
+  s.lineTo(-w / 2 + outerWall, -t / 2 + floor);
+  s.lineTo(-w / 2 + outerWall, t / 2);                 // back up the outer wall
+  s.lineTo(-w / 2, t / 2);
   s.closePath();
 
   const g = new THREE.ExtrudeGeometry(s, { depth: length, bevelEnabled: false });
@@ -97,7 +122,8 @@ export function railProfile(length, thickness, width) {
   // swap -- otherwise the rail hangs off one end of the frame by its whole length,
   // which is exactly what it did.
   g.translate(0, 0, -length / 2);
-  g.rotateY(Math.PI / 2);           // extrusion axis z -> x, the run of the frame
+  g.rotateY(Math.PI / 2);                              // extrusion axis z -> x, the frame's run
+  if (outward > 0) g.rotateY(Math.PI);                 // outer wall faces +z
   return g;
 }
 

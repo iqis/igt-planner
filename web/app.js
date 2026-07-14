@@ -11,7 +11,9 @@ import { materialFor, roundedBox, railProfile, meshWires, isMesh,
 const MM = 0.001;
 
 const FRAME_THICK = 30;
-const RAIL_SPAN = 360;
+// A module's rim lands at z = +/-180 and rests on the rail's inner lip (158.5 .. 182.5).
+// That 360 is the SEAT, not the span between the rails -- which is 317. See SECTION.
+const MODULE_SEAT = 360;
 const LEG_R = 13;
 const SNAP = 25;        // ground grid the free tables slide on
 const TOUCH = 30;       // two tables closer than this are connected
@@ -20,7 +22,7 @@ const TO_USD = { us: c => c / 100, jp: y => y / 157, uk: p => (p / 100) * 1.27 }
 
 const $ = id => document.getElementById(id);
 
-let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAMES, HOOKABLE;
+let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAMES, HOOKABLE, SECTION;
 const texLoader = new THREE.TextureLoader();
 const texCache = {};
 const textureOf = (sku, key = "file") => {
@@ -314,7 +316,7 @@ function railW(p) {
 }
 function depthOf(p) {
   const a = p.assembled_mm;
-  if (!a) return RAIL_SPAN;
+  if (!a) return MODULE_SEAT;
   return Math.abs(a.w - railW(p)) < 1 ? a.d : a.w;
 }
 const spanOf = p => p.span;
@@ -397,28 +399,46 @@ function drawFrame(g, n) {
   const p = PARTS[n.sku];
   const f = footprint(n);
   const top = topOf(n);
-  const railD = (f.d - RAIL_SPAN) / 2;
   const isSel = state.sel === n.id;
   const alu = new THREE.Color(swatchOf(n.sku));
   const glow = isSel ? 0x2e1806 : 0x000000;
+  const S = SECTION;                       // measured off CK-149's plan view
+  const railWidth = S.rail_width_mm;
+  const endW = S.end_piece_mm;
 
   // Two extruded rails and two ends -- not a slab. There are no dividers; a "unit" is a
-  // 250mm notion along the run. The rail is a channel with a lip, which is what every
-  // module actually hangs from, and most of why an IGT frame reads as an IGT frame.
-  for (const z of [-(RAIL_SPAN + railD) / 2, (RAIL_SPAN + railD) / 2]) {
-    const r = stock(railProfile(f.w * MM, FRAME_THICK * MM, railD * MM), alu, 0.8, 0.42, glow);
-    r.rotation.y = z > 0 ? Math.PI : 0;
-    r.position.set(0, top - FRAME_THICK / 2, z).multiplyScalar(MM);
+  // 250mm notion along the run. The rail is a real channel: outer wall, groove, inner lip.
+  // The groove is what the rail joint slides into and what the leg sockets sit in; the lip
+  // is what a 360mm module RESTS on. The code used to take that 360 as the gap between the
+  // rails, which drew them 21mm too narrow on each side and left a hole 43mm too wide.
+  const prof = {
+    outerWall: (f.d / 2 - S.channel_mm[1]) * MM,     // 248 - 241.7 = 6.3mm
+    channel: (S.channel_mm[1] - S.channel_mm[0]) * MM,         // 59.2mm
+    lip: (S.lip_mm[1] - S.lip_mm[0]) * MM,                     // 24.0mm
+  };
+  for (const s of [-1, 1]) {
+    const r = stock(railProfile(f.w * MM, FRAME_THICK * MM, prof, s), alu, 0.8, 0.42, glow);
+    r.position.set(0, top - FRAME_THICK / 2, s * (f.d / 2 - railWidth / 2)).multiplyScalar(MM);
     r.userData.node = n; g.add(r); nodeMeshes.push(r);
   }
-  for (const x of [-(f.w - 48) / 2, (f.w - 48) / 2]) {
-    const e = stock(roundedBox(48 * MM, FRAME_THICK * MM, RAIL_SPAN * MM, 2 * MM), alu, 0.8, 0.42, glow);
+  for (const x of [-(f.w - endW) / 2, (f.w - endW) / 2]) {
+    const e = stock(roundedBox(endW * MM, FRAME_THICK * MM, f.d * MM, 2 * MM), alu, 0.8, 0.42, glow);
     e.position.set(x, top - FRAME_THICK / 2, 0).multiplyScalar(MM);
     e.userData.node = n; g.add(e); nodeMeshes.push(e);
   }
+  // The hook holes, in the black end pieces, where an extension's wire hooks drop in.
+  // Measured: x = +/-406.5 (16.5mm in from the end face), z = +/-143.9.
+  for (const [hx, hz] of (FRAMES[n.sku]?.hook_holes_mm
+      || [[-(f.w / 2 - HOLE_INSET), -143.9], [-(f.w / 2 - HOLE_INSET), 143.9],
+          [f.w / 2 - HOLE_INSET, -143.9], [f.w / 2 - HOLE_INSET, 143.9]])) {
+    const x = Math.sign(hx) * (f.w / 2 - HOLE_INSET);          // hold the inset, not the x
+    const hole = stock(new THREE.CylinderGeometry(6 * MM, 6 * MM, (FRAME_THICK + 2) * MM, 10), 0x1c1f24, 0.2, 0.8);
+    hole.position.set(x, top - FRAME_THICK / 2, hz).multiplyScalar(MM);
+    g.add(hole);
+  }
   for (let i = 1; i < p.units; i++) {
-    const t = stock(roundedBox(3 * MM, (FRAME_THICK + 1) * MM, railD * MM, 0.4 * MM), 0x596069);
-    t.position.set(slotX(n, i * 2), top - FRAME_THICK / 2, -(RAIL_SPAN + railD) / 2).multiplyScalar(MM);
+    const t = stock(roundedBox(3 * MM, (FRAME_THICK + 1) * MM, railWidth * MM, 0.4 * MM), 0x596069);
+    t.position.set(slotX(n, i * 2), top - FRAME_THICK / 2, -(f.d / 2 - railWidth / 2)).multiplyScalar(MM);
     g.add(t);
   }
 
@@ -1166,6 +1186,10 @@ CAT = await (await fetch("../catalog/igt-catalog.json")).json();
 COLORS = (await (await fetch("../catalog/colors.json")).json()).colors;
 TEXTURES = (await (await fetch("../catalog/textures.json")).json()).textures;
 FRAMES = (await (await fetch("../catalog/frame_fittings.json")).json()).frames;
+// The rail in cross-section, measured off CK-149. Same for every frame in both
+// families: the collapsible ones have identical footprints (846x496, 1096x496) and
+// differ only in thickness (28 vs 30mm) and weight.
+SECTION = FRAMES["CK-149"].section;
 GRID = CAT.grid;
 LAYOUT = CAT.layout;
 HALF = GRID.half_unit_mm;

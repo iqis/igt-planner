@@ -39,6 +39,36 @@
      208.4
     ]
    ],
+   "section": {
+    "clear_span_mm": 317.0,
+    "rail_width_mm": 89.5,
+    "channel_mm": [
+     182.5,
+     241.7
+    ],
+    "lip_mm": [
+     158.5,
+     182.5
+    ],
+    "end_piece_mm": 49.4
+   },
+   "bands_z_mm": [
+    [
+     -241.7,
+     -181.1,
+     744.4
+    ],
+    [
+     -158.5,
+     158.5,
+     747.2
+    ],
+    [
+     182.5,
+     241.7,
+     744.4
+    ]
+   ],
    "source": "https://www.snowpeak.com/cdn/shop/products/CK-149_alt02.jpg?v=1630023553"
   }
  }
