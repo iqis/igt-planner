@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { materialFor, roundedBox, railProfile, meshWires, isMesh } from "./materials.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -14,17 +16,13 @@ const TOUCH = 30;       // two tables closer than this are connected
 
 const TO_USD = { us: c => c / 100, jp: y => y / 157, uk: p => (p / 100) * 1.27 };
 
-const MATERIALS = [
-  [/竹|bamboo/i, 0xb98b53],
-  [/ステンレス|stainless/i, 0xb9c0c9],
-  [/アルミ|alumin/i, 0x9aa3ad],
-  [/鋳鉄|鉄|iron|steel/i, 0x59606b],
-  [/ポリエステル|ナイロン|polyester|nylon/i, 0x5c6b63],
-];
-const colorFor = m => (MATERIALS.find(([re]) => re.test(m || "")) || [null, 0x8a929c])[1];
 const $ = id => document.getElementById(id);
 
-let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE;
+let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS;
+
+// Colours come from Snow Peak's product photography (catalog/colors.json). The swatch in
+// the palette is the same colour the part is rendered in, so the two never drift.
+const swatchOf = sku => COLORS[sku]?.color_hex || "#8a929c";
 
 // A layout is a set of tables. An IGT frame is one kind of table -- the kind with a
 // grid in it. Snow Peak calls the whole thing the Layout System, and the frame is a
@@ -138,13 +136,31 @@ key.position.set(2, 3.4, 1.8);
 scene.add(key);
 scene.add(new THREE.GridHelper(8, 32, 0x2b3038, 0x21252b));
 
+// Metal cannot look like metal with nothing to reflect. Without an environment map a
+// MeshStandardMaterial at metalness 0.9 renders nearly black; the flat, plasticky look
+// the first pass had was not the colours, it was this.
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+
 const build = new THREE.Group();
 scene.add(build);
 
-const box = (w, h, d, color, opts = {}) => new THREE.Mesh(
-  new THREE.BoxGeometry(w * MM, h * MM, d * MM),
-  new THREE.MeshStandardMaterial({ color, roughness: 0.62, metalness: 0.12, ...opts }),
-);
+/** A part, rendered: real colour, real light response, edges taken off. */
+function partMesh(p, w, h, d, selected = false) {
+  return new THREE.Mesh(
+    roundedBox(w * MM, h * MM, d * MM, 2.2 * MM),
+    materialFor(p, COLORS, selected),
+  );
+}
+
+/** Structural stock (rails, ends, posts) -- not a catalog part, so it takes the frame's
+ *  own colour and an anodised-aluminium response. */
+const stock = (geo, color, metalness = 0.8, roughness = 0.42, emissive = 0x000000) =>
+  new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+    color, metalness, roughness, emissive: new THREE.Color(emissive),
+  }));
 
 const nodeMeshes = [];   // meshes carrying .node (for picking + dragging tables)
 const slotMeshes = [];   // meshes carrying .placement (for dragging modules)
@@ -155,35 +171,46 @@ function drawFrame(g, n) {
   const top = topOf(n);
   const railD = (f.d - RAIL_SPAN) / 2;
   const sel = state.sel === n.id;
-  const alu = sel ? 0xc9a06a : 0x8f979f;
+  const alu = new THREE.Color(swatchOf(n.sku));
+  const glow = sel ? 0x2e1806 : 0x000000;
 
-  // Two rails and two ends -- not a slab. There are no dividers; a "unit" is a 250mm
-  // notion along the run, and drawing it solid would invent a compartment.
+  // Two extruded rails and two ends -- not a slab. There are no dividers; a "unit" is a
+  // 250mm notion along the run. The rail is a channel with a lip, which is what every
+  // module actually hangs from, and most of why an IGT frame reads as an IGT frame.
   for (const z of [-(RAIL_SPAN + railD) / 2, (RAIL_SPAN + railD) / 2]) {
-    const r = box(f.w, FRAME_THICK, railD, alu);
+    const r = stock(railProfile(f.w * MM, FRAME_THICK * MM, railD * MM), alu, 0.8, 0.42, glow);
+    r.rotation.y = z > 0 ? Math.PI : 0;
     r.position.set(0, top - FRAME_THICK / 2, z).multiplyScalar(MM);
     r.userData.node = n; g.add(r); nodeMeshes.push(r);
   }
   for (const x of [-(f.w - 48) / 2, (f.w - 48) / 2]) {
-    const e = box(48, FRAME_THICK, RAIL_SPAN, alu);
+    const e = stock(roundedBox(48 * MM, FRAME_THICK * MM, RAIL_SPAN * MM, 2 * MM), alu, 0.8, 0.42, glow);
     e.position.set(x, top - FRAME_THICK / 2, 0).multiplyScalar(MM);
     e.userData.node = n; g.add(e); nodeMeshes.push(e);
   }
   for (let i = 1; i < p.units; i++) {
-    const t = box(3, FRAME_THICK + 1, railD, 0x596069);
+    const t = stock(roundedBox(3 * MM, (FRAME_THICK + 1) * MM, railD * MM, 0.4 * MM), 0x596069);
     t.position.set(slotX(n, i * 2), top - FRAME_THICK / 2, -(RAIL_SPAN + railD) / 2).multiplyScalar(MM);
     g.add(t);
   }
 
+  // Legs: tapered tube with a foot, the way they actually are.
   const leg = PARTS[n.leg];
   if (leg?.height_mm) {
+    const h = leg.height_mm;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-      const m = new THREE.Mesh(
-        new THREE.CylinderGeometry(LEG_R * MM, LEG_R * MM, leg.height_mm * MM, 12),
-        new THREE.MeshStandardMaterial({ color: 0x767d86, roughness: 0.5, metalness: 0.3 }),
+      const shaft = stock(
+        new THREE.CylinderGeometry(LEG_R * MM, LEG_R * 0.82 * MM, h * MM, 16),
+        new THREE.Color(swatchOf(n.leg)), 0.85, 0.3,
       );
-      m.position.set(sx * (f.w / 2 - 40), leg.height_mm / 2, sz * (f.d / 2 - 40)).multiplyScalar(MM);
-      g.add(m);
+      shaft.position.set(sx * (f.w / 2 - 40), h / 2, sz * (f.d / 2 - 40)).multiplyScalar(MM);
+      g.add(shaft);
+      const foot = stock(
+        new THREE.CylinderGeometry(LEG_R * 1.25 * MM, LEG_R * 1.35 * MM, 12 * MM, 16),
+        0x2a2d31, 0.1, 0.85,
+      );
+      foot.position.set(sx * (f.w / 2 - 40), 6, sz * (f.d / 2 - 40)).multiplyScalar(MM);
+      g.add(foot);
     }
   }
 
@@ -195,10 +222,20 @@ function drawFrame(g, n) {
     const cx = slotX(n, pl.start) + (pl.span * HALF) / 2;
     const w = railW(p2), d = depthOf(p2), h = p2.assembled_mm?.h ?? 40;
     const onTop = p2.role === "full_top";
-    const m = box(w, h, d, colorFor(p2.material));
-    m.position.set(cx, onTop ? top + h / 2 : top - h / 2, 0).multiplyScalar(MM);
+    const y = onTop ? top + h / 2 : top - h / 2;
+
+    const m = partMesh(p2, w, h, d);
+    m.position.set(cx, y, 0).multiplyScalar(MM);
     m.userData.placement = pl; m.userData.node = n;
     g.add(m); slotMeshes.push(m);
+
+    // A wire basket drawn as a block is wrong in a way no colour can fix. The ghost box
+    // above stays as the drag target; the wires are what you see.
+    if (isMesh(p2)) {
+      const wires = meshWires(w, h, d, new THREE.Color(swatchOf(p2.sku)));  // mm; it scales itself
+      wires.position.set(cx, y, 0).multiplyScalar(MM);
+      g.add(wires);
+    }
   }
 }
 
@@ -209,16 +246,16 @@ function drawTable(g, n) {
   const sel = state.sel === n.id;
   const thick = p.role === "corner" ? (p.assembled_mm?.h ?? 25) : 30;
 
-  const m = box(f.w, thick, f.d, sel ? 0xc9a06a : colorFor(p.material));
+  const m = partMesh(p, f.w, thick, f.d, sel);
   m.position.set(0, top - thick / 2, 0).multiplyScalar(MM);
   m.userData.node = n; g.add(m); nodeMeshes.push(m);
 
   // A corner is a bridging surface between two tables; it has no legs of its own.
   if (p.role === "corner") return;
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const leg = new THREE.Mesh(
-      new THREE.CylinderGeometry(10 * MM, 10 * MM, (top - thick) * MM, 10),
-      new THREE.MeshStandardMaterial({ color: 0x6c737c, roughness: 0.55, metalness: 0.3 }),
+    const leg = stock(
+      new THREE.CylinderGeometry(10 * MM, 8 * MM, (top - thick) * MM, 14),
+      new THREE.Color(swatchOf(n.sku)), 0.85, 0.32,
     );
     leg.position.set(sx * (f.w / 2 - 35), (top - thick) / 2, sz * (f.d / 2 - 35)).multiplyScalar(MM);
     g.add(leg);
@@ -243,9 +280,9 @@ function rebuild() {
   for (const [a, b] of steps()) {
     const mid = new THREE.Vector3((a.x + b.x) / 2, 0, (a.z + b.z) / 2);
     const hi = Math.max(topOf(a), topOf(b));
-    const post = new THREE.Mesh(
-      new THREE.CylinderGeometry(12.7 * MM, 12.7 * MM, 320 * MM, 10),
-      new THREE.MeshStandardMaterial({ color: 0xd8813f, roughness: 0.4, metalness: 0.4 }),
+    const post = stock(
+      new THREE.CylinderGeometry(12.7 * MM, 12.7 * MM, 320 * MM, 16),
+      new THREE.Color(swatchOf("CK-151")), 0.85, 0.3,
     );
     post.position.set(mid.x * MM, (hi - 160) * MM, mid.z * MM);
     build.add(post);
@@ -387,7 +424,7 @@ function partRow(p, fn, dead) {
   const el = document.createElement("div");
   el.className = "part" + (dead ? " dead" : "");
   const s = spanOf(p);
-  el.innerHTML = `<span class="sw" style="background:#${colorFor(p.material).toString(16).padStart(6, "0")}"></span>`
+  el.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
     + `<span class="nm">${p.title_en}</span>`
     + `<span class="sp">${s ? s / 2 + "u" : ""}</span>`;
   el.title = `${p.sku} — ${p.title_en}`;
@@ -538,6 +575,7 @@ addEventListener("resize", resize);
 })();
 
 CAT = await (await fetch("../catalog/igt-catalog.json")).json();
+COLORS = (await (await fetch("../catalog/colors.json")).json()).colors;
 GRID = CAT.grid;
 LAYOUT = CAT.layout;
 HALF = GRID.half_unit_mm;

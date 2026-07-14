@@ -1,0 +1,621 @@
+{
+ "_comment": "Colours sampled from Snow Peak's own product photography, not guessed from a keyword. trust = how clean the shot is (uniform background), NOT how big the object is -- a thin leg on a white sweep has tiny coverage and a perfectly reliable colour. openness = the share of the object's bounding box you can see through, which is how a wire mesh basket announces itself as mostly air.",
+ "colors": {
+  "GF-010": {
+   "color_hex": "#b49460",
+   "trust": 1.0,
+   "coverage": 0.105,
+   "openness": 0.146,
+   "source": "product-photo"
+  },
+  "GR-055-INT": {
+   "color_hex": "#dcdce0",
+   "trust": 1.0,
+   "coverage": 0.074,
+   "openness": 0.446,
+   "source": "product-photo"
+  },
+  "GS-1000": {
+   "color_hex": "#c4c4c8",
+   "trust": 1.0,
+   "coverage": 0.126,
+   "openness": 0.583,
+   "source": "product-photo"
+  },
+  "S-029HA": {
+   "color_hex": "#f0f0ec",
+   "trust": 1.0,
+   "coverage": 0.062,
+   "openness": 0.64,
+   "source": "product-photo"
+  },
+  "S-029HD": {
+   "color_hex": "#505054",
+   "trust": 1.0,
+   "coverage": 0.087,
+   "openness": 0.44,
+   "source": "product-photo"
+  },
+  "UG-140": {
+   "color_hex": "#44484c",
+   "trust": 1.0,
+   "coverage": 0.265,
+   "openness": 0.146,
+   "source": "product-photo"
+  },
+  "UG-141": {
+   "color_hex": "#44484c",
+   "trust": 1.0,
+   "coverage": 0.265,
+   "openness": 0.146,
+   "source": "product-photo"
+  },
+  "UG-902": {
+   "color_hex": "#282828",
+   "trust": 1.0,
+   "coverage": 0.028,
+   "openness": 0.399,
+   "source": "product-photo"
+  },
+  "UG-903": {
+   "color_hex": "#2c2c2c",
+   "trust": 1.0,
+   "coverage": 0.041,
+   "openness": 0.492,
+   "source": "product-photo"
+  },
+  "UG-904": {
+   "color_hex": "#2c2c2c",
+   "trust": 1.0,
+   "coverage": 0.052,
+   "openness": 0.564,
+   "source": "product-photo"
+  },
+  "CK-118TR": {
+   "color_hex": "#c4a07c",
+   "trust": 1.0,
+   "coverage": 0.081,
+   "openness": 0.356,
+   "source": "product-photo"
+  },
+  "CK-119TR": {
+   "color_hex": "#d4b48c",
+   "trust": 1.0,
+   "coverage": 0.097,
+   "openness": 0.363,
+   "source": "product-photo"
+  },
+  "CK-218": {
+   "color_hex": "#dcb084",
+   "trust": 1.0,
+   "coverage": 0.118,
+   "openness": 0.457,
+   "source": "product-photo"
+  },
+  "CK-219": {
+   "color_hex": "#d8ac80",
+   "trust": 1.0,
+   "coverage": 0.117,
+   "openness": 0.455,
+   "source": "product-photo"
+  },
+  "CK-153TR": {
+   "color_hex": "#c49c78",
+   "trust": 1.0,
+   "coverage": 0.115,
+   "openness": 0.088,
+   "source": "product-photo"
+  },
+  "CK-154TR": {
+   "color_hex": "#c89c74",
+   "trust": 1.0,
+   "coverage": 0.149,
+   "openness": 0.093,
+   "source": "product-photo"
+  },
+  "CK-149": {
+   "color_hex": "#bcc0c0",
+   "trust": 1.0,
+   "coverage": 0.049,
+   "openness": 0.705,
+   "source": "product-photo"
+  },
+  "CK-150": {
+   "color_hex": "#ccccd0",
+   "trust": 1.0,
+   "coverage": 0.06,
+   "openness": 0.759,
+   "source": "product-photo"
+  },
+  "CK-902": {
+   "color_hex": "#6c6c68",
+   "trust": 1.0,
+   "coverage": 0.017,
+   "openness": 0.638,
+   "source": "product-photo"
+  },
+  "CK-903": {
+   "color_hex": "#606060",
+   "trust": 1.0,
+   "coverage": 0.022,
+   "openness": 0.685,
+   "source": "product-photo"
+  },
+  "CK-904": {
+   "color_hex": "#000000",
+   "trust": 1.0,
+   "coverage": 0.028,
+   "openness": 0.717,
+   "source": "product-photo"
+  },
+  "CK-116TL": {
+   "color_hex": "#c49c74",
+   "trust": 1.0,
+   "coverage": 0.058,
+   "openness": 0.444,
+   "source": "product-photo"
+  },
+  "CK-116TR": {
+   "color_hex": "#cca880",
+   "trust": 1.0,
+   "coverage": 0.099,
+   "openness": 0.436,
+   "source": "product-photo"
+  },
+  "CK-117TL": {
+   "color_hex": "#cca884",
+   "trust": 1.0,
+   "coverage": 0.074,
+   "openness": 0.485,
+   "source": "product-photo"
+  },
+  "CK-117TR": {
+   "color_hex": "#c09c78",
+   "trust": 1.0,
+   "coverage": 0.113,
+   "openness": 0.479,
+   "source": "product-photo"
+  },
+  "CK-020": {
+   "color_hex": "#bcb4ac",
+   "trust": 1.0,
+   "coverage": 0.036,
+   "openness": 0.869,
+   "source": "product-photo"
+  },
+  "CK-220": {
+   "color_hex": "#e4e4e4",
+   "trust": 1.0,
+   "coverage": 0.109,
+   "openness": 0.735,
+   "source": "product-photo"
+  },
+  "CK-230": {
+   "color_hex": "#d8d8d4",
+   "trust": 1.0,
+   "coverage": 0.066,
+   "openness": 0.622,
+   "source": "product-photo"
+  },
+  "DB-005": {
+   "color_hex": "#f0f0f0",
+   "trust": 1.0,
+   "coverage": 0.018,
+   "openness": 0.924,
+   "source": "product-photo"
+  },
+  "CK-151": {
+   "color_hex": "#101010",
+   "trust": 1.0,
+   "coverage": 0.064,
+   "openness": 0.663,
+   "source": "product-photo"
+  },
+  "LV-312": {
+   "color_hex": "#c4c0bc",
+   "trust": 1.0,
+   "coverage": 0.019,
+   "openness": 0.652,
+   "source": "product-photo"
+  },
+  "GF-051": {
+   "color_hex": "#d0d0d0",
+   "trust": 1.0,
+   "coverage": 0.197,
+   "openness": 0.465,
+   "source": "product-photo"
+  },
+  "GF-052": {
+   "color_hex": "#d0d0d0",
+   "trust": 1.0,
+   "coverage": 0.167,
+   "openness": 0.494,
+   "source": "product-photo"
+  },
+  "LV-039": {
+   "color_hex": "#d4d4d4",
+   "trust": 1.0,
+   "coverage": 0.057,
+   "openness": 0.715,
+   "source": "product-photo"
+  },
+  "LV-310": {
+   "color_hex": "#dcdcd8",
+   "trust": 1.0,
+   "coverage": 0.081,
+   "openness": 0.695,
+   "source": "product-photo"
+  },
+  "LV-381": {
+   "color_hex": "#6c6c68",
+   "trust": 1.0,
+   "coverage": 0.033,
+   "openness": 0.712,
+   "source": "product-photo"
+  },
+  "ST-050": {
+   "color_hex": "#d8d8d8",
+   "trust": 1.0,
+   "coverage": 0.11,
+   "openness": 0.68,
+   "source": "product-photo"
+  },
+  "CK-109": {
+   "color_hex": "#000000",
+   "trust": 1.0,
+   "coverage": 0.05,
+   "openness": 0.312,
+   "source": "product-photo"
+  },
+  "CK-112": {
+   "color_hex": "#000000",
+   "trust": 1.0,
+   "coverage": 0.045,
+   "openness": 0.305,
+   "source": "product-photo"
+  },
+  "CK-113": {
+   "color_hex": "#bcb8b4",
+   "trust": 1.0,
+   "coverage": 0.015,
+   "openness": 0.378,
+   "source": "product-photo"
+  },
+  "CK-114": {
+   "color_hex": "#bcb8b4",
+   "trust": 1.0,
+   "coverage": 0.036,
+   "openness": 0.313,
+   "source": "product-photo"
+  },
+  "CK-300": {
+   "color_hex": "#a8a49c",
+   "trust": 1.0,
+   "coverage": 0.153,
+   "openness": 0.235,
+   "source": "product-photo"
+  },
+  "CK-301": {
+   "color_hex": "#c4c4c8",
+   "trust": 1.0,
+   "coverage": 0.115,
+   "openness": 0.116,
+   "source": "product-photo"
+  },
+  "CK-302": {
+   "color_hex": "#dcdcdc",
+   "trust": 1.0,
+   "coverage": 0.024,
+   "openness": 0.927,
+   "source": "product-photo"
+  },
+  "CK-303": {
+   "color_hex": "#f0f0f0",
+   "trust": 1.0,
+   "coverage": 0.066,
+   "openness": 0.923,
+   "source": "product-photo"
+  },
+  "CK-304": {
+   "color_hex": "#d0ccc8",
+   "trust": 1.0,
+   "coverage": 0.175,
+   "openness": 0.43,
+   "source": "product-photo"
+  },
+  "CK-305": {
+   "color_hex": "#d8d4d4",
+   "trust": 1.0,
+   "coverage": 0.121,
+   "openness": 0.075,
+   "source": "product-photo"
+  },
+  "CK-306": {
+   "color_hex": "#c0c0bc",
+   "trust": 1.0,
+   "coverage": 0.041,
+   "openness": 0.793,
+   "source": "product-photo"
+  },
+  "CK-902-1": {
+   "color_hex": "#1c1c1c",
+   "trust": 1.0,
+   "coverage": 0.024,
+   "openness": 0.522,
+   "source": "product-photo"
+  },
+  "CK-903-1": {
+   "color_hex": "#181818",
+   "trust": 1.0,
+   "coverage": 0.045,
+   "openness": 0.528,
+   "source": "product-photo"
+  },
+  "CK-904-1": {
+   "color_hex": "#141414",
+   "trust": 1.0,
+   "coverage": 0.078,
+   "openness": 0.532,
+   "source": "product-photo"
+  },
+  "CK-080SET": {
+   "color_hex": "#f0d0a8",
+   "trust": 1.0,
+   "coverage": 0.064,
+   "openness": 0.733,
+   "source": "product-photo"
+  },
+  "CK-143": {
+   "color_hex": "#f0f0f0",
+   "trust": 1.0,
+   "coverage": 0.035,
+   "openness": 0.816,
+   "source": "product-photo"
+  },
+  "CK-144": {
+   "color_hex": "#e4e4e4",
+   "trust": 1.0,
+   "coverage": 0.036,
+   "openness": 0.842,
+   "source": "product-photo"
+  },
+  "CK-145": {
+   "color_hex": "#dcdcdc",
+   "trust": 1.0,
+   "coverage": 0.052,
+   "openness": 0.824,
+   "source": "product-photo"
+  },
+  "CK-146": {
+   "color_hex": "#d8d8d8",
+   "trust": 1.0,
+   "coverage": 0.054,
+   "openness": 0.843,
+   "source": "product-photo"
+  },
+  "CK-147S": {
+   "color_hex": "#e0e0e0",
+   "trust": 1.0,
+   "coverage": 0.042,
+   "openness": 0.839,
+   "source": "product-photo"
+  },
+  "CK-148S": {
+   "color_hex": "#e4e4e4",
+   "trust": 1.0,
+   "coverage": 0.045,
+   "openness": 0.854,
+   "source": "product-photo"
+  },
+  "CK-150GROUND": {
+   "color_hex": "#e4e4e4",
+   "trust": 1.0,
+   "coverage": 0.048,
+   "openness": 0.797,
+   "source": "product-photo"
+  },
+  "CK-150LOW": {
+   "color_hex": "#e4e4e4",
+   "trust": 1.0,
+   "coverage": 0.052,
+   "openness": 0.82,
+   "source": "product-photo"
+  },
+  "CK-904SET": {
+   "color_hex": "#2c2c2c",
+   "trust": 1.0,
+   "coverage": 0.15,
+   "openness": 0.678,
+   "source": "product-photo"
+  },
+  "CK-IGTKCSET": {
+   "color_hex": "#b48868",
+   "trust": 1.0,
+   "coverage": 0.13,
+   "openness": 0.746,
+   "source": "product-photo"
+  },
+  "CS-208": {
+   "color_hex": "#f0e0d0",
+   "trust": 1.0,
+   "coverage": 0.14,
+   "openness": 0.35,
+   "source": "product-photo"
+  },
+  "GF-015": {
+   "color_hex": "#c09c78",
+   "trust": 0.997,
+   "coverage": 0.111,
+   "openness": 0.712,
+   "source": "product-photo"
+  },
+  "SET-071": {
+   "color_hex": "#d0d0cc",
+   "trust": 1.0,
+   "coverage": 0.139,
+   "openness": 0.728,
+   "source": "product-photo"
+  },
+  "SET-072": {
+   "color_hex": "#fcf0e4",
+   "trust": 1.0,
+   "coverage": 0.064,
+   "openness": 0.708,
+   "source": "product-photo"
+  },
+  "BG-031": {
+   "color_hex": "#242428",
+   "trust": 1.0,
+   "coverage": 0.171,
+   "openness": 0.226,
+   "source": "product-photo"
+  },
+  "BG-032": {
+   "color_hex": "#242428",
+   "trust": 1.0,
+   "coverage": 0.188,
+   "openness": 0.317,
+   "source": "product-photo"
+  },
+  "CK-025": {
+   "color_hex": "#c4c4c4",
+   "trust": 1.0,
+   "coverage": 0.23,
+   "openness": 0.332,
+   "source": "product-photo"
+  },
+  "CK-026": {
+   "color_hex": "#d4d4d4",
+   "trust": 1.0,
+   "coverage": 0.169,
+   "openness": 0.491,
+   "source": "product-photo"
+  },
+  "CK-085": {
+   "color_hex": "#ececec",
+   "trust": 1.0,
+   "coverage": 0.12,
+   "openness": 0.445,
+   "source": "product-photo"
+  },
+  "CK-125TR": {
+   "color_hex": "#c09470",
+   "trust": 1.0,
+   "coverage": 0.137,
+   "openness": 0.019,
+   "source": "product-photo"
+  },
+  "CK-126TR": {
+   "color_hex": "#cca078",
+   "trust": 1.0,
+   "coverage": 0.274,
+   "openness": 0.006,
+   "source": "product-photo"
+  },
+  "CK-160": {
+   "color_hex": "#d8d8d4",
+   "trust": 1.0,
+   "coverage": 0.093,
+   "openness": 0.501,
+   "source": "product-photo"
+  },
+  "CK-225": {
+   "color_hex": "#f0f0f0",
+   "trust": 1.0,
+   "coverage": 0.093,
+   "openness": 0.701,
+   "source": "product-photo"
+  },
+  "CK-226": {
+   "color_hex": "#f0f0f0",
+   "trust": 1.0,
+   "coverage": 0.113,
+   "openness": 0.624,
+   "source": "product-photo"
+  },
+  "CK-250": {
+   "color_hex": "#f0f0f0",
+   "trust": 1.0,
+   "coverage": 0.062,
+   "openness": 0.737,
+   "source": "product-photo"
+  },
+  "CK-251": {
+   "color_hex": "#e0e0e0",
+   "trust": 1.0,
+   "coverage": 0.063,
+   "openness": 0.688,
+   "source": "product-photo"
+  },
+  "GP-040": {
+   "color_hex": "#f0f0f0",
+   "trust": 1.0,
+   "coverage": 0.03,
+   "openness": 0.881,
+   "source": "product-photo"
+  },
+  "GS-230": {
+   "color_hex": "#000000",
+   "trust": 1.0,
+   "coverage": 0.257,
+   "openness": 0.364,
+   "source": "product-photo"
+  },
+  "GS-355": {
+   "color_hex": "#484c50",
+   "trust": 1.0,
+   "coverage": 0.138,
+   "openness": 0.525,
+   "source": "product-photo"
+  },
+  "GS-450R-US": {
+   "color_hex": "#d8d4cc",
+   "trust": 1.0,
+   "coverage": 0.097,
+   "openness": 0.546,
+   "source": "product-photo"
+  },
+  "UG-471": {
+   "color_hex": "#282828",
+   "trust": 1.0,
+   "coverage": 0.225,
+   "openness": 0.359,
+   "source": "product-photo"
+  },
+  "UG-472": {
+   "color_hex": "#a8acac",
+   "trust": 1.0,
+   "coverage": 0.235,
+   "openness": 0.318,
+   "source": "product-photo"
+  },
+  "CK-080R": {
+   "color_hex": "#f0d4b0",
+   "trust": 1.0,
+   "coverage": 0.105,
+   "openness": 0.689,
+   "source": "product-photo"
+  },
+  "CK-080R-EC": {
+   "color_hex": "#ecc89c",
+   "trust": 1.0,
+   "coverage": 0.081,
+   "openness": 0.676,
+   "source": "product-photo"
+  },
+  "CK-090": {
+   "color_hex": "#cca884",
+   "trust": 1.0,
+   "coverage": 0.111,
+   "openness": 0.676,
+   "source": "product-photo"
+  },
+  "CK-180": {
+   "color_hex": "#000000",
+   "trust": 1.0,
+   "coverage": 0.06,
+   "openness": 0.786,
+   "source": "product-photo"
+  }
+ }
+}
