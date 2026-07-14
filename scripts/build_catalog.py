@@ -463,6 +463,16 @@ def main():
             "url": {"us": (u or {}).get("us_url"), "jp": j.get("jp_url")},
         })
 
+    # TTA is its own ecosystem. It clamps to ANY table edge -- IGT frame, bamboo
+    # extension, Takibi table, a table Snow Peak did not make -- and consumes no unit.
+    # Filing it as an "IGT rail accessory" quietly asserted a dependency that is not there.
+    tta = (layout.get("ecosystems") or {}).get("tta") or {}
+    for sku in tta.get("members", []):
+        if sku in by_sku:
+            by_sku[sku]["system"] = "tta"
+            by_sku[sku]["role"] = "edge_clamp"
+            by_sku[sku]["attaches_to"] = tta.get("attaches_to")
+
     # How each part ATTACHES. This is not derivable from a name or a dimension, and
     # trying was the mistake: the Bamboo IGT Table is 846x496 -- exactly a 3-unit frame's
     # footprint -- so "a lid covering the frame" and "a table the same size as the frame,

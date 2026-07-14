@@ -68,6 +68,16 @@
   }
  },
 
+ "ecosystems": {
+  "tta": {
+   "name": "Table Top Architect",
+   "note": "A SEPARATE system, not an IGT accessory. TTA clamps to the edge of ANY tabletop — an IGT frame, a bamboo extension, a Takibi table, someone else's table — and hangs its own fittings off it. It coexists with IGT constantly, which is why it is easy to mistake for part of it, but nothing in it depends on the IGT grid: a TTA clamp consumes no unit and cares only that there is an edge to grip.",
+   "attaches_to": "any table edge",
+   "consumes_slots": false,
+   "members": ["CK-300", "CK-301", "CK-302", "CK-303", "CK-304", "CK-305", "CK-306"]
+  }
+ },
+
  "joints": {
   "CK-151": {
    "name": "IGT Height Adjuster",

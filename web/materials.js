@@ -136,3 +136,47 @@ export function meshWires(wMM, hMM, dMM, color) {
   }
   return g;
 }
+
+/** The corner is a quarter round, not a square. Two straight edges meeting at 90 degrees,
+ *  each carrying connection hooks, and a curved outer rim -- it is what turns a layout
+ *  through a right angle. Its 496x496 spec is the bounding box of that fan, and reading
+ *  the box as the shape is how it ended up drawn as a slab. */
+export function quarterRound(radius, thickness, segments = 24) {
+  const s = new THREE.Shape();
+  s.moveTo(-radius / 2, -radius / 2);
+  s.lineTo(radius / 2, -radius / 2);
+  s.absarc(-radius / 2, -radius / 2, radius, 0, Math.PI / 2, false);
+  s.closePath();
+
+  const g = new THREE.ExtrudeGeometry(s, {
+    depth: thickness, bevelEnabled: true,
+    bevelThickness: thickness * 0.12, bevelSize: thickness * 0.12,
+    bevelSegments: 2, curveSegments: segments,
+  });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, thickness / 2, 0);
+  return g;
+}
+
+/** The angle extension splays the layout by about 45 degrees: a long board whose ends are
+ *  cut back at an angle. The hooked edge is the long one.
+ *
+ *  APPROXIMATE. The 990x496 bounding box is published; the setback of the cut is not, and
+ *  is eyeballed from the product photograph. Flagged rather than presented as fact. */
+export function angleBoard(length, depth, thickness, setback = 200) {
+  const s = new THREE.Shape();
+  const x = length / 2, z = depth / 2, c = setback;
+  s.moveTo(-x, -z);       // the hooked edge, full length
+  s.lineTo(x, -z);
+  s.lineTo(x - c, z);     // 45-degree cut back
+  s.lineTo(-x + c, z);
+  s.closePath();
+
+  const g = new THREE.ExtrudeGeometry(s, {
+    depth: thickness, bevelEnabled: true,
+    bevelThickness: thickness * 0.12, bevelSize: thickness * 0.12, bevelSegments: 2,
+  });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, thickness / 2, 0);
+  return g;
+}

@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { materialFor, roundedBox, railProfile, meshWires, isMesh } from "./materials.js";
+import { materialFor, roundedBox, railProfile, meshWires, isMesh,
+         quarterRound, angleBoard } from "./materials.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -257,7 +258,15 @@ function drawTable(g, n) {
   const sel = state.sel === n.id;
   const thick = p.role === "corner" ? (p.assembled_mm?.h ?? 25) : 30;
 
-  const m = partMesh(p, f.w, thick, f.d, sel);
+  // The published size is a BOUNDING BOX, not a silhouette. A corner is a quarter round
+  // and an angle extension is a splayed board; drawing either as its box is how they came
+  // out as slabs.
+  let geo;
+  if (/corner/i.test(p.title_en)) geo = quarterRound(f.w * MM, thick * MM);
+  else if (/angle/i.test(p.title_en)) geo = angleBoard(f.w * MM, f.d * MM, thick * MM, 200 * MM);
+  else geo = roundedBox(f.w * MM, thick * MM, f.d * MM, 2.2 * MM);
+
+  const m = new THREE.Mesh(geo, materialFor(p, COLORS, sel));
   m.position.set(0, top - thick / 2, 0).multiplyScalar(MM);
   m.userData.node = n; g.add(m); nodeMeshes.push(m);
 

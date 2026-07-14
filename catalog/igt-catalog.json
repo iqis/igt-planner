@@ -150,6 +150,23 @@
     "evidence": "\"tabletop that seamlessly integrates with the Iron Grill Table\"; LV-312: \"attaches to the Stainless Steel Kitchen Table to allow the insertion of an IGT Four Unit Frame within the length of the table. Set includes two Connectors.\" Note the 1100mm height -- this one does NOT sit at the datum."
    }
   },
+  "ecosystems": {
+   "tta": {
+    "name": "Table Top Architect",
+    "note": "A SEPARATE system, not an IGT accessory. TTA clamps to the edge of ANY tabletop — an IGT frame, a bamboo extension, a Takibi table, someone else's table — and hangs its own fittings off it. It coexists with IGT constantly, which is why it is easy to mistake for part of it, but nothing in it depends on the IGT grid: a TTA clamp consumes no unit and cares only that there is an edge to grip.",
+    "attaches_to": "any table edge",
+    "consumes_slots": false,
+    "members": [
+     "CK-300",
+     "CK-301",
+     "CK-302",
+     "CK-303",
+     "CK-304",
+     "CK-305",
+     "CK-306"
+    ]
+   }
+  },
   "joints": {
    "CK-151": {
     "name": "IGT Height Adjuster",
@@ -740,6 +757,264 @@
     "us": "https://www.snowpeak.com/products/bamboo-right-igt-open-table",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0104"
    }
+  },
+  {
+   "sku": "CK-300",
+   "handle": "tta-unit-clamp-tool-copy",
+   "title_en": "TTA Unit Clamp Tool",
+   "title_jp": "テーブルトップアーキテクト クランプ",
+   "barcode": "",
+   "role": "edge_clamp",
+   "collections": [
+    "iron-grill-table"
+   ],
+   "assembled_mm": {
+    "w": 56.0,
+    "d": 52.0,
+    "h": 100.0
+   },
+   "packed_mm": null,
+   "weight_g": 310,
+   "material": "ステンレス、ゴム材",
+   "price": {
+    "us": 5295,
+    "jp": 6600,
+    "uk": 4700
+   },
+   "available": {
+    "us": false
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-300_20220712-SP_M4_01404_path-_1.jpg?v=1684516245",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/tta-unit-clamp-tool-copy",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0109"
+   },
+   "system": "tta",
+   "attaches_to": "any table edge",
+   "attach": "rail_clamp",
+   "needs_legs": false,
+   "attach_evidence": "The TTA Unit Clamp Tool is a component of the IGT system and the foundational component of the TTA series."
+  },
+  {
+   "sku": "CK-301",
+   "handle": "tta-windscreen",
+   "title_en": "TTA Windscreen",
+   "title_jp": "テーブルトップアーキテクト ウィンドスクリーン",
+   "barcode": "",
+   "role": "edge_clamp",
+   "collections": [
+    "iron-grill-table"
+   ],
+   "assembled_mm": {
+    "w": 760.0,
+    "d": 26.0,
+    "h": 226.0
+   },
+   "packed_mm": null,
+   "weight_g": 800,
+   "material": "ステンレス、ガルバリウム鋼板、シリコンゴム、ポリプロピレン",
+   "price": {
+    "us": 4546,
+    "jp": 5800,
+    "uk": null
+   },
+   "available": {
+    "us": false
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-301_20220826-SP_M4_09981_path_jpg.png?v=1724356142",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/tta-windscreen",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0111"
+   },
+   "system": "tta",
+   "attaches_to": "any table edge",
+   "attach": "rail_clamp",
+   "needs_legs": false,
+   "attach_evidence": "To use, insert each of the flange hooks into two TTA Clamp tools and adjust the tension."
+  },
+  {
+   "sku": "CK-302",
+   "handle": "copy-of-tta-lantern-hanger",
+   "title_en": "TTA Lantern Hanger",
+   "title_jp": "テーブルトップアーキテクト ランタンハンガー",
+   "barcode": "",
+   "role": "edge_clamp",
+   "collections": [
+    "iron-grill-table"
+   ],
+   "assembled_mm": {
+    "w": 116.0,
+    "d": 26.0,
+    "h": 713.0
+   },
+   "packed_mm": null,
+   "weight_g": 310,
+   "material": "本体／ステンレス、キャップ／PVC",
+   "price": {
+    "us": 4995,
+    "jp": 6050,
+    "uk": null
+   },
+   "available": {
+    "us": true
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-302_20220712-SP_M4_01314_path_4a72540f-429c-4584-bf15-40ff23de9df4.png?v=1708967792",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/copy-of-tta-lantern-hanger",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0113"
+   },
+   "system": "tta",
+   "attaches_to": "any table edge"
+  },
+  {
+   "sku": "CK-303",
+   "handle": "tta-unit-frame",
+   "title_en": "TTA Unit Frame",
+   "title_jp": "テーブルトップアーキテクト ユニットフレーム",
+   "barcode": "",
+   "role": "edge_clamp",
+   "collections": [
+    "iron-grill-table"
+   ],
+   "assembled_mm": {
+    "w": 333.0,
+    "d": 12.0,
+    "h": 480.0
+   },
+   "packed_mm": null,
+   "weight_g": 580,
+   "material": "ステンレス",
+   "price": {
+    "us": 4495,
+    "jp": 7040,
+    "uk": 3700
+   },
+   "available": {
+    "us": true
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-303_20220712-SP_M4_01301.png?v=1683830168",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/tta-unit-frame",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0115"
+   },
+   "system": "tta",
+   "attaches_to": "any table edge",
+   "attach": "rail_clamp",
+   "needs_legs": false,
+   "attach_evidence": "To use, connect the frame ends into two TTA Clamp Tools and adjust the tension."
+  },
+  {
+   "sku": "CK-304",
+   "handle": "tta-side-tray",
+   "title_en": "TTA Side Tray",
+   "title_jp": "テーブルトップアーキテクト サイドトレー",
+   "barcode": "",
+   "role": "edge_clamp",
+   "collections": [
+    "iron-grill-table",
+    "surfaces"
+   ],
+   "assembled_mm": null,
+   "packed_mm": null,
+   "weight_g": 370,
+   "material": "ステンレス、シリコンゴム",
+   "price": {
+    "us": 4495,
+    "jp": 5280,
+    "uk": 4500
+   },
+   "available": {
+    "us": true
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-304_20230125-SP_M4_08692_path.jpg?v=1683911809",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/tta-side-tray",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0117"
+   },
+   "system": "tta",
+   "attaches_to": "any table edge"
+  },
+  {
+   "sku": "CK-305",
+   "handle": "tta-cylinder-stand",
+   "title_en": "TTA Cylinder Stand",
+   "title_jp": "テーブルトップアーキテクト シリンダースタンド",
+   "barcode": "",
+   "role": "edge_clamp",
+   "collections": [
+    "iron-grill-table",
+    "surfaces"
+   ],
+   "assembled_mm": null,
+   "packed_mm": null,
+   "weight_g": 160,
+   "material": "本体/ステンレス、ブラケット/ポリプロピレン",
+   "price": {
+    "us": 3146,
+    "jp": 3800,
+    "uk": 1800
+   },
+   "available": {
+    "us": true
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-305_20230117-SP_M4_07182_path.jpg?v=1683909315",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/tta-cylinder-stand",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0118"
+   },
+   "system": "tta",
+   "attaches_to": "any table edge"
+  },
+  {
+   "sku": "CK-306",
+   "handle": "tta-sierra-cup-holder",
+   "title_en": "TTA Sierra Cup Holder",
+   "title_jp": "テーブルトップアーキテクト シェラカップホルダー",
+   "barcode": "",
+   "role": "edge_clamp",
+   "collections": [
+    "iron-grill-table"
+   ],
+   "assembled_mm": {
+    "w": 160.0,
+    "d": 125.0,
+    "h": 18.0
+   },
+   "packed_mm": null,
+   "weight_g": 135,
+   "material": "ステンレス",
+   "price": {
+    "us": 4495,
+    "jp": 5610,
+    "uk": 2250
+   },
+   "available": {
+    "us": true
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-306_20230117-SP_M4_07198_path.jpg?v=1683910795",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/tta-sierra-cup-holder",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0119"
+   },
+   "system": "tta",
+   "attaches_to": "any table edge",
+   "attach": "rail_clamp",
+   "needs_legs": false,
+   "attach_evidence": "Please note: The TTA Frame &amp; TTA Clamp Tool are required for assembly and are sold separately."
   },
   {
    "sku": "CK-153TR",
@@ -1769,250 +2044,6 @@
     "jp": "https://ec.snowpeak.co.jp/item/SNP0104A0015"
    },
    "height_mm": 830
-  },
-  {
-   "sku": "CK-300",
-   "handle": "tta-unit-clamp-tool-copy",
-   "title_en": "TTA Unit Clamp Tool",
-   "title_jp": "テーブルトップアーキテクト クランプ",
-   "barcode": "",
-   "role": "rail_accessory",
-   "collections": [
-    "iron-grill-table"
-   ],
-   "assembled_mm": {
-    "w": 56.0,
-    "d": 52.0,
-    "h": 100.0
-   },
-   "packed_mm": null,
-   "weight_g": 310,
-   "material": "ステンレス、ゴム材",
-   "price": {
-    "us": 5295,
-    "jp": 6600,
-    "uk": 4700
-   },
-   "available": {
-    "us": false
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-300_20220712-SP_M4_01404_path-_1.jpg?v=1684516245",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/tta-unit-clamp-tool-copy",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0109"
-   },
-   "attach": "rail_clamp",
-   "needs_legs": false,
-   "attach_evidence": "The TTA Unit Clamp Tool is a component of the IGT system and the foundational component of the TTA series."
-  },
-  {
-   "sku": "CK-301",
-   "handle": "tta-windscreen",
-   "title_en": "TTA Windscreen",
-   "title_jp": "テーブルトップアーキテクト ウィンドスクリーン",
-   "barcode": "",
-   "role": "rail_accessory",
-   "collections": [
-    "iron-grill-table"
-   ],
-   "assembled_mm": {
-    "w": 760.0,
-    "d": 26.0,
-    "h": 226.0
-   },
-   "packed_mm": null,
-   "weight_g": 800,
-   "material": "ステンレス、ガルバリウム鋼板、シリコンゴム、ポリプロピレン",
-   "price": {
-    "us": 4546,
-    "jp": 5800,
-    "uk": null
-   },
-   "available": {
-    "us": false
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-301_20220826-SP_M4_09981_path_jpg.png?v=1724356142",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/tta-windscreen",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0111"
-   },
-   "attach": "rail_clamp",
-   "needs_legs": false,
-   "attach_evidence": "To use, insert each of the flange hooks into two TTA Clamp tools and adjust the tension."
-  },
-  {
-   "sku": "CK-302",
-   "handle": "copy-of-tta-lantern-hanger",
-   "title_en": "TTA Lantern Hanger",
-   "title_jp": "テーブルトップアーキテクト ランタンハンガー",
-   "barcode": "",
-   "role": "rail_accessory",
-   "collections": [
-    "iron-grill-table"
-   ],
-   "assembled_mm": {
-    "w": 116.0,
-    "d": 26.0,
-    "h": 713.0
-   },
-   "packed_mm": null,
-   "weight_g": 310,
-   "material": "本体／ステンレス、キャップ／PVC",
-   "price": {
-    "us": 4995,
-    "jp": 6050,
-    "uk": null
-   },
-   "available": {
-    "us": true
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-302_20220712-SP_M4_01314_path_4a72540f-429c-4584-bf15-40ff23de9df4.png?v=1708967792",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/copy-of-tta-lantern-hanger",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0113"
-   }
-  },
-  {
-   "sku": "CK-303",
-   "handle": "tta-unit-frame",
-   "title_en": "TTA Unit Frame",
-   "title_jp": "テーブルトップアーキテクト ユニットフレーム",
-   "barcode": "",
-   "role": "rail_accessory",
-   "collections": [
-    "iron-grill-table"
-   ],
-   "assembled_mm": {
-    "w": 333.0,
-    "d": 12.0,
-    "h": 480.0
-   },
-   "packed_mm": null,
-   "weight_g": 580,
-   "material": "ステンレス",
-   "price": {
-    "us": 4495,
-    "jp": 7040,
-    "uk": 3700
-   },
-   "available": {
-    "us": true
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-303_20220712-SP_M4_01301.png?v=1683830168",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/tta-unit-frame",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0115"
-   },
-   "attach": "rail_clamp",
-   "needs_legs": false,
-   "attach_evidence": "To use, connect the frame ends into two TTA Clamp Tools and adjust the tension."
-  },
-  {
-   "sku": "CK-304",
-   "handle": "tta-side-tray",
-   "title_en": "TTA Side Tray",
-   "title_jp": "テーブルトップアーキテクト サイドトレー",
-   "barcode": "",
-   "role": "rail_accessory",
-   "collections": [
-    "iron-grill-table",
-    "surfaces"
-   ],
-   "assembled_mm": null,
-   "packed_mm": null,
-   "weight_g": 370,
-   "material": "ステンレス、シリコンゴム",
-   "price": {
-    "us": 4495,
-    "jp": 5280,
-    "uk": 4500
-   },
-   "available": {
-    "us": true
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-304_20230125-SP_M4_08692_path.jpg?v=1683911809",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/tta-side-tray",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0117"
-   }
-  },
-  {
-   "sku": "CK-305",
-   "handle": "tta-cylinder-stand",
-   "title_en": "TTA Cylinder Stand",
-   "title_jp": "テーブルトップアーキテクト シリンダースタンド",
-   "barcode": "",
-   "role": "rail_accessory",
-   "collections": [
-    "iron-grill-table",
-    "surfaces"
-   ],
-   "assembled_mm": null,
-   "packed_mm": null,
-   "weight_g": 160,
-   "material": "本体/ステンレス、ブラケット/ポリプロピレン",
-   "price": {
-    "us": 3146,
-    "jp": 3800,
-    "uk": 1800
-   },
-   "available": {
-    "us": true
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-305_20230117-SP_M4_07182_path.jpg?v=1683909315",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/tta-cylinder-stand",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0118"
-   }
-  },
-  {
-   "sku": "CK-306",
-   "handle": "tta-sierra-cup-holder",
-   "title_en": "TTA Sierra Cup Holder",
-   "title_jp": "テーブルトップアーキテクト シェラカップホルダー",
-   "barcode": "",
-   "role": "rail_accessory",
-   "collections": [
-    "iron-grill-table"
-   ],
-   "assembled_mm": {
-    "w": 160.0,
-    "d": 125.0,
-    "h": 18.0
-   },
-   "packed_mm": null,
-   "weight_g": 135,
-   "material": "ステンレス",
-   "price": {
-    "us": 4495,
-    "jp": 5610,
-    "uk": 2250
-   },
-   "available": {
-    "us": true
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-306_20230117-SP_M4_07198_path.jpg?v=1683910795",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/tta-sierra-cup-holder",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0119"
-   },
-   "attach": "rail_clamp",
-   "needs_legs": false,
-   "attach_evidence": "Please note: The TTA Frame &amp; TTA Clamp Tool are required for assembly and are sold separately."
   },
   {
    "sku": "CK-902-1",
