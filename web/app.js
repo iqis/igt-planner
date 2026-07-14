@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, railProfile, meshWires, isMesh,
-         quarterRound, angleBoard, boardMaterial, flatRect } from "./materials.js";
+         quarterRound, angleBoard, boardMaterial, flatRect,
+         boardFromOutline } from "./materials.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -279,12 +280,11 @@ function drawTable(g, n) {
   const sel = state.sel === n.id;
   const thick = p.role === "corner" ? (p.assembled_mm?.h ?? 25) : 30;
 
-  // The published size is a BOUNDING BOX, not a silhouette. A corner is a quarter round
-  // and an angle extension is a splayed board; drawing either as its box is how they came
-  // out as slabs.
+  // The silhouette comes from the photograph, not from a guess about what shape the
+  // bounding box implies -- and crucially, from the SAME photograph that paints it.
+  const ring = TEXTURES[p.sku]?.outline_mm;
   let geo;
-  if (/corner/i.test(p.title_en)) geo = quarterRound(f.w * MM, thick * MM);
-  else if (/angle/i.test(p.title_en)) geo = angleBoard(f.w * MM, f.d * MM, thick * MM, 200 * MM);
+  if (ring) geo = boardFromOutline(ring, thick * MM);
   else if (n.kind === "ext") geo = flatRect(f.w * MM, f.d * MM, thick * MM, 8 * MM);
   else geo = roundedBox(f.w * MM, thick * MM, f.d * MM, 2.2 * MM);
 
@@ -747,6 +747,11 @@ BY_ROLE = {
 };
 
 $("datum").textContent = `${LAYOUT.datum_height_mm}mm`;
+
+// A way in from the console. Being able to put the camera straight overhead is how you
+// check a silhouette; orbiting by hand and squinting is how you convince yourself.
+window.__igt = { THREE, scene, camera, controls, state, PARTS, render,
+  top() { camera.position.set(0.001, 3.2, 0.001); controls.target.set(0.6, 0.8, 0); } };
 
 resize();
 addNode("CK-150");

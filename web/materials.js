@@ -238,3 +238,32 @@ export function flatRect(w, d, thickness, radius = 6) {
   g.translate(0, thickness / 2, 0);
   return g;
 }
+
+/** A board built from the outline traced off its own photograph.
+ *
+ *  This replaces the hand-built quarterRound/angleBoard for any part that has one, and it
+ *  is not a refinement -- it is a fix. Modelling the silhouette AND alpha-cutting it with
+ *  the photo meant two independent claims about the same outline, and alphaTest renders
+ *  their intersection: the corner came out as a pointed leaf, the overlap of a quarter
+ *  round I drew and a quarter round Snow Peak photographed, rotated apart.
+ *
+ *  One source. The alpha has the outline; the outline builds the shape; the same photo
+ *  paints it. They cannot disagree, because they are the same measurement.
+ */
+export function boardFromOutline(points, thickness, mm = 0.001) {
+  const s = new THREE.Shape();
+  points.forEach(([x, z], i) => {
+    const px = x * mm, pz = z * mm;
+    if (i === 0) s.moveTo(px, pz);
+    else s.lineTo(px, pz);
+  });
+  s.closePath();
+
+  const g = new THREE.ExtrudeGeometry(s, {
+    depth: thickness, bevelEnabled: true,
+    bevelThickness: thickness * 0.14, bevelSize: thickness * 0.14, bevelSegments: 2,
+  });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, thickness / 2, 0);
+  return g;
+}

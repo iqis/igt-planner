@@ -113,12 +113,13 @@ def main():
             continue
 
         fit = measure_fittings(cut, box)
+        ring = outline_mm(cut, box)
 
         cut.thumbnail((1024, 1024), Image.LANCZOS)
         cut.save(TEX / f"{p['sku']}.png")
         out[p["sku"]] = {"file": f"tex/{p['sku']}.png", "aspect": round(aspect, 3),
                          "wanted": round(want, 3), "aspect_error": round(err, 3),
-                         "source": url, **(fit or {})}
+                         "source": url, "outline_mm": ring, **(fit or {})}
         nh = len(fit["hooks_mm"]) if fit else 0
         nl = len(fit["legs_mm"]) if fit else 0
         print(f"  {p['sku']:11s} aspect {aspect:5.2f} vs {want:5.2f} ({err:3.0%})   "
@@ -219,6 +220,48 @@ def measure_fittings(img, box):
         "hooks_mm": sorted(hooks)[:4],
         "legs_mm": sorted(legs)[:4],     # the legs screw into the brackets
     }
+
+
+
+
+def outline_mm(img, box, samples=48):
+    """The board's real silhouette, in mm, traced from the photograph's alpha.
+
+    The corner came out as a leaf. Not because either the geometry or the texture was
+    wrong -- because there were TWO of them. A hand-built quarter round and a photographic
+    alpha mask are two independent claims about the same outline, and alphaTest renders
+    their INTERSECTION. Two truths, disagreeing by a rotation, and the render shows the
+    overlap.
+
+    So there is one source now. The alpha already carries the outline; take the outline
+    from the alpha. Geometry and texture then cannot disagree, because they are the same
+    measurement.
+
+    Row-scan, not a full contour trace: these boards are convex (quarter round, splayed
+    trapezoid, rectangle), and the left/right extent of each row describes them exactly.
+    Traced on the OPENED mask so the hook pins do not become bumps in the tabletop.
+    """
+    alpha = np.asarray(img)[:, :, 3] > 128
+    board = ndimage.binary_opening(alpha, structure=np.ones((11, 11)))
+    ys, xs = np.nonzero(board)
+    if len(xs) < 500:
+        return None
+
+    x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
+    mmx, mmy = box["w"] / (x1 - x0 + 1), box["d"] / (y1 - y0 + 1)
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+
+    left, right = [], []
+    for i in range(samples + 1):
+        y = int(round(y0 + (y1 - y0) * i / samples))
+        row = np.nonzero(board[y])[0]
+        if not len(row):
+            continue
+        left.append((round(float((row.min() - cx) * mmx), 1), round(float((y - cy) * mmy), 1)))
+        right.append((round(float((row.max() - cx) * mmx), 1), round(float((y - cy) * mmy), 1)))
+
+    # Down the left side, back up the right: a closed ring in the board's own mm frame.
+    return left + right[::-1]
 
 
 if __name__ == "__main__":
