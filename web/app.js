@@ -1374,13 +1374,19 @@ for (const p of CAT.parts) {
   if (PARTS[rails]) { p.requires_rails = rails; p.collapsible = true; }
 }
 
-const by = r => CAT.parts.filter(p => p.role === r);
+// Excluded parts are real products that are OUT OF SCOPE for a portable-kit planner -- the
+// Takibi Garden tables and the Garden Unit Table are fixed garden furniture, assembled in
+// place. They stay in the catalog (flagged, with a reason) so the record is honest, but the
+// planner does not offer them. Filtering here means every list below inherits it -- palette,
+// hookable set, and the unsourced list all -- without each having to remember.
+const inScope = CAT.parts.filter(p => !p.excluded);
+const by = r => inScope.filter(p => p.role === r);
 
 // What can hook: the copy says hook_on AND the photograph says where the hooks are. Both,
 // because the planner needs to know both THAT it hooks and WHICH EDGE hooks. A part with
 // only the first is honestly unplaceable, and is listed as such rather than guessed at.
 const hookRoles = p => HOOKS_ON.has(p.role) && p.assembled_mm;
-HOOKABLE = CAT.parts.filter(p => hookRoles(p) && p.attach === "hook_on"
+HOOKABLE = inScope.filter(p => hookRoles(p) && p.attach === "hook_on"
   && TEXTURES[p.sku]?.hooks_mm?.length);
 
 BY_ROLE = {
@@ -1390,7 +1396,7 @@ BY_ROLE = {
     .sort((a, b) => a.span - b.span || a.title_en.localeCompare(b.title_en)),
   layout_table: by("layout_table").filter(p => p.assembled_mm),
   standalone: by("standalone").filter(p => p.assembled_mm),
-  unsourced: CAT.parts.filter(p => hookRoles(p) && !HOOKABLE.includes(p)),
+  unsourced: inScope.filter(p => hookRoles(p) && !HOOKABLE.includes(p)),
 };
 
 $("datum").textContent = `${LAYOUT.datum_height_mm}mm`;

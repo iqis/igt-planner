@@ -36,7 +36,8 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 
 # Parts that are flat boards seen from above. Anything with a real 3D body (a burner, a
 # box) would need a proper model, and a photo pasted on its top would just look wrong.
 FLAT_ROLES = {"extension_table", "corner"}
-FLAT_EXTRA = {"CK-125TR", "CK-126TR", "GF-010"}   # the wood inserts
+FLAT_EXTRA = {"CK-125TR", "CK-126TR"}   # the IGT wood inserts (GF-010 belongs to the
+                                        # excluded Garden Unit Table, not to IGT)
 
 BG_TOL = 30
 MAX_ASPECT_ERR = 0.35     # beyond this the photo is not a plan view of anything

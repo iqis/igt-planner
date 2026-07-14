@@ -433,6 +433,9 @@ def main():
             p["connects_to"] = t.get("connects_to", [])
             p["requires_connector"] = t.get("requires_connector")
             p["evidence"] = t.get("evidence")
+            if t.get("excluded"):
+                p["excluded"] = True
+                p["excluded_reason"] = t.get("excluded_reason")
 
     for sku, t in (layout.get("tables") or {}).items():
         if sku in by_sku:
@@ -461,6 +464,8 @@ def main():
             "available": {"us": (u or {}).get("available", False)},
             "image": ((u or {}).get("images") or [None])[0],
             "url": {"us": (u or {}).get("us_url"), "jp": j.get("jp_url")},
+            **({"excluded": True, "excluded_reason": t.get("excluded_reason")}
+               if t.get("excluded") else {}),
         })
 
     # TTA is its own ecosystem. It clamps to ANY table edge -- IGT frame, bamboo
@@ -540,6 +545,15 @@ def main():
                 continue
             if "role" in ov:
                 rec["role"] = ov["role"]
+            if ov.get("excluded"):
+                # Exclude is not delete. The Takibi Garden tables and the Garden Unit Table
+                # are real Snow Peak products; they are just not part of a system you carry
+                # to a campsite -- they are fixed garden furniture, assembled in place. So
+                # they stay in the catalog, flagged, with the reason written down, and the
+                # planner leaves them out. Pretending a real part does not exist is the same
+                # error as inventing one, run backwards.
+                rec["excluded"] = True
+                rec["excluded_reason"] = ov.get("reason")
             if "attach" in ov:
                 rec["attach"] = ov["attach"]
                 rec["attach_evidence"] = ov.get("reason")

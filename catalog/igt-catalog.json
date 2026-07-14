@@ -166,6 +166,8 @@
     "connects_to": [
      "igt"
     ],
+    "excluded": true,
+    "excluded_reason": "Fixed garden furniture -- assembled in place, not carried or moved. Out of scope for a planner of a PORTABLE kit, even though its connection to IGT is real. Kept here, flagged, rather than deleted. See overrides.json.",
     "evidence": "\"Use the Takibi Garden Table with the Takibi Fire & Grill and Bamboo Extensions\" -- the Bamboo Extensions are IGT parts (CK-118TR etc)."
    },
    "GF-052": {
@@ -175,6 +177,8 @@
     "connects_to": [
      "igt"
     ],
+    "excluded": true,
+    "excluded_reason": "Fixed garden furniture like GF-051, and larger. Out of scope for a portable-kit planner; kept and flagged.",
     "evidence": "XL sibling of GF-051."
    },
    "LV-039": {
@@ -321,40 +325,6 @@
    "url": {
     "us": null,
     "jp": "https://ec.snowpeak.co.jp/item/SNP0123A0097"
-   }
-  },
-  {
-   "sku": "GF-010",
-   "handle": "garden-unit-table-wood-insert-2pcs",
-   "title_en": "Garden Unit Table Wood Insert",
-   "title_jp": "ガーデンユニットテーブル ウッドトップ 2PCS",
-   "barcode": "",
-   "role": "accessory",
-   "collections": [
-    "iron-grill-table"
-   ],
-   "assembled_mm": {
-    "w": 250.0,
-    "d": 360.0,
-    "h": 24.0
-   },
-   "packed_mm": null,
-   "weight_g": 1500,
-   "material": "イタウバ",
-   "price": {
-    "us": 21595,
-    "jp": 26400,
-    "uk": 5000
-   },
-   "available": {
-    "us": true
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/garden_table_wood_insert_gf-010_hero_01.jpg?v=1600364540",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/garden-unit-table-wood-insert-2pcs",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0111A0076"
    }
   },
   {
@@ -1170,6 +1140,43 @@
    ]
   },
   {
+   "sku": "GF-010",
+   "handle": "garden-unit-table-wood-insert-2pcs",
+   "title_en": "Garden Unit Table Wood Insert",
+   "title_jp": "ガーデンユニットテーブル ウッドトップ 2PCS",
+   "barcode": "",
+   "role": "excluded",
+   "collections": [
+    "iron-grill-table"
+   ],
+   "assembled_mm": {
+    "w": 250.0,
+    "d": 360.0,
+    "h": 24.0
+   },
+   "packed_mm": null,
+   "weight_g": 1500,
+   "material": "イタウバ",
+   "price": {
+    "us": 21595,
+    "jp": 26400,
+    "uk": 5000
+   },
+   "available": {
+    "us": true
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/garden_table_wood_insert_gf-010_hero_01.jpg?v=1600364540",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/garden-unit-table-wood-insert-2pcs",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0111A0076"
+   },
+   "excluded": true,
+   "excluded_reason": "Garden Unit Table Wood Insert -- the top for GF-015, which is fixed garden furniture. Excluded with its table. (It had been pulled into make_textures as a flat board via FLAT_EXTRA; that is removed too -- it is not an IGT slot insert.)",
+   "curated_reason": "Garden Unit Table Wood Insert -- the top for GF-015, which is fixed garden furniture. Excluded with its table. (It had been pulled into make_textures as a flat board via FLAT_EXTRA; that is removed too -- it is not an IGT slot insert.)"
+  },
+  {
    "sku": "CK-153TR",
    "handle": "iron-grill-bamboo-sliding-regular-ck-153tr",
    "title_en": "Renewed Bamboo IGT Sliding Extension",
@@ -1894,7 +1901,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/gf-051-takibi-garden-table",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0253"
-   }
+   },
+   "excluded": true,
+   "excluded_reason": "Takibi Garden Table (ガーデン焚火テーブル L). Excluded from the layout system: it is fixed garden furniture, assembled in place and not meant to be carried or moved, so it does not belong in a planner for a portable kit. The IGT/Layout System is defined by being packable and re-configurable on site; this is not. It stays in the catalog, flagged, because it is a real product and its connection to IGT is real -- just out of scope.",
+   "curated_reason": "Takibi Garden Table (ガーデン焚火テーブル L). Excluded from the layout system: it is fixed garden furniture, assembled in place and not meant to be carried or moved, so it does not belong in a planner for a portable kit. The IGT/Layout System is defined by being packable and re-configurable on site; this is not. It stays in the catalog, flagged, because it is a real product and its connection to IGT is real -- just out of scope."
   },
   {
    "sku": "GF-052",
@@ -1930,7 +1940,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/gf-052-takibi-garden-table-xl",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0254"
-   }
+   },
+   "excluded": true,
+   "excluded_reason": "Takibi Garden Table XL (ガーデン焚火テーブル LL). Same as GF-051 -- fixed garden furniture, not portable. Excluded from the layout system, kept in the catalog.",
+   "curated_reason": "Takibi Garden Table XL (ガーデン焚火テーブル LL). Same as GF-051 -- fixed garden furniture, not portable. Excluded from the layout system, kept in the catalog."
   },
   {
    "sku": "LV-039",
@@ -2887,6 +2900,9 @@
     "us": "https://www.snowpeak.com/products/garden-unit-table-set",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0111A0077"
    },
+   "excluded": true,
+   "excluded_reason": "Garden Unit Table Set (ガーデンユニットテーブル ウッドトップセット). The Garden Unit Table is a stationary garden piece, not part of the movable IGT kit. Excluded from the layout system, kept in the catalog. Its wood insert GF-010 is excluded with it.",
+   "curated_reason": "Garden Unit Table Set (ガーデンユニットテーブル ウッドトップセット). The Garden Unit Table is a stationary garden piece, not part of the movable IGT kit. Excluded from the layout system, kept in the catalog. Its wood insert GF-010 is excluded with it.",
    "manual": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h5b/h2c/8995835969566/GF-015_manual.pdf"
   },
   {

@@ -90,6 +90,8 @@
    "handle": "gf-051-takibi-garden-table",
    "size_mm": {"w": 1200, "d": 1200, "h": 400},
    "connects_to": ["igt"],
+   "excluded": true,
+   "excluded_reason": "Fixed garden furniture -- assembled in place, not carried or moved. Out of scope for a planner of a PORTABLE kit, even though its connection to IGT is real. Kept here, flagged, rather than deleted. See overrides.json.",
    "evidence": "\"Use the Takibi Garden Table with the Takibi Fire & Grill and Bamboo Extensions\" -- the Bamboo Extensions are IGT parts (CK-118TR etc)."
   },
   "GF-052": {
@@ -97,6 +99,8 @@
    "handle": "gf-052-takibi-garden-table-xl",
    "size_mm": null,
    "connects_to": ["igt"],
+   "excluded": true,
+   "excluded_reason": "Fixed garden furniture like GF-051, and larger. Out of scope for a portable-kit planner; kept and flagged.",
    "evidence": "XL sibling of GF-051."
   },
   "LV-039": {

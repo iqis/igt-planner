@@ -16,6 +16,24 @@
   }
  },
 
+ "GF-051": {
+  "excluded": true,
+  "reason": "Takibi Garden Table (ガーデン焚火テーブル L). Excluded from the layout system: it is fixed garden furniture, assembled in place and not meant to be carried or moved, so it does not belong in a planner for a portable kit. The IGT/Layout System is defined by being packable and re-configurable on site; this is not. It stays in the catalog, flagged, because it is a real product and its connection to IGT is real -- just out of scope."
+ },
+ "GF-052": {
+  "excluded": true,
+  "reason": "Takibi Garden Table XL (ガーデン焚火テーブル LL). Same as GF-051 -- fixed garden furniture, not portable. Excluded from the layout system, kept in the catalog."
+ },
+ "GF-015": {
+  "excluded": true,
+  "reason": "Garden Unit Table Set (ガーデンユニットテーブル ウッドトップセット). The Garden Unit Table is a stationary garden piece, not part of the movable IGT kit. Excluded from the layout system, kept in the catalog. Its wood insert GF-010 is excluded with it."
+ },
+ "GF-010": {
+  "excluded": true,
+  "role": "excluded",
+  "reason": "Garden Unit Table Wood Insert -- the top for GF-015, which is fixed garden furniture. Excluded with its table. (It had been pulled into make_textures as a flat board via FLAT_EXTRA; that is removed too -- it is not an IGT slot insert.)"
+ },
+
  "CK-175": {
   "role": "frame_hook",
   "weight_g": 90,
