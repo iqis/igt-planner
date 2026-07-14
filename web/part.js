@@ -3,6 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, flatRect,
          boardFromOutline, grainMaterial } from "./materials.js";
+import { moduleGroup } from "./parts3d.js";
 
 /* The bench.
  *
@@ -101,28 +102,35 @@ function drawPart() {
   const t = TEXTURES[sku] || {};
   const thick = box.h ?? 25;
   const ring = t.outline_mm;
-
-  // Same geometry the planner builds. If it is wrong here it is wrong there.
-  const geo = ring ? boardFromOutline(ring, thick * MM)
-                   : flatRect(box.w * MM, box.d * MM, thick * MM, 8 * MM);
   const grain = textureOf(sku, "grain");
-  const board = new THREE.Mesh(geo, grain
-    ? grainMaterial(p, COLORS, grain, box.w, box.d, false)
-    : materialFor(p, COLORS, false));
-  board.position.y = 0;                       // boardFromOutline hangs from its top face
-  stage.add(board);
 
-  // The photograph, laid on the TOP face -- which is where its subject actually is.
-  // Snow Peak's own studio shot settles it: the bracket plates sit ON the bamboo, because
-  // the next board's wire hooks have to drop into them from above.
-  const tex = textureOf(sku);
-  if (show.photo && tex && ring) {
-    const decal = new THREE.Mesh(
-      boardFromOutline(ring, 0.4 * MM),
-      boardMaterial(p, COLORS, tex, box.w * MM, box.d * MM, false),
-    );
-    decal.position.y = 0.5 * MM;
-    stage.add(decal);
+  // A part with a real 3D form -- a burner, a box, a mesh tray -- comes from the SAME shared
+  // builder the planner uses. Before this, the bench drew every non-board part as a flat slab
+  // of its bounding box, which is why so much of the catalog looked like untextured cubes.
+  // Its top sits at y = 0, the plane the grid marks, the way it embeds flush in a frame.
+  const built = !ring && !grain ? moduleGroup(p, box.w, box.d, thick, swatchOf(sku)) : null;
+  if (built) {
+    stage.add(built.group);
+  } else {
+    // A flat board: its real silhouette and its own photograph, or a plain slab if neither.
+    const geo = ring ? boardFromOutline(ring, thick * MM)
+                     : flatRect(box.w * MM, box.d * MM, thick * MM, 8 * MM);
+    const board = new THREE.Mesh(geo, grain
+      ? grainMaterial(p, COLORS, grain, box.w, box.d, false)
+      : materialFor(p, COLORS, false));
+    board.position.y = 0;                       // boardFromOutline hangs from its top face
+    stage.add(board);
+
+    // The photograph, laid on the TOP face -- where its subject (hooks, brackets) actually is.
+    const tex = textureOf(sku);
+    if (show.photo && tex && ring) {
+      const decal = new THREE.Mesh(
+        boardFromOutline(ring, 0.4 * MM),
+        boardMaterial(p, COLORS, tex, box.w * MM, box.d * MM, false),
+      );
+      decal.position.y = 0.5 * MM;
+      stage.add(decal);
+    }
   }
 
   // Hooks hang DOWN off the edge; brackets sit ON the surface. Both drawn at the exact
