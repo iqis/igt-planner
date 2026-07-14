@@ -389,6 +389,9 @@
    "span_evidence": "half-unit size",
    "along_rail_mm": 206.0,
    "fit_delta_mm": 81.0,
+   "attach": "slot_in",
+   "needs_legs": false,
+   "attach_evidence": "The half-unit size allows space for other grills, plates, or griddles.",
    "system": "takibi",
    "curated_reason": "Not an IGT part. It is a Takibi Fire & Grill accessory that the US storefront files under `cookers`. Its 'half-unit size' copy refers to the Takibi grill, not an IGT unit -- measured along-rail is 206mm against a 125mm half unit, which the fit cross-check flagged at +81mm."
   },
@@ -625,7 +628,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/igt-bamboo-l-corner-ck-118tr",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0119A0080"
-   }
+   },
+   "attach": "hook_on",
+   "needs_legs": true,
+   "attach_evidence": "Use it to extend the table 90 degrees to the left and create a wraparound cooking and dining space."
   },
   {
    "sku": "CK-119TR",
@@ -660,7 +666,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/igt-bamboo-r-corner-ck-119tr",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0119A0081"
-   }
+   },
+   "attach": "hook_on",
+   "needs_legs": true,
+   "attach_evidence": "Use it to extend the table 90 degrees to the right and create a wraparound cooking and dining space."
   },
   {
    "sku": "CK-218",
@@ -765,7 +774,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/iron-grill-bamboo-sliding-regular-ck-153tr",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0119A0084"
-   }
+   },
+   "attach": "slide_in",
+   "needs_legs": false,
+   "attach_evidence": "The Renewed Bamboo IGT Sliding Extension does not require a hook, but slips into the ridges along the outside of the frame."
   },
   {
    "sku": "CK-154TR",
@@ -800,7 +812,166 @@
    "url": {
     "us": "https://www.snowpeak.com/products/igt-slide-extension-long-ck-154tr",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0119A0085"
-   }
+   },
+   "attach": "slide_in",
+   "needs_legs": false,
+   "attach_evidence": "The Renewed Bamboo IGT Sliding Extension Long does not require a hook, but slips into the ridges along the outside of the frame."
+  },
+  {
+   "sku": "CK-116TL",
+   "handle": "bamboo-igt-table-regular-light",
+   "title_en": "Bamboo IGT Table Regular Light",
+   "title_jp": "マルチファンクションテーブル Light Bamboo",
+   "barcode": "",
+   "role": "extension_table",
+   "collections": [
+    "iron-grill-table",
+    "surfaces"
+   ],
+   "assembled_mm": {
+    "w": 846.0,
+    "d": 496.0,
+    "h": 25.0
+   },
+   "packed_mm": null,
+   "weight_g": 3000,
+   "material": "竹集成材（天面：UVコーティング、側面：PUコーティング）、ポリプロピレン、アルミニウム合金、ステンレス",
+   "price": {
+    "us": 21995,
+    "jp": 26400,
+    "uk": 21000
+   },
+   "available": {
+    "us": true
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-116TL_20231008-SP_M4_07234_path_jpg_3de04ca9-f723-4c09-8d84-82ceab2088f8.png?v=1717091999",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/bamboo-igt-table-regular-light",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0124A0261"
+   },
+   "covers_units": 3,
+   "attach": "hook_on",
+   "needs_legs": true,
+   "attach_evidence": "The Bamboo IGT Table Regular Light can be attached to the IGT Frame or other extension with the already-attached connection hooks."
+  },
+  {
+   "sku": "CK-116TR",
+   "handle": "igt-bamboo-table-regular-ck-116tr",
+   "title_en": "Renewed Bamboo IGT Table Regular",
+   "title_jp": "マルチファンクションテーブル竹",
+   "barcode": "",
+   "role": "extension_table",
+   "collections": [
+    "iron-grill-table",
+    "surfaces"
+   ],
+   "assembled_mm": {
+    "w": 846.0,
+    "d": 496.0,
+    "h": 25.0
+   },
+   "packed_mm": null,
+   "weight_g": 4600,
+   "material": "竹集成材、アルミニウム合金、ステンレス",
+   "price": {
+    "us": 19495,
+    "jp": 21120,
+    "uk": 17000
+   },
+   "available": {
+    "us": true
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/renewed_bamboo_table_ck-116tr_hero_01.jpg?v=1590087228",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/igt-bamboo-table-regular-ck-116tr",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0119A0078"
+   },
+   "covers_units": 3,
+   "attach": "hook_on",
+   "needs_legs": true,
+   "attach_evidence": "The Renewed Bamboo IGT Table Regular can be attached to the IGT Frame or other extension with the already-attached connection hooks."
+  },
+  {
+   "sku": "CK-117TL",
+   "handle": "bamboo-igt-table-long-light",
+   "title_en": "Bamboo IGT Table Long Light",
+   "title_jp": "マルチファンクションテーブルロング Light Bamboo",
+   "barcode": "",
+   "role": "extension_table",
+   "collections": [
+    "iron-grill-table",
+    "surfaces"
+   ],
+   "assembled_mm": {
+    "w": 1096.0,
+    "d": 496.0,
+    "h": 25.0
+   },
+   "packed_mm": null,
+   "weight_g": 3500,
+   "material": "竹集成材（天面：UVコーティング、側面：PUコーティング）、ポリプロピレン、アルミニウム合金、ステンレス",
+   "price": {
+    "us": 25995,
+    "jp": 31900,
+    "uk": 23500
+   },
+   "available": {
+    "us": true
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-117TL_20231008-SP_M4_07231_path_jpg_b6a31af8-bcce-4aa8-8f1a-3471b988affa.png?v=1717091980",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/bamboo-igt-table-long-light",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0124A0263"
+   },
+   "covers_units": 4,
+   "attach": "hook_on",
+   "needs_legs": true,
+   "attach_evidence": "To attach, insert the attached connection hooks into the IGT Frame and add legs to stabilize."
+  },
+  {
+   "sku": "CK-117TR",
+   "handle": "igt-bamboo-table-long-ck-117tr",
+   "title_en": "Renewed Bamboo IGT Table Long",
+   "title_jp": "マルチファンクションテーブル ロング竹",
+   "barcode": "",
+   "role": "extension_table",
+   "collections": [
+    "iron-grill-table",
+    "surfaces"
+   ],
+   "assembled_mm": {
+    "w": 1096.0,
+    "d": 496.0,
+    "h": 25.0
+   },
+   "packed_mm": null,
+   "weight_g": 5700,
+   "material": "竹集成材、アルミニウム合金、ステンレス",
+   "price": {
+    "us": 21595,
+    "jp": 25080,
+    "uk": 21000
+   },
+   "available": {
+    "us": true
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/renewed_bamboo_table_ck-117tr_hero_01.jpg?v=1590087281",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/igt-bamboo-table-long-ck-117tr",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0119A0079"
+   },
+   "covers_units": 4,
+   "attach": "hook_on",
+   "needs_legs": true,
+   "attach_evidence": "To attach, insert the attached connection hooks into the IGT Frame and add legs to stabilize."
   },
   {
    "sku": "CK-149",
@@ -995,150 +1166,6 @@
    "units": 4
   },
   {
-   "sku": "CK-116TL",
-   "handle": "bamboo-igt-table-regular-light",
-   "title_en": "Bamboo IGT Table Regular Light",
-   "title_jp": "マルチファンクションテーブル Light Bamboo",
-   "barcode": "",
-   "role": "full_top",
-   "collections": [
-    "iron-grill-table",
-    "surfaces"
-   ],
-   "assembled_mm": {
-    "w": 846.0,
-    "d": 496.0,
-    "h": 25.0
-   },
-   "packed_mm": null,
-   "weight_g": 3000,
-   "material": "竹集成材（天面：UVコーティング、側面：PUコーティング）、ポリプロピレン、アルミニウム合金、ステンレス",
-   "price": {
-    "us": 21995,
-    "jp": 26400,
-    "uk": 21000
-   },
-   "available": {
-    "us": true
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-116TL_20231008-SP_M4_07234_path_jpg_3de04ca9-f723-4c09-8d84-82ceab2088f8.png?v=1717091999",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/bamboo-igt-table-regular-light",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0124A0261"
-   },
-   "covers_units": 3
-  },
-  {
-   "sku": "CK-116TR",
-   "handle": "igt-bamboo-table-regular-ck-116tr",
-   "title_en": "Renewed Bamboo IGT Table Regular",
-   "title_jp": "マルチファンクションテーブル竹",
-   "barcode": "",
-   "role": "full_top",
-   "collections": [
-    "iron-grill-table",
-    "surfaces"
-   ],
-   "assembled_mm": {
-    "w": 846.0,
-    "d": 496.0,
-    "h": 25.0
-   },
-   "packed_mm": null,
-   "weight_g": 4600,
-   "material": "竹集成材、アルミニウム合金、ステンレス",
-   "price": {
-    "us": 19495,
-    "jp": 21120,
-    "uk": 17000
-   },
-   "available": {
-    "us": true
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/renewed_bamboo_table_ck-116tr_hero_01.jpg?v=1590087228",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/igt-bamboo-table-regular-ck-116tr",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0119A0078"
-   },
-   "covers_units": 3
-  },
-  {
-   "sku": "CK-117TL",
-   "handle": "bamboo-igt-table-long-light",
-   "title_en": "Bamboo IGT Table Long Light",
-   "title_jp": "マルチファンクションテーブルロング Light Bamboo",
-   "barcode": "",
-   "role": "full_top",
-   "collections": [
-    "iron-grill-table",
-    "surfaces"
-   ],
-   "assembled_mm": {
-    "w": 1096.0,
-    "d": 496.0,
-    "h": 25.0
-   },
-   "packed_mm": null,
-   "weight_g": 3500,
-   "material": "竹集成材（天面：UVコーティング、側面：PUコーティング）、ポリプロピレン、アルミニウム合金、ステンレス",
-   "price": {
-    "us": 25995,
-    "jp": 31900,
-    "uk": 23500
-   },
-   "available": {
-    "us": true
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/CK-117TL_20231008-SP_M4_07231_path_jpg_b6a31af8-bcce-4aa8-8f1a-3471b988affa.png?v=1717091980",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/bamboo-igt-table-long-light",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0124A0263"
-   },
-   "covers_units": 4
-  },
-  {
-   "sku": "CK-117TR",
-   "handle": "igt-bamboo-table-long-ck-117tr",
-   "title_en": "Renewed Bamboo IGT Table Long",
-   "title_jp": "マルチファンクションテーブル ロング竹",
-   "barcode": "",
-   "role": "full_top",
-   "collections": [
-    "iron-grill-table",
-    "surfaces"
-   ],
-   "assembled_mm": {
-    "w": 1096.0,
-    "d": 496.0,
-    "h": 25.0
-   },
-   "packed_mm": null,
-   "weight_g": 5700,
-   "material": "竹集成材、アルミニウム合金、ステンレス",
-   "price": {
-    "us": 21595,
-    "jp": 25080,
-    "uk": 21000
-   },
-   "available": {
-    "us": true
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/renewed_bamboo_table_ck-117tr_hero_01.jpg?v=1590087281",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/igt-bamboo-table-long-ck-117tr",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0119A0079"
-   },
-   "covers_units": 4
-  },
-  {
    "sku": "CK-020",
    "handle": "igt-joint-hanger-set-ck-143",
    "title_en": "IGT Stainless Steel Box Hanger",
@@ -1204,7 +1231,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/copy-of-igt-hanging-rack-frame-set-1",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0115A0036"
-   }
+   },
+   "attach": "hang",
+   "needs_legs": true,
+   "attach_evidence": "The IGT Hanging Rack 2 Frame is a stainless steel storage accessory for the Iron Grill Table System ."
   },
   {
    "sku": "CK-230",
@@ -1242,7 +1272,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/shallow-igt-hanging-shelf",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0123A0100"
-   }
+   },
+   "attach": "hang",
+   "needs_legs": true,
+   "attach_evidence": "The Shallow IGT Hanging Shelf is a single-shelf system compatible with IGT Frames."
   },
   {
    "sku": "DB-005",
@@ -1306,7 +1339,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/igt-height-adjuster-ck-151",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0108A0084"
-   }
+   },
+   "attach": "step_joint",
+   "needs_legs": false,
+   "attach_evidence": "Built to last, the IGT Height Adjusters allow for integration of different table heights."
   },
   {
    "sku": "CK-175",
@@ -1369,7 +1405,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/stainless-kitchen-table-igt-co",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0118A0176"
-   }
+   },
+   "attach": "inline",
+   "needs_legs": false,
+   "attach_evidence": "The Stainless Kitchen Table IGT Frame Connector attaches to the Stainless Steel Kitchen Table to allow the insertion of an IGT Four Unit Frame within the length of the table."
   },
   {
    "sku": "GF-051",
@@ -1763,7 +1802,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/tta-unit-clamp-tool-copy",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0109"
-   }
+   },
+   "attach": "rail_clamp",
+   "needs_legs": false,
+   "attach_evidence": "The TTA Unit Clamp Tool is a component of the IGT system and the foundational component of the TTA series."
   },
   {
    "sku": "CK-301",
@@ -1797,7 +1839,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/tta-windscreen",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0111"
-   }
+   },
+   "attach": "rail_clamp",
+   "needs_legs": false,
+   "attach_evidence": "To use, insert each of the flange hooks into two TTA Clamp tools and adjust the tension."
   },
   {
    "sku": "CK-302",
@@ -1865,7 +1910,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/tta-unit-frame",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0115"
-   }
+   },
+   "attach": "rail_clamp",
+   "needs_legs": false,
+   "attach_evidence": "To use, connect the frame ends into two TTA Clamp Tools and adjust the tension."
   },
   {
    "sku": "CK-304",
@@ -1961,7 +2009,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/tta-sierra-cup-holder",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0119"
-   }
+   },
+   "attach": "rail_clamp",
+   "needs_legs": false,
+   "attach_evidence": "Please note: The TTA Frame &amp; TTA Clamp Tool are required for assembly and are sold separately."
   },
   {
    "sku": "CK-902-1",
@@ -2753,7 +2804,10 @@
    "span_source": "title",
    "span_evidence": "Waterproof Gear Box 2 Unit",
    "along_rail_mm": 530.0,
-   "fit_delta_mm": 30.0
+   "fit_delta_mm": 30.0,
+   "attach": "slot_in",
+   "needs_legs": false,
+   "attach_evidence": "Insert into any IGT Frame to fill 2 units of space or use as independent storage."
   },
   {
    "sku": "CK-025",
@@ -2833,7 +2887,10 @@
    "span_source": "title",
    "span_evidence": "IGT Stainless Steel Half Unit Tray",
    "along_rail_mm": 125.0,
-   "fit_delta_mm": 0.0
+   "fit_delta_mm": 0.0,
+   "attach": "slot_in",
+   "needs_legs": false,
+   "attach_evidence": "Made of stainless steel, the IGT Stainless Steel Half Unit Tray is a sturdy half-unit surface that can be inserted into an IGT setup to create additional surface space for cooking or storage."
   },
   {
    "sku": "CK-085",
@@ -2913,7 +2970,10 @@
    "span_source": "description",
    "span_evidence": "single-unit insert",
    "along_rail_mm": 250.0,
-   "fit_delta_mm": 0.0
+   "fit_delta_mm": 0.0,
+   "attach": "slot_in",
+   "needs_legs": false,
+   "attach_evidence": "The single-unit insert fits easily into three unit and four unit frames and features a small notch for quick removal."
   },
   {
    "sku": "CK-126TR",
@@ -2953,7 +3013,10 @@
    "span_source": "description",
    "span_evidence": "double-unit insert",
    "along_rail_mm": 500.0,
-   "fit_delta_mm": 0.0
+   "fit_delta_mm": 0.0,
+   "attach": "slot_in",
+   "needs_legs": false,
+   "attach_evidence": "The double-unit insert fits easily into three unit and four unit frames and features a small notch for quick removal."
   },
   {
    "sku": "CK-160",
@@ -3036,7 +3099,10 @@
    "span_source": "title",
    "span_evidence": "Deep Mesh Tray 1 Unit",
    "along_rail_mm": 245.0,
-   "fit_delta_mm": -5.0
+   "fit_delta_mm": -5.0,
+   "attach": "hang",
+   "needs_legs": false,
+   "attach_evidence": "The Mesh Tray can be inserted into the IGT Frame or the Hanging Rack Frame to provide ample storage for your outdoor kitchen."
   },
   {
    "sku": "CK-226",
@@ -3075,7 +3141,10 @@
    "span_source": "title",
    "span_evidence": "Deep Mesh Tray Half Unit",
    "along_rail_mm": 120.0,
-   "fit_delta_mm": -5.0
+   "fit_delta_mm": -5.0,
+   "attach": "slot_in",
+   "needs_legs": false,
+   "attach_evidence": "To use, insert into an IGT frame or slide into the TTA Frame and adjust the tension of the TTA Clamp Tool."
   },
   {
    "sku": "CK-250",
@@ -3114,7 +3183,10 @@
    "span_source": "title",
    "span_evidence": "Shallow Mesh Tray 1 Unit",
    "along_rail_mm": 245.0,
-   "fit_delta_mm": -5.0
+   "fit_delta_mm": -5.0,
+   "attach": "hang",
+   "needs_legs": false,
+   "attach_evidence": "The Mesh Tray can be inserted into any IGT Frame or the Hanging Rack Frame to provide extra storage space or as a drying rack."
   },
   {
    "sku": "CK-251",
@@ -3153,7 +3225,10 @@
    "span_source": "title",
    "span_evidence": "Shallow Mesh Tray Half Unit",
    "along_rail_mm": 120.0,
-   "fit_delta_mm": -5.0
+   "fit_delta_mm": -5.0,
+   "attach": "slot_in",
+   "needs_legs": false,
+   "attach_evidence": "To use, insert into an IGT frame or slide into the TTA Frame and adjust the tension of the TTA Clamp Tool."
   },
   {
    "sku": "GP-040",
@@ -3364,7 +3439,10 @@
    "span_source": "mm-exact",
    "span_evidence": "250mm = 2 x 125mm",
    "along_rail_mm": 250.0,
-   "fit_delta_mm": 0.0
+   "fit_delta_mm": 0.0,
+   "attach": "slot_in",
+   "needs_legs": false,
+   "attach_evidence": "The Waterproof Unit Gear Bag 110 easily inserts into any IGT frame for a single unit storage or wash option."
   },
   {
    "sku": "UG-472",
@@ -3399,6 +3477,9 @@
    "span": 2,
    "span_source": "curated",
    "span_evidence": "Snow Peak's own spec string is malformed: '(H)220x(W)360x(W)250mm' labels two axes W and none D. It is the same body as UG-471 ((H)110x(W)360x(D)250) at double height -- 110/220 in the names are the heights -- so the trailing 250 is the depth, one full unit along the rail.",
+   "attach": "slot_in",
+   "needs_legs": false,
+   "attach_evidence": "The Waterproof Unit Gear Bag 220 easily inserts into any IGT frame for a single unit storage or wash option.",
    "curated_reason": "Snow Peak's own spec string is malformed: '(H)220x(W)360x(W)250mm' labels two axes W and none D. It is the same body as UG-471 ((H)110x(W)360x(D)250) at double height -- 110/220 in the names are the heights -- so the trailing 250 is the depth, one full unit along the rail."
   },
   {
@@ -3433,7 +3514,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/entry-igt-table",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0124A0259"
-   }
+   },
+   "attach": "slot_in",
+   "needs_legs": false,
+   "attach_evidence": "Add preferred inserts into the three units of space or simply use with the included bamboo surfaces as a standalone table."
   },
   {
    "sku": "CK-080R-EC",
@@ -3467,7 +3551,10 @@
    "url": {
     "us": "https://www.snowpeak.com/products/entry-igt-black",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0124A0260"
-   }
+   },
+   "attach": "slot_in",
+   "needs_legs": false,
+   "attach_evidence": "Add preferred inserts into the three units of space or simply use with the included bamboo surfaces as a standalone table."
   },
   {
    "sku": "CK-090",
@@ -3507,6 +3594,9 @@
     "us": "https://www.snowpeak.com/products/extension-igt",
     "jp": "https://ec.snowpeak.co.jp/item/SNP0121A0087"
    },
+   "attach": "standalone",
+   "needs_legs": false,
+   "attach_evidence": "The table has a minimalistic design that does not require any connection tools or extension pieces.",
    "curated_reason": "Not an extension piece — it is a table in its own right. The copy: 'The Extension IGT is a two-unit expandable Iron Grill Table... does not require any connection tools or extension pieces... two laminated bamboo tabletops and an aluminum alloy stand.' JP size gives it away too: 1348×498×400(h)mm at 11kg, with its own legs. It stands at 400mm — the Layout System datum — so it joins the system as a node, not as a part bolted to a frame."
   },
   {

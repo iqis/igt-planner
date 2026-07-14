@@ -463,6 +463,27 @@ def main():
             "url": {"us": (u or {}).get("us_url"), "jp": j.get("jp_url")},
         })
 
+    # How each part ATTACHES. This is not derivable from a name or a dimension, and
+    # trying was the mistake: the Bamboo IGT Table is 846x496 -- exactly a 3-unit frame's
+    # footprint -- so "a lid covering the frame" and "a table the same size as the frame,
+    # standing beside it" fit the numbers equally well. Only the copy settles it, and the
+    # copy says it hooks onto the frame's edge and takes its own legs. It is a table.
+    att_path = CATALOG / "attachments_mined.json"
+    attach = (json.loads(att_path.read_text(encoding="utf-8"))["attachments"]
+              if att_path.exists() else {})
+    for p in parts:
+        a = attach.get(p["sku"])
+        if not a:
+            continue
+        p["attach"] = a["attach"]
+        p["needs_legs"] = a["needs_legs"]
+        p["attach_evidence"] = a["evidence"]
+        # A part that hooks onto the frame's edge and stands on its own legs is a table
+        # in the layout, not a surface belonging to the frame. `full_top` was a role I
+        # invented to explain a dimension, and it never existed.
+        if a["attach"] == "hook_on" and p["role"] in ("full_top", "extension", "corner"):
+            p["role"] = "corner" if p["role"] == "corner" else "extension_table"
+
     # Curated corrections come last, and say who made them and why.
     ov_path = CATALOG / "overrides.json"
     overrides = json.loads(ov_path.read_text(encoding="utf-8")) if ov_path.exists() else {}

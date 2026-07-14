@@ -1,0 +1,185 @@
+{
+ "_comment": "Attachment mechanisms mined from Snow Peak's own product copy. Every entry quotes the sentence it came from. Parts the copy is silent about are NOT here -- they are listed as unknown and need a human.",
+ "attachments": {
+  "S-029HA": {
+   "attach": "slot_in",
+   "needs_legs": false,
+   "note": "Drops into the unit slots, between the two rails.",
+   "evidence": "The half-unit size allows space for other grills, plates, or griddles."
+  },
+  "CK-118TR": {
+   "attach": "hook_on",
+   "needs_legs": true,
+   "note": "Hangs off the frame's edge on connection hooks, extending the layout. Usually needs its own legs -- it is a table, not a lid.",
+   "evidence": "Use it to extend the table 90 degrees to the left and create a wraparound cooking and dining space."
+  },
+  "CK-119TR": {
+   "attach": "hook_on",
+   "needs_legs": true,
+   "note": "Hangs off the frame's edge on connection hooks, extending the layout. Usually needs its own legs -- it is a table, not a lid.",
+   "evidence": "Use it to extend the table 90 degrees to the right and create a wraparound cooking and dining space."
+  },
+  "CK-153TR": {
+   "attach": "slide_in",
+   "needs_legs": false,
+   "note": "Slides into the ridges along the OUTSIDE of the frame rails. Needs no hook.",
+   "evidence": "The Renewed Bamboo IGT Sliding Extension does not require a hook, but slips into the ridges along the outside of the frame."
+  },
+  "CK-154TR": {
+   "attach": "slide_in",
+   "needs_legs": false,
+   "note": "Slides into the ridges along the OUTSIDE of the frame rails. Needs no hook.",
+   "evidence": "The Renewed Bamboo IGT Sliding Extension Long does not require a hook, but slips into the ridges along the outside of the frame."
+  },
+  "CK-116TL": {
+   "attach": "hook_on",
+   "needs_legs": true,
+   "note": "Hangs off the frame's edge on connection hooks, extending the layout. Usually needs its own legs -- it is a table, not a lid.",
+   "evidence": "The Bamboo IGT Table Regular Light can be attached to the IGT Frame or other extension with the already-attached connection hooks."
+  },
+  "CK-116TR": {
+   "attach": "hook_on",
+   "needs_legs": true,
+   "note": "Hangs off the frame's edge on connection hooks, extending the layout. Usually needs its own legs -- it is a table, not a lid.",
+   "evidence": "The Renewed Bamboo IGT Table Regular can be attached to the IGT Frame or other extension with the already-attached connection hooks."
+  },
+  "CK-117TL": {
+   "attach": "hook_on",
+   "needs_legs": true,
+   "note": "Hangs off the frame's edge on connection hooks, extending the layout. Usually needs its own legs -- it is a table, not a lid.",
+   "evidence": "To attach, insert the attached connection hooks into the IGT Frame and add legs to stabilize."
+  },
+  "CK-117TR": {
+   "attach": "hook_on",
+   "needs_legs": true,
+   "note": "Hangs off the frame's edge on connection hooks, extending the layout. Usually needs its own legs -- it is a table, not a lid.",
+   "evidence": "To attach, insert the attached connection hooks into the IGT Frame and add legs to stabilize."
+  },
+  "CK-220": {
+   "attach": "hang",
+   "needs_legs": true,
+   "note": "Hangs off an edge, below the surface.",
+   "evidence": "The IGT Hanging Rack 2 Frame is a stainless steel storage accessory for the Iron Grill Table System ."
+  },
+  "CK-230": {
+   "attach": "hang",
+   "needs_legs": true,
+   "note": "Hangs off an edge, below the surface.",
+   "evidence": "The Shallow IGT Hanging Shelf is a single-shelf system compatible with IGT Frames."
+  },
+  "CK-151": {
+   "attach": "step_joint",
+   "needs_legs": false,
+   "note": "Joins two touching tables standing at DIFFERENT heights.",
+   "evidence": "Built to last, the IGT Height Adjusters allow for integration of different table heights."
+  },
+  "LV-312": {
+   "attach": "inline",
+   "needs_legs": false,
+   "note": "Drops a frame INTO the length of another table.",
+   "evidence": "The Stainless Kitchen Table IGT Frame Connector attaches to the Stainless Steel Kitchen Table to allow the insertion of an IGT Four Unit Frame within the length of the table."
+  },
+  "CK-300": {
+   "attach": "rail_clamp",
+   "needs_legs": false,
+   "note": "Clamps onto a rail. Consumes no slot.",
+   "evidence": "The TTA Unit Clamp Tool is a component of the IGT system and the foundational component of the TTA series."
+  },
+  "CK-301": {
+   "attach": "rail_clamp",
+   "needs_legs": false,
+   "note": "Clamps onto a rail. Consumes no slot.",
+   "evidence": "To use, insert each of the flange hooks into two TTA Clamp tools and adjust the tension."
+  },
+  "CK-303": {
+   "attach": "rail_clamp",
+   "needs_legs": false,
+   "note": "Clamps onto a rail. Consumes no slot.",
+   "evidence": "To use, connect the frame ends into two TTA Clamp Tools and adjust the tension."
+  },
+  "CK-306": {
+   "attach": "rail_clamp",
+   "needs_legs": false,
+   "note": "Clamps onto a rail. Consumes no slot.",
+   "evidence": "Please note: The TTA Frame &amp; TTA Clamp Tool are required for assembly and are sold separately."
+  },
+  "BG-032": {
+   "attach": "slot_in",
+   "needs_legs": false,
+   "note": "Drops into the unit slots, between the two rails.",
+   "evidence": "Insert into any IGT Frame to fill 2 units of space or use as independent storage."
+  },
+  "CK-026": {
+   "attach": "slot_in",
+   "needs_legs": false,
+   "note": "Drops into the unit slots, between the two rails.",
+   "evidence": "Made of stainless steel, the IGT Stainless Steel Half Unit Tray is a sturdy half-unit surface that can be inserted into an IGT setup to create additional surface space for cooking or storage."
+  },
+  "CK-125TR": {
+   "attach": "slot_in",
+   "needs_legs": false,
+   "note": "Drops into the unit slots, between the two rails.",
+   "evidence": "The single-unit insert fits easily into three unit and four unit frames and features a small notch for quick removal."
+  },
+  "CK-126TR": {
+   "attach": "slot_in",
+   "needs_legs": false,
+   "note": "Drops into the unit slots, between the two rails.",
+   "evidence": "The double-unit insert fits easily into three unit and four unit frames and features a small notch for quick removal."
+  },
+  "CK-225": {
+   "attach": "hang",
+   "needs_legs": false,
+   "note": "Hangs off an edge, below the surface.",
+   "evidence": "The Mesh Tray can be inserted into the IGT Frame or the Hanging Rack Frame to provide ample storage for your outdoor kitchen."
+  },
+  "CK-226": {
+   "attach": "slot_in",
+   "needs_legs": false,
+   "note": "Drops into the unit slots, between the two rails.",
+   "evidence": "To use, insert into an IGT frame or slide into the TTA Frame and adjust the tension of the TTA Clamp Tool."
+  },
+  "CK-250": {
+   "attach": "hang",
+   "needs_legs": false,
+   "note": "Hangs off an edge, below the surface.",
+   "evidence": "The Mesh Tray can be inserted into any IGT Frame or the Hanging Rack Frame to provide extra storage space or as a drying rack."
+  },
+  "CK-251": {
+   "attach": "slot_in",
+   "needs_legs": false,
+   "note": "Drops into the unit slots, between the two rails.",
+   "evidence": "To use, insert into an IGT frame or slide into the TTA Frame and adjust the tension of the TTA Clamp Tool."
+  },
+  "UG-471": {
+   "attach": "slot_in",
+   "needs_legs": false,
+   "note": "Drops into the unit slots, between the two rails.",
+   "evidence": "The Waterproof Unit Gear Bag 110 easily inserts into any IGT frame for a single unit storage or wash option."
+  },
+  "UG-472": {
+   "attach": "slot_in",
+   "needs_legs": false,
+   "note": "Drops into the unit slots, between the two rails.",
+   "evidence": "The Waterproof Unit Gear Bag 220 easily inserts into any IGT frame for a single unit storage or wash option."
+  },
+  "CK-080R": {
+   "attach": "slot_in",
+   "needs_legs": false,
+   "note": "Drops into the unit slots, between the two rails.",
+   "evidence": "Add preferred inserts into the three units of space or simply use with the included bamboo surfaces as a standalone table."
+  },
+  "CK-080R-EC": {
+   "attach": "slot_in",
+   "needs_legs": false,
+   "note": "Drops into the unit slots, between the two rails.",
+   "evidence": "Add preferred inserts into the three units of space or simply use with the included bamboo surfaces as a standalone table."
+  },
+  "CK-090": {
+   "attach": "standalone",
+   "needs_legs": false,
+   "note": "A table in its own right; joins the layout as a node.",
+   "evidence": "The table has a minimalistic design that does not require any connection tools or extension pieces."
+  }
+ }
+}

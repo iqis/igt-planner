@@ -40,9 +40,21 @@ function footprint(n) {
   return { w: a?.w ?? 496, d: a?.d ?? 496 };
 }
 
-/** Top surface height. Frames get it from their legs; everything else stands on its own. */
-function topOf(n) {
+/** Top surface height.
+ *
+ *  A hook-on table hangs from the frame's rail, so its surface is FLUSH with whatever it
+ *  hooks to -- not (its own legs + its own 25mm top), which would sit 5mm proud of a
+ *  30mm frame and trip the step-joint rule for a difference that does not exist. Its legs
+ *  hold up the far end; they do not set its height.
+ */
+function topOf(n, seen = new Set()) {
   if (n.kind === "frame") return (PARTS[n.leg]?.height_mm ?? 0) + FRAME_THICK;
+  if (n.kind === "ext") {
+    seen.add(n.id);
+    const host = neighbours(n).find(m => !seen.has(m.id));
+    if (host) return topOf(host, seen);      // chainable: "the frame OR OTHER EXTENSION"
+    return (PARTS[n.leg]?.height_mm ?? 0) + (PARTS[n.sku].assembled_mm?.h ?? 25);
+  }
   return PARTS[n.sku].height_mm ?? PARTS[n.sku].assembled_mm?.h ?? LAYOUT.datum_height_mm;
 }
 
@@ -90,7 +102,7 @@ function depthOf(p) {
   if (!a) return RAIL_SPAN;
   return Math.abs(a.w - railW(p)) < 1 ? a.d : a.w;
 }
-const spanOf = p => (p.role === "full_top" ? p.covers_units * 2 : p.span);
+const spanOf = p => p.span;
 
 function occupancy(n) {
   const cells = new Array(slotsOf(n)).fill(null);
@@ -221,8 +233,7 @@ function drawFrame(g, n) {
     const p2 = PARTS[pl.sku];
     const cx = slotX(n, pl.start) + (pl.span * HALF) / 2;
     const w = railW(p2), d = depthOf(p2), h = p2.assembled_mm?.h ?? 40;
-    const onTop = p2.role === "full_top";
-    const y = onTop ? top + h / 2 : top - h / 2;
+    const y = top - h / 2;   // modules drop IN; nothing sits on the frame any more
 
     const m = partMesh(p2, w, h, d);
     m.position.set(cx, y, 0).multiplyScalar(MM);
@@ -250,8 +261,7 @@ function drawTable(g, n) {
   m.position.set(0, top - thick / 2, 0).multiplyScalar(MM);
   m.userData.node = n; g.add(m); nodeMeshes.push(m);
 
-  // A corner is a bridging surface between two tables; it has no legs of its own.
-  if (p.role === "corner") return;
+  if (!p.needs_legs && n.kind !== "table") return;
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const leg = stock(
       new THREE.CylinderGeometry(10 * MM, 8 * MM, (top - thick) * MM, 14),
@@ -378,12 +388,17 @@ function snapToNeighbours(n) {
 
 const sel = () => state.nodes.find(n => n.id === state.sel);
 
+const HOOKS_ON = new Set(["extension_table", "corner"]);
+
 function addNode(sku) {
   const p = PARTS[sku];
-  const kind = p.role === "frame" ? "frame" : "table";
+  // A bamboo table hooks onto the frame's EDGE and stands on its own legs. It is a node
+  // in the layout, not a lid on the frame -- which is what the copy says and what the
+  // dimensions could never have told us.
+  const kind = p.role === "frame" ? "frame" : HOOKS_ON.has(p.role) ? "ext" : "table";
   const n = {
     id: state.nextId++, sku, kind, x: 0, z: 0, rot: 0,
-    leg: kind === "frame" ? "CK-114" : null,
+    leg: (kind === "frame" || kind === "ext") ? "CK-114" : null,
     placements: [],
   };
   // Land it flush against the right edge of what is already there. This is a layout
@@ -404,7 +419,6 @@ function placeModule(sku) {
   const span = spanOf(p);
   const start = firstFit(n, span);
   if (start < 0) return;
-  if (p.role === "full_top") n.placements = n.placements.filter(x => PARTS[x.sku].role !== "full_top");
   n.placements.push({ sku, span, start });
   render();
 }
@@ -438,21 +452,19 @@ function paintPalette() {
   for (const p of BY_ROLE.corner) add.append(chip("corner", false, p.title_en, () => addNode(p.sku)));
 
   const tab = $("tables"); tab.innerHTML = "";
-  for (const p of [...BY_ROLE.layout_table, ...BY_ROLE.standalone])
+  for (const p of [...BY_ROLE.extension_table, ...BY_ROLE.corner,
+                   ...BY_ROLE.layout_table, ...BY_ROLE.standalone])
     tab.append(partRow(p, () => addNode(p.sku), false));
 
   const n = sel();
   const legs = $("legs"); legs.innerHTML = "";
   for (const p of BY_ROLE.leg)
-    legs.append(chip(`${p.height_mm}`, n?.kind === "frame" && n.leg === p.sku, p.title_en, () => {
-      if (n?.kind === "frame") { n.leg = p.sku; render(); }
+    legs.append(chip(`${p.height_mm}`, n?.leg === p.sku, p.title_en, () => {
+      if (n && (n.kind === "frame" || n.kind === "ext")) { n.leg = p.sku; render(); }
     }));
 
-  const tops = $("tops"); tops.innerHTML = "";
   const mods = $("modules"); mods.innerHTML = "";
   const frame = n?.kind === "frame" ? n : null;
-  for (const p of BY_ROLE.full_top)
-    tops.append(partRow(p, () => placeModule(p.sku), !frame || firstFit(frame, spanOf(p)) < 0));
   for (const p of BY_ROLE.slot_module)
     mods.append(partRow(p, () => placeModule(p.sku), !frame || firstFit(frame, p.span) < 0));
 
@@ -465,7 +477,7 @@ function paintSlots() {
   if (!n || n.kind !== "frame") return;
   for (const c of occupancy(n)) {
     const d = document.createElement("div");
-    d.className = "cell" + (c ? (PARTS[c.sku].role === "full_top" ? " top" : " used") : "");
+    d.className = "cell" + (c ? " used" : "");
     bar.append(d);
   }
 }
@@ -474,6 +486,7 @@ function bomLines() {
   const lines = [];
   for (const n of state.nodes) {
     lines.push({ sku: n.sku, node: n });
+    if (n.kind === "ext" && n.leg) lines.push({ sku: n.leg, req: true });
     if (n.kind === "frame") {
       if (n.leg) lines.push({ sku: n.leg });
       const rails = PARTS[n.sku].requires_rails;
@@ -548,6 +561,13 @@ function paintWarnings() {
     }
   }
 
+  // A hook-on table cannot stand alone: it hangs off a frame's edge, and its own legs
+  // only hold up the far end.
+  for (const n of state.nodes)
+    if (n.kind === "ext" && neighbours(n).length === 0)
+      add(`${PARTS[n.sku].title_en} hooks onto a frame (or another extension) — `
+        + `on its own it has nothing to hang from.`);
+
   for (const n of state.nodes) {
     if (n.kind !== "frame") continue;
     const used = occupancy(n).filter(Boolean).length;
@@ -591,9 +611,9 @@ const by = r => CAT.parts.filter(p => p.role === r);
 BY_ROLE = {
   frame: by("frame").filter(p => p.units).sort((a, b) => a.units - b.units),
   leg: by("leg").filter(p => p.height_mm).sort((a, b) => a.height_mm - b.height_mm),
-  full_top: by("full_top").filter(p => p.covers_units),
   slot_module: by("slot_module").filter(p => p.span && p.assembled_mm)
     .sort((a, b) => a.span - b.span || a.title_en.localeCompare(b.title_en)),
+  extension_table: by("extension_table").filter(p => p.assembled_mm),
   layout_table: by("layout_table").filter(p => p.assembled_mm),
   standalone: by("standalone").filter(p => p.assembled_mm),
   corner: by("corner").filter(p => p.assembled_mm),
