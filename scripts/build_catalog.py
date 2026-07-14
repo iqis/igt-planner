@@ -501,6 +501,37 @@ def main():
     # Curated corrections come last, and say who made them and why.
     ov_path = CATALOG / "overrides.json"
     overrides = json.loads(ov_path.read_text(encoding="utf-8")) if ov_path.exists() else {}
+
+    # Parts that exist and that no sweep can reach. The rail joint (XCK-128-01) is filed
+    # under SPARE PARTS -- it is in none of the six IGT collections and its JP category is
+    # not IGT, so both halves of the universe miss it. It took reading a manual to find out
+    # it exists, and it unlocks the frame's entire long side. A catalog built only from
+    # what the taxonomy hands you has holes exactly where the taxonomy has them.
+    known = {p["sku"] for p in parts}
+    for sku, add in (overrides.get("_add") or {}).items():
+        if sku in known:
+            continue
+        j = jp_by_sku.get(sku, {})
+        parts.append({
+            "sku": sku,
+            "handle": None,
+            "title_en": add.get("title_en") or j.get("jp_title", ""),
+            "title_jp": j.get("jp_title", ""),
+            "barcode": "",
+            "role": add.get("role", "accessory"),
+            "collections": [],
+            "region_exclusive": "jp",
+            "assembled_mm": j.get("assembled_mm"),
+            "packed_mm": j.get("packed_mm"),
+            "weight_g": j.get("weight_g"),
+            "material": j.get("material", ""),
+            "price": region_prices(sku, None, regions),
+            "available": {},
+            "image": None,
+            "url": {"us": None, "jp": j.get("jp_url")},
+            "curated_reason": add.get("reason"),
+        })
+
     applied = 0
     for rec in parts:
         for key in sku_keys(rec["sku"]):
@@ -509,6 +540,9 @@ def main():
                 continue
             if "role" in ov:
                 rec["role"] = ov["role"]
+            if "attach" in ov:
+                rec["attach"] = ov["attach"]
+                rec["attach_evidence"] = ov.get("reason")
             if "span" in ov:
                 rec["span"] = ov["span"]
                 rec["span_source"] = "curated" if ov["span"] else None
@@ -522,6 +556,23 @@ def main():
             rec["curated_reason"] = ov.get("reason")
             applied += 1
             break
+
+    # The manuals. Snow Peak documents assembly in exactly one place and it is not the shop
+    # page: `対応品番` is an explicit whitelist and it says so ("そのほかの製品には対応して
+    # おりません" -- nothing else is supported), `非対応品番` is a blacklist with a reason
+    # against each entry, and the load limit is a number. All of it is harder than anything
+    # the marketing copy gives us, and all of it was one link away the whole time.
+    man_path = CATALOG / "manuals.json"
+    manuals = (json.loads(man_path.read_text(encoding="utf-8"))["manuals"]
+               if man_path.exists() else {})
+    for rec in parts:
+        m = manuals.get(rec["sku"])
+        if not m:
+            continue
+        rec["manual"] = m.get("url")
+        for k in ("compatible_with", "incompatible_with", "max_load_kg", "set_contents"):
+            if m.get(k):
+                rec[f"manual_{k}"] = m[k]
 
     parts.sort(key=lambda r: (r["role"], r["sku"]))
 

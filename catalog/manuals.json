@@ -1,0 +1,514 @@
+{
+ "_comment": "Parsed assembly manuals -- the PRIMARY source for how the system fits together, as against copy (marketing) and photographs (indirect). `compatible_with` is Snow Peak's own whitelist and it is exhaustive: the manuals say in terms that nothing else is supported.",
+ "manuals": {
+  "GS-1000": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h20/h56/8804190257182/GS-1000_manual.pdf",
+   "pdf": "data/manuals/GS-1000.pdf",
+   "pages": 2
+  },
+  "UG-140": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/he9/h58/8885391753246/UG-140_manual.pdf",
+   "pdf": "data/manuals/UG-140.pdf",
+   "pages": 1
+  },
+  "UG-141": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h41/h59/8885391786014/UG-141_manual.pdf",
+   "pdf": "data/manuals/UG-141.pdf",
+   "pages": 1
+  },
+  "UG-902": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hd3/hfa/8974914355230/UG-902_manual.pdf",
+   "pdf": "data/manuals/UG-902.pdf",
+   "pages": 2
+  },
+  "UG-903": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h2a/hfb/8974914387998/UG-903_manual.pdf",
+   "pdf": "data/manuals/UG-903.pdf",
+   "pages": 2
+  },
+  "UG-904": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/he4/hfd/8974914420766/UG-904_manual.pdf",
+   "pdf": "data/manuals/UG-904.pdf",
+   "pages": 2
+  },
+  "CK-118TR": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h39/h15/8896518357022/CK-118TR_manual.pdf",
+   "pdf": "data/manuals/CK-118TR.pdf",
+   "pages": 1,
+   "compatible_with": [
+    "CK-080",
+    "CK-149",
+    "CK-150",
+    "LV-210",
+    "LV-310"
+   ],
+   "set_contents": [
+    "天板x1",
+    "レールジョイントx2"
+   ],
+   "spec": "●サイズ：496×496×25mm ●材 質：竹集成材、アルミニウム合金、ステンレス ●重 量：2.4kg イラストはCK-118TRです。 ※脚は付属しておりません。 別売りのセットCK-109/112/113/114が 必要です。別途お買い求めください。",
+   "leg_sets": [
+    "CK-109",
+    "CK-112",
+    "CK-113",
+    "CK-114"
+   ],
+   "max_load_kg": 30,
+   "steps": [
+    "天板を裏返して置き、 脚を固定します。",
+    "フックを引き出し回転させます。",
+    "対応する製品と確実に連結させます。 （イラストはIGTフレームです）",
+    "レールジョイントを使用する場合は IGTフレームの長辺のレールに 挿入します。",
+    "天板フックを連結します。"
+   ],
+   "rail_joint": true
+  },
+  "CK-119TR": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h8f/h15/8896518389790/CK-119TR_manual.pdf",
+   "pdf": "data/manuals/CK-119TR.pdf",
+   "pages": 1,
+   "compatible_with": [
+    "CK-080",
+    "CK-149",
+    "CK-150",
+    "LV-210",
+    "LV-310"
+   ],
+   "set_contents": [
+    "天板x1",
+    "レールジョイントx2"
+   ],
+   "spec": "●サイズ：496×496×25mm ●材 質：竹集成材、アルミニウム合金、ステンレス ●重 量：2.4kg イラストはCK-118TRです。 ※脚は付属しておりません。 別売りのセットCK-109/112/113/114が 必要です。別途お買い求めください。",
+   "leg_sets": [
+    "CK-109",
+    "CK-112",
+    "CK-113",
+    "CK-114"
+   ],
+   "max_load_kg": 30,
+   "steps": [
+    "天板を裏返して置き、 脚を固定します。",
+    "フックを引き出し回転させます。",
+    "対応する製品と確実に連結させます。 （イラストはIGTフレームです）",
+    "レールジョイントを使用する場合は IGTフレームの長辺のレールに 挿入します。",
+    "天板フックを連結します。"
+   ],
+   "rail_joint": true
+  },
+  "CK-300": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hd0/h00/8923449622558/CK-300_manual.pdf",
+   "pdf": "data/manuals/CK-300.pdf",
+   "pages": 2,
+   "incompatible_with": {
+    "LV-034TR": "MYTABLE BAMBOO TOP — Risk of tipping over",
+    "LV-039": "TAKIBI My Table — Risk of tipping over",
+    "GF-015": "GARDEN UNIT TABLE — Non-compliant dimensions",
+    "LV-310": "STAINLESS KITCHEN TABLE — Non-compliant dimensions",
+    "CK-153TR": "IGT SLIDE TOP HALF — Risk of tipping over",
+    "CK-154TR": "IGT SLIDE TOPLONG HALF — Risk of tipping over",
+    "CK-090": "Extension IGT — Risk of tipping over"
+   },
+   "set_contents": [
+    "＜クランプ＞本体x1",
+    "、取扱説明書（本書）x1"
+   ],
+   "steps": [
+    "ボルト/ ナットの組み替え テーブルの厚みに合わせ、タイプA ～C の図を参考に各部品を組み替えます。開封 時はタイプA の状態で梱包されています。ここでは、天板厚25 mm のIGT フレーム に合わせて使う、タイプC への組み替え方法を説明します。",
+    "天板への設置方法 下図のように、テーブルに汚れが無いことを確認しクランプを仮置きします。上側のナッ",
+    "取り外し 取り付けと逆の手順で取り外してください。 ●取り外しと逆の手順でアームにボルト/ ナットを装着します。 上下のゴムパッド面が内側（天板側）に来るように、ボルトナットのストレート部をアーム のストレート部に合わせて取り付けてください。ゴムパッドは滑り止めの役割をしています。"
+   ]
+  },
+  "CK-302": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h27/h01/8923449655326/CK-302_manual.pdf",
+   "pdf": "data/manuals/CK-302.pdf",
+   "pages": 2,
+   "set_contents": [
+    "＜ランタンハンガー＞クランクシャフトx1",
+    "mmシャフトx1",
+    "、取扱説明書（本書）x1"
+   ],
+   "steps": [
+    "CK-300 クランプ単体を動かしてぐらつきがないことを必ず確認してください。",
+    "300 mm シャフトに緩みがないことを確認し、300 mm シャフトのねじ穴にクランクシャ フトねじ部を時計回りに回して締めこみます。このとき、ローレットナットがねじ部の根元 の位置に来るまで、軽く締めこんでおいてください。また、危険ですのでクランクシャフ トを回すときはランタンハンガーを広げないでください。",
+    "クランクシャフトねじ部を最後まで締めこんだ後、クランクシャフトを逆に回し、ランタン ハンガーの方向を決めます。ランタンハンガーの方向を決めたら、ローレットナットを時 計回りに回転させ、ねじが止まるまで締めこんでください。",
+    "ランタンハンガーを広げてランタンをひっかけてご使用ください。",
+    "取り外しは逆の手順で行ってください。"
+   ]
+  },
+  "CK-303": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h7f/h01/8923449688094/CK-303_manual.pdf",
+   "pdf": "data/manuals/CK-303.pdf",
+   "pages": 2,
+   "set_contents": [
+    "mm(L)x12",
+    "mm(W)x480",
+    "＜ユニットフレーム＞コの字金具x2",
+    "シャフトx2",
+    "取扱説明書（本書）x1"
+   ],
+   "steps": [
+    "と同様に、時計回りに300 mm シャフトを締 めこみ固定します。",
+    "で仮固定したCK-300 クランプに、",
+    "コの字金具のジョイントボルトを300 mm シャフトのねじ穴にはめ込み、時計回りに回 転させて、左右順番に締めこみます。ジョイントボルトのねじ穴の位置が合わない場合、",
+    "クランプ下部のねじ穴にも同様に緩みやガタがなくなるまでコの字金具のジョイントを装 着してください。",
+    "仮固定していた片側のクランプを緩みがなくなるまで締めこんでください。最後に、もう 一度全体に緩みがないか確認してください。",
+    "取り外しは逆の手順で行ってください。"
+   ]
+  },
+  "CK-304": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h21/h77/8942507851806/CK-304_manual.pdf",
+   "pdf": "data/manuals/CK-304.pdf",
+   "pages": 2,
+   "set_contents": [
+    "本体x1",
+    "、保護キャップx1",
+    "、固定用シャフトx1",
+    "、固定用ナットx1",
+    "、取扱説明書（本書）x1",
+    "trayx1",
+    "capx1",
+    "Shaftx1",
+    "nutx1",
+    "Manualx1",
+    "φ200x28",
+    "7.9”x1"
+   ],
+   "spec": "●サイズ：φ200×28（h）mm ●重量：370g ●最大積載重量：1kg ●本格的な修理が必要な場合は、お買い求めになった販売店様または弊社ユーザーサービスまでお問い合わせください。 ●修理を依頼される場合は、必ず十分に乾燥させ、汚れをきれいに落としてください。 ●修理品には修理箇所がはっきりと解るように、必ずメモまたは荷札を付けてください。また破損時の状況をできるだけ詳しく書いたメモを添えてください。 ●修理品の運賃並びに修理費については以下のように規定させていただきます。 1.保証対象の場合：往復運賃並びに修理費は弊社にて負担いたします。 2.保証対象以外の場合：往復運賃並びに修理費は、お客様のご負担とさせていただきます。 お買い求めいただきました製品は万全を期していますが、万一不備な点がございましたら、お買い求めいただいた販売店様もしくは弊社または各製品に記載された連絡先にご相談",
+   "steps": [
+    "CK-300 クランプ単体を動かしてぐらつきがないことを必ず確認してください。 次に、固定用ナットを持って固定用シャフトを時計回りにねじ部の根元の位置に来るまで 軽く締めこんでおいてください。",
+    "トレーの穴と CK-300 クランプのネジ穴を合わせ、CK-300 クランプのネジ穴に",
+    "固定用シャフトネジ部を最後まで締め込んだ後、任意の位置にトレーを合わせてます。 位置を合わせたら固定用ナットをトレーが動かなくなるまで時計回りにねじ込み、最後まで 締め込んでください。",
+    "先端に保護キャップを取り付けてください。最後に全体に緩みがないか確認してください。",
+    "取り外しは逆の手順で行ってください。また、設置後トレーの位置を変更したい場合は固"
+   ]
+  },
+  "CK-306": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h25/hf4/8935127547934/CK-306_manual.pdf",
+   "pdf": "data/manuals/CK-306.pdf",
+   "pages": 2,
+   "set_contents": [
+    "6.3\"x4",
+    ".9\"x0"
+   ],
+   "spec": "●サイズ：160×125×18(h)mm ●重量：135g ●最大積載重量：1㎏ 安全上の注意事項 ご使用の前によく読んで予測される事故を回避し安全にご使用ください。 注意ケガや本体破損、物品破損として拡大損害の原因となる行為を示します。 ●TTAシリーズ以外の製品や他社製品と組み合わせて使用すると安定せずに落下するなど、ケガや破損の原因になります。 ●本製品を組み立てた後に本体のぐらつきやクランプ、他拡張部品に緩みがないかを確認してください。また、使用中は各ねじ部に緩みがないかを定期的 に確認してください。ぐらついたり、ねじが緩んだ状態で使用すると、部品が脱落したり、ものが落下したりしてケガや破損の原因になります。 ●炎天下の直射日光が長時間当たる場所で使用すると製品が熱くなるため注意してください。 ●屋外で使用する場合は、タープの下など雨水の当たらない場所で使用してください。雨水に濡れ",
+   "steps": [
+    "本製品を取り付ける前に、クランプやシャフトに緩みがなく確実に締め付けられているかを確認してください。",
+    "本体から取付ボルトを反時計回りにまわし、取り外します。※取り外した取付ボルトは紛失しないよう十分ご注意ください。",
+    "本体を300mmシャフトに装着します。300mmシャフトの任意の位置にあてがい、取付位置を決めてください。",
+    "最後に、クランプやシャフトねじ部、本製品に再度緩みがないか確認します。緩みがある箇所は再度締めつけてください。",
+    "取り外しは逆の手順で行ってください。"
+   ]
+  },
+  "CK-116TL": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h43/h4a/8970171383838/CK-116TL_manual.pdf",
+   "pdf": "data/manuals/CK-116TL.pdf",
+   "pages": 2
+  },
+  "CK-117TL": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h9c/h47/8970171416606/CK-117TL_manual.pdf",
+   "pdf": "data/manuals/CK-117TL.pdf",
+   "pages": 2
+  },
+  "CK-149": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hfd/h0e/8881939415070/CK-149_manual.pdf",
+   "pdf": "data/manuals/CK-149.pdf",
+   "pages": 1,
+   "spec": "●サイズ：846×496×30（h）mm ●重量：4.2kg ●材質：アルミニウム合金（アルマイト） CK-150 アイアングリルテーブルフレームロング ●サイズ：1,096×496×30（h）mm ●重量：4.9kg ●材質：アルミニウム合金（アルマイト）"
+  },
+  "CK-150": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hbc/h12/8881939546142/CK-150_manual.pdf",
+   "pdf": "data/manuals/CK-150.pdf",
+   "pages": 1,
+   "spec": "●サイズ：846×496×30（h）mm ●重量：4.2kg ●材質：アルミニウム合金（アルマイト） CK-150 アイアングリルテーブルフレームロング ●サイズ：1,096×496×30（h）mm ●重量：4.9kg ●材質：アルミニウム合金（アルマイト）"
+  },
+  "CK-902": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hab/hf3/8974914125854/CK-902_manual.pdf",
+   "pdf": "data/manuals/CK-902.pdf",
+   "pages": 2
+  },
+  "CK-903": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h6d/hf4/8974914191390/CK-903_manual.pdf",
+   "pdf": "data/manuals/CK-903.pdf",
+   "pages": 2
+  },
+  "CK-904": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h6b/hf7/8974914256926/CK-904_manual.pdf",
+   "pdf": "data/manuals/CK-904.pdf",
+   "pages": 2
+  },
+  "CK-020": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hb7/h9f/8804683776030/CK-020_manual.pdf",
+   "pdf": "data/manuals/CK-020.pdf",
+   "pages": 1
+  },
+  "CK-220": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h14/hce/8896510591006/CK-220_manual.pdf",
+   "pdf": "data/manuals/CK-220.pdf",
+   "pages": 1,
+   "set_contents": [
+    "、サイドフレームx2",
+    "、収納ケースx1"
+   ],
+   "spec": "●サイズ：539×368×55（h）mm（収納時） ●重量：4.8kg ●耐荷重：メインフレーム１個あたり20kg、IGTハンギングラックフレーム全体で60kg 本製品はIGTフレーム内に2つ設置できません。サイドフレームが干渉し組み立てが不可能です。 1フレームに対し、本製品1つのみ設置してください。 このたびはスノーピーク製品をお買い上げいただき誠にありがとうございます。この製品は、IGT専用の金属製棚です。安全にご使用いただくためにも必ずこの取扱説明書をよく読んでからご使用ください。また、読み終わった後も大切 に保管してください。製品は万全を期しておりますが、ご使用する前には安全な場所で組立、取扱い方法及び付属品の確認をしてください。取説内容で理解できない点及び製品に不具合が確認された際には、直ちに使用を中止しご 購入いただきました販売店様もしくは弊社ユーザーサービスまでお問い合わせ"
+  },
+  "CK-230": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h52/h9d/8963211788318/CK-230_manual.pdf",
+   "pdf": "data/manuals/CK-230.pdf",
+   "pages": 2,
+   "set_contents": [
+    "収納時／503x315",
+    "本体x1",
+    "unitx1"
+   ],
+   "spec": "●サイズ：組み立て時／510×354×242（h）mm、 収納時／503×315×20（h）mm ●重量：2.5kg ●耐荷重：5kg"
+  },
+  "CK-151": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h7f/hae/8804112302110/CK-151_manual.pdf",
+   "pdf": "data/manuals/CK-151.pdf",
+   "pages": 1
+  },
+  "LV-039": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hf3/he3/8844336070686/LV-039_manual.pdf",
+   "pdf": "data/manuals/LV-039.pdf",
+   "pages": 1
+  },
+  "LV-310": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h9a/he6/8844336103454/LV-310_manual.pdf",
+   "pdf": "data/manuals/LV-310.pdf",
+   "pages": 12
+  },
+  "LV-381": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hd4/h6a/8977932976158/LV-381_manual.pdf",
+   "pdf": "data/manuals/LV-381.pdf",
+   "pages": 2,
+   "incompatible_with": {
+    "CK-300": "TTA Unit Clamp Tool",
+    "CK-020": "IGT Stainless Steel Box HangerNon-compl"
+   },
+   "set_contents": [
+    "33.1\"x16",
+    ".5\"x15",
+    "33.4\"x3",
+    ".9\"x19"
+   ],
+   "spec": "●サイズ：840×420×400(h) mm ●収納サイズ：W850×D100×H505mm ●材質：テーブルトップ／ステンレス（耐熱塗装）、脚 部／ステンレス（耐熱塗装）、ゴムキャップ、 接続ボルト／アルミニウム合金、収納ケース ／ポリエステル ●重量：6.5kg 危険明らかに生命にかかわる重大な事故が予測される行為を示します。 ●本製品と併せてご使用になる各アイテムの取扱説明書を必ずお読みください。 警告 ●ご使用の前に、本製品を点検し各部に異常がないことを確認してください。異常が発見さ れた場合は、直ちに使用を中止しお買い求めいただいた販売店様、または弊社ユーザー サービス係に点検または修理を依頼してください。●本製品と併用する各製品の取扱説明 書をよく読んでからご使用してください。●物を載せたまま移動させないでください。製品が破 損したり、けがをする原因となります。●改造は絶対に行",
+   "steps": [
+    "ダルマ穴Bに挿入します。その際に、",
+    "切れ込み部A",
+    "切れ込み部B （裏面）",
+    "ジョイントピン"
+   ]
+  },
+  "ST-050": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h09/h35/8804440539166/ST-050_manual.pdf",
+   "pdf": "data/manuals/ST-050.pdf",
+   "pages": 1
+  },
+  "CK-902-1": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h03/hf4/8974914158622/CK-902-1_manual.pdf",
+   "pdf": "data/manuals/CK-902-1.pdf",
+   "pages": 2
+  },
+  "CK-903-1": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h14/hf7/8974914224158/CK-903-1_manual.pdf",
+   "pdf": "data/manuals/CK-903-1.pdf",
+   "pages": 2
+  },
+  "CK-904-1": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hc2/hf7/8974914289694/CK-904-1_manual.pdf",
+   "pdf": "data/manuals/CK-904-1.pdf",
+   "pages": 2
+  },
+  "GF-015": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h5b/h2c/8995835969566/GF-015_manual.pdf",
+   "pdf": "data/manuals/GF-015.pdf",
+   "pages": 3
+  },
+  "BG-031": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hf5/hf3/8824573558814/BG-031_manual.pdf",
+   "pdf": "data/manuals/BG-031.pdf",
+   "pages": 2
+  },
+  "BG-032": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h60/hf4/8824573591582/BG-032_manual.pdf",
+   "pdf": "data/manuals/BG-032.pdf",
+   "pages": 2
+  },
+  "CK-085": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hdf/h98/8844335972382/CK-085_manual.pdf",
+   "pdf": "data/manuals/CK-085.pdf",
+   "pages": 1
+  },
+  "CK-160": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h44/h13/8804275159070/CK-160_manual.pdf",
+   "pdf": "data/manuals/CK-160.pdf",
+   "pages": 1
+  },
+  "CK-225": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h69/h3d/8804572758046/CK-225_manual.pdf",
+   "pdf": "data/manuals/CK-225.pdf",
+   "pages": 1
+  },
+  "CK-226": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h02/hcd/8926773936158/CK-226_manual.pdf",
+   "pdf": "data/manuals/CK-226.pdf",
+   "pages": 2,
+   "set_contents": [
+    "mm(L)x120",
+    "mm(L)x120",
+    "本体x1",
+    "、ブラケットx2",
+    "mm(L)x120",
+    "mm(W)x139",
+    "14\"(L)x4",
+    ".7\"(W)x5",
+    "mm(L)x120",
+    "mm(W)x48",
+    "14\"(L)x4",
+    ".7\"(W)x1"
+   ],
+   "steps": [
+    "CK-303 ユニットフレームをテーブルに設置します。",
+    "メッシュトレーに付属のブラケットを、左右の300 mmシャフトに取り付けます。",
+    "メッシュトレーのパネル部の穴を300 mmシャフトに通し、ブラケットに固定します。ブラ ケットとパネルに隙間が無くなるまで押し込んでください。",
+    "取り外した上部のコの字金具を取り付けます。300 mm シャフトのねじ穴に、コの字 金具ジョイントねじを時計回りに緩みがなくなるまで締めこんで固定します。 最後に、各ねじ締結部に緩みがないか必ず確認してください。",
+    "取り外しは逆の手順で行ってください。"
+   ]
+  },
+  "CK-250": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h4a/h44/8804571054110/CK-250_manual.pdf",
+   "pdf": "data/manuals/CK-250.pdf",
+   "pages": 1
+  },
+  "CK-251": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h87/h7e/8926774132766/CK-251_manual.pdf",
+   "pdf": "data/manuals/CK-251.pdf",
+   "pages": 2,
+   "set_contents": [
+    "mm(L)x120",
+    "mm(L)x120",
+    "本体x1",
+    "、ブラケットx2",
+    "mm(L)x120",
+    "mm(W)x139",
+    "14\"(L)x4",
+    ".7\"(W)x5",
+    "mm(L)x120",
+    "mm(W)x48",
+    "14\"(L)x4",
+    ".7\"(W)x1"
+   ],
+   "steps": [
+    "CK-303 ユニットフレームをテーブルに設置します。",
+    "メッシュトレーに付属のブラケットを、左右の300 mmシャフトに取り付けます。",
+    "メッシュトレーのパネル部の穴を300 mmシャフトに通し、ブラケットに固定します。ブラ ケットとパネルに隙間が無くなるまで押し込んでください。",
+    "取り外した上部のコの字金具を取り付けます。300 mm シャフトのねじ穴に、コの字 金具ジョイントねじを時計回りに緩みがなくなるまで締めこんで固定します。 最後に、各ねじ締結部に緩みがないか必ず確認してください。",
+    "取り外しは逆の手順で行ってください。"
+   ]
+  },
+  "GS-230": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h10/hc2/8874405593118/GS-230_manual.pdf",
+   "pdf": "data/manuals/GS-230.pdf",
+   "pages": 18,
+   "set_contents": [
+    "力／3,000ｋcal（3.5ｋW）x2",
+    "力／2,800ｋcal（3.3ｋW）x2"
+   ],
+   "spec": "●サイズ／収納時：500×110×360mm、風防 装着使用時：563×293×383mm、 スタンド装着時：563×514×383mm ●重 量／7.3kg ●出 力／3,000ｋcal（3.5ｋW）×2 ●ガス消費量／250g/h ●指定容器／ギガパワーガス500 イソ（GP-500S、GP-500SR） ●指定鍋径／23cm以下 ●容 量／8.0ℓ以下 ギガパワーツーバーナースタンダード （GS-220） ●材 質／ステンレス、アルミアルマイト 加工、ブラス ●サイズ／収納時：500×110×360mm、風防 装着使用時：563×293×383mm、 スタンド装着時：563×514×383mm ●重 量／7.0kg ●出 力／2,800ｋcal（3.3ｋW）×2 ●ガス消費量／250g/h ●指定容器／ギガパワーガス500 プロイソ（GP-500G、GP-500GR） イソ（GP-5"
+  },
+  "GS-355": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hcd/hd9/8821756493854/GS-355_manual.pdf",
+   "pdf": "data/manuals/GS-355.pdf",
+   "pages": 8
+  },
+  "GS-450R-US": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h2a/hea/8897671036958/GS-450R_manual.pdf",
+   "pdf": "data/manuals/GS-450R-US.pdf",
+   "pages": 8,
+   "steps": [
+    "バーナー本体",
+    "トッププレート ガスカートリッジ（別売）",
+    "ゴトク",
+    "脚"
+   ]
+  },
+  "UG-471": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hda/hc6/8867632152606/UG-471_manual.pdf",
+   "pdf": "data/manuals/UG-471.pdf",
+   "pages": 2,
+   "compatible_with": [
+    "CK-080",
+    "CK-149",
+    "CK-150",
+    "CK-180",
+    "GF-015"
+   ],
+   "spec": "●サイズ：(H)110×(w)360×(D)250mm ●重量：680g 使用方法 IGTフレームに組み込む場合 IGTフレームから取り外す場合 ①本製品のメッシュの天面を完全に開きます。 ※IGTフレームに本製品を組み込む際は、本製品が空になっていることを確認してください。 ※IGTフレームに組み込みスライドさせる際は、中に物を入れないでください。 ①IGTフレームに本製品を組み込む場所とその周囲のユニットを 取り除きます。IGTフレームの端に組み込む場合は2ユニット分 の空きを作ります。 ②本製品のファスナーを完全に開き、メッシュの天面を側面につ けた状態で、本製品の開口部、長手方向のフチを持ちます。次 に右図の様に、本製品をIGTフレームに通します。 ③本製品のファスナーの下部がIGTフレームに乗るように（拡大 図）、本製品をゆっくりと半回転させ、組み込み完了です。 ※本製品を回転さ",
+   "steps": [
+    "本製品のメッシュの天面を完全に開きます。 ※IGTフレームに本製品を組み込む際は、本製品が空になっていることを確認してください。 ※IGTフレームに組み込みスライドさせる際は、中に物を入れないでください。",
+    "本製品のファスナーを完全に開き、メッシュの天面を側面につ けた状態で、本製品の開口部、長手方向のフチを持ちます。次 に右図の様に、本製品をIGTフレームに通します。",
+    "本製品のファスナーの下部がIGTフレームに乗るように（拡大 図）、本製品をゆっくりと半回転させ、組み込み完了です。 ※本製品を回転させる際、ハンドルと本体の溶着部がIGTフレームに接触しないようにしてください。 製品が破損する原因となります。 ※本製品をIGTフレームに組み込んだ後、天面のメッシュを閉じないでください。",
+    "本製品にテーブルウェア等を入れることが出来ます。"
+   ]
+  },
+  "UG-472": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h32/hc7/8867632185374/UG-472_manual.pdf",
+   "pdf": "data/manuals/UG-472.pdf",
+   "pages": 2,
+   "compatible_with": [
+    "CK-080",
+    "CK-149",
+    "CK-150",
+    "CK-180",
+    "GF-015"
+   ],
+   "spec": "●サイズ：(H)220×(w)360×(D)250mm ●重量：800g 使用方法 IGTフレームに組み込む場合 IGTフレームから取り外す場合 ①本製品のメッシュの天面を完全に開きます。 ②使用したテーブルウェア等を入れ、使用状況によりメッシュの天面を閉じます。 ※ファスナーを閉じることができないような収納はしないでください。 ※本製品に水を入れる場合は、開口部フチから約15cmより上に入れないでください。 ①IGTに組み込まれている本製品の周囲の天板等を取り除きます。 ②本製品の開口部のフチを持ちます。本製品をゆっくりと半回転させ、IGT上部から取り外します。 ③運搬する場合は、対の２本のハンドルを持って運搬してください。",
+   "steps": [
+    "本製品のメッシュの天面を完全に開きます。",
+    "使用したテーブルウェア等を入れ、使用状況によりメッシュの天面を閉じます。 ※ファスナーを閉じることができないような収納はしないでください。 ※本製品に水を入れる場合は、開口部フチから約15cmより上に入れないでください。",
+    "運搬する場合は、対の２本のハンドルを持って運搬してください。",
+    "本製品にテーブルウェア等を入れることが出来ます。"
+   ]
+  },
+  "CK-080R": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h91/h4d/8980013547550/CK-080R_manual.pdf",
+   "pdf": "data/manuals/CK-080R.pdf",
+   "pages": 2,
+   "set_contents": [
+    "、ハーフユニットx２",
+    "天板（１ユニット）x２",
+    "天板（ハーフユニット）x２",
+    "ります。十分にご理解の上、お使いはじめください。●当社のIGTユニットサイズの製品がテーブルフレーム内に組み込めます。基本ユニットサイズは（1ユニット=S）250x360",
+    "（2ユニット=W）500x360",
+    "unitx2",
+    "Half-unitx2",
+    "32.8\"x17",
+    ".3\"x15",
+    "32.8\"x17",
+    ".3\"x2"
+   ],
+   "spec": "●サイズ：833×440×400（ｈ）ｍｍ ●収納サイズ：833×440×50（ｈ）ｍｍ ●重量：5.4ｋｇ 本製品に取り付けられるオプションは、マルチファンクションテーブルシリーズのみです。その他のオプションを本製品に取り付けると転倒のおそれがあるため使用できません。予めご了承ください。 取扱説明書 （本書） 本体 3ユニットがセッティング可能 ※セッティングユニットが1ユニットの場合 天板（１ユニット）×２ 天板（ハーフユニット）×２ ●ご使用の前に、本製品を点検し各部に異常がないことを確認してください。異常が発見された場合は、直ちに使用 を中止しお買い求めいただいた販売店様、または弊社ユーザーサービス係に点検または修理を依頼してください。 ●脚部に変形がない事を確認してください。 ●ユニット交換及びレイアウト変更をする際は、本体及びユニットアイテムが十分に冷めている事を確認してから "
+  },
+  "CK-090": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h53/h64/8896994738206/CK-090_manual.pdf",
+   "pdf": "data/manuals/CK-090.pdf",
+   "pages": 2,
+   "set_contents": [
+    "〈最大〉1348x498",
+    "〈最小〉840x498",
+    "（2ユニット=W）500x360",
+    "天板保護パーツx2",
+    "(33.1”)x498"
+   ],
+   "steps": [
+    "セッティング方法と逆の手順で脚を折りたたみます。",
+    "天板保護パーツは収納ケース内側のポケットに収納できます。 （図A）"
+   ]
+  },
+  "CK-180": {
+   "url": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h66/h0a/8883646955550/CK-180_manual.pdf",
+   "pdf": "data/manuals/CK-180.pdf",
+   "pages": 1
+  }
+ }
+}

@@ -34,6 +34,14 @@
     },
     "CK-118TR": {
       "bamboo_corner_L_ck-118tr_alt_02": "plan_top"
+    },
+    "CK-218": {
+      "ck-218_hero_01": "plan_top",
+      "a009": "detail",
+      "_said": "top view; the hooks are on the RIGHT edge, the bracket plates on the left. a009 is the hook close-up: a stainless wire hook let into a slot in the board's edge, arching out and bending straight DOWN -- it hangs over the host's edge from above."
+    },
+    "CK-219": {
+      "ck-219_hero_01": "plan_top"
     }
   }
 }

@@ -172,13 +172,27 @@ function edgeMid(n, local) {
 /** The length of that edge. */
 const edgeLen = (n, local) => (local.x ? footprint(n).d : footprint(n).w);
 
+// The rail joint. Two of them come in the box with a corner, and they are sold on their
+// own as XCK-128-01 (マルチファンクションテーブル レールジョイント2個セット) -- which is
+// filed under spare parts and sits in none of the IGT collections, so a collection sweep
+// never finds it. It took reading a manual.
+const RAIL_JOINT = "XCK-128-01";
+
 /** Every edge of this node that an extension could still hook onto.
  *
- *  A FRAME offers its two SHORT ends and nothing else. Not a design choice -- a
- *  measurement: the hook holes are in the black END pieces, at x = +/-406.5, and there
- *  are none anywhere along the rails. The long sides are rail, and rail has nothing to
- *  hook into. This is why an IGT run grows lengthwise, and why the planner refuses to
- *  put a bamboo table on the frame's flank however much you want it there.
+ *  A FRAME offers its two SHORT ends DIRECTLY: the hook holes are in the black end pieces,
+ *  at x = +/-406.5, and there are none anywhere along the rails. That much is measured.
+ *
+ *  But it also offers its two LONG SIDES, through a RAIL JOINT. CK-119TR's manual, step 4:
+ *
+ *      レールジョイントを使用する場合は IGTフレームの長辺のレールに挿入します
+ *      "If using the rail joints, insert them into the rail on the LONG SIDE of the IGT
+ *       frame."   ...then (5) 天板フックを連結します -- and hook the tabletop onto them.
+ *
+ *  The joint clips into the rail and gives the board's wire hook something to hang from.
+ *  Nothing in the marketing copy says this and no photograph shows it; the planner forbade
+ *  it outright, on the strength of a measurement that was true and a conclusion that was
+ *  not. A hole you cannot find is not a hole that isn't there.
  *
  *  A HOOKED board offers exactly one edge in turn: the one carrying its brackets, which
  *  hold both its legs and the holes for the next board. Straight extension -> that edge
@@ -186,13 +200,18 @@ const edgeLen = (n, local) => (local.x ? footprint(n).d : footprint(n).w);
  *  run turns. Same rule, different measurement.
  */
 function openEdges(n) {
-  const local = n.kind === "frame" ? [{ x: 1, z: 0 }, { x: -1, z: 0 }]
-              : n.kind === "ext"   ? [bracketAxis(n.sku)]
-              : [];
+  const local = n.kind === "frame"
+      ? [{ x: 1, z: 0 }, { x: -1, z: 0 }, { x: 0, z: 1 }, { x: 0, z: -1 }]
+      : n.kind === "ext" ? [bracketAxis(n.sku)]
+      : [];
   const taken = state.nodes.filter(m => m.kind === "ext" && m.host === n.id);
   return local
     .filter(e => !taken.some(m => sameAxis(m.edge, e)))
-    .map(e => ({ node: n, local: e, dir: edgeDir(n, e), mid: edgeMid(n, e), len: edgeLen(n, e) }));
+    .map(e => ({
+      node: n, local: e, dir: edgeDir(n, e), mid: edgeMid(n, e), len: edgeLen(n, e),
+      // A frame's long side is rail, and rail needs a joint. Its short ends do not.
+      rail: n.kind === "frame" && e.z !== 0,
+    }));
 }
 
 const anyOpenEdge = () => state.nodes.some(n => openEdges(n).length > 0);
@@ -647,9 +666,11 @@ function paintMenu() {
   menu.innerHTML = "";
   const head = document.createElement("div");
   head.className = "mhead";
-  head.textContent = hover.node.kind === "frame"
-    ? "hooks into the frame's end holes"
-    : "hooks into the brackets on this edge";
+  head.textContent = hover.rail
+    ? "hooks onto the LONG rail — needs a rail joint set (added)"
+    : hover.node.kind === "frame"
+      ? "hooks into the frame's end holes"
+      : "hooks into the brackets on this edge";
   menu.append(head);
 
   for (const p of HOOKABLE) {
@@ -841,11 +862,15 @@ function addNode(sku) {
   render();
 }
 
-/** Hook a board onto one specific edge of one specific host. */
+/** Hook a board onto one specific edge of one specific host.
+ *
+ *  A board on the frame's LONG rail hangs from a rail joint, so the joint goes in the BOM.
+ *  Two per board, and they come as a pair (XCK-128-01 is a 2-piece set) -- so one set. */
 function attach(sku, host, local) {
   const n = {
     id: state.nextId++, sku, kind: "ext", host: host.id, edge: local,
     x: 0, z: 0, rot: 0, leg: host.leg, placements: [],
+    rail: host.kind === "frame" && local.z !== 0,
   };
   state.nodes.push(n);
   state.sel = n.id;
@@ -985,6 +1010,8 @@ function bomLines() {
     const sets = LEG_SETS[n.kind] ?? 0;
     if (n.leg) for (let i = 0; i < sets; i++)
       lines.push({ sku: n.leg, req: n.kind === "ext" });
+    // Hooked onto the frame's long rail: that hangs from a pair of rail joints.
+    if (n.rail && PARTS[RAIL_JOINT]) lines.push({ sku: RAIL_JOINT, req: true });
     if (n.kind === "frame") {
       const rails = PARTS[n.sku].requires_rails;
       if (rails && PARTS[rails]) lines.push({ sku: rails, req: true });
