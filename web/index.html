@@ -37,17 +37,26 @@
       <h2>Selected <span class="hint" id="selname">nothing selected</span></h2>
       <h3>Legs</h3>
       <div id="legs" class="chips"></div>
-      
-      
+
       <h3>Modules</h3>
       <div id="modules" class="parts"></div>
+
+      <h3>Actions</h3>
+      <div id="actions" class="chips"></div>
     </section>
   </aside>
 
   <div id="stage">
     <canvas id="canvas"></canvas>
     <div id="slotbar" title="half-slot occupancy of the selected frame"></div>
-    <div id="hint">drag a table to move it — it snaps flush · drag a module along its rail</div>
+
+    <!-- The edge affordance. It only ever appears where there is really a hole to hook
+         into: the frame's two short ends, or the bracket edge of a board already hooked
+         on. Nowhere along a rail, because there is nothing along a rail to hook to. -->
+    <button id="edgebtn" hidden>+</button>
+    <div id="edgemenu" hidden></div>
+
+    <div id="hint">hover a table <b>edge</b> to hook on an extension · drag a table to move it · drag a module along its rail</div>
   </div>
 
   <aside id="bom">

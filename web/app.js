@@ -2,25 +2,25 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, railProfile, meshWires, isMesh,
-         quarterRound, angleBoard, boardMaterial, flatRect,
-         boardFromOutline, grainMaterial } from "./materials.js";
+         boardMaterial, flatRect, boardFromOutline, grainMaterial } from "./materials.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
-// table it came from.
+// table it came from. Angles are RADIANS everywhere, for the same reason: one unit,
+// no conversions buried in the middle of the code.
 const MM = 0.001;
 
 const FRAME_THICK = 30;
 const RAIL_SPAN = 360;
 const LEG_R = 13;
-const SNAP = 25;        // ground grid the tables slide on
+const SNAP = 25;        // ground grid the free tables slide on
 const TOUCH = 30;       // two tables closer than this are connected
 
 const TO_USD = { us: c => c / 100, jp: y => y / 157, uk: p => (p / 100) * 1.27 };
 
 const $ = id => document.getElementById(id);
 
-let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAMES;
+let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAMES, HOOKABLE;
 const texLoader = new THREE.TextureLoader();
 const texCache = {};
 const textureOf = (sku, key = "file") => {
@@ -37,42 +37,68 @@ const swatchOf = sku => COLORS[sku]?.color_hex || "#8a929c";
 // A layout is a set of tables. An IGT frame is one kind of table -- the kind with a
 // grid in it. Snow Peak calls the whole thing the Layout System, and the frame is a
 // node in it, not the thing itself.
+//
+// Two kinds of node, and the difference is physical, not cosmetic:
+//
+//   FREE   frame, layout table, standalone. Stands on the ground. You drag it.
+//   HOOKED extension table, corner. Hangs off another node's EDGE. You do NOT drag it;
+//          it is wherever its hooks are. It carries `host` + `edge`, and its x/z/rot
+//          are DERIVED from them.
+//
+// Modelling the hooked ones as free nodes that happen to be adjacent is what kept the
+// corner from turning: adjacency has no handedness, and a corner is nothing but handedness.
 const state = { nodes: [], sel: null, nextId: 1 };
+
+const byId = id => state.nodes.find(n => n.id === id);
+const sel = () => byId(state.sel);
+
+// Rotate a vector in the ground plane. three's `rotation.y = -r` maps a local vector at
+// angle a to world angle a + r, so this and the mesh always agree about which way is out.
+const rotv = (v, r) => ({
+  x: v.x * Math.cos(r) - v.z * Math.sin(r),
+  z: v.x * Math.sin(r) + v.z * Math.cos(r),
+});
+const sameAxis = (a, b) => a.x === b.x && a.z === b.z;
+const angleOf = v => Math.atan2(v.z, v.x);
+// Keep rotations in (-pi, pi]. A quarter turn that reports itself as -270 degrees is not
+// wrong, but it is the sort of thing you waste ten minutes on in a debug dump.
+const norm = r => Math.atan2(Math.sin(r), Math.cos(r));
 
 // ---------------------------------------------------------------- node geometry
 
 const overhead = () => GRID.families?.standard?.end_overhead_mm ?? 96;
 
-function footprint(n) {
-  const p = PARTS[n.sku];
-  if (n.kind === "frame") return { w: 250 * p.units + overhead(), d: p.assembled_mm?.d ?? 496 };
+function footprintOf(sku, kind) {
+  const p = PARTS[sku];
+  if (kind === "frame") return { w: 250 * p.units + overhead(), d: p.assembled_mm?.d ?? 496 };
   const a = p.assembled_mm;
   return { w: a?.w ?? 496, d: a?.d ?? 496 };
 }
+const footprint = n => footprintOf(n.sku, n.kind);
 
 /** Top surface height.
  *
  *  A hook-on table hangs from the frame's rail, so its surface is FLUSH with whatever it
  *  hooks to -- not (its own legs + its own 25mm top), which would sit 5mm proud of a
  *  30mm frame and trip the step-joint rule for a difference that does not exist. Its legs
- *  hold up the far end; they do not set its height.
+ *  hold up the far end; they do not set its height. And because the copy says "the frame
+ *  OR OTHER EXTENSION", a whole chain inherits the frame's height, all the way down.
  */
-function topOf(n, seen = new Set()) {
+function topOf(n, depth = 0) {
   if (n.kind === "frame") return (PARTS[n.leg]?.height_mm ?? 0) + FRAME_THICK;
   if (n.kind === "ext") {
-    seen.add(n.id);
-    const host = neighbours(n).find(m => !seen.has(m.id));
-    if (host) return topOf(host, seen);      // chainable: "the frame OR OTHER EXTENSION"
+    const h = byId(n.host);
+    if (h && depth < 16) return topOf(h, depth + 1);
     return (PARTS[n.leg]?.height_mm ?? 0) + (PARTS[n.sku].assembled_mm?.h ?? 25);
   }
   return PARTS[n.sku].height_mm ?? PARTS[n.sku].assembled_mm?.h ?? LAYOUT.datum_height_mm;
 }
 
-/** World-space AABB, honouring the node's 90-degree rotation. */
+/** World-space AABB, honouring the node's rotation. */
 function aabb(n) {
   const f = footprint(n);
-  const turned = n.rot % 180 !== 0;
-  const w = turned ? f.d : f.w, d = turned ? f.w : f.d;
+  const c = Math.abs(Math.cos(n.rot)), s = Math.abs(Math.sin(n.rot));
+  const w = f.w * c + f.d * s, d = f.w * s + f.d * c;
   return { x0: n.x - w / 2, x1: n.x + w / 2, z0: n.z - d / 2, z1: n.z + d / 2, w, d };
 }
 
@@ -96,6 +122,123 @@ function steps() {
     for (const m of neighbours(n))
       if (n.id < m.id && Math.abs(topOf(n) - topOf(m)) > 5) out.push([n, m]);
   return out;
+}
+
+// ---------------------------------------------------------------- hooks and brackets
+//
+// Both of these come off the plan-view photographs (catalog/textures.json). Nothing here
+// is assumed, and that matters, because the ONE fact that makes a corner a corner is the
+// angle between these two axes:
+//
+//   CK-117TR  straight ext   hooks x=+560     brackets x=-504     -> opposite. Run continues.
+//   CK-119TR  right corner   hooks z=+261     brackets x=+223     -> PERPENDICULAR. Run turns.
+//   CK-118TR  left corner    hooks z=+261     brackets x=-229     -> perpendicular, other way.
+//
+// The two corners are exact mirrors, measured independently from their own photographs.
+// That is the whole of the 90 degrees, and it was sitting in the data all along.
+
+function axisOf(pts) {
+  if (!pts?.length) return null;
+  const mx = pts.reduce((a, p) => a + p[0], 0) / pts.length;
+  const mz = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+  return Math.abs(mx) >= Math.abs(mz)
+    ? { x: Math.sign(mx), z: 0 }
+    : { x: 0, z: Math.sign(mz) };
+}
+
+/** Which edge of the board, in its OWN coordinates, carries the hooks. */
+const hookAxis = sku => axisOf(TEXTURES[sku]?.hooks_mm) || { x: 1, z: 0 };
+
+/** Which edge carries the brackets -- the leg seats, and the holes the NEXT board hooks
+ *  into. The fallback is "opposite the hooks", which is what a straight extension does;
+ *  it must never be used for a corner, and it never is, because both corners are measured. */
+function bracketAxis(sku) {
+  const m = axisOf(TEXTURES[sku]?.legs_mm);
+  if (m) return m;
+  const h = hookAxis(sku);
+  return { x: -h.x, z: -h.z };
+}
+
+/** The world-space outward normal of one of a node's local edges. */
+const edgeDir = (n, local) => rotv(local, n.rot);
+
+/** The world-space midpoint of that edge, at the node's working height. */
+function edgeMid(n, local) {
+  const f = footprint(n);
+  const w = rotv({ x: local.x * f.w / 2, z: local.z * f.d / 2 }, n.rot);
+  return { x: n.x + w.x, y: topOf(n), z: n.z + w.z };
+}
+
+/** The length of that edge. */
+const edgeLen = (n, local) => (local.x ? footprint(n).d : footprint(n).w);
+
+/** Every edge of this node that an extension could still hook onto.
+ *
+ *  A FRAME offers its two SHORT ends and nothing else. Not a design choice -- a
+ *  measurement: the hook holes are in the black END pieces, at x = +/-406.5, and there
+ *  are none anywhere along the rails. The long sides are rail, and rail has nothing to
+ *  hook into. This is why an IGT run grows lengthwise, and why the planner refuses to
+ *  put a bamboo table on the frame's flank however much you want it there.
+ *
+ *  A HOOKED board offers exactly one edge in turn: the one carrying its brackets, which
+ *  hold both its legs and the holes for the next board. Straight extension -> that edge
+ *  is opposite its hooks, and the run goes on. Corner -> it is perpendicular, and the
+ *  run turns. Same rule, different measurement.
+ */
+function openEdges(n) {
+  const local = n.kind === "frame" ? [{ x: 1, z: 0 }, { x: -1, z: 0 }]
+              : n.kind === "ext"   ? [bracketAxis(n.sku)]
+              : [];
+  const taken = state.nodes.filter(m => m.kind === "ext" && m.host === n.id);
+  return local
+    .filter(e => !taken.some(m => sameAxis(m.edge, e)))
+    .map(e => ({ node: n, local: e, dir: edgeDir(n, e), mid: edgeMid(n, e), len: edgeLen(n, e) }));
+}
+
+const anyOpenEdge = () => state.nodes.some(n => openEdges(n).length > 0);
+
+// ---------------------------------------------------------------- hook chain
+
+/** Put a hooked board where its hooks are.
+ *
+ *  Turn it so its hook edge faces back at the host, then slide it until the midpoint of
+ *  that edge lands on the midpoint of the host's edge. Both midpoints are the real ones,
+ *  taken from the measured axes -- which is the only reason this works for a quarter
+ *  round, whose two straight edges are two different sides of its bounding box.
+ */
+function place(n) {
+  const h = byId(n.host);
+  if (!h) return;
+  const dir = edgeDir(h, n.edge);
+  const at = edgeMid(h, n.edge);
+  const have = hookAxis(n.sku);
+
+  n.rot = norm(angleOf({ x: -dir.x, z: -dir.z }) - angleOf(have));
+
+  const f = footprint(n);
+  const lm = rotv({ x: have.x * f.w / 2, z: have.z * f.d / 2 }, n.rot);
+  n.x = at.x - lm.x;
+  n.z = at.z - lm.z;
+
+  // A board flush with its host stands at its host's height, so it takes its host's legs.
+  // Arithmetic, not preference -- the same argument as the 400mm datum.
+  n.leg = h.leg;
+}
+
+/** Extensions are not free: they hang where they hook. Re-derive the whole chain from its
+ *  roots whenever anything moves. Hosts first, then what hangs off them. */
+function resolve() {
+  const done = new Set(state.nodes.filter(n => n.kind !== "ext").map(n => n.id));
+  for (let pass = 0; pass < 16; pass++) {
+    let moved = false;
+    for (const n of state.nodes) {
+      if (n.kind !== "ext" || done.has(n.id) || !done.has(n.host)) continue;
+      place(n);
+      done.add(n.id);
+      moved = true;
+    }
+    if (!moved) break;
+  }
 }
 
 // ---------------------------------------------------------------- slots (per frame)
@@ -184,17 +327,18 @@ const stock = (geo, color, metalness = 0.8, roughness = 0.42, emissive = 0x00000
     color, metalness, roughness, emissive: new THREE.Color(emissive),
   }));
 
-const nodeMeshes = [];   // meshes carrying .node (for picking + dragging tables)
-const slotMeshes = [];   // meshes carrying .placement (for dragging modules)
+const nodeMeshes = [];   // meshes carrying .node      (picking + dragging tables)
+const slotMeshes = [];   // meshes carrying .placement (dragging modules)
+const edgeMeshes = [];   // meshes carrying .edge      (the hover-to-extend handles)
 
 function drawFrame(g, n) {
   const p = PARTS[n.sku];
   const f = footprint(n);
   const top = topOf(n);
   const railD = (f.d - RAIL_SPAN) / 2;
-  const sel = state.sel === n.id;
+  const isSel = state.sel === n.id;
   const alu = new THREE.Color(swatchOf(n.sku));
-  const glow = sel ? 0x2e1806 : 0x000000;
+  const glow = isSel ? 0x2e1806 : 0x000000;
 
   // Two extruded rails and two ends -- not a slab. There are no dividers; a "unit" is a
   // 250mm notion along the run. The rail is a channel with a lip, which is what every
@@ -277,7 +421,7 @@ function drawTable(g, n) {
   const p = PARTS[n.sku];
   const f = footprint(n);
   const top = topOf(n);
-  const sel = state.sel === n.id;
+  const isSel = state.sel === n.id;
   const thick = p.role === "corner" ? (p.assembled_mm?.h ?? 25) : 30;
 
   // The silhouette comes from the photograph, not from a guess about what shape the
@@ -294,16 +438,16 @@ function drawTable(g, n) {
   // the ironmongery down.
   const grain = textureOf(p.sku, "grain");
   const m = new THREE.Mesh(geo, grain
-    ? grainMaterial(p, COLORS, grain, f.w, f.d, sel)
-    : materialFor(p, COLORS, sel));
+    ? grainMaterial(p, COLORS, grain, f.w, f.d, isSel)
+    : materialFor(p, COLORS, isSel));
   m.position.set(0, top - thick / 2, 0).multiplyScalar(MM);
   m.userData.node = n; g.add(m); nodeMeshes.push(m);
 
   const tex = textureOf(p.sku);
-  if (tex) {
+  if (tex && ring) {
     const decal = new THREE.Mesh(
       boardFromOutline(ring, 0.4 * MM),
-      boardMaterial(p, COLORS, tex, f.w * MM, f.d * MM, sel),
+      boardMaterial(p, COLORS, tex, f.w * MM, f.d * MM, isSel),
     );
     decal.position.set(0, top - thick - 0.6, 0).multiplyScalar(MM);
     g.add(decal);
@@ -315,18 +459,16 @@ function drawTable(g, n) {
 
     // Two hook pins on the edge that meets the host: they drop into the holes in the
     // frame's edge. That side needs no leg -- the frame is already holding it up.
-    const pins = TEXTURES[p.sku]?.hooks_mm || [];
-    for (const [px, pz] of pins) {
+    for (const [px, pz] of TEXTURES[p.sku]?.hooks_mm || []) {
       const pin = stock(new THREE.CylinderGeometry(5 * MM, 5 * MM, 24 * MM, 8), 0xc8ccd2, 0.9, 0.25);
       pin.position.set(px, top - thick - 10, pz).multiplyScalar(MM);
       g.add(pin);
     }
 
     // The legs go where the BRACKETS are, and the brackets were measured off the plan
-    // view -- CK-117TR's sit at x=-503, z=+/-165mm, 45mm in from the far edge. Placing
-    // them at the corners because that is where legs usually go would be a guess sitting
-    // right next to a measurement.
-    const seats = (TEXTURES[p.sku]?.legs_mm || []);
+    // view. Placing them at the corners because that is where legs usually go would be a
+    // guess sitting right next to a measurement.
+    const seats = TEXTURES[p.sku]?.legs_mm || [];
     const spots = seats.length
       ? seats
       : [[-(f.w / 2 - 45), -f.d * 0.3], [-(f.w / 2 - 45), f.d * 0.3]];
@@ -348,7 +490,6 @@ function drawTable(g, n) {
     return;
   }
 
-  if (n.kind !== "table") return;
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const leg = stock(
       new THREE.CylinderGeometry(10 * MM, 8 * MM, (top - thick) * MM, 14),
@@ -359,15 +500,43 @@ function drawTable(g, n) {
   }
 }
 
+/** An invisible slab lying along each open edge. Hovering it is how you say "here".
+ *
+ *  It is deliberately the FULL length of the edge and nothing more: the handles are the
+ *  planner's honest statement of where an extension may go, so they must appear exactly
+ *  where the holes are and nowhere else. There is no handle down the long side of a frame,
+ *  because there are no holes down the long side of a frame. */
+function drawEdgeHandles() {
+  if (!anyOpenEdge()) return;
+  for (const n of state.nodes) {
+    for (const e of openEdges(n)) {
+      const m = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshBasicMaterial({
+          color: 0xd8813f, transparent: true, opacity: 0, depthWrite: false,
+        }),
+      );
+      m.scale.set(72 * MM, 46 * MM, e.len * MM);
+      m.rotation.y = -angleOf(e.dir);      // local +x points out of the edge
+      m.position.set(e.mid.x * MM, (e.mid.y - 12) * MM, e.mid.z * MM);
+      m.renderOrder = 2;
+      m.userData.edge = e;
+      build.add(m);
+      edgeMeshes.push(m);
+    }
+  }
+}
+
 function rebuild() {
   build.clear();
   nodeMeshes.length = 0;
   slotMeshes.length = 0;
+  edgeMeshes.length = 0;
 
   for (const n of state.nodes) {
     const g = new THREE.Group();
     g.position.set(n.x * MM, 0, n.z * MM);
-    g.rotation.y = -orientation(n);
+    g.rotation.y = -n.rot;
     (n.kind === "frame" ? drawFrame : drawTable)(g, n);
     build.add(g);
   }
@@ -384,13 +553,111 @@ function rebuild() {
     post.position.set(mid.x * MM, (hi - 160) * MM, mid.z * MM);
     build.add(post);
   }
+
+  drawEdgeHandles();
+
+  // Raycasting reads matrixWorld, and three only refreshes it inside render(). Every mesh
+  // here is brand new, so until the next frame they all still sit at the origin and the
+  // picker quietly misses all of them. Real pointer events arrive a frame later and never
+  // see it; anything that rebuilds and then hit-tests in the same tick does. Costs nothing.
+  build.updateMatrixWorld(true);
+
+  // The meshes are new every rebuild, so the highlight has to be re-applied to them --
+  // and an edge that has just been filled is no longer an edge.
+  if (hover && !openEdges(hover.node).some(e => sameAxis(e.local, hover.local))) setHover(null);
+  else paintHover();
+}
+
+// ---------------------------------------------------------------- edge hover -> menu
+
+let hover = null;      // {node, local, dir, mid, len} -- the edge under the pointer
+
+const btn = $("edgebtn");
+const menu = $("edgemenu");
+
+/** Project a point in the layout onto the canvas, in CSS pixels. */
+function toScreen(mm) {
+  const v = new THREE.Vector3(mm.x * MM, mm.y * MM, mm.z * MM).project(camera);
+  const r = canvas.getBoundingClientRect();
+  return { x: (v.x * 0.5 + 0.5) * r.width, y: (-v.y * 0.5 + 0.5) * r.height, behind: v.z > 1 };
+}
+
+function paintHover() {
+  for (const m of edgeMeshes)
+    m.material.opacity = hover && m.userData.edge.node.id === hover.node.id
+      && sameAxis(m.userData.edge.local, hover.local) ? 0.42 : 0;
+}
+
+/** Keep the button glued to its edge while the camera orbits. */
+function followHover() {
+  if (!hover) return;
+  const s = toScreen(hover.mid);
+  btn.hidden = s.behind;
+  btn.style.left = `${s.x}px`;
+  btn.style.top = `${s.y}px`;
+  if (!menu.hidden) {
+    menu.style.left = `${Math.min(s.x + 14, canvas.clientWidth - 250)}px`;
+    menu.style.top = `${Math.min(s.y + 14, canvas.clientHeight - 230)}px`;
+  }
+}
+
+function setHover(e) {
+  const same = e && hover && e.node.id === hover.node.id && sameAxis(e.local, hover.local);
+  if (same) return;
+  hover = e;
+  menu.hidden = true;
+  btn.hidden = !e;
+  if (e) {
+    btn.title = `hook an extension onto the ${PARTS[e.node.sku].title_en}`;
+    followHover();
+  }
+  paintHover();
+}
+
+function openMenu() {
+  if (!hover) return;
+  paintMenu();
+  menu.hidden = false;
+  followHover();
+}
+
+btn.onclick = openMenu;
+addEventListener("keydown", e => { if (e.key === "Escape") setHover(null); });
+
+/** What may legally hook onto this edge.
+ *
+ *  Every part whose attachment the COPY says is hook_on, and nothing else. CK-218/219,
+ *  the angle extensions, are not on this list: Snow Peak's copy never says how they
+ *  attach and their plan views show no hooks, so the planner does not know which edge
+ *  they hang from. Offering them anyway would mean guessing an orientation, and a guess
+ *  sitting next to twelve measurements is worse than an absence. */
+function paintMenu() {
+  menu.innerHTML = "";
+  const head = document.createElement("div");
+  head.className = "mhead";
+  head.textContent = hover.node.kind === "frame"
+    ? "hooks into the frame's end holes"
+    : "hooks into the brackets on this edge";
+  menu.append(head);
+
+  for (const p of HOOKABLE) {
+    const row = document.createElement("div");
+    row.className = "part";
+    const usd = p.price?.us ? "$" + TO_USD.us(p.price.us).toFixed(0) : "";
+    row.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
+      + `<span class="nm">${p.title_en}</span><span class="sp">${usd}</span>`;
+    row.title = `${p.sku} — ${p.assembled_mm.w}×${p.assembled_mm.d}mm`;
+    row.onclick = () => { attach(p.sku, hover.node, hover.local); setHover(null); };
+    menu.append(row);
+  }
 }
 
 // ---------------------------------------------------------------- interaction
 
 const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
-let dragNode = null, dragMod = null, dragOff = new THREE.Vector3();
+let dragNode = null, dragMod = null;
+const dragOff = new THREE.Vector3();
 
 const toPtr = e => {
   const r = canvas.getBoundingClientRect();
@@ -406,6 +673,22 @@ canvas.addEventListener("pointerdown", e => {
   toPtr(e);
   ray.setFromCamera(ptr, camera);
 
+  // An edge handle is not a thing you drag; it is a thing you press. Pressing it opens the
+  // menu straight away -- the button is the affordance, not a toll gate.
+  //
+  // Orbit is already off here (hovering the edge turned it off), and it has to be off
+  // BEFORE the press, not during it: OrbitControls has its own pointerdown listener on
+  // this same canvas and it runs first, so returning early from this handler does not
+  // stop it. It spent one debugging round quietly rotating the camera out from under the
+  // very edge I was trying to click.
+  const edge = ray.intersectObjects(edgeMeshes, false)[0];
+  if (edge) {
+    setHover(edge.object.userData.edge);
+    openMenu();
+    return;
+  }
+  menu.hidden = true;
+
   const mod = ray.intersectObjects(slotMeshes, false)[0];
   if (mod) {
     dragMod = { pl: mod.object.userData.placement, node: mod.object.userData.node };
@@ -414,29 +697,56 @@ canvas.addEventListener("pointerdown", e => {
     paint();
     return;
   }
+
   const nd = ray.intersectObjects(nodeMeshes, false)[0];
-  if (nd) {
-    dragNode = nd.object.userData.node;
-    state.sel = dragNode.id;
+  if (!nd) return;
+  const n = nd.object.userData.node;
+  state.sel = n.id;
+  // A hooked board hangs where its hooks are. Dragging it would be asking the model to
+  // lie: it cannot be anywhere else. Select it, do not move it.
+  if (n.kind !== "ext") {
+    dragNode = n;
     const at = hitPlane(0);
-    if (at) dragOff.set(dragNode.x - at.x / MM, 0, dragNode.z - at.z / MM);
+    if (at) dragOff.set(n.x - at.x / MM, 0, n.z - at.z / MM);
     controls.enabled = false;
-    render();
   }
+  render();
 });
 
 canvas.addEventListener("pointermove", e => {
-  if (!dragNode && !dragMod) return;
   toPtr(e);
   ray.setFromCamera(ptr, camera);
+
+  if (!dragNode && !dragMod) {
+    const hit = ray.intersectObjects(edgeMeshes, false)[0];
+    if (hit) {
+      // Take the canvas off orbit while the pointer is on an edge: this patch of screen
+      // belongs to the handle now, and a stray drag here should not spin the camera.
+      controls.enabled = false;
+      setHover(hit.object.userData.edge);
+      return;
+    }
+    controls.enabled = true;
+
+    // Let go of the edge by MOVING AWAY from the button, not by missing the handle.
+    // Deciding on the raycast alone made the button vanish the moment the pointer left a
+    // 46mm-thick slab -- including on its way to press the button, which is a cruel joke
+    // to play on a hover affordance. Distance is what the hand is actually doing.
+    if (hover && menu.hidden) {
+      const r = canvas.getBoundingClientRect();
+      const s = toScreen(hover.mid);
+      if (Math.hypot(e.clientX - r.left - s.x, e.clientY - r.top - s.y) > 72) setHover(null);
+    }
+    return;
+  }
 
   if (dragMod) {
     const { pl, node } = dragMod;
     const at = hitPlane(topOf(node));
     if (!at) return;
     // Undo the node's own rotation to get a position along its rail.
-    const rad = (-node.rot * Math.PI) / 180;
-    const lx = (at.x / MM - node.x) * Math.cos(rad) - (at.z / MM - node.z) * Math.sin(rad);
+    const r = -node.rot;
+    const lx = (at.x / MM - node.x) * Math.cos(r) - (at.z / MM - node.z) * Math.sin(r);
     const start = Math.round((lx + runOf(node) / 2 - (pl.span * HALF) / 2) / HALF);
     if (start !== pl.start && canPlaceAt(node, start, pl.span, pl)) {
       pl.start = start;
@@ -450,17 +760,19 @@ canvas.addEventListener("pointermove", e => {
   dragNode.x = Math.round((at.x / MM + dragOff.x) / SNAP) * SNAP;
   dragNode.z = Math.round((at.z / MM + dragOff.z) / SNAP) * SNAP;
   snapToNeighbours(dragNode);
-  rebuild(); paint();
+  render();
 });
 
 addEventListener("pointerup", () => { dragNode = dragMod = null; controls.enabled = true; });
 
 /** Pull a dragged table flush against whatever it is nearly touching. Layout tables are
- *  meant to butt edge to edge -- that is the whole point of a shared 496mm depth. */
+ *  meant to butt edge to edge -- that is the whole point of a shared 496mm depth.
+ *  Only free nodes are ever dragged, and only free nodes are considered as targets:
+ *  a hooked board is already exactly where it belongs. */
 function snapToNeighbours(n) {
   const a = aabb(n);
   for (const m of state.nodes) {
-    if (m === n) continue;
+    if (m === n || m.kind === "ext") continue;
     const b = aabb(m);
     const nearZ = a.z0 < b.z1 + 200 && b.z0 < a.z1 + 200;
     const nearX = a.x0 < b.x1 + 200 && b.x0 < a.x1 + 200;
@@ -473,86 +785,99 @@ function snapToNeighbours(n) {
 
 // ---------------------------------------------------------------- state ops
 
-const sel = () => state.nodes.find(n => n.id === state.sel);
-
 const HOOKS_ON = new Set(["extension_table", "corner"]);
+const kindOf = p => (p.role === "frame" ? "frame" : HOOKS_ON.has(p.role) ? "ext" : "table");
 
 // A leg SET is two legs -- "Each purchase includes two legs", and the JP spec agrees
-// (φ25×840mm, 0.45kg ×2). So a frame stands on four legs and needs TWO sets, which the
-// BOM was not doing: every build priced so far was two legs short.
+// (25mm dia x 840mm, 0.45kg x2). So a frame stands on four legs and needs TWO sets.
 //
-// An extension needs only TWO. Its hooked edge hangs off the host frame and carries no
-// leg at all; the legs live under the far edge, in the brackets that also hold the holes
-// the NEXT extension hooks into.
+// An extension needs only ONE. Its hooked edge hangs off the host and carries no leg at
+// all; the legs live under the far edge, in the brackets that also hold the holes the
+// NEXT extension hooks into.
 const LEG_SETS = { frame: 2, ext: 1, table: 0 };
 
-/** The node an extension hooks into. Its hooked edge faces this; its legs are opposite. */
-function hostOf(n, seen = new Set()) {
-  if (n.kind !== "ext") return null;
-  seen.add(n.id);
-  return neighbours(n).find(m => !seen.has(m.id)) || null;
-}
-
-/** Unit vector from an extension towards its host: the side the hooks must face. */
-function hookSide(n) {
-  const h = hostOf(n);
-  if (!h) return { x: -1, z: 0 };
-  const dx = h.x - n.x, dz = h.z - n.z;
-  return Math.abs(dx) >= Math.abs(dz)
-    ? { x: Math.sign(dx) || -1, z: 0 }
-    : { x: 0, z: Math.sign(dz) || -1 };
-}
-
-/** Which way the hooks point in the BOARD's own coordinates -- measured off the plan view,
- *  not assumed. CK-117TR's hooks sit at x=+560, so its hook edge is local +x; the corner's
- *  are at z=+261, so its hook edge is local +z, which is exactly why a corner turns the
- *  layout and a straight extension does not. */
-function hookAxis(sku) {
-  const hs = TEXTURES[sku]?.hooks_mm;
-  if (!hs?.length) return { x: -1, z: 0 };
-  const mx = hs.reduce((a, h) => a + h[0], 0) / hs.length;
-  const mz = hs.reduce((a, h) => a + h[1], 0) / hs.length;
-  return Math.abs(mx) >= Math.abs(mz)
-    ? { x: Math.sign(mx), z: 0 }
-    : { x: 0, z: Math.sign(mz) };
-}
-
-/** Turn the board so its hook edge faces its host. Without this the hooks point into open
- *  air and the legs stand under the joint -- which is what the first render did. */
-function orientation(n) {
-  if (n.kind !== "ext") return (n.rot * Math.PI) / 180;
-  const want = hookSide(n);
-  const have = hookAxis(n.sku);
-  return Math.atan2(want.z, want.x) - Math.atan2(have.z, have.x);
-}
-
+/** Put a free-standing node on the ground. */
 function addNode(sku) {
   const p = PARTS[sku];
-  // A bamboo table hooks onto the frame's EDGE and stands on its own legs. It is a node
-  // in the layout, not a lid on the frame -- which is what the copy says and what the
-  // dimensions could never have told us.
-  const kind = p.role === "frame" ? "frame" : HOOKS_ON.has(p.role) ? "ext" : "table";
+  const kind = kindOf(p);
+
+  if (kind === "ext") {
+    // A hook-on board cannot stand alone -- so "add" means "hook onto the first edge
+    // that is free", starting with whatever is selected. If nothing has a free edge,
+    // there is nowhere for it to go, and the palette row is dead anyway.
+    for (const h of [sel(), ...state.nodes].filter(Boolean)) {
+      const e = openEdges(h)[0];
+      if (e) return attach(sku, h, e.local);
+    }
+    return;
+  }
+
   const n = {
     id: state.nextId++, sku, kind, x: 0, z: 0, rot: 0,
-    leg: (kind === "frame" || kind === "ext") ? "CK-114" : null,
+    leg: kind === "frame" ? "CK-114" : null,
     placements: [],
   };
   // Land it flush against the right edge of what is already there. This is a layout
   // system -- tables connect. Dropping the new one in open space and making you drag
   // it into contact would be a worse default than the thing the system is for.
-  const right = state.nodes.length ? Math.max(...state.nodes.map(m => aabb(m).x1)) : null;
+  const free = state.nodes.filter(m => m.kind !== "ext");
+  const right = free.length ? Math.max(...free.map(m => aabb(m).x1)) : null;
   n.x = right === null ? 0 : right + footprint(n).w / 2;
-  if (state.nodes.length) n.z = state.nodes[state.nodes.length - 1].z;
+  if (free.length) n.z = free[free.length - 1].z;
   state.nodes.push(n);
   state.sel = n.id;
   render();
 }
 
+/** Hook a board onto one specific edge of one specific host. */
+function attach(sku, host, local) {
+  const n = {
+    id: state.nextId++, sku, kind: "ext", host: host.id, edge: local,
+    x: 0, z: 0, rot: 0, leg: host.leg, placements: [],
+  };
+  state.nodes.push(n);
+  state.sel = n.id;
+  render();
+}
+
+/** Remove a node, and everything hanging off it. A hook chain is not a set of tables that
+ *  happen to be near each other -- take out the frame and the extensions have nothing to
+ *  hang from. They come down with it. */
+function removeNode(n) {
+  const doomed = new Set([n.id]);
+  for (let i = 0; i < 16; i++)
+    for (const m of state.nodes)
+      if (m.kind === "ext" && doomed.has(m.host)) doomed.add(m.id);
+  state.nodes = state.nodes.filter(m => !doomed.has(m.id));
+  if (doomed.has(state.sel)) state.sel = state.nodes[0]?.id ?? null;
+  setHover(null);
+  render();
+}
+
+/** Turn a free node a quarter turn. Hooked boards follow, because they are resolved from
+ *  their host's edge, not from a remembered position. */
+function rotateNode(n) {
+  if (n.kind === "ext") return;
+  n.rot = norm(n.rot + Math.PI / 2);
+  render();
+}
+
+function setLeg(n, sku) {
+  const root = n.kind === "ext" ? rootOf(n) : n;
+  if (!root || root.kind === "table") return;
+  root.leg = sku;
+  render();
+}
+function rootOf(n, depth = 0) {
+  if (n.kind !== "ext" || depth > 16) return n;
+  const h = byId(n.host);
+  return h ? rootOf(h, depth + 1) : n;
+}
+
 function placeModule(sku) {
   const n = sel();
   if (!n || n.kind !== "frame") return;
-  const p = PARTS[sku];
-  const span = spanOf(p);
+  const span = spanOf(PARTS[sku]);
   const start = firstFit(n, span);
   if (start < 0) return;
   n.placements.push({ sku, span, start });
@@ -570,34 +895,56 @@ function chip(label, on, title, fn) {
   return c;
 }
 
-function partRow(p, fn, dead) {
+function partRow(p, fn, dead, why) {
   const el = document.createElement("div");
   el.className = "part" + (dead ? " dead" : "");
   const s = spanOf(p);
   el.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
     + `<span class="nm">${p.title_en}</span>`
     + `<span class="sp">${s ? s / 2 + "u" : ""}</span>`;
-  el.title = `${p.sku} — ${p.title_en}`;
+  el.title = why || `${p.sku} — ${p.title_en}`;
   if (!dead) el.onclick = () => fn(p);
   return el;
 }
 
 function paintPalette() {
   const add = $("add"); add.innerHTML = "";
-  for (const p of BY_ROLE.frame) add.append(chip(`${p.units}u${p.collapsible ? " ⤢" : ""}`, false, p.title_en, () => addNode(p.sku)));
-  for (const p of BY_ROLE.corner) add.append(chip("corner", false, p.title_en, () => addNode(p.sku)));
+  for (const p of BY_ROLE.frame)
+    add.append(chip(`${p.units}u${p.collapsible ? " ⤢" : ""}`, false, p.title_en, () => addNode(p.sku)));
 
   const tab = $("tables"); tab.innerHTML = "";
-  for (const p of [...BY_ROLE.extension_table, ...BY_ROLE.corner,
-                   ...BY_ROLE.layout_table, ...BY_ROLE.standalone])
+  const open = anyOpenEdge();
+  for (const p of HOOKABLE)
+    tab.append(partRow(p, () => addNode(p.sku), !open,
+      open ? `${p.sku} — hooks onto an edge. Hover an edge in the scene to choose which.`
+           : `${p.sku} — hooks onto a frame or another extension. Put a frame down first.`));
+  // Two different gaps, and they deserve two different sentences. One part has no copy
+  // saying how it attaches; the other says it hooks on but has no plan view, so WHICH
+  // edge carries the hooks was never measured. Both are unplaceable, for opposite reasons.
+  for (const p of BY_ROLE.unsourced)
+    tab.append(partRow(p, null, true, p.attach === "hook_on"
+      ? `${p.sku} — the copy says it hooks on, but its gallery has no plan view, so which `
+        + `edge carries the hooks is unmeasured. The planner will not guess.`
+      : `${p.sku} — Snow Peak never documents how this attaches. The planner will not guess.`));
+  for (const p of [...BY_ROLE.layout_table, ...BY_ROLE.standalone])
     tab.append(partRow(p, () => addNode(p.sku), false));
 
   const n = sel();
+  const hooked = n?.kind === "ext";
   const legs = $("legs"); legs.innerHTML = "";
   for (const p of BY_ROLE.leg)
-    legs.append(chip(`${p.height_mm}`, n?.leg === p.sku, p.title_en, () => {
-      if (n && (n.kind === "frame" || n.kind === "ext")) { n.leg = p.sku; render(); }
-    }));
+    legs.append(chip(`${p.height_mm}`, n?.leg === p.sku,
+      hooked ? `an extension is flush with what it hooks to — it takes the same legs, `
+             + `so this sets them for the whole run` : p.title_en,
+      () => { if (n) setLeg(n, p.sku); }));
+
+  const acts = $("actions"); acts.innerHTML = "";
+  if (n) {
+    if (n.kind !== "ext") acts.append(chip("⟲ turn 90°", false, "rotate this table", () => rotateNode(n)));
+    acts.append(chip("× remove", false,
+      n.kind === "ext" ? "remove this board and anything hooked to it"
+                       : "remove this table and everything hooked to it", () => removeNode(n)));
+  }
 
   const mods = $("modules"); mods.innerHTML = "";
   const frame = n?.kind === "frame" ? n : null;
@@ -654,11 +1001,7 @@ function paintBOM() {
     tr.innerHTML = `<td class="x">${l.node && !l.pl ? "×" : ""}</td>`
       + `<td class="nm" title="${p.sku} — ${p.title_en}">${l.req ? "↳ " : ""}${p.title_en}</td>`
       + `<td class="p">${usd}</td>`;
-    if (l.node && !l.pl) tr.querySelector(".x").onclick = () => {
-      state.nodes = state.nodes.filter(n => n !== l.node);
-      if (state.sel === l.node.id) state.sel = state.nodes[0]?.id ?? null;
-      render();
-    };
+    if (l.node && !l.pl) tr.querySelector(".x").onclick = () => removeNode(l.node);
     t.append(tr);
   }
 
@@ -699,22 +1042,22 @@ function paintWarnings() {
     }
   }
 
-  // A hook-on table cannot stand alone: it hangs off a frame's edge, and its own legs
-  // only hold up the far end.
-  for (const n of state.nodes)
-    if (n.kind === "ext" && neighbours(n).length === 0)
-      add(`${PARTS[n.sku].title_en} hooks onto a frame (or another extension) — `
-        + `on its own it has nothing to hang from.`);
-
   for (const n of state.nodes) {
     if (n.kind !== "frame") continue;
     const used = occupancy(n).filter(Boolean).length;
     if (used === slotsOf(n)) add(`${PARTS[n.sku].title_en}: full, ${used}/${slotsOf(n)} half-slots.`, "warn info");
   }
+
+  // A corner is the only part in the system that changes the direction of a run, and it
+  // is worth saying so out loud -- it is the whole reason an L-shaped kitchen exists.
+  const turns = state.nodes.filter(n => PARTS[n.sku].role === "corner" && n.kind === "ext");
+  if (turns.length)
+    add(`${turns.length} corner${turns.length > 1 ? "s" : ""} — its hooks and its brackets `
+      + `sit on perpendicular edges, so the run turns 90° there.`, "warn info");
 }
 
 function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); }
-function render() { rebuild(); paint(); }
+function render() { resolve(); rebuild(); paint(); }
 
 // ---------------------------------------------------------------- boot
 
@@ -729,6 +1072,7 @@ addEventListener("resize", resize);
 (function loop() {
   requestAnimationFrame(loop);
   controls.update();
+  followHover();
   renderer.render(scene, camera);
 })();
 
@@ -748,23 +1092,31 @@ for (const p of CAT.parts) {
 }
 
 const by = r => CAT.parts.filter(p => p.role === r);
+
+// What can hook: the copy says hook_on AND the photograph says where the hooks are. Both,
+// because the planner needs to know both THAT it hooks and WHICH EDGE hooks. A part with
+// only the first is honestly unplaceable, and is listed as such rather than guessed at.
+const hookRoles = p => HOOKS_ON.has(p.role) && p.assembled_mm;
+HOOKABLE = CAT.parts.filter(p => hookRoles(p) && p.attach === "hook_on"
+  && TEXTURES[p.sku]?.hooks_mm?.length);
+
 BY_ROLE = {
   frame: by("frame").filter(p => p.units).sort((a, b) => a.units - b.units),
   leg: by("leg").filter(p => p.height_mm).sort((a, b) => a.height_mm - b.height_mm),
   slot_module: by("slot_module").filter(p => p.span && p.assembled_mm)
     .sort((a, b) => a.span - b.span || a.title_en.localeCompare(b.title_en)),
-  extension_table: by("extension_table").filter(p => p.assembled_mm),
   layout_table: by("layout_table").filter(p => p.assembled_mm),
   standalone: by("standalone").filter(p => p.assembled_mm),
-  corner: by("corner").filter(p => p.assembled_mm),
+  unsourced: CAT.parts.filter(p => hookRoles(p) && !HOOKABLE.includes(p)),
 };
 
 $("datum").textContent = `${LAYOUT.datum_height_mm}mm`;
 
 // A way in from the console. Being able to put the camera straight overhead is how you
 // check a silhouette; orbiting by hand and squinting is how you convince yourself.
-window.__igt = { THREE, scene, camera, controls, state, PARTS, render,
-  top() { camera.position.set(0.001, 3.2, 0.001); controls.target.set(0.6, 0.8, 0); } };
+window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
+  openEdges, hookAxis, bracketAxis, aabb,
+  top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); } };
 
 resize();
 addNode("CK-150");

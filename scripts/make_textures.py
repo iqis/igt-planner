@@ -126,8 +126,9 @@ def main():
                          "source": url, "outline_mm": ring, **(fit or {})}
         nh = len(fit["hooks_mm"]) if fit else 0
         nl = len(fit["legs_mm"]) if fit else 0
+        nb = fit.get("brackets_found", 0) if fit else 0
         print(f"  {p['sku']:11s} aspect {aspect:5.2f} vs {want:5.2f} ({err:3.0%})   "
-              f"hooks={nh}  legs={nl}")
+              f"hooks={nh}  legs={nl}{'  <-- ' + str(nb) + ' bracket blobs, not 2' if nb != 2 else ''}")
 
     (CATALOG / "textures.json").write_text(json.dumps({
         "_comment": "Top-down product photographs, cropped to the object with the white "
@@ -214,15 +215,32 @@ def measure_fittings(img, box):
 
     # Brackets: bright and colourless, against warm saturated bamboo. That is the whole
     # segmentation -- stainless has no hue and bamboo has plenty.
+    #
+    # Then CLOSE. A bracket is a plate with a big screw hole through the middle and the
+    # board showing through it, so at 1.5mm/px it arrives as rubble, and a 5x5 opening
+    # finished the job: the left corner came back with no brackets at all, and the right
+    # corner with two -- which were the two halves of ONE bracket, 34mm apart, with the
+    # real second bracket missed entirely. Both its legs were drawn in the same place.
+    #
+    # This is the exact opposite of the rule in measure_frame.py, and deliberately so.
+    # There the quarry is the HOLE, and closing welds it shut. Here the quarry is the
+    # PLATE, and closing is what puts it back together. Ask first what you are looking
+    # for -- the thing, or the absence of it.
     mx, mn = a.max(axis=2), a.min(axis=2)
     sat = np.where(mx > 0, (mx - mn) / np.maximum(mx, 1), 0)
-    metal = ndimage.binary_opening(alpha & (mx > 115) & (sat < 0.16), structure=np.ones((5, 5)))
-    legs = [to_mm(x, y) for s_, x, y in blobs(metal, area * 0.0006)]
+    metal = ndimage.binary_opening(alpha & (mx > 105) & (sat < 0.22), structure=np.ones((3, 3)))
+    metal = ndimage.binary_closing(metal, structure=np.ones((5, 5)))
+
+    # A leg SET is two legs, and an extension takes one set. So there are TWO brackets --
+    # not "up to four". Taking the two biggest is a physical fact doing the filtering.
+    found = blobs(metal, area * 0.0006)
+    legs = sorted(to_mm(x, y) for s_, x, y in found[:2])
 
     return {
         "scale_mm_per_px": [round(mmx, 3), round(mmy, 3)],
         "hooks_mm": sorted(hooks)[:4],
-        "legs_mm": sorted(legs)[:4],     # the legs screw into the brackets
+        "legs_mm": legs,                 # the legs screw into the brackets
+        "brackets_found": len(found),    # != 2 means look at the photo before trusting it
     }
 
 
