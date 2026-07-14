@@ -562,6 +562,10 @@ function drawFrame(g, n) {
     // A hanging rack occupies the slots but hangs BELOW -- it is not a tray in the frame.
     if (isHangRack(p2)) { drawHangRack(g, n, pl, cx, top); continue; }
 
+    // A burner is a burner -- heads, grate, a knob -- not a featureless box.
+    const bspec = burnerOf(p2.sku);
+    if (bspec) { drawBurner(g, n, pl, cx, top, bspec); continue; }
+
     const w = railW(p2), d = depthOf(p2), h = p2.assembled_mm?.h ?? 40;
     const y = top - h / 2;   // modules drop IN; nothing sits on the frame any more
 
@@ -698,6 +702,88 @@ function drawJikaro(g, n) {
     if (ux) bar.geometry = new THREE.BoxGeometry(4 * MM, 4 * MM, half * 2 * MM);
     bar.position.set(ux * mid, 8, uz * mid).multiplyScalar(MM);
     g.add(bar);
+  }
+}
+
+// The burners, by what their photographs actually show -- not guessed from dimensions, and
+// not one generic box. Each entry is read off the product shot: how many round heads, or a
+// flat grill plate, and where the control knobs are.
+//
+//   GS-355   black ribbed GRILL PLATE over the whole top (herringbone draining to centre)
+//   GS-450R  one round head, wire pot-support bars, a knob on the canister side
+//   GS-230   TWO round heads side by side, cross grates, two front knobs, a windscreen
+//   GP-040   the frame that drops the GS-1000 in -- one round head
+const BURNERS = {
+  "GS-355":  { plate: true, knobs: 1 },
+  "GS-450R": { heads: 1, knobs: 1 },
+  "GS-230":  { heads: 2, knobs: 2, windscreen: true },
+  "GP-040":  { heads: 1, knobs: 1, mounts: "GS-1000" },
+  "GS-1000": { heads: 1, knobs: 1 },
+};
+const burnerOf = sku => BURNERS[sku] || BURNERS[sku.replace(/-(US|INT|EC|R)$/i, "")];
+
+/** A burner, dropped into the frame -- a stainless body with either a flat grill plate or
+ *  round heads with cross pot-supports, and a control knob on the front. Built in mm and
+ *  scaled at the end, like the frame around it. */
+function drawBurner(g, n, pl, cx, top, spec) {
+  const p = PARTS[pl.sku];
+  const w = railW(p), d = depthOf(p), h = p.assembled_mm?.h ?? 110;
+  const bodyTop = top;                     // the rim sits at the frame's top
+  const steel = new THREE.Color(0x9aa0a8);
+  const dark = new THREE.Color(0x26292e);
+
+  // The stainless housing, dropped in. It is the drag target, so it carries the placement.
+  const body = stock(roundedBox(w * MM, h * MM, d * MM, 3 * MM), steel, 0.85, 0.35);
+  body.position.set(cx, bodyTop - h / 2, 0).multiplyScalar(MM);
+  body.userData.placement = pl; body.userData.node = n;
+  g.add(body); slotMeshes.push(body);
+
+  if (spec.plate) {
+    // A cast grill plate: dark, slightly domed, with a centre valley the ribs drain to.
+    const plate = stock(roundedBox((w - 8) * MM, 10 * MM, (d - 8) * MM, 4 * MM), dark, 0.3, 0.6);
+    plate.position.set(cx, bodyTop + 4, 0).multiplyScalar(MM);
+    g.add(plate);
+    for (let i = -2; i <= 2; i++) {           // rib hint: shallow ridges across the plate
+      const rib = stock(roundedBox((w - 24) * MM, 3 * MM, 5 * MM, 1 * MM), 0x1b1e22, 0.2, 0.7);
+      rib.position.set(cx, bodyTop + 9, i * (d / 6)).multiplyScalar(MM);
+      g.add(rib);
+    }
+  } else {
+    const heads = spec.heads || 1;
+    for (let i = 0; i < heads; i++) {
+      const hx = cx + (heads === 1 ? 0 : (i - (heads - 1) / 2) * (w / heads));
+      const r = Math.min(w / heads, d) * 0.32;
+      // The burner head: a dark ring with a raised centre cap.
+      const ring = stock(new THREE.CylinderGeometry(r * MM, r * MM, 10 * MM, 24), dark, 0.5, 0.5);
+      ring.position.set(hx, bodyTop + 5, 0).multiplyScalar(MM);
+      g.add(ring);
+      const cap = stock(new THREE.CylinderGeometry(r * 0.5 * MM, r * 0.6 * MM, 12 * MM, 20), 0x3a3d42, 0.6, 0.45);
+      cap.position.set(hx, bodyTop + 6, 0).multiplyScalar(MM);
+      g.add(cap);
+      // Cross pot-support: four arms over the head.
+      for (let a = 0; a < 4; a++) {
+        const arm = stock(roundedBox(r * 2.4 * MM, 4 * MM, 6 * MM, 1 * MM), steel, 0.9, 0.3);
+        arm.position.set(hx, bodyTop + 16, 0).multiplyScalar(MM);
+        arm.rotation.y = (a * Math.PI) / 4;
+        g.add(arm);
+      }
+    }
+  }
+
+  // Control knob(s) on the front edge.
+  for (let i = 0; i < (spec.knobs || 0); i++) {
+    const kx = cx + ((spec.knobs === 1 ? 0 : i - (spec.knobs - 1) / 2) * 60);
+    const knob = stock(new THREE.CylinderGeometry(9 * MM, 9 * MM, 10 * MM, 16), 0x1c1f24, 0.4, 0.6);
+    knob.rotation.x = Math.PI / 2;
+    knob.position.set(kx, bodyTop - h * 0.35, d / 2 + 4).multiplyScalar(MM);
+    g.add(knob);
+  }
+
+  // GS-230's windscreen: a low wall along the back.
+  if (spec.windscreen) {
+    const ws = stock(roundedBox((w - 10) * MM, 70 * MM, 3 * MM, 1 * MM), steel, 0.85, 0.35);
+    ws.position.set(cx, bodyTop + 35, -(d / 2 - 6)).multiplyScalar(MM);
+    g.add(ws);
   }
 }
 

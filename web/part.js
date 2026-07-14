@@ -294,6 +294,9 @@ function paintLinks() {
 }
 
 const MM3 = b => b ? `${b.w}×${b.d}×${b.h}mm` : null;
+// A relationship field may be an array (attaches_to: [...]) OR a plain string (the TTA
+// ecosystem sets attaches_to to one). Coerce, so the bench does not throw on a string.
+const list = v => (Array.isArray(v) ? v.join(", ") : v) || null;
 const money = p => [
   p.us && `US $${(p.us / 100).toFixed(0)}`,
   p.jp && `JP ¥${p.jp.toLocaleString()}`,
@@ -333,9 +336,9 @@ function paintFacts() {
     + row("units", p.units)
     + row("height", p.height_mm ? `${p.height_mm}mm` : null)
     + row("needs legs", p.needs_legs === undefined ? null : (p.needs_legs ? "yes" : "no"))
-    + row("contains", (p.contains || []).join(", ") || null)
-    + row("attaches to", (p.attaches_to || []).join(", ") || null)
-    + row("connects to", (p.connects_to || []).join(", ") || null)
+    + row("contains", list(p.contains))
+    + row("attaches to", list(p.attaches_to))
+    + row("connects to", list(p.connects_to))
     + row("mounts", p.mounts)
     + row("mounted by", p.mounted_by)
     + (p.excluded ? row("excluded", "yes — not in the planner", "none") : "")
