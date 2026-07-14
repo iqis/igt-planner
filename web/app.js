@@ -565,6 +565,28 @@ function drawFrame(g, n) {
     const w = railW(p2), d = depthOf(p2), h = p2.assembled_mm?.h ?? 40;
     const y = top - h / 2;   // modules drop IN; nothing sits on the frame any more
 
+    // A wood insert is a bamboo board that drops into the slot -- the SAME kind of object
+    // as an extension table, just sitting in the grid instead of beside it. It was being
+    // drawn as a plain cube while its own plan-view photo and traced outline sat unused.
+    // Give it the board treatment: real silhouette, real grain, top flush with the frame.
+    const grain = textureOf(p2.sku, "grain");
+    const ring = TEXTURES[p2.sku]?.outline_mm;
+    if (grain && ring) {
+      const board = new THREE.Mesh(boardFromOutline(ring, h * MM),
+        grainMaterial(p2, COLORS, grain, w, d, false));
+      board.position.set(cx, top, 0).multiplyScalar(MM);
+      board.userData.placement = pl; board.userData.node = n;
+      g.add(board); slotMeshes.push(board);
+      const tex = textureOf(p2.sku);
+      if (tex) {
+        const decal = new THREE.Mesh(boardFromOutline(ring, 0.4 * MM),
+          boardMaterial(p2, COLORS, tex, w * MM, d * MM, false));
+        decal.position.set(cx, top + 0.4, 0).multiplyScalar(MM);
+        g.add(decal);
+      }
+      continue;
+    }
+
     const m = partMesh(p2, w, h, d);
     m.position.set(cx, y, 0).multiplyScalar(MM);
     m.userData.placement = pl; m.userData.node = n;
