@@ -719,6 +719,9 @@ const BURNERS = {
   "GS-230":  { heads: 2, knobs: 2, windscreen: true },
   "GP-040":  { heads: 1, knobs: 1, mounts: "GS-1000" },
   "GS-1000": { heads: 1, knobs: 1 },
+  // A charcoal BBQ, not a gas burner: a stainless box with a lifted, split top -- a wire
+  // mesh grate on one half, a solid griddle plate on the other. No control knob.
+  "CK-160":  { bbq: true },
 };
 const burnerOf = sku => BURNERS[sku] || BURNERS[sku.replace(/-(US|INT|EC|R)$/i, "")];
 
@@ -738,7 +741,25 @@ function drawBurner(g, n, pl, cx, top, spec) {
   body.userData.placement = pl; body.userData.node = n;
   g.add(body); slotMeshes.push(body);
 
-  if (spec.plate) {
+  if (spec.bbq) {
+    // A charcoal BBQ box: the top lifts and splits in two -- a wire mesh grate on one half,
+    // a solid griddle plate on the other. Raised a little above the rim, the way it sits.
+    const lift = bodyTop + 34;
+    const half = (w - 16) / 2;
+    // left: the grate, shown with a few slats over a dark tray
+    const tray = stock(roundedBox(half * MM, 6 * MM, (d - 12) * MM, 2 * MM), 0x30343a, 0.4, 0.6);
+    tray.position.set(cx - half / 2 - 2, lift, 0).multiplyScalar(MM);
+    g.add(tray);
+    for (let i = -3; i <= 3; i++) {
+      const slat = stock(roundedBox((half - 6) * MM, 3 * MM, 3 * MM, 1 * MM), steel, 0.9, 0.3);
+      slat.position.set(cx - half / 2 - 2, lift + 5, i * (d / 9)).multiplyScalar(MM);
+      g.add(slat);
+    }
+    // right: the solid griddle plate
+    const plate = stock(roundedBox(half * MM, 8 * MM, (d - 12) * MM, 2 * MM), steel, 0.8, 0.4);
+    plate.position.set(cx + half / 2 + 2, lift, 0).multiplyScalar(MM);
+    g.add(plate);
+  } else if (spec.plate) {
     // A cast grill plate: dark, slightly domed, with a centre valley the ribs drain to.
     const plate = stock(roundedBox((w - 8) * MM, 10 * MM, (d - 8) * MM, 4 * MM), dark, 0.3, 0.6);
     plate.position.set(cx, bodyTop + 4, 0).multiplyScalar(MM);

@@ -34,6 +34,27 @@
   "reason": "Garden Unit Table Wood Insert -- the top for GF-015, which is fixed garden furniture. Excluded with its table. (It had been pulled into make_textures as a flat board via FLAT_EXTRA; that is removed too -- it is not an IGT slot insert.)"
  },
 
+ "BG-031": {
+  "role": "storage",
+  "span": null,
+  "holds_units": 1,
+  "inner_dims": true,
+  "reason": "Waterproof Gear Box 1 Unit. NOT a slot insert -- it is a box that HOLDS a unit's worth of gear, and is naturally bigger than a unit all round, so it cannot itself drop into the frame. The US store's '1 Unit' is its CAPACITY (what it holds), not its footprint, and filing it as a slot_module was reading the name as a size. Two tells confirm it: the JP spec is prefixed 内寸 (INNER dimensions) -- 370x260x270 is the CAVITY, the outer shell is larger -- and 370x260 does not even match the slot pattern (250 along-rail x 360 rail-span); it is wider AND shallower. So: role storage, no span, dims flagged as internal. Owner's correction, 2026-07-14."
+ },
+ "BG-032": {
+  "role": "storage",
+  "span": null,
+  "holds_units": 2,
+  "inner_dims": true,
+  "reason": "Waterproof Gear Box 2 Unit. Same as BG-031 -- a storage box that holds TWO units, 内寸 (inner) 530x370x270, bigger than a 2-unit footprint (500x360) in both directions. Not a slot insert; the '2 Unit' is capacity, not size."
+ },
+ "UG-472": {
+  "span": 2,
+  "assembled_mm": {"w": 360, "d": 250, "h": 220},
+  "along_rail_mm": 250,
+  "reason": "Waterproof Unit Gear Bag 220. THIS is a real slot insert (with UG-471) -- a bag that drops into ONE unit slot. Its dimensions were missing because the JP source has a typo: '（H）220×（W）360×（W）250mm' labels the third axis （W） instead of （D）, and the parser could not read two widths. It is 360 (rail span) x 250 (along-rail = 1 unit) x 220 tall -- the SAME 1-unit footprint as UG-471, just deeper (the '220' is the height code, not a unit count). Span stays 2 (one unit). Owner confirmed UG-471/UG-472 are the units that actually embed."
+ },
+
  "CK-220": {
   "span": 4,
   "assembled_mm": {"w": 510, "d": 354, "h": 372},
@@ -123,12 +144,6 @@
  "CK-090": {
   "role": "standalone",
   "reason": "Not an extension piece — it is a table in its own right. The copy: 'The Extension IGT is a two-unit expandable Iron Grill Table... does not require any connection tools or extension pieces... two laminated bamboo tabletops and an aluminum alloy stand.' JP size gives it away too: 1348×498×400(h)mm at 11kg, with its own legs. It stands at 400mm — the Layout System datum — so it joins the system as a node, not as a part bolted to a frame.",
-  "confidence": "high"
- },
-
- "UG-472": {
-  "span": 2,
-  "reason": "Snow Peak's own spec string is malformed: '(H)220x(W)360x(W)250mm' labels two axes W and none D. It is the same body as UG-471 ((H)110x(W)360x(D)250) at double height -- 110/220 in the names are the heights -- so the trailing 250 is the depth, one full unit along the rail.",
   "confidence": "high"
  },
 

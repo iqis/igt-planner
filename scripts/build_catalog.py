@@ -560,7 +560,8 @@ def main():
             # Relationship fields, curated with evidence. `mounts` = what this carries;
             # `mounted_by` = what carries this; `attaches_to` = the surfaces it will go on.
             for rel in ("mounts", "mounted_by", "attaches_to", "needs_legs",
-                        "one_per_frame", "tiers", "has_surface", "mounts_over"):
+                        "one_per_frame", "tiers", "has_surface", "mounts_over",
+                        "holds_units", "inner_dims", "along_rail_mm"):
                 if rel in ov:
                     rec[rel] = ov[rel]
             # CK-220's assembled size is derived (only the packed size is published), so say
