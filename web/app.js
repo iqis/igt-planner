@@ -58,7 +58,6 @@ const rotv = (v, r) => ({
   x: v.x * Math.cos(r) - v.z * Math.sin(r),
   z: v.x * Math.sin(r) + v.z * Math.cos(r),
 });
-const sameAxis = (a, b) => a.x === b.x && a.z === b.z;
 const angleOf = v => Math.atan2(v.z, v.x);
 // Keep rotations in (-pi, pi]. A quarter turn that reports itself as -270 degrees is not
 // wrong, but it is the sort of thing you waste ten minutes on in a debug dump.
@@ -137,46 +136,87 @@ function steps() {
 // The two corners are exact mirrors, measured independently from their own photographs.
 // That is the whole of the 90 degrees, and it was sitting in the data all along.
 
-function axisOf(pts) {
-  if (!pts?.length) return null;
-  const mx = pts.reduce((a, p) => a + p[0], 0) / pts.length;
-  const mz = pts.reduce((a, p) => a + p[1], 0) / pts.length;
-  return Math.abs(mx) >= Math.abs(mz)
-    ? { x: Math.sign(mx), z: 0 }
-    : { x: 0, z: Math.sign(mz) };
+const mean = pts => ({
+  x: pts.reduce((a, p) => a + p[0], 0) / pts.length,
+  z: pts.reduce((a, p) => a + p[1], 0) / pts.length,
+});
+
+/** The outward normal of the board's HOOK edge, in the board's own coordinates.
+ *
+ *  This used to snap to +/-x or +/-z. A rectangle and a quarter round are both axis-aligned,
+ *  so it worked -- right up until an angle extension arrived, whose hook edge faces -30.4
+ *  degrees and got snapped to +x. The board was modelled as STRAIGHT and the entire 60
+ *  degrees vanished into a rounding. Read the measured normal. */
+const hookNormal = sku => {
+  const e = TEXTURES[sku]?.hook_edge;
+  return e ? { x: e[0], z: e[1] } : { x: 1, z: 0 };
+};
+
+/** The signed turn this board imposes on the run: 0 straight, +/-90 a corner, +/-60 an
+ *  angle extension. Snapped to the design intent at measurement time (the same fit that
+ *  reads 60.8 for an angle board reads 90.9 for a corner that is certainly 90), so six
+ *  angle boards close a hexagon EXACTLY and four corners close a rectangle. */
+const turnOf = sku => (TEXTURES[sku]?.turn ?? 0) * Math.PI / 180;
+
+/** The outward normal of the BRACKET edge -- the leg seats, and where the next board hooks.
+ *  Straight on from the hooks, then turned. Derived from the canonical turn rather than
+ *  read raw, so the geometry of a chain closes instead of drifting by a degree a board. */
+function bracketNormal(sku) {
+  const h = hookNormal(sku);
+  return rotv({ x: -h.x, z: -h.z }, turnOf(sku));
 }
 
-/** Which edge of the board, in its OWN coordinates, carries the hooks. */
-const hookAxis = sku => axisOf(TEXTURES[sku]?.hooks_mm) || { x: 1, z: 0 };
-
-/** Which edge carries the brackets -- the leg seats, and the holes the NEXT board hooks
- *  into. The fallback is "opposite the hooks", which is what a straight extension does;
- *  it must never be used for a corner, and it never is, because both corners are measured. */
-function bracketAxis(sku) {
-  const m = axisOf(TEXTURES[sku]?.legs_mm);
-  if (m) return m;
-  const h = hookAxis(sku);
-  return { x: -h.x, z: -h.z };
-}
-
-/** The world-space outward normal of one of a node's local edges. */
-const edgeDir = (n, local) => rotv(local, n.rot);
-
-/** The world-space midpoint of that edge, at the node's working height. */
-function edgeMid(n, local) {
-  const f = footprint(n);
-  const w = rotv({ x: local.x * f.w / 2, z: local.z * f.d / 2 }, n.rot);
-  return { x: n.x + w.x, y: topOf(n), z: n.z + w.z };
-}
-
-/** The length of that edge. */
-const edgeLen = (n, local) => (local.x ? footprint(n).d : footprint(n).w);
+/** Where on the board the hooks are (their midpoint), and where the brackets are.
+ *
+ *  These are the ANCHORS, and they replace "the midpoint of a bounding-box face". A slanted
+ *  edge has no bounding-box face; and even a straight board is really located by its hooks,
+ *  which is what actually drops into what. */
+const hookAnchor = sku => mean(TEXTURES[sku]?.hooks_mm || [[0, 0]]);
+const bracketAnchor = sku => mean(TEXTURES[sku]?.legs_mm || [[0, 0]]);
 
 // The rail joint. Two of them come in the box with a corner, and they are sold on their
 // own as XCK-128-01 (マルチファンクションテーブル レールジョイント2個セット) -- which is
 // filed under spare parts and sits in none of the IGT collections, so a collection sweep
 // never finds it. It took reading a manual.
 const RAIL_JOINT = "XCK-128-01";
+
+// The frame's hook holes sit 16.5mm in from the end face -- measured on CK-149, whose ends
+// are at x = +/-423 and whose holes are at +/-406.5. They are 287.8mm apart in z, and every
+// bamboo board's hooks measure 289-293mm apart: 2mm of clearance, which is exactly what a
+// hook needs to drop in. That agreement, across eight boards and one frame, is what licenses
+// using the hook spacing as a RULER -- and it is how CK-218's published depth was caught.
+const HOLE_INSET = 16.5;
+
+/** An attachment edge, resolved in the host's OWN coordinates.
+ *
+ *  An edge is not an axis. It is a place where two named holes are, facing a particular
+ *  way -- and on an angle extension that way is -30.4 degrees, which no axis can say.
+ *  So an edge carries an ANCHOR (the midpoint of the holes) and a NORMAL (which way it
+ *  faces), and both are measured.
+ */
+function hostEdge(n, key) {
+  const f = footprint(n);
+  if (n.kind === "frame") {
+    if (key === "end+x") return { anchor: { x: f.w / 2 - HOLE_INSET, z: 0 }, normal: { x: 1, z: 0 }, len: f.d };
+    if (key === "end-x") return { anchor: { x: -(f.w / 2 - HOLE_INSET), z: 0 }, normal: { x: -1, z: 0 }, len: f.d };
+    // The long rail. The joints SLIDE, so there is no fixed hole to aim at -- anchor at the
+    // middle of the run and let the joints go wherever the board's hooks land.
+    if (key === "rail+z") return { anchor: { x: 0, z: f.d / 2 }, normal: { x: 0, z: 1 }, len: f.w, rail: true };
+    if (key === "rail-z") return { anchor: { x: 0, z: -f.d / 2 }, normal: { x: 0, z: -1 }, len: f.w, rail: true };
+  }
+  if (n.kind === "ext" && key === "bracket") {
+    // The bracket plates ARE the sockets: the next board's wire hooks come down into them.
+    const lg = TEXTURES[n.sku]?.legs_mm;
+    return {
+      anchor: bracketAnchor(n.sku),
+      normal: bracketNormal(n.sku),
+      len: lg ? Math.hypot(lg[0][0] - lg[1][0], lg[0][1] - lg[1][1]) * 1.35 : 400,
+    };
+  }
+  return null;
+}
+
+const EDGE_KEYS = { frame: ["end+x", "end-x", "rail+z", "rail-z"], ext: ["bracket"], table: [] };
 
 /** Every edge of this node that an extension could still hook onto.
  *
@@ -195,23 +235,24 @@ const RAIL_JOINT = "XCK-128-01";
  *  not. A hole you cannot find is not a hole that isn't there.
  *
  *  A HOOKED board offers exactly one edge in turn: the one carrying its brackets, which
- *  hold both its legs and the holes for the next board. Straight extension -> that edge
- *  is opposite its hooks, and the run goes on. Corner -> it is perpendicular, and the
- *  run turns. Same rule, different measurement.
+ *  hold both its legs and the holes for the next board.
  */
 function openEdges(n) {
-  const local = n.kind === "frame"
-      ? [{ x: 1, z: 0 }, { x: -1, z: 0 }, { x: 0, z: 1 }, { x: 0, z: -1 }]
-      : n.kind === "ext" ? [bracketAxis(n.sku)]
-      : [];
-  const taken = state.nodes.filter(m => m.kind === "ext" && m.host === n.id);
-  return local
-    .filter(e => !taken.some(m => sameAxis(m.edge, e)))
-    .map(e => ({
-      node: n, local: e, dir: edgeDir(n, e), mid: edgeMid(n, e), len: edgeLen(n, e),
-      // A frame's long side is rail, and rail needs a joint. Its short ends do not.
-      rail: n.kind === "frame" && e.z !== 0,
-    }));
+  const taken = new Set(state.nodes.filter(m => m.kind === "ext" && m.host === n.id)
+                                   .map(m => m.edge));
+  const out = [];
+  for (const key of EDGE_KEYS[n.kind] || []) {
+    if (taken.has(key)) continue;
+    const e = hostEdge(n, key);
+    if (!e) continue;
+    const a = rotv(e.anchor, n.rot);
+    out.push({
+      node: n, key, len: e.len, rail: !!e.rail,
+      dir: rotv(e.normal, n.rot),
+      mid: { x: n.x + a.x, y: topOf(n), z: n.z + a.z },
+    });
+  }
+  return out;
 }
 
 const anyOpenEdge = () => state.nodes.some(n => openEdges(n).length > 0);
@@ -220,24 +261,26 @@ const anyOpenEdge = () => state.nodes.some(n => openEdges(n).length > 0);
 
 /** Put a hooked board where its hooks are.
  *
- *  Turn it so its hook edge faces back at the host, then slide it until the midpoint of
- *  that edge lands on the midpoint of the host's edge. Both midpoints are the real ones,
- *  taken from the measured axes -- which is the only reason this works for a quarter
- *  round, whose two straight edges are two different sides of its bounding box.
+ *  Turn it so its hook edge faces back at the host, then slide it until its HOOKS land on
+ *  the host's HOLES. Not "until its bounding box butts against the host's" -- an angle
+ *  extension's hook edge is at -30.4 degrees and its bounding box has nothing to do with
+ *  the joint. What drops into what is the hooks, so that is what the model aligns.
  */
 function place(n) {
   const h = byId(n.host);
   if (!h) return;
-  const dir = edgeDir(h, n.edge);
-  const at = edgeMid(h, n.edge);
-  const have = hookAxis(n.sku);
+  const e = hostEdge(h, n.edge);
+  if (!e) return;
 
-  n.rot = norm(angleOf({ x: -dir.x, z: -dir.z }) - angleOf(have));
+  const dir = rotv(e.normal, h.rot);
+  const a = rotv(e.anchor, h.rot);
+  const at = { x: h.x + a.x, z: h.z + a.z };
 
-  const f = footprint(n);
-  const lm = rotv({ x: have.x * f.w / 2, z: have.z * f.d / 2 }, n.rot);
-  n.x = at.x - lm.x;
-  n.z = at.z - lm.z;
+  n.rot = norm(angleOf({ x: -dir.x, z: -dir.z }) - angleOf(hookNormal(n.sku)));
+
+  const w = rotv(hookAnchor(n.sku), n.rot);
+  n.x = at.x - w.x;
+  n.z = at.z - w.z;
 
   // A board flush with its host stands at its host's height, so it takes its host's legs.
   // Arithmetic, not preference -- the same argument as the 400mm datum.
@@ -595,7 +638,7 @@ function rebuild() {
 
   // The meshes are new every rebuild, so the highlight has to be re-applied to them --
   // and an edge that has just been filled is no longer an edge.
-  if (hover && !openEdges(hover.node).some(e => sameAxis(e.local, hover.local))) setHover(null);
+  if (hover && !openEdges(hover.node).some(e => e.key === hover.key)) setHover(null);
   else paintHover();
 }
 
@@ -616,7 +659,7 @@ function toScreen(mm) {
 function paintHover() {
   for (const m of edgeMeshes)
     m.material.opacity = hover && m.userData.edge.node.id === hover.node.id
-      && sameAxis(m.userData.edge.local, hover.local) ? 0.42 : 0;
+      && m.userData.edge.key === hover.key ? 0.42 : 0;
 }
 
 /** Keep the button glued to its edge while the camera orbits. */
@@ -633,7 +676,7 @@ function followHover() {
 }
 
 function setHover(e) {
-  const same = e && hover && e.node.id === hover.node.id && sameAxis(e.local, hover.local);
+  const same = e && hover && e.node.id === hover.node.id && e.key === hover.key;
   if (same) return;
   hover = e;
   menu.hidden = true;
@@ -680,7 +723,7 @@ function paintMenu() {
     row.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
       + `<span class="nm">${p.title_en}</span><span class="sp">${usd}</span>`;
     row.title = `${p.sku} — ${p.assembled_mm.w}×${p.assembled_mm.d}mm`;
-    row.onclick = () => { attach(p.sku, hover.node, hover.local); setHover(null); };
+    row.onclick = () => { attach(p.sku, hover.node, hover.key); setHover(null); };
     menu.append(row);
   }
 }
@@ -840,7 +883,7 @@ function addNode(sku) {
     // there is nowhere for it to go, and the palette row is dead anyway.
     for (const h of [sel(), ...state.nodes].filter(Boolean)) {
       const e = openEdges(h)[0];
-      if (e) return attach(sku, h, e.local);
+      if (e) return attach(sku, h, e.key);
     }
     return;
   }
@@ -866,11 +909,11 @@ function addNode(sku) {
  *
  *  A board on the frame's LONG rail hangs from a rail joint, so the joint goes in the BOM.
  *  Two per board, and they come as a pair (XCK-128-01 is a 2-piece set) -- so one set. */
-function attach(sku, host, local) {
+function attach(sku, host, key) {
   const n = {
-    id: state.nextId++, sku, kind: "ext", host: host.id, edge: local,
+    id: state.nextId++, sku, kind: "ext", host: host.id, edge: key,
     x: 0, z: 0, rot: 0, leg: host.leg, placements: [],
-    rail: host.kind === "frame" && local.z !== 0,
+    rail: key.startsWith("rail"),
   };
   state.nodes.push(n);
   state.sel = n.id;
@@ -1087,12 +1130,16 @@ function paintWarnings() {
     if (used === slotsOf(n)) add(`${PARTS[n.sku].title_en}: full, ${used}/${slotsOf(n)} half-slots.`, "warn info");
   }
 
-  // A corner is the only part in the system that changes the direction of a run, and it
-  // is worth saying so out loud -- it is the whole reason an L-shaped kitchen exists.
-  const turns = state.nodes.filter(n => PARTS[n.sku].role === "corner" && n.kind === "ext");
-  if (turns.length)
-    add(`${turns.length} corner${turns.length > 1 ? "s" : ""} — its hooks and its brackets `
-      + `sit on perpendicular edges, so the run turns 90° there.`, "warn info");
+  // What the run actually does. A corner turns it 90°, an angle extension 60° -- measured
+  // off the plan views, not read off a name: the two are filed under the same role and only
+  // the angle between their hook edge and their bracket edge tells them apart.
+  const turns = state.nodes.filter(n => n.kind === "ext" && (TEXTURES[n.sku]?.turn ?? 0) !== 0);
+  if (turns.length) {
+    const total = turns.reduce((a, n) => a + TEXTURES[n.sku].turn, 0);
+    const parts = turns.map(n => `${TEXTURES[n.sku].turn > 0 ? "+" : ""}${TEXTURES[n.sku].turn}°`);
+    add(`The run turns ${parts.join(" ")} = ${total > 0 ? "+" : ""}${total}° in total`
+      + (Math.abs(total) === 360 ? " — it closes." : "."), "warn info");
+  }
 }
 
 function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); }
@@ -1154,7 +1201,7 @@ $("datum").textContent = `${LAYOUT.datum_height_mm}mm`;
 // A way in from the console. Being able to put the camera straight overhead is how you
 // check a silhouette; orbiting by hand and squinting is how you convince yourself.
 window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
-  openEdges, hookAxis, bracketAxis, aabb,
+  openEdges, hookNormal, bracketNormal, turnOf, hostEdge, aabb,
   top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); } };
 
 resize();

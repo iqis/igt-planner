@@ -543,6 +543,14 @@ def main():
             if "attach" in ov:
                 rec["attach"] = ov["attach"]
                 rec["attach_evidence"] = ov.get("reason")
+            if "assembled_mm" in ov:
+                # THE PLAN VIEW WINS. It is the only orthographic, in-system, checkable
+                # record of a part's shape, and where it disagrees with the spec table the
+                # spec table is what gets corrected. `published_mm` keeps the vendor's
+                # number visible so the disagreement stays on the record instead of being
+                # quietly overwritten.
+                rec["published_mm"] = rec.get("assembled_mm")
+                rec["assembled_mm"] = ov["assembled_mm"]
             if "span" in ov:
                 rec["span"] = ov["span"]
                 rec["span_source"] = "curated" if ov["span"] else None

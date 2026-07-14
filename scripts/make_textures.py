@@ -19,6 +19,7 @@ Usage:
 
 import io
 import json
+import math
 import sys
 import time
 import urllib.request
@@ -150,6 +151,7 @@ def main():
             continue
 
         fit = measure_fittings(cut, box)
+        edges = measure_edges(cut, box, fit)
         ring = outline_mm(cut, box)
 
         grain_from(cut).save(TEX / f"{p['sku']}_grain.jpg", quality=88)
@@ -162,15 +164,19 @@ def main():
                          "wanted": round(want, 3), "aspect_error": round(err, 3),
                          "source": url,
                          "picked_by": "declared" if told else "aspect",
-                         "outline_mm": ring, **(fit or {})}
+                         "outline_mm": ring, **(fit or {}), **edges}
         nh, nb = (fit or {}).get("hooks_found", 0), (fit or {}).get("brackets_found", 0)
         how = "told " if told else "guess"
         flag = ""
         if nh not in (0, 2) or nb not in (0, 2):
             flag = f"   <-- {nh} hook / {nb} bracket blobs; look at the photo"
+        turn = ""
+        if edges:
+            turn = (f"  turn {edges['turn']:4.0f}deg"
+                    + (f" (measured {edges['turn_deg']})" if edges["turn_snapped"] else " (NOT a design angle)"))
         print(f"  {p['sku']:11s} {how} aspect {aspect:5.2f} vs {want:5.2f} ({err:3.0%})   "
               f"hooks={len(fit['hooks_mm']) if fit else 0}  "
-              f"legs={len(fit['legs_mm']) if fit else 0}{flag}")
+              f"legs={len(fit['legs_mm']) if fit else 0}{turn}{flag}")
 
     (CATALOG / "textures.json").write_text(json.dumps({
         "_comment": "Top-down product photographs, cropped to the object with the white "
@@ -339,6 +345,117 @@ def measure_fittings(img, box):
     }
 
 
+
+
+# ---------------------------------------------------------------------------
+# Which way an edge FACES.
+#
+# The planner used to snap every edge to +/-x or +/-z. A rectangle and a quarter round are
+# both axis-aligned, so it worked, and it went on working right up until an angle extension
+# arrived -- whose hook edge faces -30 degrees and got snapped to +x, i.e. modelled as a
+# straight board. The whole 60-degree turn vanished into a rounding.
+#
+# So measure the angle. Two identical fittings mounted the same way give a line PARALLEL to
+# their edge -- but only parallel, and only to a degree or two, and a degree or two chained
+# down a run is a table that misses the frame. Use the fitting line to FIND the edge, then
+# fit the edge to the hundreds of boundary pixels lying along it.
+#
+# Do it in PIXEL space. Pixels are square; millimetres, in a frame whose two published
+# dimensions disagree with each other by 7%, are not.
+# ---------------------------------------------------------------------------
+
+# What a board is FOR. SIGNED, because a left corner and a right corner are the same
+# ninety degrees going opposite ways, and a planner that loses the sign cannot tell them
+# apart. Six 60s close a hexagon; four 90s close a rectangle.
+DESIGN_TURNS = [0.0, 45.0, -45.0, 60.0, -60.0, 90.0, -90.0, 180.0]
+SNAP_TOL = 1.5                             # ...if the measurement lands this close
+
+
+def edge_normal(boundary_px, a, b, corridor=70.0, pad=0.12, band=8.0):
+    """The outward normal of the board edge that the fitting pair (a, b) sits on.
+
+    The trap: a corridor drawn around the fitting line also catches the ROUNDED CORNERS
+    and, past them, a stretch of the PERPENDICULAR edge. On CK-117TR that dragged the fit
+    5.5 degrees off vertical -- a straight board that turned. Tightening the box does not
+    fix it; the shape does. The edge is a straight run at a nearly CONSTANT offset from the
+    fitting line, so its offsets pile into a sharp peak, while a rounded corner sweeps
+    across every offset there is. Keep the peak.
+    """
+    d = b - a
+    L = float(np.linalg.norm(d))
+    if L < 1:
+        return None
+    d = d / L
+    n = np.array([-d[1], d[0]])
+
+    t = (boundary_px - a) @ d
+    s = (boundary_px - a) @ n
+    sel = (np.abs(s) < corridor) & (t > -pad * L) & (t < L + pad * L)
+    if sel.sum() < 40:
+        return None
+
+    ss = s[sel]
+    hist, edges = np.histogram(ss, bins=max(8, int(2 * corridor / 3)))
+    peak = (edges[hist.argmax()] + edges[hist.argmax() + 1]) / 2
+    E = boundary_px[sel][np.abs(ss - peak) < band]
+    if len(E) < 30:
+        return None
+
+    c = E.mean(axis=0)
+    u = np.linalg.svd(E - c)[2][0]          # the edge's own direction
+    nn = np.array([-u[1], u[0]])
+    if nn @ c < 0:
+        nn = -nn                            # outward: away from the board's centre
+    return nn / np.linalg.norm(nn)
+
+
+def measure_edges(img, box, fit):
+    """Hook-edge and bracket-edge normals, and the turn the board imposes on a run."""
+    if not fit or len(fit["hooks_mm"]) != 2 or len(fit["legs_mm"]) != 2:
+        return {}
+
+    alpha = np.asarray(img)[:, :, 3] > 128
+    board = ndimage.binary_opening(alpha, structure=np.ones((11, 11)))
+    ys, xs = np.nonzero(board)
+    x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
+    W, H = x1 - x0 + 1, y1 - y0 + 1
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+
+    e = board & ~ndimage.binary_erosion(board)
+    ey, ex = np.nonzero(e)
+    B = np.column_stack([ex - cx, ey - cy]).astype(float)
+
+    mmx, mmy = box["w"] / W, box["d"] / H
+    to_px = lambda p: np.array([p[0] / mmx, p[1] / mmy])
+
+    nh = edge_normal(B, *[to_px(p) for p in fit["hooks_mm"]])
+    nb = edge_normal(B, *[to_px(p) for p in fit["legs_mm"]])
+    if nh is None or nb is None:
+        return {}
+
+    deg = lambda v: math.degrees(math.atan2(v[1], v[0]))
+
+    # The TURN, signed: how far the outgoing edge has swung from straight-on. A board that
+    # carries the run straight has its brackets facing exactly opposite its hooks, so start
+    # from -n_h and ask how far n_b has rotated off it. Sign is the whole difference between
+    # a left corner and a right one.
+    turn = (deg(nb) - (deg(nh) + 180) + 180) % 360 - 180
+
+    # A board is FOR something. Measured, the corners come out 89.9 and 90.9, and the angle
+    # extensions 60.8 and 60.6 -- the same method, and the corners are certainly 90. So snap
+    # to the intent when the measurement lands within 1.5 degrees of it, and keep the
+    # measurement on the record. Six 60s then close a hexagon exactly, which is the point.
+    near = sorted((t for t in DESIGN_TURNS if abs(turn - t) <= SNAP_TOL),
+                  key=lambda t: abs(turn - t))
+    canon = near[0] if near else round(turn, 1)
+
+    return {
+        "hook_edge": [round(float(nh[0]), 4), round(float(nh[1]), 4)],
+        "bracket_edge": [round(float(nb[0]), 4), round(float(nb[1]), 4)],
+        "turn_deg": round(turn, 1),
+        "turn": canon,
+        "turn_snapped": bool(near),
+    }
 
 
 def grain_from(img):

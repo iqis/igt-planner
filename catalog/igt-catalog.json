@@ -735,7 +735,7 @@
    ],
    "assembled_mm": {
     "w": 990.0,
-    "d": 496.0,
+    "d": 465.0,
     "h": 25.0
    },
    "packed_mm": null,
@@ -757,8 +757,13 @@
     "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0103"
    },
    "attach": "hook_on",
-   "attach_evidence": "The copy never says how the angle extensions attach, and their plan view shows the hooks only if you look for them on the SLANTED edge -- which the detector could not, because it tested for protrusion past the BOUNDING BOX. Two sources settle it. LV-381's manual, in English: 'it is possible to connect this product with a Bamboo IGT Table Regular / Long, Bamboo Left/Right Angle Extension, Bamboo Left / Right Corner Extension (CK-117TR, CK-218, CK-219, CK-118TR, CK-119TR)' -- the angle extensions are named alongside the corners as things that hook on. And the owner pointed at the hooks in the top view (right-hand edge) and at the close-up (JP a009): the same stainless wire hook, let into a slot in the board's edge, arching out and bending straight down.",
-   "curated_reason": "The copy never says how the angle extensions attach, and their plan view shows the hooks only if you look for them on the SLANTED edge -- which the detector could not, because it tested for protrusion past the BOUNDING BOX. Two sources settle it. LV-381's manual, in English: 'it is possible to connect this product with a Bamboo IGT Table Regular / Long, Bamboo Left/Right Angle Extension, Bamboo Left / Right Corner Extension (CK-117TR, CK-218, CK-219, CK-118TR, CK-119TR)' -- the angle extensions are named alongside the corners as things that hook on. And the owner pointed at the hooks in the top view (right-hand edge) and at the close-up (JP a009): the same stainless wire hook, let into a slot in the board's edge, arching out and bending straight down."
+   "attach_evidence": "ATTACH: the copy never says how the angle extensions attach, and their plan view shows the hooks only if you look for them on the SLANTED edge -- which the detector could not, because it tested for protrusion past the BOUNDING BOX. Two sources settle it. LV-381's manual, in English: 'it is possible to connect this product with a Bamboo IGT Table Regular / Long, Bamboo Left/Right Angle Extension, Bamboo Left / Right Corner Extension (CK-117TR, CK-218, CK-219, CK-118TR, CK-119TR)'. And the owner pointed at the hooks in the top view and at the close-up (JP a009): the same stainless wire hook, let into a slot in the board's edge, arching out and bending straight down. DEPTH: Snow Peak publishes 990x496, but that aspect (1.996) contradicts its own photograph (2.13) by 7% -- on BOTH mirror products, from two independent shots, while CK-117TR and CK-119TR agree with theirs to 0.6% and 0.3%. The hook spacing settles which number is wrong: it must match the frame's end holes (287.8mm), and it is 288-292mm on every other bamboo board. At the published scale CK-218's hooks come out 304mm apart -- a 5% outlier that would not enter the holes. At 990x465 they come out 289mm, the scale is isotropic (1.3866 vs 1.3881 mm/px), and the published WIDTH is reproduced to 0.4%. So 990 is real and 496 is not the bounding box; what Snow Peak means by it, I do not know, and am not going to invent. This matters because the ANGLE is measured in this frame: at the published scale the leg reads 61.2deg (turn 57.6), and at the true one 59.7deg (TURN 60.0).",
+   "published_mm": {
+    "w": 990.0,
+    "d": 496.0,
+    "h": 25.0
+   },
+   "curated_reason": "ATTACH: the copy never says how the angle extensions attach, and their plan view shows the hooks only if you look for them on the SLANTED edge -- which the detector could not, because it tested for protrusion past the BOUNDING BOX. Two sources settle it. LV-381's manual, in English: 'it is possible to connect this product with a Bamboo IGT Table Regular / Long, Bamboo Left/Right Angle Extension, Bamboo Left / Right Corner Extension (CK-117TR, CK-218, CK-219, CK-118TR, CK-119TR)'. And the owner pointed at the hooks in the top view and at the close-up (JP a009): the same stainless wire hook, let into a slot in the board's edge, arching out and bending straight down. DEPTH: Snow Peak publishes 990x496, but that aspect (1.996) contradicts its own photograph (2.13) by 7% -- on BOTH mirror products, from two independent shots, while CK-117TR and CK-119TR agree with theirs to 0.6% and 0.3%. The hook spacing settles which number is wrong: it must match the frame's end holes (287.8mm), and it is 288-292mm on every other bamboo board. At the published scale CK-218's hooks come out 304mm apart -- a 5% outlier that would not enter the holes. At 990x465 they come out 289mm, the scale is isotropic (1.3866 vs 1.3881 mm/px), and the published WIDTH is reproduced to 0.4%. So 990 is real and 496 is not the bounding box; what Snow Peak means by it, I do not know, and am not going to invent. This matters because the ANGLE is measured in this frame: at the published scale the leg reads 61.2deg (turn 57.6), and at the true one 59.7deg (TURN 60.0)."
   },
   {
    "sku": "CK-219",
@@ -773,7 +778,7 @@
    ],
    "assembled_mm": {
     "w": 990.0,
-    "d": 496.0,
+    "d": 465.0,
     "h": 25.0
    },
    "packed_mm": null,
@@ -795,8 +800,13 @@
     "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0104"
    },
    "attach": "hook_on",
-   "attach_evidence": "Mirror of CK-218; same evidence (LV-381's manual names both, and the plan view shows the same wire hooks on its slanted edge).",
-   "curated_reason": "Mirror of CK-218; same evidence (LV-381's manual names both, and the plan view shows the same wire hooks on its slanted edge)."
+   "attach_evidence": "Mirror of CK-218; same evidence and the same 6.4% aspect discrepancy in its own photograph, independently shot. Measured turn: 60.6deg.",
+   "published_mm": {
+    "w": 990.0,
+    "d": 496.0,
+    "h": 25.0
+   },
+   "curated_reason": "Mirror of CK-218; same evidence and the same 6.4% aspect discrepancy in its own photograph, independently shot. Measured turn: 60.6deg."
   },
   {
    "sku": "CK-300",
