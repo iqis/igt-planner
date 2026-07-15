@@ -1086,12 +1086,13 @@ function paintMenu() {
 }
 
 /** The menu for a free slot inside a frame: the unit accessories that fit the space left
- *  HERE. A module needs `span` contiguous free half-slots from the hovered one; anything
- *  wider than the run is left out, so the list is exactly what can still go in. */
+ *  HERE. "Here" is the whole contiguous free run the slot sits in, measured BOTH ways -- so
+ *  the half-slot beside an occupied one still offers a full unit if the run continues past it.
+ *  A part needs `span` <= that run; anything wider is left out. */
 function paintSlotMenu() {
   menu.innerHTML = "";
   const n = hover.node, start = hover.start;
-  const free = freeRunFrom(n, start);
+  const free = freeBlock(n, start)?.len ?? 0;
   const head = document.createElement("div");
   head.className = "mhead";
   head.textContent = `${free / 2}u free here — a unit accessory that fits`;
@@ -1100,7 +1101,7 @@ function paintSlotMenu() {
   const list = [...BY_ROLE.slot_module, ...BY_ROLE.hang_rack];
   let offered = 0;
   for (const p of list) {
-    if (spanOf(p) > free || !canPlaceAt(n, start, spanOf(p))) continue;   // will not fit here
+    if (spanOf(p) > free) continue;                                      // wider than the run
     if (isHangRack(p) && hasHangRack(n)) continue;                        // one rack per frame
     const c = compat(p.sku, n.sku);
     if (c.level === "blocked") continue;
@@ -1445,23 +1446,32 @@ function placeModule(sku) {
   render();
 }
 
-/** Place a module at a SPECIFIC half-slot -- the one the pointer was over. Same rules as
- *  placeModule, just an exact spot instead of the first that fits. */
-function placeModuleAt(sku, n, start) {
+/** Place a module in the free run the pointer was over. The module covers the pointed cell
+ *  and fits inside the run: it starts there and extends right, sliding LEFT only as far as it
+ *  must to fit. So hovering the half-slot beside an occupied one still lets a whole unit go in
+ *  when the space on the OTHER side is free -- the bug was measuring the run in one direction. */
+function placeModuleAt(sku, n, cell) {
   if (!n || n.kind !== "frame") return;
   if (isHangRack(PARTS[sku]) && hasHangRack(n)) return;
   const span = spanOf(PARTS[sku]);
+  const b = freeBlock(n, cell);
+  if (!b || span > b.len) return;
+  const start = Math.max(b.lo, Math.min(cell, b.hi - span + 1));
   if (!canPlaceAt(n, start, span)) return;
   n.placements.push({ sku, span, start });
   render();
 }
 
-/** How many contiguous free half-slots run from `start` -- the biggest module that fits here. */
-function freeRunFrom(n, start) {
+/** The maximal run of contiguous FREE half-slots that CONTAINS `cell` -- extended BOTH ways
+ *  to the next occupied cell or the frame's end. This is the real space available at a slot;
+ *  counting only forwards said "0.5u" next to a half-unit even with a clear unit to its left. */
+function freeBlock(n, cell) {
   const cells = occupancy(n);
-  let k = 0;
-  for (let i = start; i < cells.length && !cells[i]; i++) k++;
-  return k;
+  if (cells[cell]) return null;
+  let lo = cell, hi = cell;
+  while (lo > 0 && !cells[lo - 1]) lo--;
+  while (hi < cells.length - 1 && !cells[hi + 1]) hi++;
+  return { lo, hi, len: hi - lo + 1 };
 }
 
 // ---------------------------------------------------------------- ui
