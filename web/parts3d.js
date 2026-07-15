@@ -672,6 +672,49 @@ export function bambooShelfGroup(w, d, h, { frame = 0xcfd3d7, wood = 0xcaa96b, w
   return { group: g, body: top };
 }
 
+/** Snow Peak Take! Bamboo Chair (LV-085): the tricky one -- natural BAMBOO X-legs, a slim
+ *  aluminium seat frame + back posts, and a draped cream cotton-canvas seat & back. Feet at
+ *  y = 0, faces +z. Modelled from the LV-085 photos (curves approximated with straight tubes). */
+export function takeChairGroup(w, d, h, { frame = 0xcfd3d7, fabric = 0xefe6d0, wood = 0xd8bd86, canvasTex = null } = {}) {
+  const g = new THREE.Group();
+  const alu = metalE(frame, 0.85, 0.32);
+  const bambooMat = new THREE.MeshStandardMaterial({ color: wood, roughness: 0.55, metalness: 0.03 });
+  const cloth = new THREE.MeshStandardMaterial({ color: fabric, map: canvasTex || null, roughness: 0.9, side: THREE.DoubleSide });
+  const cyl = (a, b, r, mat) => {
+    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), mat);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m); return m;
+  };
+  const tube = (a, b, r = 8) => cyl(a, b, r, alu);
+  const pole = (a, b, r = 13) => cyl(a, b, r, bambooMat);
+  const box = (bw, bh, bd, x, y, z, rx = 0) => {
+    const m = new THREE.Mesh(roundedBox(bw * MM, bh * MM, bd * MM, 4 * MM), cloth);
+    m.position.set(x * MM, y * MM, z * MM); m.rotation.x = rx; g.add(m); return m;
+  };
+  const seatH = Math.round(h * 0.44), sw = w / 2 - 40, sd = d / 2 - 120, fd = d / 2 + 10;
+  // bamboo X-legs on each side (front-top crosses to back-foot, and vice versa), splayed out
+  for (const sx of [-1, 1]) {
+    const X = sx * sw;
+    pole([X, seatH, sd], [sx * (sw + 40), 8, -fd]);
+    pole([X, seatH, -sd], [sx * (sw + 40), 8, fd]);
+    for (const z of [-fd, fd]) {
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(14 * MM, 15 * MM, 10 * MM, 10), metalE(0x2a2c30, 0.1, 0.85));
+      cap.position.set(sx * (sw + 40) * MM, 5 * MM, z * MM); g.add(cap);
+    }
+  }
+  // aluminium seat frame (a hoop) + back posts
+  for (const zc of [sd, -sd]) tube([-sw, seatH, zc], [sw, seatH, zc]);
+  for (const sx of [-1, 1]) tube([sx * sw, seatH, sd], [sx * sw, seatH, -sd]);
+  for (const sx of [-1, 1]) tube([sx * sw, seatH, -sd], [sx * (sw - 8), h, -sd - 45]);
+  // draped cream canvas: a slung seat and a back panel
+  box(2 * sw - 6, 10, 2 * sd, 0, seatH - 6, 10, 0);
+  const bBot = seatH + 150, bTop = h - 25;
+  box(2 * sw - 6, bTop - bBot, 10, 0, (bBot + bTop) / 2, -sd - 32, -0.13);
+  return { group: g, body: g.children[0] };
+}
+
 /** The Jikaro: an octagonal ring of four trapezoid segments with the fire hole in the
  *  middle, standing on folding wire legs. `ringMat` paints the ring; `color` the wire.
  *  Ring top at y = 0, legs to -height. */

@@ -6,7 +6,8 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          jikaroGroup, jikaroBridge, hangRackGroup, slideExtGroup,
          entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop,
          foldingChairGroup, lowBeachChairGroup, campfieldSofaGroup,
-         loungeCushionGroup, foldingBenchGroup, bambooShelfGroup } from "./parts3d.js";
+         loungeCushionGroup, foldingBenchGroup, bambooShelfGroup,
+         takeChairGroup } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -930,7 +931,7 @@ function drawSlideExt(g, n) {
 }
 
 // Prop geometry by `chair` type. A prop's builder takes (w, d, h, opts) and returns { group }.
-const PROP_BUILDERS = { folding: foldingChairGroup, lowbeach: lowBeachChairGroup, sofa: campfieldSofaGroup, cushion: loungeCushionGroup, bench: foldingBenchGroup, shelf: bambooShelfGroup };
+const PROP_BUILDERS = { folding: foldingChairGroup, lowbeach: lowBeachChairGroup, sofa: campfieldSofaGroup, cushion: loungeCushionGroup, bench: foldingBenchGroup, shelf: bambooShelfGroup, take: takeChairGroup };
 
 /** A free-standing prop (a chair): built at floor level (y = 0), tagged for selection + drag like
  *  a table but never connected to the IGT grid -- no hooks, no bay, no legs. */

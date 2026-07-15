@@ -367,7 +367,7 @@
    }
   }
  },
- "count": 109,
+ "count": 110,
  "unmatched_sku": [
   "CK-904SET",
   "CK-080SET",
@@ -2850,6 +2850,46 @@
    "frame_hex": "0xbfc3c7",
    "fabric_hex": "0x962436",
    "chair": "folding",
+   "fabric_type": "canvas"
+  },
+  {
+   "sku": "LV-085",
+   "handle": null,
+   "title_en": "Take! Bamboo Chair",
+   "title_jp": "Take!チェア",
+   "barcode": "",
+   "role": "seating",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 549,
+    "d": 630,
+    "h": 749
+   },
+   "packed_mm": {
+    "w": 100.0,
+    "d": 150.0,
+    "h": 980.0
+   },
+   "weight_g": 3000,
+   "material": "フレーム／竹集成材・アルミニウム合金、金具／ステンレス、シート／綿帆布（6号）",
+   "price": {
+    "us": 21995,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": "https://www.snowpeak.com/cdn/shop/files/take1_v1.jpg?width=1000",
+   "url": {
+    "us": "https://www.snowpeak.com/products/take-bamboo-chair-short-lv-085",
+    "jp": null
+   },
+   "curated_reason": "Take! Bamboo Chair (LV-085): the signature Snow Peak chair -- natural BAMBOO X-legs, a slim aluminium seat frame + back posts, a draped cream cotton-canvas seat & back. The hard one (curves approximated with straight tubes). 549x630x749, ~330 seat. chair type 'take'.",
+   "seat_h_mm": 330,
+   "frame_hex": "0xcfd3d7",
+   "fabric_hex": "0xefe6d0",
+   "wood_hex": "0xd8bd86",
+   "chair": "take",
    "fabric_type": "canvas"
   },
   {

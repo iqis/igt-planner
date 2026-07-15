@@ -181,6 +181,16 @@
    "image": null,
    "url": {"us": "https://www.snowpeak.com/collections/bamboo", "jp": null},
    "reason": "Bamboo Folding Bench / Shelf, regular (LV-065TR): the shorter sibling of LV-066TR, same bamboo-top-on-folding-X-legs form. Reuses the shelf builder. Dims ~590x300x340 are ESTIMATED (no clean US spec found) -- shorter than the Long."
+  },
+  "LV-085": {
+   "role": "seating", "title_en": "Take! Bamboo Chair",
+   "assembled_mm": {"w": 549, "d": 630, "h": 749}, "seat_h_mm": 330,
+   "price": {"us": 21995, "jp": null, "uk": null},
+   "frame_hex": "0xcfd3d7", "fabric_hex": "0xefe6d0", "wood_hex": "0xd8bd86",
+   "chair": "take", "fabric_type": "canvas",
+   "image": "https://www.snowpeak.com/cdn/shop/files/take1_v1.jpg?width=1000",
+   "url": {"us": "https://www.snowpeak.com/products/take-bamboo-chair-short-lv-085", "jp": null},
+   "reason": "Take! Bamboo Chair (LV-085): the signature Snow Peak chair -- natural BAMBOO X-legs, a slim aluminium seat frame + back posts, a draped cream cotton-canvas seat & back. The hard one (curves approximated with straight tubes). 549x630x749, ~330 seat. chair type 'take'."
   }
  },
 
