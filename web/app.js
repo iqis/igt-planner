@@ -473,34 +473,60 @@ const nodeMeshes = [];   // meshes carrying .node      (picking + dragging table
 const slotMeshes = [];   // meshes carrying .placement (dragging modules)
 const edgeMeshes = [];   // meshes carrying .edge      (the hover-to-extend handles)
 
+// The two anodised finishes on an IGT frame -- brushed aluminium and matte black -- both
+// sampled off the product photos. Which surface wears which is what tells the families
+// apart, so they are named here rather than pulled from a single swatch that can only be
+// one colour.
+const ALU = 0xc4c8ca;      // brushed aluminium: standard rails, corner plates, the rivets
+const BLK = 0x24262a;      // anodised black:  end pieces, and the collapsible's side rails
+
+/** A row of rivets along a line -- the little domed pins that hold the frame's plates on.
+ *  Cheap, and most of what makes bare stock read as a fabricated part rather than a bar. */
+function rivets(g, top, pts, color = ALU) {
+  for (const [x, z] of pts) {
+    const r = stock(new THREE.CylinderGeometry(2.6 * MM, 2.6 * MM, 3 * MM, 8), color, 0.9, 0.3);
+    r.position.set(x, top + 1, z).multiplyScalar(MM);
+    g.add(r);
+  }
+}
+
 function drawFrame(g, n) {
   const p = PARTS[n.sku];
   const f = footprint(n);
   const top = topOf(n);
   const isSel = state.sel === n.id;
-  const alu = new THREE.Color(swatchOf(n.sku));
   const glow = isSel ? 0x2e1806 : 0x000000;
   const S = SECTION;                       // measured off CK-149's plan view
   const railWidth = S.rail_width_mm;
   const endW = S.end_piece_mm;
 
+  // The two families wear the finishes the other way round. The STANDARD frame is silver
+  // channel rails on the long sides with BLACK anodised end pieces on the short ends -- the
+  // black ends are the iconic part, and they were being drawn silver. The COLLAPSIBLE frame
+  // (which comes apart into rails + folding ends) is black all round its long sides, with
+  // SILVER corner brackets at the four hinge points. Sampled colours confirm it: CK-149
+  // reads silver, CK-903 reads near-black.
+  const collapsible = !!p.collapsible;
+  const railColor = collapsible ? BLK : ALU;
+
   // Two extruded rails and two ends -- not a slab. There are no dividers; a "unit" is a
   // 250mm notion along the run. The rail is a real channel: outer wall, groove, inner lip.
   // The groove is what the rail joint slides into and what the leg sockets sit in; the lip
-  // is what a 360mm module RESTS on. The code used to take that 360 as the gap between the
-  // rails, which drew them 21mm too narrow on each side and left a hole 43mm too wide.
+  // is what a 360mm module RESTS on.
   const prof = {
-    outerWall: (f.d / 2 - S.channel_mm[1]) * MM,     // 248 - 241.7 = 6.3mm
-    channel: (S.channel_mm[1] - S.channel_mm[0]) * MM,         // 59.2mm
-    lip: (S.lip_mm[1] - S.lip_mm[0]) * MM,                     // 24.0mm
+    outerWall: (f.d / 2 - S.channel_mm[1]) * MM,              // 248 - 241.7 = 6.3mm
+    channel: (S.channel_mm[1] - S.channel_mm[0]) * MM,        // 59.2mm
+    lip: (S.lip_mm[1] - S.lip_mm[0]) * MM,                    // 24.0mm
   };
   for (const s of [-1, 1]) {
-    const r = stock(railProfile(f.w * MM, FRAME_THICK * MM, prof, s), alu, 0.8, 0.42, glow);
+    const r = stock(railProfile(f.w * MM, FRAME_THICK * MM, prof, s), railColor, 0.8, 0.42, glow);
     r.position.set(0, top - FRAME_THICK / 2, s * (f.d / 2 - railWidth / 2)).multiplyScalar(MM);
     r.userData.node = n; g.add(r); nodeMeshes.push(r);
   }
+  // The end pieces are ANODISED BLACK -- the hook holes live in them, and it is where an
+  // extension attaches. This is the frame's signature, and it was silver.
   for (const x of [-(f.w - endW) / 2, (f.w - endW) / 2]) {
-    const e = stock(roundedBox(endW * MM, FRAME_THICK * MM, f.d * MM, 2 * MM), alu, 0.8, 0.42, glow);
+    const e = stock(roundedBox(endW * MM, FRAME_THICK * MM, f.d * MM, 2 * MM), BLK, 0.55, 0.5, glow);
     e.position.set(x, top - FRAME_THICK / 2, 0).multiplyScalar(MM);
     e.userData.node = n; g.add(e); nodeMeshes.push(e);
   }
@@ -510,10 +536,28 @@ function drawFrame(g, n) {
       || [[-(f.w / 2 - HOLE_INSET), -143.9], [-(f.w / 2 - HOLE_INSET), 143.9],
           [f.w / 2 - HOLE_INSET, -143.9], [f.w / 2 - HOLE_INSET, 143.9]])) {
     const x = Math.sign(hx) * (f.w / 2 - HOLE_INSET);          // hold the inset, not the x
-    const hole = stock(new THREE.CylinderGeometry(6 * MM, 6 * MM, (FRAME_THICK + 2) * MM, 10), 0x1c1f24, 0.2, 0.8);
+    const hole = stock(new THREE.CylinderGeometry(6 * MM, 6 * MM, (FRAME_THICK + 2) * MM, 10), 0x0e0f12, 0.2, 0.8);
     hole.position.set(x, top - FRAME_THICK / 2, hz).multiplyScalar(MM);
     g.add(hole);
   }
+
+  // Corner hardware -- a silver plate at each of the four corners. On the standard frame it
+  // is the leg-socket plate (measured on the underside); on the collapsible it is the fold
+  // hinge, and it is larger and rivetted, sitting proud on top of the black side rails.
+  const cornerX = f.w / 2 - (collapsible ? 34 : 26);
+  const cornerZ = f.d / 2 - railWidth / 2;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const plate = stock(
+      roundedBox((collapsible ? 60 : 46) * MM, 4 * MM, (collapsible ? railWidth - 4 : 44) * MM, 2 * MM),
+      ALU, 0.85, 0.35, glow);
+    plate.position.set(sx * cornerX, top + 2, sz * cornerZ).multiplyScalar(MM);
+    g.add(plate);
+    rivets(g, top + 3, [
+      [sx * (cornerX - 16), sz * (cornerZ - 12)], [sx * (cornerX + 16), sz * (cornerZ - 12)],
+      [sx * (cornerX - 16), sz * (cornerZ + 12)], [sx * (cornerX + 16), sz * (cornerZ + 12)],
+    ]);
+  }
+
   for (let i = 1; i < p.units; i++) {
     const t = stock(roundedBox(3 * MM, (FRAME_THICK + 1) * MM, railWidth * MM, 0.4 * MM), 0x596069);
     t.position.set(slotX(n, i * 2), top - FRAME_THICK / 2, -(f.d / 2 - railWidth / 2)).multiplyScalar(MM);
