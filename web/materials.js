@@ -157,23 +157,26 @@ export function railProfile(length, thickness, section, outward = 1) {
 
   // Drawn in XY: x runs ACROSS the rail, from its outer face inward; y is its thickness.
   //
-  // The seat is a RECESS, not a raised lip. A module drops into the rebate at the inner edge
-  // and its surface finishes FLUSH with the rail's top -- the frame's interior has no
-  // protrusion, only this step down. The earlier profile ran the inner seat up to FULL height,
-  // which put a bump along the inside of every frame that a module then sat proud of. Owner
-  // caught it. The seat now sits `recess` below the top; the module's own thickness fills
-  // the step, so its face lands level with the rail.
-  const floor = t * 0.4;
-  const recess = Math.min(t * 0.42, 10 * 0.001);      // how far the seat sits below the top
+  // A FLAT top, and a shallow RECESS cut into the inner edge that a module drops into and
+  // fills EXACTLY -- its surface finishing flush with the rail top, its edge landing right
+  // against the flat, with no gap either side.
+  //
+  // Two earlier versions were both wrong, and the owner caught both. First the inner seat
+  // ran to full height, a raised lip the module then sat proud of. Then I recessed the seat
+  // but LEFT the deep central groove I had modelled from the plan view -- so the module sat
+  // in the recess but a 60mm channel still gaped open between it and the rail's outer edge,
+  // an "extra depression" that is not there on the real rail. The rail top is simply flat;
+  // the groove was a misreading of the underside photo. Gone. The recess is only as wide as
+  // the module's edge rests on, and only as deep as it needs to sit flush.
+  const recess = Math.min(t * 0.4, 8 * 0.001);         // how far the seat sits below the top
+  const seatW = lip + channel * 0.35;                  // just enough ledge for the module edge
   const s = new THREE.Shape();
-  s.moveTo(-w / 2, -t / 2);
-  s.lineTo(w / 2, -t / 2);
-  s.lineTo(w / 2, t / 2 - recess);                     // inner edge up to the RECESSED seat
-  s.lineTo(w / 2 - lip, t / 2 - recess);               // the seat ledge -- a step down, flush-making
-  s.lineTo(w / 2 - lip, -t / 2 + floor);               // down into the groove
-  s.lineTo(-w / 2 + outerWall, -t / 2 + floor);
-  s.lineTo(-w / 2 + outerWall, t / 2);                 // back up the outer wall to the flat top
-  s.lineTo(-w / 2, t / 2);
+  s.moveTo(-w / 2, -t / 2);                             // bottom, outer
+  s.lineTo(w / 2, -t / 2);                              // bottom, inner
+  s.lineTo(w / 2, t / 2 - recess);                     // inner edge up to the recessed seat
+  s.lineTo(w / 2 - seatW, t / 2 - recess);             // the seat ledge -- the module fills this
+  s.lineTo(w / 2 - seatW, t / 2);                      // step up to the flat top
+  s.lineTo(-w / 2, t / 2);                             // FLAT across to the outer face -- no groove
   s.closePath();
 
   const g = new THREE.ExtrudeGeometry(s, { depth: length, bevelEnabled: false });
