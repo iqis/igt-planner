@@ -27,6 +27,7 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+from scipy import ndimage
 
 ROOT = Path(__file__).resolve().parent.parent
 CATALOG = ROOT / "catalog"
@@ -36,8 +37,11 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 
 # Parts that are flat boards seen from above. Anything with a real 3D body (a burner, a
 # box) would need a proper model, and a photo pasted on its top would just look wrong.
 FLAT_ROLES = {"extension_table", "corner"}
-FLAT_EXTRA = {"CK-125TR", "CK-126TR"}   # the IGT wood inserts (GF-010 belongs to the
-                                        # excluded Garden Unit Table, not to IGT)
+# Flat plates that read from above -- not only the bamboo inserts. CK-026 (リッドトレー) is
+# the LID of the CK-025 box, CK-085 the 1-unit lid-tray: thin stainless plates, seen flat, so
+# their real photographed surface (the finger hole, the logo) beats any procedural metal.
+FLAT_EXTRA = {"CK-125TR", "CK-126TR", "CK-026", "CK-085"}   # GF-010 belongs to the excluded
+                                                            # Garden Unit Table, not to IGT
 
 BG_TOL = 30
 MAX_ASPECT_ERR = 0.35     # beyond this the photo is not a plan view of anything
@@ -50,13 +54,33 @@ def fetch(url, px=1200):
         return Image.open(io.BytesIO(r.read())).convert("RGB")
 
 
-def cut_out(img):
-    """(RGBA cropped to the object, aspect). White sweep -> alpha."""
+def cut_out(img, solidify=False):
+    """(RGBA cropped to the object, aspect). White sweep -> alpha.
+
+    `solidify` closes and fills the mask, for a PALE object on a white sweep -- a bare
+    stainless lid or tray. Its rim clears the background threshold but its near-white
+    interior does not, so the raw mask is a fragmented ring and tracing it gives a torn,
+    folded outline (CK-085 came out a Z). The interior is ENCLOSED by the rim, so filling
+    recovers the solid shape; the largest blob then drops stray shadows. It still preserves a
+    real NON-rectangular silhouette (CK-026 is not a square) -- it only fills what the
+    object's own edge encloses.
+
+    It is OFF by default, and must stay off for the hook-on boards: their whole trick is that
+    the wire hooks PROTRUDE past the board and the brackets sit as separate metal blobs, and
+    closing the mask welds both into the body. Solidify the lids and inserts; never the parts
+    whose fittings you are about to measure.
+    """
     a = np.asarray(img, dtype=np.int16)
     border = np.concatenate([a[0, :, :], a[-1, :, :], a[:, 0, :], a[:, -1, :]]).reshape(-1, 3)
     bg = np.median(border, axis=0)
 
     mask = (np.abs(a - bg).sum(axis=2) > BG_TOL)
+    if solidify:
+        mask = ndimage.binary_fill_holes(ndimage.binary_closing(mask, structure=np.ones((5, 5))))
+        lab, n = ndimage.label(mask)
+        if n > 1:
+            biggest = 1 + int(np.argmax(ndimage.sum(mask, lab, range(1, n + 1))))
+            mask = lab == biggest
     ys, xs = np.nonzero(mask)
     if len(xs) < 500:
         return None, None
@@ -125,14 +149,27 @@ def main():
         # If someone has SAID which image is the plan view, that is the image. No search.
         urls = [told] if told else [im["url"] for im in images]
 
+        # A lid or insert is a pale plate that needs the mask solidified; a hook-on board is
+        # NOT, because closing the mask would weld its hooks and brackets into the body.
+        solidify = p["role"] not in FLAT_ROLES
+
         for url in urls:
             try:
-                cut, aspect = cut_out(fetch(url))
+                cut, aspect = cut_out(fetch(url), solidify)
             except Exception:  # noqa: BLE001
                 continue
             if not cut:
                 continue
+            # The plan view may be shot ROTATED. JP writes the longest side first, so a
+            # 250x360 tray (along-rail 250) is photographed 360 wide -- aspect 1.44, not the
+            # 0.69 the spec implies. Test both orientations against the published w:d and keep
+            # the better; if the rotated one wins, turn the crop so everything downstream --
+            # outline, texture -- lands in the part's own frame. (CK-085 was rejected at 92%
+            # against 0.69 while its plan view sat there at the reciprocal.)
             err = abs(aspect - want) / want
+            err_r = abs(1 / aspect - want) / want
+            if err_r < err:
+                cut, aspect, err = cut.rotate(90, expand=True), 1 / aspect, err_r
             if best is None or err < best[0]:
                 best = (err, cut, aspect, url)
             time.sleep(0.15)
@@ -151,8 +188,12 @@ def main():
                                       f"{len(images)} images: name one in views.json"))
             continue
 
-        fit = measure_fittings(cut, box)
-        edges = measure_edges(cut, box, fit)
+        # Hooks and brackets are measured only on the parts that HAVE them -- the hook-on
+        # boards. A lid or a wood insert has neither, and running the detector on one just
+        # reads its finger hole and screws as phantom hooks. Ask the role, not the pixels.
+        hooked = p["role"] in FLAT_ROLES
+        fit = measure_fittings(cut, box) if hooked else None
+        edges = measure_edges(cut, box, fit) if hooked else {}
         ring = outline_mm(cut, box)
 
         grain_from(cut).save(TEX / f"{p['sku']}_grain.jpg", quality=88)
@@ -211,9 +252,6 @@ def main():
 #
 # The legs screw into the brackets, so bracket centres ARE leg positions.
 # ---------------------------------------------------------------------------
-
-from scipy import ndimage  # noqa: E402
-
 
 def measure_fittings(img, box):
     """Hook and bracket positions in mm, relative to the board's centre.

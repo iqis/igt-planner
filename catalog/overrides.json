@@ -84,7 +84,12 @@
  },
  "CK-025": {
   "mounted_by": "CK-020",
-  "reason": "Stainless Box Half Unit. Its default home is a half-unit slot in the frame (attach slot_in, 125x360 = one half-unit x the rail span). But it has a second home: hung off the frame's END by the CK-020 Box Hanger, out of the grid entirely. Two ways to carry the same box, and the planner should not pretend the slot is the only one."
+  "contains": ["CK-026"],
+  "reason": "Stainless Box Half Unit. Its default home is a half-unit slot in the frame (attach slot_in, 125x360 = one half-unit x the rail span). But it has a second home: hung off the frame's END by the CK-020 Box Hanger, out of the grid entirely. Two ways to carry the same box, and the planner should not pretend the slot is the only one. It COMES WITH its lid: the JP set contents are リッドトレー、コンテナ (lid tray + container), and the lid tray is CK-026 -- so CK-025 contains CK-026, which is also sold on its own."
+ },
+ "CK-026": {
+  "is_lid_of": "CK-025",
+  "reason": "リッドトレー ハーフユニット -- the LID of the CK-025 box, not a generic 'tray' as the English name reads. A thin (15mm) stainless plate, half-unit, with a finger hole. It ships with CK-025 and is also sold separately. Being a flat plate seen from above, its real photographed surface is textured (the finger hole and logo show), rather than drawn as a blank slab."
  },
  "DB-005": {
   "attach": "edge_clamp",

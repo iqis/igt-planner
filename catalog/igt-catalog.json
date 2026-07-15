@@ -3067,7 +3067,10 @@
    "fit_delta_mm": 0.0,
    "attach": "slot_in",
    "mounted_by": "CK-020",
-   "curated_reason": "Stainless Box Half Unit. Its default home is a half-unit slot in the frame (attach slot_in, 125x360 = one half-unit x the rail span). But it has a second home: hung off the frame's END by the CK-020 Box Hanger, out of the grid entirely. Two ways to carry the same box, and the planner should not pretend the slot is the only one."
+   "contains": [
+    "CK-026"
+   ],
+   "curated_reason": "Stainless Box Half Unit. Its default home is a half-unit slot in the frame (attach slot_in, 125x360 = one half-unit x the rail span). But it has a second home: hung off the frame's END by the CK-020 Box Hanger, out of the grid entirely. Two ways to carry the same box, and the planner should not pretend the slot is the only one. It COMES WITH its lid: the JP set contents are リッドトレー、コンテナ (lid tray + container), and the lid tray is CK-026 -- so CK-025 contains CK-026, which is also sold on its own."
   },
   {
    "sku": "CK-026",
@@ -3110,7 +3113,9 @@
    "fit_delta_mm": 0.0,
    "attach": "slot_in",
    "needs_legs": false,
-   "attach_evidence": "Made of stainless steel, the IGT Stainless Steel Half Unit Tray is a sturdy half-unit surface that can be inserted into an IGT setup to create additional surface space for cooking or storage."
+   "attach_evidence": "Made of stainless steel, the IGT Stainless Steel Half Unit Tray is a sturdy half-unit surface that can be inserted into an IGT setup to create additional surface space for cooking or storage.",
+   "is_lid_of": "CK-025",
+   "curated_reason": "リッドトレー ハーフユニット -- the LID of the CK-025 box, not a generic 'tray' as the English name reads. A thin (15mm) stainless plate, half-unit, with a finger hole. It ships with CK-025 and is also sold separately. Being a flat plate seen from above, its real photographed surface is textured (the finger hole and logo show), rather than drawn as a blank slab."
   },
   {
    "sku": "CK-085",
