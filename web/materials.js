@@ -156,16 +156,23 @@ export function railProfile(length, thickness, section, outward = 1) {
   const w = outerWall + channel + lip;
 
   // Drawn in XY: x runs ACROSS the rail, from its outer face inward; y is its thickness.
-  // The groove is cut DOWN from the top face and has a floor -- it is a channel, not a slot.
+  //
+  // The seat is a RECESS, not a raised lip. A module drops into the rebate at the inner edge
+  // and its surface finishes FLUSH with the rail's top -- the frame's interior has no
+  // protrusion, only this step down. The earlier profile ran the inner seat up to FULL height,
+  // which put a bump along the inside of every frame that a module then sat proud of. Owner
+  // caught it. The seat now sits `recess` below the top; the module's own thickness fills
+  // the step, so its face lands level with the rail.
   const floor = t * 0.4;
+  const recess = Math.min(t * 0.42, 10 * 0.001);      // how far the seat sits below the top
   const s = new THREE.Shape();
   s.moveTo(-w / 2, -t / 2);
   s.lineTo(w / 2, -t / 2);
-  s.lineTo(w / 2, t / 2);                              // the inner lip: the module's seat
-  s.lineTo(w / 2 - lip, t / 2);
+  s.lineTo(w / 2, t / 2 - recess);                     // inner edge up to the RECESSED seat
+  s.lineTo(w / 2 - lip, t / 2 - recess);               // the seat ledge -- a step down, flush-making
   s.lineTo(w / 2 - lip, -t / 2 + floor);               // down into the groove
   s.lineTo(-w / 2 + outerWall, -t / 2 + floor);
-  s.lineTo(-w / 2 + outerWall, t / 2);                 // back up the outer wall
+  s.lineTo(-w / 2 + outerWall, t / 2);                 // back up the outer wall to the flat top
   s.lineTo(-w / 2, t / 2);
   s.closePath();
 
