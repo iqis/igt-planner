@@ -545,8 +545,34 @@ function resolve() {
 
 // ---------------------------------------------------------------- slots (per frame)
 
-const slotsOf = n => PARTS[n.sku].units * 2;
-const runOf = n => PARTS[n.sku].units * 250;
+// The IGT bay a node exposes for modules: a whole frame, a bridged Jikaro opening, or the
+// opened Extension IGT centre. Its unit count drives the slot grid; 0 = it hosts nothing.
+// This is what lets a Jikaro-with-bridge and an open Extension IGT take modules like a frame.
+function bayUnits(n) {
+  if (n.kind === "frame") return PARTS[n.sku].units || 0;
+  if (isJikaro(n) && n.bridge) return jikaroCfg(n).bridge_units || 0;
+  if (isExpandable(n)) return expCfg(n)?.bay_units || 0;
+  return 0;
+}
+const hasBay = n => bayUnits(n) > 0;
+// Refit the modules after the bay shrank or vanished (bridge off, collapse, 2U->1U). Each
+// module that still fits the smaller bay is KEPT -- at its old spot if free, else re-packed into
+// the first free run; anything now too wide, or with no room left, is dropped. So 2U-full -> 1U
+// keeps one unit's worth and drops the overflow; a lone module slides into the surviving unit.
+function pruneModules(n) {
+  const s = slotsOf(n), keep = [];
+  const free = (start, span) => start >= 0 && start + span <= s
+    && !keep.some(k => start < k.start + k.span && k.start < start + span);
+  for (const pl of (n.placements || [])) {
+    if (pl.span > s) continue;                                   // too wide for the bay now
+    let start = free(pl.start, pl.span) ? pl.start : -1;         // keep its place if it's clear
+    if (start < 0) for (let i = 0; i + pl.span <= s; i++) if (free(i, pl.span)) { start = i; break; }
+    if (start >= 0) keep.push({ ...pl, start });
+  }
+  n.placements = keep;
+}
+const slotsOf = n => bayUnits(n) * 2;
+const runOf = n => bayUnits(n) * 250;
 const slotX = (n, i) => -runOf(n) / 2 + i * HALF;
 
 function railW(p) {
@@ -710,9 +736,14 @@ function drawFrame(g, n) {
     }
   }
 
-  // Modules: drawn at their OWN width, centred in the slots they claim. A tray 5mm
-  // narrower than its unit shows a real gap; the Flat Burner's 20mm-wider rim really
-  // does overlap the rails. Stretching parts to fill their allocation would hide it.
+  drawModules(g, n, top);
+}
+
+/** Render the modules dropped into a host's bay -- SHARED by the frame, the bridged Jikaro and
+ *  the opened Extension IGT, so all three take the same parts the same way. Modules are drawn at
+ *  their OWN width, centred in the slots they claim (a 5mm-narrow tray shows a real gap; the Flat
+ *  Burner's wider rim really overlaps), and drop IN from `top`, the bay's work surface. */
+function drawModules(g, n, top) {
   for (const pl of n.placements) {
     const p2 = PARTS[pl.sku];
     const cx = slotX(n, pl.start) + (pl.span * HALF) / 2;
@@ -813,6 +844,7 @@ function drawJikaro(g, n) {
     bg.position.y = top * MM;
     bg.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(bg);
+    drawModules(g, n, top);   // modules drop into the bridged bay, same as a frame
   }
 }
 
@@ -863,6 +895,7 @@ function drawTable(g, n) {
     built.group.position.y = tp * MM;
     built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(built.group);
+    if (bayUnits(n)) drawModules(g, n, tp);   // the opened centre bay hosts modules
     return;
   }
 
@@ -1010,7 +1043,7 @@ function drawSlotHandles() {
   if (!s) return;                        // select-first: module slots show on the selected frame
   const asm = new Set(assemblyOf(s));
   for (const n of state.nodes) {
-    if (n.kind !== "frame" || !asm.has(n)) continue;
+    if (!hasBay(n) || !asm.has(n)) continue;
     const cells = occupancy(n);
     const top = topOf(n);
     for (let i = 0; i < cells.length; i++) {
@@ -1293,6 +1326,7 @@ function paintSlotMenu() {
   let offered = 0;
   for (const p of list) {
     if (spanOf(p) > free) continue;                                      // wider than the run
+    if (isHangRack(p) && n.kind !== "frame") continue;                   // a rack needs frame rails to hook over
     if (isHangRack(p) && hasHangRack(n)) continue;                        // one rack per frame
     const c = compat(p.sku, n.sku);
     if (c.level === "blocked") continue;
@@ -1705,7 +1739,7 @@ const hasHangRack = n => n.placements.some(pl => isHangRack(PARTS[pl.sku]));
 
 function placeModule(sku) {
   const n = sel();
-  if (!n || n.kind !== "frame") return;
+  if (!n || !hasBay(n)) return;
   // One hanging rack per frame -- the manuals are explicit that a second one's side frames
   // collide with the first's. Not a soft warning: the second simply does not go on.
   if (isHangRack(PARTS[sku]) && hasHangRack(n)) return;
@@ -1721,7 +1755,7 @@ function placeModule(sku) {
  *  must to fit. So hovering the half-slot beside an occupied one still lets a whole unit go in
  *  when the space on the OTHER side is free -- the bug was measuring the run in one direction. */
 function placeModuleAt(sku, n, cell) {
-  if (!n || n.kind !== "frame") return;
+  if (!n || !hasBay(n)) return;
   if (isHangRack(PARTS[sku]) && hasHangRack(n)) return;
   const span = spanOf(PARTS[sku]);
   const b = freeBlock(n, cell);
@@ -1813,7 +1847,7 @@ function paintPalette() {
     for (const [key, c] of Object.entries(cfgs))
       acts.append(chip(c.name, n.config === key,
         `${c.outer_mm}mm across, ${c.opening_mm}mm fire opening, four ${c.edge_mm}mm edges to hook to`,
-        () => { n.config = key; render(); }));
+        () => { n.config = key; pruneModules(n); render(); }));
     // The optional bridge across the fire opening -> an IGT bay. The unit count and the SKU
     // follow the assembly (600 opening -> 2U/CPL-JT2U, 365 -> 1U/ST-051).
     const jc = jikaroCfg(n);
@@ -1822,7 +1856,7 @@ function paintPalette() {
       !!n.bridge,
       n.bridge ? `${jc.bridge_units}-Unit bridge (${jc.bridge_sku}) across the ${jc.opening_mm}mm opening — click to remove`
                : `lay the optional ${jc.bridge_units}-Unit bridge (${jc.bridge_sku}) across the ${jc.opening_mm}mm opening to make an IGT bay`,
-      () => { n.bridge = !n.bridge; render(); }));
+      () => { n.bridge = !n.bridge; pruneModules(n); render(); }));
   }
   // Expandable table (CK-090): slide the two tops together or apart. Open exposes the IGT bay.
   if (n && isExpandable(n)) {
@@ -1832,7 +1866,7 @@ function paintPalette() {
         c.bay_units ? `${c.name} · ${c.bay_units}U bay` : c.name,
         cur === key,
         `${c.w_mm}×${c.d_mm}mm` + (c.bay_units ? ` — opens a ${c.bay_units}-Unit bay` : ` — closed, no bay`),
-        () => { n.config = key; render(); }));
+        () => { n.config = key; pruneModules(n); render(); }));
   }
   // Height adjuster: a hooked board sits flush with its host, or drops ONE rung of the ladder
   // (830->660->400->300) via a CK-151. One step per adjuster -- lower still means chaining.
@@ -1867,10 +1901,13 @@ function paintPalette() {
   }
 
   const mods = $("modules"); mods.innerHTML = "";
-  const frame = n?.kind === "frame" ? n : null;
+  // Any node with a bay hosts slot modules (frame, bridged Jikaro, opened Extension IGT);
+  // hanging racks still need real frame rails to hook over, so they stay frame-only.
+  const host = n && hasBay(n) ? n : null;
+  const frame = host?.kind === "frame" ? host : null;
   for (const p of BY_ROLE.slot_module) {
-    const c = frame ? compat(p.sku, frame.sku) : { level: "ok" };
-    const dead = !frame || firstFit(frame, p.span) < 0 || c.level === "blocked";
+    const c = host ? compat(p.sku, host.sku) : { level: "ok" };
+    const dead = !host || firstFit(host, p.span) < 0 || c.level === "blocked";
     const why = c.level === "blocked" ? `${p.sku} — ${c.why}`
       : c.level === "unlisted" ? `${p.sku} — ${c.why}` : null;
     const row = partRow(p, () => placeModule(p.sku), dead, why);
@@ -1935,8 +1972,14 @@ function bomLines() {
     if (n.kind === "frame") {
       const rails = PARTS[n.sku].requires_rails;
       if (rails && PARTS[rails]) lines.push({ sku: rails, req: true });
-      for (const pl of n.placements) lines.push({ sku: pl.sku, node: n, pl });
     }
+    // The optional Jikaro bridge is a real SKU on the table's bill, though never its own node.
+    if (isJikaro(n) && n.bridge) {
+      const b = jikaroCfg(n).bridge_sku;
+      if (b) lines.push({ sku: b, req: true });
+    }
+    // Modules dropped into any host's bay (frame, bridged Jikaro, opened Extension IGT).
+    for (const pl of n.placements || []) lines.push({ sku: pl.sku, node: n, pl });
     const conn = PARTS[n.sku].requires_connector;
     if (conn && PARTS[conn]) lines.push({ sku: conn, req: true });
   }

@@ -346,7 +346,7 @@
    }
   }
  },
- "count": 94,
+ "count": 96,
  "unmatched_sku": [
   "CK-904SET",
   "CK-080SET",
@@ -538,6 +538,58 @@
    "attach": "slot_in",
    "system": "takibi",
    "curated_reason": "Same as S-029HA. Its own description says 'Use the Grill Plate Half Deep Depth within the Takibi Fire & Grill'."
+  },
+  {
+   "sku": "CPL-JT2U",
+   "handle": null,
+   "title_en": "Jikaro Top 2 Unit Bridge",
+   "title_jp": "",
+   "barcode": "",
+   "role": "bridge",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": null,
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "The optional 2-Unit bridge for the Jikaro (ST-050): two stainless brackets over the spread (long-edge-in, 600mm) opening + two slide-in bars, making a 2-Unit IGT bay. A toggle on the Jikaro, not its own node (cannot stand alone). The official version is a SEPPOUSAI (Snow Peak Festival) 2023 Autumn limited edition; CPL-JT2U is the after-market equivalent. role 'bridge' is picked up by no palette. See layout.bridges."
+  },
+  {
+   "sku": "ST-051",
+   "handle": null,
+   "title_en": "Jikaro Table 1 Unit Bridge",
+   "title_jp": "",
+   "barcode": "",
+   "role": "bridge",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": null,
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "The optional 1-Unit bridge for the Jikaro (ST-050). It lays across the compact (short-edge-in, 365mm) opening to make ONE IGT unit-slot. Like the connection hook and rail joint it cannot exist on its own -- it modifies the Jikaro -- so the planner never places it as its own node; it is a toggle on a Jikaro and its SKU rides that Jikaro's bill. Official Snow Peak SKU (sits next to ST-050), now rare. role 'bridge' is picked up by no palette. See layout.bridges."
   },
   {
    "sku": "UG-140",

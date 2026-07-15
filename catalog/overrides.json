@@ -13,6 +13,16 @@
    "role": "rail_joint",
    "title_en": "Multi Function Table Rail Joint (2-piece set)",
    "reason": "The rail joint. Two come in the box with a bamboo corner, and it is sold on its own as a spare part. It is in NONE of the six IGT collections and its JP category is not IGT, so both halves of the universe miss it -- a catalog built from the vendor's taxonomy has holes exactly where the taxonomy has them. CK-119TR's manual, step 4: 'レールジョイントを使用する場合はIGTフレームの長辺のレールに挿入します' -- insert them into the rail on the frame's LONG SIDE -- then (5) hook the tabletop onto them. This is what makes the frame's long side attachable at all, and no product page or photograph says it exists."
+  },
+  "ST-051": {
+   "role": "bridge",
+   "title_en": "Jikaro Table 1 Unit Bridge",
+   "reason": "The optional 1-Unit bridge for the Jikaro (ST-050). It lays across the compact (short-edge-in, 365mm) opening to make ONE IGT unit-slot. Like the connection hook and rail joint it cannot exist on its own -- it modifies the Jikaro -- so the planner never places it as its own node; it is a toggle on a Jikaro and its SKU rides that Jikaro's bill. Official Snow Peak SKU (sits next to ST-050), now rare. role 'bridge' is picked up by no palette. See layout.bridges."
+  },
+  "CPL-JT2U": {
+   "role": "bridge",
+   "title_en": "Jikaro Top 2 Unit Bridge",
+   "reason": "The optional 2-Unit bridge for the Jikaro (ST-050): two stainless brackets over the spread (long-edge-in, 600mm) opening + two slide-in bars, making a 2-Unit IGT bay. A toggle on the Jikaro, not its own node (cannot stand alone). The official version is a SEPPOUSAI (Snow Peak Festival) 2023 Autumn limited edition; CPL-JT2U is the after-market equivalent. role 'bridge' is picked up by no palette. See layout.bridges."
   }
  },
 
