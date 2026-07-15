@@ -933,6 +933,20 @@ function drawEdgeHandles() {
       m.userData.edge = e;
       build.add(m);
       edgeMeshes.push(m);
+
+      // A visible tab, so the add-points show the moment you select -- no hovering to discover
+      // them. It carries the edge too, so clicking the tab opens the same menu as the slab.
+      const tab = new THREE.Mesh(
+        new THREE.SphereGeometry(14 * MM, 18, 12),
+        new THREE.MeshStandardMaterial({
+          color: 0xf0a463, metalness: 0.1, roughness: 0.4, emissive: 0x7a4310, emissiveIntensity: 0.55,
+        }),
+      );
+      tab.position.set(e.mid.x * MM, (e.mid.y + 16) * MM, e.mid.z * MM);
+      tab.renderOrder = 3;
+      tab.userData.edge = e;
+      build.add(tab);
+      edgeMeshes.push(tab);
     }
   }
 }
@@ -1724,7 +1738,7 @@ function paintPalette() {
   const hooked = n?.kind === "ext";
   const legs = $("legs"); legs.innerHTML = "";
   for (const p of BY_ROLE.leg) {
-    const c = chip(`${p.height_mm}`, n?.leg === p.sku,
+    const c = chip(`${p.height_mm}mm`, n?.leg === p.sku,
       hooked ? `an extension is flush with what it hooks to — it takes the same legs, `
              + `so this sets them for the whole run` : p.title_en,
       () => { if (n) setLeg(n, p.sku); });
