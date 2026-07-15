@@ -575,6 +575,25 @@ export function campfieldSofaGroup(w, d, h, { frame = 0xbfc3c7, fabric = 0xa08d8
   return { group: g, body: g.children[0] };
 }
 
+/** Snow Peak Lounge Cushion (TM-096): a round cotton-canvas floor cushion, shown in its FOLDED
+ *  half-circle seating form -- the round pad folded in half, so a HALF-DISC of doubled thickness.
+ *  Sits on the ground (y = 0). `w` = the straight fold edge (= the open pad's diameter). */
+export function loungeCushionGroup(w, d, h, { fabric = 0xcf6a20 } = {}) {
+  const g = new THREE.Group();
+  const cloth = new THREE.MeshStandardMaterial({ color: fabric, roughness: 0.95, side: THREE.DoubleSide });
+  const R = w / 2;
+  // the half-disc pad: a half-cylinder lying flat (round faces up/down), curved edge toward +z
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(R * MM, R * MM, h * MM, 48, 1, false, 0, Math.PI), cloth);
+  pad.position.y = h / 2 * MM; g.add(pad);
+  // cap the open flat face (the fold edge), and score a seam where the two layers meet
+  const flat = new THREE.Mesh(roundedBox(w * MM, h * MM, 4 * MM, 1 * MM), cloth);
+  flat.position.y = h / 2 * MM; g.add(flat);
+  const seam = new THREE.Mesh(roundedBox((w - 20) * MM, 3 * MM, 5 * MM, 1 * MM),
+    new THREE.MeshStandardMaterial({ color: fabric, roughness: 0.6, metalness: 0.0 }));
+  seam.position.set(0, h / 2 * MM, 1 * MM); g.add(seam);
+  return { group: g, body: pad };
+}
+
 /** The Jikaro: an octagonal ring of four trapezoid segments with the fire hole in the
  *  middle, standing on folding wire legs. `ringMat` paints the ring; `color` the wire.
  *  Ring top at y = 0, legs to -height. */

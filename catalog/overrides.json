@@ -110,6 +110,32 @@
    "image": "https://www.snowpeak.com/cdn/shop/products/campfield_futon_starter_set_set-220_hero_01_d82f0177-1b87-4de1-ba76-72547f21b7ab.jpg?width=900",
    "url": {"us": "https://www.snowpeak.com/products/racksotto-multi-starter-set-ar", "jp": null},
    "reason": "Campfield Futon (SET-200) in its BASIC SOFA form only (owner: the set reconfigures many ways -- bed / chairs / shelves -- but we model just the sofa). A low two-seat loveseat: silver aluminium X-frame base, two taupe seat + two reclined back cushions (0xa08d80 sampled), natural-wood armrests on the ends. chair type 'sofa'; ~1494x749x650. A prop like the chairs."
+  },
+  "TM-096OR": {
+   "role": "seating",
+   "title_en": "Lounge Cushion (Orange)",
+   "assembled_mm": {"w": 495, "d": 247, "h": 100},
+   "seat_h_mm": 100,
+   "price": {"us": 4995, "jp": null, "uk": null},
+   "fabric_hex": "0xcf6a20",
+   "chair": "cushion",
+   "fabric_type": "canvas",
+   "image": "https://www.snowpeak.com/cdn/shop/products/TM-096OR_hero01.jpg?width=800",
+   "url": {"us": "https://www.snowpeak.com/products/lounge-cushion", "jp": null},
+   "reason": "Lounge Cushion (TM-096OR): a ROUND cotton-canvas floor cushion, modelled in its FOLDED half-circle seating form (fold the round pad in half -> a half-disc of doubled thickness), as the product photos show. Brick-orange. Open pad ~495mm diameter x 50mm; folded ~495x247x100. chair type 'cushion'; a floor prop, no frame."
+  },
+  "TM-096GR": {
+   "role": "seating",
+   "title_en": "Lounge Cushion (Olive)",
+   "assembled_mm": {"w": 495, "d": 247, "h": 100},
+   "seat_h_mm": 100,
+   "price": {"us": 4995, "jp": null, "uk": null},
+   "fabric_hex": "0x76752f",
+   "chair": "cushion",
+   "fabric_type": "canvas",
+   "image": "https://www.snowpeak.com/cdn/shop/products/TM-096GR_hero01.jpg?width=800",
+   "url": {"us": "https://www.snowpeak.com/products/lounge-cushion", "jp": null},
+   "reason": "Lounge Cushion (TM-096GR): the olive-green variant of TM-096OR. Same round-folded-to-half-circle floor cushion; olive canvas."
   }
  },
 
