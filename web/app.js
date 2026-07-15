@@ -1436,7 +1436,12 @@ canvas.addEventListener("pointermove", e => {
   render();
 });
 
-addEventListener("pointerup", () => { clearTimeout(longPress); dragNode = dragMod = dragSlide = null; controls.enabled = true; });
+addEventListener("pointerup", () => {
+  clearTimeout(longPress);
+  const wasDragging = dragNode || dragMod || dragSlide;
+  dragNode = dragMod = dragSlide = null; controls.enabled = true;
+  if (wasDragging) commitHistory();   // the drag is over -- snapshot its final position, once
+});
 
 // Right-click a module in a frame to open its action menu (Remove). Only when the click is
 // actually on a module -- anywhere else the browser's own context menu is left alone.
@@ -1802,6 +1807,7 @@ function paintPalette() {
   }
 
   $("selname").textContent = n ? PARTS[n.sku].title_en : "nothing selected";
+  $("selbox").hidden = !n;   // the selected-part controls ride at the TOP, only while something is picked
   filterPalette();       // re-apply the current search over the freshly painted rows
 }
 
@@ -1983,7 +1989,55 @@ function paintWarnings() {
 }
 
 function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); }
-function render() { resolve(); rebuild(); paint(); }
+// ---------------------------------------------------------------- undo / redo
+// Snapshots of the layout (nodes only -- selection is transient, not worth an undo step). Every
+// committed render pushes one; a drag pushes only its final state (see pointerup). Ctrl/Cmd-Z
+// steps back, Shift-Ctrl-Z (or Ctrl-Y) redoes.
+const undoStack = [], redoStack = [];
+let restoring = false;
+const snapshot = () => JSON.stringify({ nodes: state.nodes, nextId: state.nextId });
+function commitHistory() {
+  if (restoring) return;
+  const s = snapshot();
+  if (undoStack[undoStack.length - 1] === s) return;   // nothing structural changed
+  undoStack.push(s);
+  if (undoStack.length > 150) undoStack.shift();
+  redoStack.length = 0;
+  paintUndo();
+}
+function restoreHistory(json) {
+  const s = JSON.parse(json);
+  state.nodes = s.nodes; state.nextId = s.nextId;
+  if (!byId(state.sel)) state.sel = null;
+  restoring = true; render(); restoring = false;   // render without pushing a fresh snapshot
+  paintUndo();
+}
+function undo() {
+  if (undoStack.length < 2) return;                // [last] is the current state
+  redoStack.push(undoStack.pop());
+  restoreHistory(undoStack[undoStack.length - 1]);
+}
+function redo() {
+  const j = redoStack.pop(); if (!j) return;
+  undoStack.push(j); restoreHistory(j);
+}
+function paintUndo() {
+  const u = $("undo"), r = $("redo");
+  if (u) u.disabled = undoStack.length < 2;
+  if (r) r.disabled = redoStack.length === 0;
+}
+addEventListener("keydown", e => {
+  const k = (e.key || "").toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && k === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); redo(); }
+});
+$("undo").onclick = undo;
+$("redo").onclick = redo;
+
+function render() {
+  resolve(); rebuild(); paint();
+  if (!(dragNode || dragMod || dragSlide)) commitHistory();   // a drag commits once, on pointerup
+}
 
 // ---------------------------------------------------------------- theme
 // Light / dark, persisted. The panels are pure CSS variables; the 3D canvas follows by

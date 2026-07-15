@@ -29,13 +29,14 @@
 <main>
   <aside id="palette">
     <input id="palsearch" class="search" type="search" placeholder="search name or part #" autocomplete="off">
-    <section>
-      <h2>Add a table</h2>
-      <div id="add" class="chips"></div>
-      <div id="tables" class="parts"></div>
-    </section>
+    <div class="chips" id="undobar">
+      <button id="undo" class="chip" title="undo — Ctrl+Z" disabled>↶ undo</button>
+      <button id="redo" class="chip" title="redo — Ctrl+Shift+Z" disabled>↷ redo</button>
+    </div>
 
-    <section class="selbox">
+    <!-- Shown at the TOP the moment something is selected (in the 3D view or here), so the
+         height / module / action controls for it are never buried under the table list. -->
+    <section class="selbox" id="selbox" hidden>
       <h2>Selected <span class="hint" id="selname">nothing selected</span></h2>
       <h3>Legs — sets the height</h3>
       <div id="legs" class="chips"></div>
@@ -45,6 +46,12 @@
 
       <h3>Actions</h3>
       <div id="actions" class="chips"></div>
+    </section>
+
+    <section>
+      <h2>Add a table</h2>
+      <div id="add" class="chips"></div>
+      <div id="tables" class="parts"></div>
     </section>
   </aside>
 
