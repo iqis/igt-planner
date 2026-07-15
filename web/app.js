@@ -1253,6 +1253,18 @@ canvas.addEventListener("pointermove", e => {
 
 addEventListener("pointerup", () => { dragNode = dragMod = null; controls.enabled = true; });
 
+// Right-click a module in a frame to take it back out -- you drop them in and drag them in
+// the scene, so removing them here too (not only from the Build list) keeps it all in one place.
+canvas.addEventListener("contextmenu", e => {
+  toPtr(e);
+  ray.setFromCamera(ptr, camera);
+  const hit = ray.intersectObjects(slotMeshes, false)[0];
+  if (!hit) return;                                  // not on a module -- leave the menu alone
+  e.preventDefault();
+  const { placement, node } = hit.object.userData;
+  if (placement && node) removePlacement(node, placement);
+});
+
 /** Pull a dragged table flush against whatever it is nearly touching. Layout tables are
  *  meant to butt edge to edge -- that is the whole point of a shared 496mm depth.
  *  Only free nodes are ever dragged, and only free nodes are considered as targets:
@@ -1405,6 +1417,12 @@ function removeNode(n) {
   state.nodes = state.nodes.filter(m => !doomed.has(m.id));
   if (doomed.has(state.sel)) state.sel = state.nodes[0]?.id ?? null;
   setHover(null);
+  render();
+}
+
+/** Take one accessory back out of a frame -- an added module is not permanent. */
+function removePlacement(node, pl) {
+  node.placements = node.placements.filter(x => x !== pl);
   render();
 }
 
@@ -1622,10 +1640,15 @@ function paintBOM() {
 
     const tr = document.createElement("tr");
     const usd = p.price.us ? "$" + TO_USD.us(p.price.us).toFixed(0) : "—";
-    tr.innerHTML = `<td class="x">${l.node && !l.pl ? "×" : ""}</td>`
-      + `<td class="nm" title="${p.sku} — ${p.title_en}">${l.req ? "↳ " : ""}${p.title_en}</td>`
+    // A node (frame/table) and an accessory placed in one both get an ×; the required
+    // hardware that comes with them (legs, joints) does not -- it follows what it hangs off.
+    const removable = l.node ? "×" : "";
+    const lead = l.req ? "↳ " : l.pl ? "· " : "";       // · marks a module you dropped in
+    tr.innerHTML = `<td class="x">${removable}</td>`
+      + `<td class="nm" title="${p.sku} — ${p.title_en}">${lead}${p.title_en}</td>`
       + `<td class="p">${usd}</td>`;
-    if (l.node && !l.pl) tr.querySelector(".x").onclick = () => removeNode(l.node);
+    if (l.pl) tr.querySelector(".x").onclick = () => removePlacement(l.node, l.pl);
+    else if (l.node) tr.querySelector(".x").onclick = () => removeNode(l.node);
     t.append(tr);
   }
 
