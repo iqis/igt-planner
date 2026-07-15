@@ -367,7 +367,7 @@
    }
   }
  },
- "count": 104,
+ "count": 107,
  "unmatched_sku": [
   "CK-904SET",
   "CK-080SET",
@@ -2547,6 +2547,123 @@
     "jp": "https://ec.snowpeak.co.jp/item/SNP0124A0301"
    },
    "manual": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hc2/hf7/8974914289694/CK-904-1_manual.pdf"
+  },
+  {
+   "sku": "LV-071GY",
+   "handle": null,
+   "title_en": "Folding Bench (Gray)",
+   "title_jp": "FDベンチ グレー",
+   "barcode": "",
+   "role": "seating",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 1095,
+    "d": 330,
+    "h": 358
+   },
+   "packed_mm": {
+    "w": 1095.0,
+    "d": 65.0,
+    "h": 470.0
+   },
+   "weight_g": 2400,
+   "material": "本体／アルミニウム合金、ポリエチレン、合成ゴム、シート／ポリエステル帆布",
+   "price": {
+    "us": 17995,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": "https://www.snowpeak.com/cdn/shop/products/folding_bench_gy_lv-071gy_hero_01.jpg?width=1000",
+   "url": {
+    "us": "https://www.snowpeak.com/products/folding-gray-bench",
+    "jp": null
+   },
+   "curated_reason": "Folding Bench (LV-071GY): the folding chair's bench sibling -- BACKLESS, armless, a long taupe canvas sling on two black end X-frames tied by a lengthwise stretcher. 1095x330x358 (seat height, no back). chair type 'bench'.",
+   "seat_h_mm": 358,
+   "frame_hex": "0x232528",
+   "fabric_hex": "0x8c8279",
+   "chair": "bench",
+   "fabric_type": "canvas"
+  },
+  {
+   "sku": "LV-071M-BK",
+   "handle": null,
+   "title_en": "Mesh Folding Bench",
+   "title_jp": "メッシュFDベンチ ブラック",
+   "barcode": "",
+   "role": "seating",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 1095,
+    "d": 330,
+    "h": 358
+   },
+   "packed_mm": {
+    "w": 1095.0,
+    "d": 65.0,
+    "h": 470.0
+   },
+   "weight_g": 1900,
+   "material": "フレーム/アルミニウム合金、シート/ポリエステル",
+   "price": {
+    "us": 18995,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": "https://www.snowpeak.com/cdn/shop/products/mesh_folding_bench_lv-071m-bk_hero_01.jpg?width=1000",
+   "url": {
+    "us": "https://www.snowpeak.com/products/mesh-folding-bench",
+    "jp": null
+   },
+   "curated_reason": "Mesh Folding Bench (LV-071M-BK): black frame + see-through black mesh sling (perforated alphaMap), the bench version of the mesh folding chair. Same bench form.",
+   "seat_h_mm": 358,
+   "frame_hex": "0x232528",
+   "fabric_hex": "0x2b2d31",
+   "chair": "bench",
+   "fabric_type": "mesh"
+  },
+  {
+   "sku": "LV-071RD",
+   "handle": null,
+   "title_en": "Folding Bench (Red)",
+   "title_jp": "FD ベンチ RD",
+   "barcode": "",
+   "role": "seating",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 1095,
+    "d": 330,
+    "h": 358
+   },
+   "packed_mm": {
+    "w": 1095.0,
+    "d": 65.0,
+    "h": 470.0
+   },
+   "weight_g": 2000,
+   "material": "本体／アルミニウム合金、ポリエチレン、合成ゴム、シート／ポリエステル帆布",
+   "price": {
+    "us": 17995,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": "https://www.snowpeak.com/cdn/shop/products/folding_bench_rd_lv-071rd_hero_01.jpg?width=1000",
+   "url": {
+    "us": "https://www.snowpeak.com/products/folding-red-bench",
+    "jp": null
+   },
+   "curated_reason": "Folding Bench (LV-071RD): red variant -- SILVER frame + crimson canvas, matching the red folding chair (LV-077RD). Now discontinued but still built per owner. Same bench form as LV-071GY.",
+   "seat_h_mm": 358,
+   "frame_hex": "0xbfc3c7",
+   "fabric_hex": "0x962436",
+   "chair": "bench",
+   "fabric_type": "canvas"
   },
   {
    "sku": "LV-077GY",

@@ -594,6 +594,43 @@ export function loungeCushionGroup(w, d, h, { fabric = 0xcf6a20 } = {}) {
   return { group: g, body: pad };
 }
 
+/** Snow Peak Folding Bench (LV-071): the folding chair's bench sibling -- BACKLESS and armless, a
+ *  long canvas (or mesh) sling on two end X-frames tied by a lengthwise stretcher. Seat at y = h,
+ *  faces +z. From the LV-071GY photo. Supports canvas + mesh like the chair. */
+export function foldingBenchGroup(w, d, h, { frame = 0x232528, fabric = 0x8c8279, canvasTex = null, meshAlpha = null } = {}) {
+  const g = new THREE.Group();
+  const tubeMat = metalE(frame, 0.5, 0.45);
+  const cloth = meshAlpha
+    ? new THREE.MeshStandardMaterial({ color: fabric, alphaMap: meshAlpha, transparent: true, alphaTest: 0.12, roughness: 0.85, side: THREE.DoubleSide })
+    : new THREE.MeshStandardMaterial({ color: fabric, map: canvasTex || null, roughness: 0.92, side: THREE.DoubleSide });
+  const cyl = (a, b, r, mat) => {
+    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), mat);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m); return m;
+  };
+  const tube = (a, b, r = 10) => cyl(a, b, r, tubeMat);
+  const seatH = h, sw = w / 2 - 30, sd = d / 2 - 15, fd = d / 2 + 25;
+  // two end X-frames (in the depth-height plane) + the seat-end loops
+  for (const sx of [-1, 1]) {
+    const X = sx * sw;
+    tube([X, seatH, sd], [X, 8, -fd]);      // front leg -> back foot
+    tube([X, seatH, -sd], [X, 8, fd]);      // back leg -> front foot
+    tube([X, seatH, sd], [X, seatH, -sd]);  // seat-end loop
+    for (const z of [-fd, fd]) {
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(11 * MM, 13 * MM, 12 * MM, 10), metalE(0x1c1e22, 0.1, 0.85));
+      cap.position.set(X * MM, 6 * MM, z * MM); g.add(cap);
+    }
+  }
+  tube([-sw, seatH, sd], [sw, seatH, sd]);   // seat front rail
+  tube([-sw, seatH, -sd], [sw, seatH, -sd]); // seat back rail
+  tube([-sw, 130, 0], [sw, 130, 0], 5);      // lengthwise stretcher near the bottom
+  const seat = new THREE.Mesh(roundedBox(2 * sw * MM, 12 * MM, 2 * sd * MM, 4 * MM), cloth);
+  seat.position.y = (seatH - 12) * MM; g.add(seat);
+  return { group: g, body: g.children[0] };
+}
+
 /** The Jikaro: an octagonal ring of four trapezoid segments with the fire hole in the
  *  middle, standing on folding wire legs. `ringMat` paints the ring; `color` the wire.
  *  Ring top at y = 0, legs to -height. */
