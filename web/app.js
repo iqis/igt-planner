@@ -410,14 +410,31 @@ function place(n) {
 
 const SLIDE_SNAP = 25;   // mm -- a light grid so a dragged extension lands tidy, not free-float
 
-/** How far along the rail a sliding extension sits: its own `slide`, snapped to the grid and
- *  clamped so the board stays fully on the rail. A STORED position, not a derived one -- it is
- *  what the drag writes. Two 548mm boards dropped on a 1096mm side still land at -274/+274. */
-function slideOffset(n, host) {
+/** How far a sliding extension may slide before it runs off the rail OR overlaps another one
+ *  on the same rail -- two must NOT overlap. Neighbours are classed by which side they are on
+ *  now, so the board slides up to TOUCHING one but not through it. */
+function slideBounds(n, host) {
   const bw = railW(PARTS[n.sku]);
-  const max = Math.max(0, (footprint(host).w - bw) / 2);
+  const rail = Math.max(0, (footprint(host).w - bw) / 2);
+  let lo = -rail, hi = rail;
+  const cur = n.slide ?? 0;
+  for (const m of state.nodes) {
+    if (m === n || m.host !== host.id || m.edge !== n.edge || !isSlide(PARTS[m.sku])) continue;
+    const gap = (bw + railW(PARTS[m.sku])) / 2;     // min centre-to-centre to not overlap
+    const ms = m.slide ?? 0;
+    if (ms > cur) hi = Math.min(hi, ms - gap);
+    else lo = Math.max(lo, ms + gap);
+  }
+  return { lo, hi };
+}
+
+/** How far along the rail a sliding extension sits: its own `slide`, snapped to the grid and
+ *  clamped so it stays on the rail AND clear of its neighbours. A STORED position, not a
+ *  derived one -- it is what the drag writes. Two 548mm boards on a 1096mm side sit at -274/+274. */
+function slideOffset(n, host) {
+  const { lo, hi } = slideBounds(n, host);
   const snapped = Math.round((n.slide ?? 0) / SLIDE_SNAP) * SLIDE_SNAP;
-  return Math.max(-max, Math.min(max, snapped));
+  return lo > hi ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, snapped));
 }
 
 /** Where a newly added sliding extension starts: the first board-wide tiling position no other
@@ -1176,6 +1193,20 @@ canvas.addEventListener("pointerdown", e => {
   toPtr(e);
   ray.setFromCamera(ptr, camera);
 
+  // A sliding extension is GRABBED to drag it, and it sits ON the rail -- so the rail's own
+  // "add here" edge handle (still shown while the rail has room) would otherwise swallow the
+  // click. The board cantilevers out toward you, so it is the CLOSER hit; prefer it.
+  const edge = ray.intersectObjects(edgeMeshes, false)[0];
+  const slideHit = ray.intersectObjects(nodeMeshes, false)
+    .find(h => { const nn = h.object.userData.node; return nn?.host && isSlide(PARTS[nn.sku]); });
+  if (slideHit && (!edge || slideHit.distance <= edge.distance + 1)) {
+    dragSlide = slideHit.object.userData.node;
+    state.sel = dragSlide.id;
+    controls.enabled = false;
+    render();
+    return;
+  }
+
   // An edge handle is not a thing you drag; it is a thing you press. Pressing it opens the
   // menu straight away -- the button is the affordance, not a toll gate.
   //
@@ -1184,7 +1215,6 @@ canvas.addEventListener("pointerdown", e => {
   // this same canvas and it runs first, so returning early from this handler does not
   // stop it. It spent one debugging round quietly rotating the camera out from under the
   // very edge I was trying to click.
-  const edge = ray.intersectObjects(edgeMeshes, false)[0];
   if (edge) {
     setHover(edge.object.userData.edge);
     openMenu();
@@ -1225,11 +1255,9 @@ canvas.addEventListener("pointerdown", e => {
     const at = hitPlane(0);
     if (at) dragOff.set(n.x - at.x / MM, 0, n.z - at.z / MM);
     controls.enabled = false;
-  } else if (isSlide(PARTS[n.sku])) {
-    // A sliding extension is the one hooked thing you CAN move: drag it along its rail.
-    dragSlide = n;
-    controls.enabled = false;
   }
+  // A sliding extension (also a hosted node) is handled up top -- it is grabbed before the
+  // edge check so its rail handle cannot swallow the grab.
   render();
 });
 
@@ -1293,7 +1321,9 @@ canvas.addEventListener("pointermove", e => {
     if (at && e2) {
       const d = rotv(e2.normal, host.rot);           // rail's outward normal, in the world
       const along = { x: d.z, z: -d.x };             // the rail's own axis
-      n.slide = (at.x / MM - host.x) * along.x + (at.z / MM - host.z) * along.z;
+      const raw = (at.x / MM - host.x) * along.x + (at.z / MM - host.z) * along.z;
+      const { lo, hi } = slideBounds(n, host);       // stop AT a neighbour, not through it
+      n.slide = Math.max(lo, Math.min(hi, raw));
       render();
     }
     return;
