@@ -284,12 +284,12 @@ export function jikaroGroup({ outer, opening, edge, height, color, ringMat }) {
   seams.position.y = 0.4 * MM;
   g.add(seams);
 
-  // Eight folding wire legs -- TWO per segment, at the two ENDS of its outer edge (its pair of
-  // slanted short sides), not the middle where they used to float. Each is a U-shaped hairpin
-  // (a009, the disassembled photo): two near-vertical wires that widen and kick slightly
-  // outward to a foot bar. NOT an A-frame -- the U is the real shape.
+  // Eight folding wire legs -- TWO per segment, one on each of its two SHORT edges: the
+  // slanted sides that run from the inner (long) edge out to the outer (short) edge, the
+  // trapezoid's 285mm sides. NOT on the outer edge, and not the middle. Each is a U-shaped
+  // hairpin (a009): two near-vertical wires that widen and kick outward to a foot bar.
   const wire = metalE(color, 0.9, 0.28);
-  const R = outer / 2, e = edge / 2;
+  const o = opening / 2, R = outer / 2, e = edge / 2;
   const strut = (a, b) => {
     const va = new THREE.Vector3(...a).multiplyScalar(MM);
     const vb = new THREE.Vector3(...b).multiplyScalar(MM);
@@ -298,19 +298,23 @@ export function jikaroGroup({ outer, opening, edge, height, color, ringMat }) {
     m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
     g.add(m);
   };
-  const inset = 24, top = 40, foot = 56, kick = 30;   // corner inset; U width at top/foot; outward kick
+  const F = 0.86, top = 38, foot = 52, kick = 28;   // out along the slant; U width top/foot; kick
   for (const [ux, uz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    const tx = -uz, tz = ux;                            // tangential, along the outer edge
-    for (const s of [-1, 1]) {                          // the two ends of the segment
-      const cx = ux * R + tx * s * (e - inset), cz = uz * R + tz * s * (e - inset);
+    for (const s of [-1, 1]) {                        // the segment's two slant (short) sides
+      const ix = o * ux - s * o * uz, iz = o * uz + s * o * ux;   // inner corner (hole side)
+      const ox = R * ux - s * e * uz, oz = R * uz + s * e * ux;   // outer corner (edge side)
+      const cx = ix + F * (ox - ix), cz = iz + F * (oz - iz);     // leg, out along the slant
+      const sl = Math.hypot(ox - ix, oz - iz) || 1;
+      const ax = (ox - ix) / sl, az = (oz - iz) / sl;            // along the slant (U width)
+      const L = Math.hypot(cx, cz) || 1, rx = cx / L, rz = cz / L; // outward radial (foot kick)
       const legs = [];
-      for (const u of [-1, 1]) {                        // the two wires of one U
-        const t0 = [cx + tx * u * top / 2, 0, cz + tz * u * top / 2];
-        const t1 = [cx + tx * u * foot / 2 + ux * kick, -height, cz + tz * u * foot / 2 + uz * kick];
+      for (const u of [-1, 1]) {                       // the two wires of one U
+        const t0 = [cx + ax * u * top / 2, 0, cz + az * u * top / 2];
+        const t1 = [cx + ax * u * foot / 2 + rx * kick, -height, cz + az * u * foot / 2 + rz * kick];
         strut(t0, t1);
         legs.push(t1);
       }
-      strut(legs[0], legs[1]);                          // the foot joining them
+      strut(legs[0], legs[1]);                         // the foot joining them
     }
   }
   return { group: g, body: ring };
