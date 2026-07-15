@@ -3,7 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, grainMaterial } from "./materials.js";
 import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
-         jikaroGroup, hangRackGroup } from "./parts3d.js";
+         jikaroGroup, hangRackGroup, slideExtGroup } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -24,11 +24,17 @@ const LEG_R = 13;
 const SNAP = 25;        // ground grid the free tables slide on
 const TOUCH = 30;       // two tables closer than this are connected
 
+// A sliding extension (CK-153/154) mounts on the frame's LONG rail and cantilevers out. It
+// is not a wire-hook board -- it has two integral brackets that grip the rail directly (JP
+// a002/a003) -- so it needs no rail joint, takes no legs, and it SLIDES: it tiles the long
+// side in slots one board wide (two CK-154 span a four-unit side exactly, 548x2 = 1096).
+const isSlide = p => p?.attach === "slide_in";
+
 const TO_USD = { us: c => c / 100, jp: y => y / 157, uk: p => (p / 100) * 1.27 };
 
 const $ = id => document.getElementById(id);
 
-let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAMES, HOOKABLE, SECTION;
+let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAMES, HOOKABLE, SLIDE_IN, SECTION;
 const texLoader = new THREE.TextureLoader();
 const texCache = {};
 const textureOf = (sku, key = "file") => {
@@ -204,6 +210,11 @@ function hookGeometry(n) {
     const f = footprint(n);
     return { normal: { x: -1, z: 0 }, anchor: { x: -f.w / 2, z: 0 } };
   }
+  // A sliding extension has no measured wire hooks -- it mounts by the brackets along one
+  // whole long edge. So its "hook" is that edge: anchored at the edge midpoint, facing out.
+  // parts3d's slideExtGroup draws the brackets on -z and the board reaching +z, to match.
+  if (isSlide(PARTS[n.sku]))
+    return { normal: { x: 0, z: -1 }, anchor: { x: 0, z: -depthOf(PARTS[n.sku]) / 2 } };
   return { normal: hookNormal(n.sku), anchor: hookAnchor(n.sku) };
 }
 
@@ -313,12 +324,21 @@ const edgeKeysOf = n => (isJikaro(n) ? Object.keys(JIKARO_EDGES) : EDGE_KEYS[n.k
  *  hold both its legs and the holes for the next board.
  */
 function openEdges(n) {
-  const taken = new Set(state.nodes.filter(m => m.host === n.id).map(m => m.edge));
+  const hosts = state.nodes.filter(m => m.host === n.id);
   const out = [];
   for (const key of edgeKeysOf(n)) {
-    if (taken.has(key)) continue;
     const e = hostEdge(n, key);
     if (!e) continue;
+    const on = hosts.filter(m => m.edge === key);
+    // A long RAIL can hold SEVERAL sliding extensions -- it stays open until they fill it.
+    // Any other occupant (a hook-on board, a joined frame) claims the whole edge at once.
+    if (e.rail) {
+      if (on.some(m => !isSlide(PARTS[m.sku]))) continue;             // a hook-on board claims it
+      const used = on.reduce((s, m) => s + railW(PARTS[m.sku]), 0);
+      if (used >= e.len - 1) continue;                               // the slots are full
+    } else if (on.length) {
+      continue;
+    }
     const a = rotv(e.anchor, n.rot);
     out.push({
       node: n, key, len: e.len, rail: !!e.rail,
@@ -357,6 +377,18 @@ function place(n) {
   n.x = at.x - w.x;
   n.z = at.z - w.z;
 
+  // A sliding extension does not centre on the rail -- it SLIDES. It sits in a slot one
+  // board wide, offset along the rail from the middle, so several tile the long side (two
+  // CK-154 fill a four-unit side). Slide it along the edge (perpendicular to the normal).
+  if (isSlide(PARTS[n.sku]) && e.rail) {
+    const along = { x: dir.z, z: -dir.x };
+    const off = slideSlotOffset(n, h);
+    n.x += along.x * off;
+    n.z += along.z * off;
+    n.leg = null;                              // it cantilevers off the rail; no legs
+    return;
+  }
+
   // A board flush with its host stands at its host's height, so it takes its host's legs.
   // Arithmetic, not preference -- the same argument as the 400mm datum. Two frames hooked
   // end to end are the same case: they are one work surface, so they are one height.
@@ -366,6 +398,29 @@ function place(n) {
   // IGT Low leg (CK-112). Snow Peak's photo of a Bamboo table on the Jikaro shows exactly
   // that, and it is the same arithmetic that made CK-112 the datum leg in the first place.
   n.leg = h.leg || PARTS[h.sku]?.requires_leg || LAYOUT.leg_at_datum || n.leg;
+}
+
+/** Where a sliding extension sits along the rail: the centre of its slot, measured from the
+ *  middle of the run. Slots are one board wide, so floor(railLen / boardWidth) of them fit,
+ *  and two 548mm boards land at -274 and +274 on a 1096mm four-unit side -- tiling it. */
+function slideSlotOffset(n, host) {
+  const railLen = footprint(host).w;
+  const bw = railW(PARTS[n.sku]);
+  const nslots = Math.max(1, Math.floor(railLen / bw));
+  const i = Math.min(n.slot ?? 0, nslots - 1);
+  return -railLen / 2 + bw * (i + 0.5);
+}
+
+/** The first free slide slot on a host's rail edge, so a second board tiles beside the first
+ *  instead of landing on top of it. */
+function firstSlideSlot(host, key, sku) {
+  const bw = railW(PARTS[sku]);
+  const nslots = Math.max(1, Math.floor(footprint(host).w / bw));
+  const taken = new Set(state.nodes
+    .filter(m => m.host === host.id && m.edge === key && m.slot != null)
+    .map(m => m.slot));
+  for (let i = 0; i < nslots; i++) if (!taken.has(i)) return i;
+  return 0;
 }
 
 /** Hooked things are not free: they are where their hooks are. Re-derive the whole chain
@@ -650,8 +705,23 @@ function dropModule(g, n, pl, cx, top, built) {
   g.add(group); slotMeshes.push(body);
 }
 
+/** A sliding extension on a frame's long rail: the cantilevered bamboo board (slideExtGroup,
+ *  the same shape the bench draws) hung at the host's work-surface height so its top is flush,
+ *  reaching outward. No legs -- it grips the rail. The node group is already placed and turned
+ *  by rebuild(); this draws it in local coordinates. */
+function drawSlideExt(g, n) {
+  const p = PARTS[n.sku];
+  const host = byId(n.host);
+  const top = host ? topOf(host) : (PARTS[n.leg]?.height_mm ?? 400) + FRAME_THICK;
+  const w = railW(p), d = depthOf(p), h = p.assembled_mm?.h ?? 33;
+  const { group, body } = slideExtGroup(w, d, h, swatchOf(n.sku));
+  group.position.y = top * MM;
+  body.userData.node = n; g.add(group); nodeMeshes.push(body);
+}
+
 function drawTable(g, n) {
   if (isJikaro(n)) return drawJikaro(g, n);
+  if (isSlide(n.sku ? PARTS[n.sku] : null)) return drawSlideExt(g, n);
 
   const p = PARTS[n.sku];
   const f = footprint(n);
@@ -886,8 +956,12 @@ addEventListener("keydown", e => { if (e.key === "Escape") setHover(null); });
  *  do receive hooks. But nothing says so, and a frame hanging off a bamboo board held up by
  *  that board's two legs is not a thing I am going to invent. Not offered. */
 function legalOn(e) {
-  const ends = e.node.kind === "frame" && !e.rail;
-  return ends ? [...HOOKABLE, ...BY_ROLE.frame] : HOOKABLE;
+  // A frame's END: a hook-on board, or another frame (CK-175). A frame's long RAIL: hook-on
+  // boards (via a rail joint) AND the sliding extensions (which grip the rail themselves).
+  // Any other edge (a board's brackets, the Jikaro): hook-on boards only.
+  if (e.node.kind === "frame" && !e.rail) return [...HOOKABLE, ...BY_ROLE.frame];
+  if (e.rail) return [...HOOKABLE, ...SLIDE_IN];
+  return HOOKABLE;
 }
 
 function paintMenu() {
@@ -895,7 +969,7 @@ function paintMenu() {
   const head = document.createElement("div");
   head.className = "mhead";
   head.textContent = hover.rail
-    ? "hooks onto the LONG rail — needs a rail joint set (added)"
+    ? "onto the LONG rail — a board hooks on (via a rail joint), a sliding extension grips it and tiles"
     : hover.node.kind === "frame"
       ? "the frame's end: a board hooks into the holes, or another frame joins with a CK-175"
       : isJikaro(hover.node)
@@ -1117,7 +1191,10 @@ function compat(guestSku, hostSku) {
 // ---------------------------------------------------------------- state ops
 
 const HOOKS_ON = new Set(["extension_table", "corner"]);
-const kindOf = p => (p.role === "frame" ? "frame" : HOOKS_ON.has(p.role) ? "ext" : "table");
+// A sliding extension is a hooked node too (it hangs off a host edge, is not dragged), so it
+// is kind "ext" -- but a rail-only one, offered on long edges and drawn as a cantilever.
+const kindOf = p => (p.role === "frame" ? "frame"
+  : (HOOKS_ON.has(p.role) || isSlide(p)) ? "ext" : "table");
 
 // A leg SET is two legs -- "Each purchase includes two legs", and the JP spec agrees
 // (25mm dia x 840mm, 0.45kg x2). So a frame stands on four legs and needs TWO sets.
@@ -1167,10 +1244,12 @@ function addNode(sku) {
  *  A board on the frame's LONG rail hangs from a rail joint, so the joint goes in the BOM.
  *  Two per board, and they come as a pair (XCK-128-01 is a 2-piece set) -- so one set. */
 function attach(sku, host, key) {
+  const slide = isSlide(PARTS[sku]);
   const n = {
     id: state.nextId++, sku, kind: kindOf(PARTS[sku]), host: host.id, edge: key,
-    x: 0, z: 0, rot: 0, leg: host.leg, placements: [],
+    x: 0, z: 0, rot: 0, leg: slide ? null : host.leg, placements: [],
     rail: key.startsWith("rail"),
+    ...(slide ? { slot: firstSlideSlot(host, key, sku) } : {}),
   };
   state.nodes.push(n);
   state.sel = n.id;
@@ -1345,8 +1424,9 @@ function bomLines() {
     const sets = LEG_SETS[n.kind] ?? 0;
     if (n.leg) for (let i = 0; i < sets; i++)
       lines.push({ sku: n.leg, req: n.kind === "ext" });
-    // Hooked onto the frame's long rail: that hangs from a pair of rail joints.
-    if (n.rail && PARTS[RAIL_JOINT]) lines.push({ sku: RAIL_JOINT, req: true });
+    // Hooked onto the frame's long rail: a wire-hook board hangs from a pair of rail joints.
+    // A sliding extension does not -- its own brackets grip the rail -- so it needs none.
+    if (n.rail && !isSlide(PARTS[n.sku]) && PARTS[RAIL_JOINT]) lines.push({ sku: RAIL_JOINT, req: true });
     // Two frames end to end: CK-175 is what turns one end into a hook. Sold as a pair
     // (本体x2), and an end has two holes -- so one set makes one joint.
     if (n.host && n.kind === "frame" && PARTS[FRAME_HOOK])
@@ -1525,6 +1605,9 @@ const by = r => inScope.filter(p => p.role === r);
 const hookRoles = p => HOOKS_ON.has(p.role) && p.assembled_mm;
 HOOKABLE = inScope.filter(p => hookRoles(p) && p.attach === "hook_on"
   && TEXTURES[p.sku]?.hooks_mm?.length);
+// The sliding extensions -- offered on frame LONG rails only. No measured hooks needed: they
+// mount by their brackets along a whole edge, which hookGeometry supplies synthetically.
+SLIDE_IN = inScope.filter(p => isSlide(p) && p.assembled_mm);
 
 BY_ROLE = {
   frame: by("frame").filter(p => p.units).sort((a, b) => a.units - b.units),
