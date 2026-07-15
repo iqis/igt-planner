@@ -286,6 +286,96 @@ export function tableGroup(w, d, height, thick, color, legColor = null) {
   return { group: g, body: top };
 }
 
+// A folding leg at one short end: two struts splaying from under the frame OUT past the end to
+// a foot bar, the way the built-in legs of the entry/slim IGTs fold down. ex = which end (±1).
+function foldLeg(g, { ex, w, d, top, footY, mat, r, splay, inset, zIn, feet = false }) {
+  const strut = (a, b, rr) => {
+    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(rr * MM, rr * MM, va.distanceTo(vb) || MM, 10), mat);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m);
+  };
+  const topX = ex * (w / 2 - inset), footX = ex * (w / 2 + splay), zEdge = d / 2 - zIn;
+  const foot = [];
+  for (const sz of [-1, 1]) {
+    strut([topX, top, sz * zEdge], [footX, footY, sz * zEdge], r);      // an upright
+    foot.push([footX, footY, sz * zEdge]);
+  }
+  strut(foot[0], foot[1], r * 0.85);                                    // the foot bar
+  if (feet) for (const f of foot) {
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.3 * MM, r * 1.5 * MM, 12 * MM, 10),
+      metalE(0x27292d, 0.1, 0.85));
+    cap.position.set(f[0] * MM, f[1] * MM, f[2] * MM); g.add(cap);
+  }
+}
+
+/** Entry IGT (CK-080R): a self-contained unit -- an aluminium IGT frame (rails all round) with a
+ *  bamboo slat top, on two built-in folding TUBE legs that splay out past the short ends. */
+export function entryIgtGroup(w, d, height) {
+  const g = new THREE.Group();
+  const alu = metalE(0xd0d3d7, 0.85, 0.35);
+  const bamboo = 0xcaa96b;                 // the bamboo top -- not the catalogue swatch
+  const thick = 26, bar = 12;
+  // the aluminium frame: a shallow ring of four bars round the top edge
+  for (const sz of [-1, 1]) {
+    const b = new THREE.Mesh(roundedBox(w * MM, thick * MM, bar * MM, 1.5 * MM), alu);
+    b.position.set(0, -thick / 2 * MM, sz * (d / 2 - bar / 2) * MM); g.add(b);
+  }
+  for (const sx of [-1, 1]) {
+    const b = new THREE.Mesh(roundedBox(bar * MM, thick * MM, d * MM, 1.5 * MM), alu);
+    b.position.set(sx * (w / 2 - bar / 2) * MM, -thick / 2 * MM, 0); g.add(b);
+  }
+  // bamboo panels filling the frame, set a touch below the rail lip
+  const wood = new THREE.MeshStandardMaterial({ color: bamboo, roughness: 0.66, metalness: 0.04 });
+  const innerW = w - 2 * bar, innerD = d - 2 * bar, n = 4, gap = 5;
+  const pw = (innerW - (n - 1) * gap) / n;
+  for (let i = 0; i < n; i++) {
+    const px = -innerW / 2 + pw / 2 + i * (pw + gap);
+    const s = new THREE.Mesh(roundedBox(pw * MM, (thick - 8) * MM, innerD * MM, 1 * MM), wood);
+    s.position.set(px * MM, -(thick - 8) / 2 * MM - 3 * MM, 0); g.add(s);
+  }
+  // two built-in folding tube legs
+  const legMat = metalE(0xc6c9cd, 0.85, 0.32);
+  for (const ex of [-1, 1])
+    foldLeg(g, { ex, w, d, top: -thick, footY: -(height - thick), mat: legMat, r: 6, splay: 18, inset: 34, zIn: 26, feet: true });
+  return { group: g, body: g.children[0] };
+}
+
+/** Slim IGT (CK-180): the slim one -- NO long-side rails at all, just a run of wood slats between
+ *  two dark end caps, on two built-in folding THIN-WIRE legs that splay wide. */
+export function slimIgtGroup(w, d, height) {
+  const g = new THREE.Group();
+  // Natural teak, hard-coded -- the catalogue swatch for this SKU is the dark metal, not the wood.
+  const wood = new THREE.MeshStandardMaterial({ color: 0xc7a06a, roughness: 0.66, metalness: 0.04 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x8a5f36, roughness: 0.55, metalness: 0.05 });
+  const thick = 16, cap = 26;
+  // wood slats running the LENGTH between the end caps -- there is NO rail down the long sides
+  const n = 7, gap = 3, slatLen = w - 2 * cap, sd = (d - (n - 1) * gap) / n;
+  for (let i = 0; i < n; i++) {
+    const sz = -d / 2 + sd / 2 + i * (sd + gap);
+    const s = new THREE.Mesh(roundedBox(slatLen * MM, thick * MM, sd * MM, 1 * MM), wood);
+    s.position.set(0, -thick / 2 * MM, sz * MM); g.add(s);
+  }
+  // dark wood end caps
+  for (const sx of [-1, 1]) {
+    const c = new THREE.Mesh(roundedBox(cap * MM, (thick + 8) * MM, d * MM, 1.5 * MM), dark);
+    c.position.set(sx * (w / 2 - cap / 2) * MM, -(thick + 8) / 2 * MM, 0); g.add(c);
+  }
+  // a thin silver support rod under each long edge (holds the slats -- NOT an IGT rail)
+  const rod = metalE(0xcfd2d6, 0.9, 0.3);
+  for (const sz of [-1, 1]) {
+    const r = new THREE.Mesh(new THREE.CylinderGeometry(3 * MM, 3 * MM, slatLen * MM, 8), rod);
+    r.rotation.z = Math.PI / 2;
+    r.position.set(0, -(thick + 1) * MM, sz * (d / 2 - 5) * MM); g.add(r);
+  }
+  // two built-in folding thin-wire legs, splayed wide
+  const wire = metalE(0x1c1e22, 0.4, 0.5);
+  for (const ex of [-1, 1])
+    foldLeg(g, { ex, w, d, top: -thick, footY: -(height - thick), mat: wire, r: 3, splay: 44, inset: 13, zIn: 12, feet: true });
+  return { group: g, body: g.children[0] };
+}
+
 /** The Jikaro: an octagonal ring of four trapezoid segments with the fire hole in the
  *  middle, standing on folding wire legs. `ringMat` paints the ring; `color` the wire.
  *  Ring top at y = 0, legs to -height. */

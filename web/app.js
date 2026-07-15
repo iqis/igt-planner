@@ -3,7 +3,8 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, grainMaterial } from "./materials.js";
 import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
-         jikaroGroup, hangRackGroup, slideExtGroup } from "./parts3d.js";
+         jikaroGroup, hangRackGroup, slideExtGroup,
+         entryIgtGroup, slimIgtGroup } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -828,6 +829,18 @@ function drawSlideExt(g, n) {
 function drawTable(g, n) {
   if (isJikaro(n)) return drawJikaro(g, n);
   if (isSlide(n.sku ? PARTS[n.sku] : null)) return drawSlideExt(g, n);
+
+  // The self-contained IGTs with their own fixed folding legs are built part by part
+  // (parts3d.js). The builder draws the top at y=0 with the legs hanging below, so lift it to
+  // the work-surface height; the node group g is already turned and placed.
+  if (n.sku === "CK-080R" || n.sku === "CK-080R-EC" || n.sku === "CK-180") {
+    const f = footprint(n), tp = topOf(n);
+    const built = (n.sku === "CK-180" ? slimIgtGroup : entryIgtGroup)(f.w, f.d, tp);
+    built.group.position.y = tp * MM;
+    built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
+    g.add(built.group);
+    return;
+  }
 
   const p = PARTS[n.sku];
   const f = footprint(n);
