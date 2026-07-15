@@ -487,7 +487,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x14161a);
+scene.background = new THREE.Color(0x14161a);   // replaced by applyTheme() on boot
 
 const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 80);
 camera.position.set(1.6, 1.5, 2.1);
@@ -500,7 +500,14 @@ scene.add(new THREE.HemisphereLight(0xdfe6f0, 0x33383f, 1.5));
 const key = new THREE.DirectionalLight(0xffffff, 1.4);
 key.position.set(2, 3.4, 1.8);
 scene.add(key);
-scene.add(new THREE.GridHelper(8, 32, 0x2b3038, 0x21252b));
+// The floor grid. Its colours are baked into the geometry, so a theme change rebuilds it.
+let grid = null;
+function setGrid(major, minor) {
+  if (grid) scene.remove(grid);
+  grid = new THREE.GridHelper(8, 32, major, minor);
+  scene.add(grid);
+}
+setGrid(0x2b3038, 0x21252b);
 
 // Metal cannot look like metal with nothing to reflect. Without an environment map a
 // MeshStandardMaterial at metalness 0.9 renders nearly black; the flat, plasticky look
@@ -1555,6 +1562,29 @@ function paintWarnings() {
 function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); }
 function render() { resolve(); rebuild(); paint(); }
 
+// ---------------------------------------------------------------- theme
+// Light / dark, persisted. The panels are pure CSS variables; the 3D canvas follows by
+// reading the resolved --scene and --line off :root, so one palette drives both.
+const THEME_KEY = "igt-theme";
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  const css = getComputedStyle(document.documentElement);
+  const val = (v, d) => css.getPropertyValue(v).trim() || d;
+  scene.background = new THREE.Color(val("--scene", "#14161a"));
+  // Grid lines: faint on either ground. Baked into the geometry, so rebuild on change.
+  if (t === "light") setGrid(0xc2c7cf, 0xd8dbe1);
+  else setGrid(0x2b3038, 0x21252b);
+  $("theme").textContent = t === "light" ? "☀" : "☾";   // sun / moon
+}
+function initTheme() {
+  applyTheme(localStorage.getItem(THEME_KEY) || "dark");
+  $("theme").onclick = () => {
+    const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  };
+}
+
 // ---------------------------------------------------------------- boot
 
 function resize() {
@@ -1630,4 +1660,5 @@ window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
   top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); } };
 
 resize();
+initTheme();
 addNode("CK-150");
