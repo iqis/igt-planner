@@ -51,6 +51,9 @@ const textureOf = (sku, key = "file") => {
   if (!texCache[path]) texCache[path] = texLoader.load(path);
   return texCache[path];
 };
+// Shared bamboo grain for the parts with no plan view of their own (the sliding extensions).
+const loadTex = path => (texCache[path] ??= texLoader.load(path));
+const BAMBOO_GRAIN = "tex/CK-117TR_grain.jpg";
 
 // The axis a set of measured points sits on. Same rule as the planner uses, so what you
 // see here is what the layout will do with it.
@@ -139,7 +142,7 @@ function benchGeo(p, box) {
   }
 
   // A bamboo sliding extension (CK-153/154): mounts on the frame's long side, reaches out.
-  if (role === "extension") return slideExtGroup(w, d, h, color).group;
+  if (role === "extension") return slideExtGroup(w, d, h, color, loadTex(BAMBOO_GRAIN)).group;
 
   if (role === "case") return caseGroup(w, d, h, color).group;
   if (role === "rails" && SECTION)

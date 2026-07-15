@@ -501,13 +501,23 @@ export function plateGroup(w, d, h, color) {
  *  rail; the board's top finishes about level with the frame top. Photographed, not guessed
  *  (JP a002/a003 show the two hinged brackets gripping the rail, the board reaching out).
  *  Board top at y = 0; the mounting edge is at -z, so the board reaches toward +z. */
-export function slideExtGroup(w, d, h, color) {
+export function slideExtGroup(w, d, h, color, grainTex = null) {
   const g = new THREE.Group();
   const wood = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), metalness: 0.05, roughness: 0.7 });
   const board = 16;                                   // the bamboo itself; h(33) is board + bracket
   const top = new THREE.Mesh(roundedBox(w * MM, board * MM, d * MM, 6 * MM), wood);
   top.position.y = -board / 2 * MM;
   g.add(top);
+
+  // The bamboo grain, laid on the top face as a thin decal (the roundedBox has no clean UVs
+  // to map onto). It is the same bamboo as every other board, so it wears the same grain.
+  if (grainTex) {
+    const decal = new THREE.Mesh(new THREE.PlaneGeometry(w * MM, d * MM),
+      new THREE.MeshStandardMaterial({ map: grainTex, metalness: 0.03, roughness: 0.72 }));
+    decal.rotation.x = -Math.PI / 2;                  // lay it flat, facing up
+    decal.position.y = 0.3 * MM;                      // just above the board top (y=0)
+    g.add(decal);
+  }
 
   // Two slide brackets on the mounting (-z) long edge: a foot lying on the board and an
   // upstand at the very edge that hooks over the rail. Spaced like the hero shot.

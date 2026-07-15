@@ -43,6 +43,10 @@ const textureOf = (sku, key = "file") => {
   if (!texCache[path]) texCache[path] = texLoader.load(path);
   return texCache[path];
 };
+// A bamboo grain for the parts that have no plan view of their own to crop -- the sliding
+// extensions. The same bamboo every board is cut from, so the same grain reads true.
+const loadTex = path => (texCache[path] ??= texLoader.load(path));
+const BAMBOO_GRAIN = "tex/CK-117TR_grain.jpg";
 
 // Colours come from Snow Peak's product photography (catalog/colors.json). The swatch in
 // the palette is the same colour the part is rendered in, so the two never drift.
@@ -302,7 +306,11 @@ const JIKARO_EDGES = {
 };
 
 const EDGE_KEYS = { frame: ["end+x", "end-x", "rail+z", "rail-z"], ext: ["bracket"], table: [] };
-const edgeKeysOf = n => (isJikaro(n) ? Object.keys(JIKARO_EDGES) : EDGE_KEYS[n.kind] || []);
+const edgeKeysOf = n => isJikaro(n) ? Object.keys(JIKARO_EDGES)
+  : isSlide(PARTS[n.sku]) ? []                    // a sliding extension is a leaf -- nothing
+                                                  // hooks onto it, and its phantom bracket
+                                                  // edge was intercepting the click to drag it
+  : EDGE_KEYS[n.kind] || [];
 
 /** Every edge of this node that an extension could still hook onto.
  *
@@ -377,12 +385,12 @@ function place(n) {
   n.x = at.x - w.x;
   n.z = at.z - w.z;
 
-  // A sliding extension does not centre on the rail -- it SLIDES. It sits in a slot one
-  // board wide, offset along the rail from the middle, so several tile the long side (two
-  // CK-154 fill a four-unit side). Slide it along the edge (perpendicular to the normal).
+  // A sliding extension does not centre on the rail -- it SLIDES, and you can DRAG it along
+  // (unlike a hooked board, pinned by its hooks). Its position is a stored offset from the
+  // middle of the run, snapped to a light grid and clamped to the rail.
   if (isSlide(PARTS[n.sku]) && e.rail) {
     const along = { x: dir.z, z: -dir.x };
-    const off = slideSlotOffset(n, h);
+    const off = slideOffset(n, h);
     n.x += along.x * off;
     n.z += along.z * off;
     n.leg = null;                              // it cantilevers off the rail; no legs
@@ -400,26 +408,31 @@ function place(n) {
   n.leg = h.leg || PARTS[h.sku]?.requires_leg || LAYOUT.leg_at_datum || n.leg;
 }
 
-/** Where a sliding extension sits along the rail: the centre of its slot, measured from the
- *  middle of the run. Slots are one board wide, so floor(railLen / boardWidth) of them fit,
- *  and two 548mm boards land at -274 and +274 on a 1096mm four-unit side -- tiling it. */
-function slideSlotOffset(n, host) {
-  const railLen = footprint(host).w;
+const SLIDE_SNAP = 25;   // mm -- a light grid so a dragged extension lands tidy, not free-float
+
+/** How far along the rail a sliding extension sits: its own `slide`, snapped to the grid and
+ *  clamped so the board stays fully on the rail. A STORED position, not a derived one -- it is
+ *  what the drag writes. Two 548mm boards dropped on a 1096mm side still land at -274/+274. */
+function slideOffset(n, host) {
   const bw = railW(PARTS[n.sku]);
-  const nslots = Math.max(1, Math.floor(railLen / bw));
-  const i = Math.min(n.slot ?? 0, nslots - 1);
-  return -railLen / 2 + bw * (i + 0.5);
+  const max = Math.max(0, (footprint(host).w - bw) / 2);
+  const snapped = Math.round((n.slide ?? 0) / SLIDE_SNAP) * SLIDE_SNAP;
+  return Math.max(-max, Math.min(max, snapped));
 }
 
-/** The first free slide slot on a host's rail edge, so a second board tiles beside the first
- *  instead of landing on top of it. */
-function firstSlideSlot(host, key, sku) {
+/** Where a newly added sliding extension starts: the first board-wide tiling position no other
+ *  one already sits at, so a second tiles beside the first. From there it is dragged anywhere. */
+function initialSlide(host, key, sku) {
+  const railLen = footprint(host).w;
   const bw = railW(PARTS[sku]);
-  const nslots = Math.max(1, Math.floor(footprint(host).w / bw));
-  const taken = new Set(state.nodes
-    .filter(m => m.host === host.id && m.edge === key && m.slot != null)
-    .map(m => m.slot));
-  for (let i = 0; i < nslots; i++) if (!taken.has(i)) return i;
+  const nslots = Math.max(1, Math.floor(railLen / bw));
+  const here = state.nodes
+    .filter(m => m.host === host.id && m.edge === key && isSlide(PARTS[m.sku]))
+    .map(m => m.slide ?? 0);
+  for (let i = 0; i < nslots; i++) {
+    const off = -railLen / 2 + bw * (i + 0.5);
+    if (!here.some(s => Math.abs(s - off) < bw * 0.5)) return off;
+  }
   return 0;
 }
 
@@ -722,7 +735,7 @@ function drawSlideExt(g, n) {
   const host = byId(n.host);
   const top = host ? topOf(host) : (PARTS[n.leg]?.height_mm ?? 400) + FRAME_THICK;
   const w = railW(p), d = depthOf(p), h = p.assembled_mm?.h ?? 33;
-  const { group, body } = slideExtGroup(w, d, h, swatchOf(n.sku));
+  const { group, body } = slideExtGroup(w, d, h, swatchOf(n.sku), loadTex(BAMBOO_GRAIN));
   group.position.y = top * MM;
   body.userData.node = n; g.add(group); nodeMeshes.push(body);
 }
@@ -1145,7 +1158,7 @@ function paintSlotMenu() {
 
 const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
-let dragNode = null, dragMod = null, longPress = null;
+let dragNode = null, dragMod = null, dragSlide = null, longPress = null;
 const dragOff = new THREE.Vector3();
 
 const toPtr = e => {
@@ -1212,6 +1225,10 @@ canvas.addEventListener("pointerdown", e => {
     const at = hitPlane(0);
     if (at) dragOff.set(n.x - at.x / MM, 0, n.z - at.z / MM);
     controls.enabled = false;
+  } else if (isSlide(PARTS[n.sku])) {
+    // A sliding extension is the one hooked thing you CAN move: drag it along its rail.
+    dragSlide = n;
+    controls.enabled = false;
   }
   render();
 });
@@ -1220,7 +1237,7 @@ canvas.addEventListener("pointermove", e => {
   toPtr(e);
   ray.setFromCamera(ptr, camera);
 
-  if (!dragNode && !dragMod) {
+  if (!dragNode && !dragMod && !dragSlide) {
     const hit = ray.intersectObjects(edgeMeshes, false)[0];
     if (hit) {
       // Take the canvas off orbit while the pointer is on an edge: this patch of screen
@@ -1270,6 +1287,18 @@ canvas.addEventListener("pointermove", e => {
     return;
   }
 
+  if (dragSlide) {
+    const n = dragSlide, host = byId(n.host), e2 = hostEdge(host, n.edge);
+    const at = hitPlane(topOf(host));
+    if (at && e2) {
+      const d = rotv(e2.normal, host.rot);           // rail's outward normal, in the world
+      const along = { x: d.z, z: -d.x };             // the rail's own axis
+      n.slide = (at.x / MM - host.x) * along.x + (at.z / MM - host.z) * along.z;
+      render();
+    }
+    return;
+  }
+
   const at = hitPlane(0);
   if (!at) return;
   dragNode.x = Math.round((at.x / MM + dragOff.x) / SNAP) * SNAP;
@@ -1278,7 +1307,7 @@ canvas.addEventListener("pointermove", e => {
   render();
 });
 
-addEventListener("pointerup", () => { clearTimeout(longPress); dragNode = dragMod = null; controls.enabled = true; });
+addEventListener("pointerup", () => { clearTimeout(longPress); dragNode = dragMod = dragSlide = null; controls.enabled = true; });
 
 // Right-click a module in a frame to open its action menu (Remove). Only when the click is
 // actually on a module -- anywhere else the browser's own context menu is left alone.
@@ -1426,7 +1455,7 @@ function attach(sku, host, key) {
     id: state.nextId++, sku, kind: kindOf(PARTS[sku]), host: host.id, edge: key,
     x: 0, z: 0, rot: 0, leg: slide ? null : host.leg, placements: [],
     rail: key.startsWith("rail"),
-    ...(slide ? { slot: firstSlideSlot(host, key, sku) } : {}),
+    ...(slide ? { slide: initialSlide(host, key, sku) } : {}),
   };
   state.nodes.push(n);
   state.sel = n.id;
