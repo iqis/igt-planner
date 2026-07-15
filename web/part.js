@@ -51,9 +51,9 @@ const textureOf = (sku, key = "file") => {
   if (!texCache[path]) texCache[path] = texLoader.load(path);
   return texCache[path];
 };
-// Shared bamboo grain for the parts with no plan view of their own (the sliding extensions).
+// The sliding extension's own bamboo, rectified from its top-view photo and cropped to grain.
 const loadTex = path => (texCache[path] ??= texLoader.load(path));
-const BAMBOO_GRAIN = "tex/CK-117TR_grain.jpg";
+const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
 
 // The axis a set of measured points sits on. Same rule as the planner uses, so what you
 // see here is what the layout will do with it.

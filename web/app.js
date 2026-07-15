@@ -43,10 +43,10 @@ const textureOf = (sku, key = "file") => {
   if (!texCache[path]) texCache[path] = texLoader.load(path);
   return texCache[path];
 };
-// A bamboo grain for the parts that have no plan view of their own to crop -- the sliding
-// extensions. The same bamboo every board is cut from, so the same grain reads true.
+// The sliding extension's own bamboo, perspective-rectified from its top-view photo (the US
+// hero) and cropped to a clean grain -- so it wears its real surface, not a borrowed one.
 const loadTex = path => (texCache[path] ??= texLoader.load(path));
-const BAMBOO_GRAIN = "tex/CK-117TR_grain.jpg";
+const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
 
 // Colours come from Snow Peak's product photography (catalog/colors.json). The swatch in
 // the palette is the same colour the part is rendered in, so the two never drift.
