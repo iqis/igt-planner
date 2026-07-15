@@ -10,7 +10,8 @@
 // picking data on `body`; these builders stay state-free.
 
 import * as THREE from "three";
-import { roundedBox, meshWires, isMesh, flatRect, boardFromOutline } from "./materials.js";
+import { roundedBox, meshWires, isMesh, flatRect, boardFromOutline,
+         railProfile, jikaroRing, jikaroSeams } from "./materials.js";
 
 const MM = 0.001;
 
@@ -159,4 +160,356 @@ export function moduleGroup(p, w, d, h, color) {
   if (isMesh(p)) return meshTrayGroup(w, d, h, new THREE.Color(color));
   if (h >= 60) return binGroup(w, d, h, { open: true, color });   // a box you put things in
   return null;                                                    // a thin tray: a slab
+}
+
+// ===========================================================================================
+// The bigger nodes -- frame, table, Jikaro, hanging rack -- used to live only in the planner
+// (app.js), so the part bench drew them as cubes or, being under 60mm, crashed on a null.
+// They move here for the same reason the modules did: ONE shape, both renderers. Each is
+// state-free, takes MILLIMETRES, and hangs from its working TOP at local y = 0.
+// ===========================================================================================
+
+const ALU_ = 0xc4c8ca;     // brushed aluminium -- standard rails, corner plates, rivets
+const BLK_ = 0x24262a;     // anodised black -- end pieces, the collapsible's side rails
+
+const metalE = (color, m, r, glow = 0x000000) =>
+  new THREE.MeshStandardMaterial({
+    color: new THREE.Color(color), metalness: m, roughness: r,
+    emissive: new THREE.Color(glow),
+  });
+
+// A rivet cluster, dropped onto a plate. Same little studs the frame corners wear.
+function rivetsInto(g, pts, y, color = ALU_) {
+  for (const [x, z] of pts) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(2.6 * MM, 2.6 * MM, 3 * MM, 8),
+      metalE(color, 0.9, 0.3));
+    m.position.set(x * MM, y * MM, z * MM);
+    g.add(m);
+  }
+}
+
+/** The frame SHELL: two extruded rails, two end pieces, the hook holes, and four corner
+ *  plates with rivets. NO legs and NO modules -- those are placement, and the caller adds
+ *  them. This is the exact geometry drawFrame used to build inline; it is here so the bench
+ *  builds the identical frame (recess and all) instead of a slab.
+ *
+ *  `section` is the measured rail cross-section (SECTION); `hookHoles` the measured hole
+ *  centres, or null to fall back to the standard inset. Returns { group, pick } -- pick is
+ *  the rails + ends, for the planner to tag for selection; the bench ignores it. */
+export function frameGroup({ w, d, thick, collapsible = false, section, hookHoles = null,
+                             holeInset = 16.5, railColor, endColor = BLK_, plateColor = ALU_,
+                             glow = 0x000000 }) {
+  const g = new THREE.Group();
+  const pick = [];
+  const railWidth = section.rail_width_mm;
+  const endW = section.end_piece_mm;
+  railColor = railColor ?? (collapsible ? BLK_ : ALU_);
+
+  const prof = {
+    outerWall: (d / 2 - section.channel_mm[1]) * MM,
+    channel: (section.channel_mm[1] - section.channel_mm[0]) * MM,
+    lip: (section.lip_mm[1] - section.lip_mm[0]) * MM,
+  };
+  for (const s of [-1, 1]) {
+    const r = new THREE.Mesh(railProfile(w * MM, thick * MM, prof, s), metalE(railColor, 0.8, 0.42, glow));
+    r.position.set(0, -thick / 2 * MM, s * (d / 2 - railWidth / 2) * MM);
+    g.add(r); pick.push(r);
+  }
+  // End pieces -- anodised black on the standard frame; the hook holes live in them.
+  for (const x of [-(w - endW) / 2, (w - endW) / 2]) {
+    const e = new THREE.Mesh(roundedBox(endW * MM, thick * MM, d * MM, 2 * MM), metalE(endColor, 0.55, 0.5, glow));
+    e.position.set(x * MM, -thick / 2 * MM, 0);
+    g.add(e); pick.push(e);
+  }
+  // The hook holes in the end pieces, where an extension's wire hooks drop in.
+  const holes = hookHoles || [
+    [-(w / 2 - holeInset), -143.9], [-(w / 2 - holeInset), 143.9],
+    [w / 2 - holeInset, -143.9], [w / 2 - holeInset, 143.9],
+  ];
+  for (const [hx, hz] of holes) {
+    const x = Math.sign(hx) * (w / 2 - holeInset);
+    const hole = new THREE.Mesh(new THREE.CylinderGeometry(6 * MM, 6 * MM, (thick + 2) * MM, 10),
+      metalE(0x0e0f12, 0.2, 0.8));
+    hole.position.set(x * MM, -thick / 2 * MM, hz * MM);
+    g.add(hole);
+  }
+  // Corner plates: leg-socket plates on the standard frame, larger fold hinges on the
+  // collapsible. Sit ON top of the rails, rivetted.
+  const cornerX = w / 2 - (collapsible ? 34 : 26);
+  const cornerZ = d / 2 - railWidth / 2;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const plate = new THREE.Mesh(
+      roundedBox((collapsible ? 60 : 46) * MM, 4 * MM, (collapsible ? railWidth - 4 : 44) * MM, 2 * MM),
+      metalE(plateColor, 0.85, 0.35, glow));
+    plate.position.set(sx * cornerX * MM, 2 * MM, sz * cornerZ * MM);
+    g.add(plate);
+    rivetsInto(g, [
+      [sx * (cornerX - 16), sz * (cornerZ - 12)], [sx * (cornerX + 16), sz * (cornerZ - 12)],
+      [sx * (cornerX - 16), sz * (cornerZ + 12)], [sx * (cornerX + 16), sz * (cornerZ + 12)],
+    ], 3, plateColor);
+  }
+  return { group: g, pick };
+}
+
+/** A layout table or standalone IGT: a work surface on four tapered legs. `height` is the
+ *  table's overall height, `thick` the top's thickness. Surface top at y = 0, legs to
+ *  -height. The planner uses drawTable for its configured leg heights; this is the same
+ *  object at the part's own standalone height, for the bench. */
+export function tableGroup(w, d, height, thick, color, legColor = null) {
+  const g = new THREE.Group();
+  const top = new THREE.Mesh(roundedBox(w * MM, thick * MM, d * MM, 2.2 * MM),
+    metalE(color, 0.6, 0.45));
+  top.position.y = -thick / 2 * MM;
+  g.add(top);
+  const legH = Math.max(height - thick, 20);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(10 * MM, 8 * MM, legH * MM, 14),
+      metalE(legColor ?? 0x9aa0a8, 0.85, 0.32));
+    leg.position.set(sx * (w / 2 - 35) * MM, -(thick + legH / 2) * MM, sz * (d / 2 - 35) * MM);
+    g.add(leg);
+  }
+  return { group: g, body: top };
+}
+
+/** The Jikaro: an octagonal ring of four trapezoid segments with the fire hole in the
+ *  middle, standing on folding wire legs. `ringMat` paints the ring; `color` the wire.
+ *  Ring top at y = 0, legs to -height. */
+export function jikaroGroup({ outer, opening, edge, height, color, ringMat }) {
+  const g = new THREE.Group();
+  const thick = 6;
+  const ring = new THREE.Mesh(jikaroRing(outer, opening, edge, thick * MM),
+    ringMat || metalE(color, 0.85, 0.3));
+  g.add(ring);
+  const seams = jikaroSeams(outer, opening, edge, 0x6a7079);
+  seams.position.y = 0.4 * MM;
+  g.add(seams);
+
+  const wire = metalE(color, 0.9, 0.28);
+  const mid = (outer / 2 + opening / 2) / 2;
+  const half = edge * 0.34;
+  for (const [ux, uz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    for (const s of [-1, 1]) {
+      const px = ux ? ux * mid : s * half;
+      const pz = uz ? uz * mid : s * half;
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(4 * MM, height * MM, 4 * MM), wire);
+      leg.position.set(px * MM, -height / 2 * MM, pz * MM);
+      g.add(leg);
+    }
+    const bar = new THREE.Mesh(
+      new THREE.BoxGeometry((ux ? 4 : half * 2) * MM, 4 * MM, (uz ? 4 : half * 2) * MM), wire);
+    bar.position.set(ux * mid * MM, (-height + 8) * MM, uz * mid * MM);
+    g.add(bar);
+  }
+  return { group: g, body: g.children[0] };
+}
+
+/** A hanging rack that hooks over a frame's rails and drops shelves inside its depth.
+ *  Standalone here (its hooks sit at its own depth edges); the planner places it at a slot.
+ *  `tiers` shelves, `hasSurface` a solid shelf vs an open rim. Top at y = 0, to -drop.
+ *  Returns { group, pick } so the planner can tag the bars. */
+export function hangRackGroup({ w, d, drop, tiers = 1, hasSurface = false, color, estimated = false }) {
+  const g = new THREE.Group();
+  const pick = [];
+  const mat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(color), metalness: 0.9, roughness: 0.28,
+    transparent: estimated, opacity: estimated ? 0.78 : 1,
+  });
+  const bar = (bw, bh, bd, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(bw * MM, bh * MM, bd * MM), mat);
+    m.position.set(x * MM, y * MM, z * MM);
+    g.add(m); pick.push(m);
+    return m;
+  };
+  const hookZ = Math.min(d / 2, 203);
+  for (const sz of [-1, 1]) for (const sx of [-0.5, 0.5]) bar(16, 10, 40, sx * (w - 40), 2, sz * hookZ);
+  for (const sx of [-1, 1]) bar(6, drop, d, sx * (w / 2 - 3), -drop / 2, 0);
+  for (let i = 1; i <= tiers; i++) {
+    const y = -(drop * i) / tiers;
+    if (hasSurface) { bar(w - 12, 8, d, 0, y, 0); }
+    else {
+      bar(w - 12, 20, 12, 0, y, d / 2 - 6);
+      bar(w - 12, 20, 12, 0, y, -(d / 2 - 6));
+      bar(12, 20, d, w / 2 - 6, y, 0);
+      bar(12, 20, d, -(w / 2 - 6), y, 0);
+    }
+  }
+  return { group: g, pick };
+}
+
+// ===========================================================================================
+// The smaller hardware -- clamps, poles, screens, cases, rails, rings. None of these is a
+// box, and every one of them was being drawn as one (or crashing). These are honest,
+// low-detail shapes: enough silhouette to tell a lantern pole from a windscreen from a
+// clamp, no invented ornament. All take MILLIMETRES and hang from y = 0.
+// ===========================================================================================
+
+/** An edge clamp / hook bracket: a back plate with a jaw that curls over an edge at the top
+ *  and a shorter return at the bottom -- a C that grips a tabletop. CK-020 box hanger,
+ *  CK-175 connection hook, the TTA unit clamp all read as this. */
+export function clampGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const mat = metalE(color, 0.85, 0.32);
+  const bw = Math.min(w, 30), t = 4;
+  const back = new THREE.Mesh(roundedBox(bw * MM, h * MM, t * MM, 1 * MM), mat);
+  back.position.set(0, -h / 2 * MM, 0);
+  g.add(back);
+  const jaw = Math.min(d, 40);
+  const topJaw = new THREE.Mesh(roundedBox(bw * MM, t * MM, jaw * MM, 1 * MM), mat);
+  topJaw.position.set(0, -t / 2 * MM, jaw / 2 * MM);
+  g.add(topJaw);
+  const botJaw = new THREE.Mesh(roundedBox(bw * MM, t * MM, jaw * 0.7 * MM, 1 * MM), mat);
+  botJaw.position.set(0, (-h + t / 2) * MM, jaw * 0.35 * MM);
+  g.add(botJaw);
+  // A thumb screw under the bottom jaw, the way a clamp tightens.
+  const screw = new THREE.Mesh(new THREE.CylinderGeometry(5 * MM, 5 * MM, 14 * MM, 10), metalE(0x1c1f24, 0.5, 0.5));
+  screw.position.set(0, (-h + t) * MM, jaw * 0.5 * MM);
+  g.add(screw);
+  return { group: g, body: back };
+}
+
+/** A folding windscreen: three thin upright panels in a shallow zigzag. */
+export function screenGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const mat = metalE(color, 0.8, 0.4);
+  const pw = w / 3, t = 2;
+  const angles = [0.35, 0, -0.35];
+  let x = -w / 2 + pw / 2;
+  for (const a of angles) {
+    const panel = new THREE.Mesh(roundedBox(pw * MM, h * MM, t * MM, 0.5 * MM), mat);
+    panel.position.set(x * MM, -h / 2 * MM, 0);
+    panel.rotation.y = a;
+    g.add(panel);
+    x += pw * Math.cos(a);
+  }
+  return { group: g, body: g.children[0] };
+}
+
+/** A lantern hanger / cylinder stand: a vertical pole with a clamp foot and an arm reaching
+ *  out near the top, a small hook at the arm's end. */
+export function postArmGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const mat = metalE(color, 0.85, 0.3);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(6 * MM, 6 * MM, h * MM, 12), mat);
+  pole.position.set(0, -h / 2 * MM, 0);
+  g.add(pole);
+  const reach = Math.max(w, d, 120);
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(4 * MM, 4 * MM, reach * MM, 10), mat);
+  arm.rotation.z = Math.PI / 2;
+  arm.position.set(reach / 2 * MM, -20 * MM, 0);
+  g.add(arm);
+  const hook = new THREE.Mesh(new THREE.TorusGeometry(9 * MM, 2.5 * MM, 8, 16, Math.PI * 1.4), mat);
+  hook.position.set(reach * MM, -34 * MM, 0);
+  hook.rotation.x = Math.PI / 2;
+  g.add(hook);
+  // Clamp foot -- how it grips the frame edge.
+  const foot = new THREE.Mesh(roundedBox(26 * MM, 30 * MM, 20 * MM, 2 * MM), mat);
+  foot.position.set(0, (-h + 15) * MM, 0);
+  g.add(foot);
+  return { group: g, body: pole };
+}
+
+/** A small IGT-style frame on legs (CK-303 TTA Unit Frame): a thin rectangular rim on four
+ *  short legs -- a frame you can see through, not a filled box. */
+export function ttaFrameGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const mat = metalE(color, 0.8, 0.4);
+  const t = 10;
+  const rim = (bw, bd, x, z) => {
+    const m = new THREE.Mesh(roundedBox(bw * MM, t * MM, bd * MM, 1 * MM), mat);
+    m.position.set(x * MM, -t / 2 * MM, z * MM);
+    g.add(m);
+  };
+  rim(w, t, 0, d / 2 - t / 2); rim(w, t, 0, -(d / 2 - t / 2));
+  rim(t, d, w / 2 - t / 2, 0); rim(t, d, -(w / 2 - t / 2), 0);
+  const legH = Math.max(h - t, 20);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(6 * MM, 5 * MM, legH * MM, 12), mat);
+    leg.position.set(sx * (w / 2 - t) * MM, -(t + legH / 2) * MM, sz * (d / 2 - t) * MM);
+    g.add(leg);
+  }
+  return { group: g, body: g.children[0] };
+}
+
+/** A ring holder (CK-306 Sierra cup holder): a flat ring with a small clamp tab. */
+export function ringGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const mat = metalE(color, 0.85, 0.32);
+  const R = Math.min(w, d) / 2;
+  const ring = new THREE.Mesh(new THREE.TorusGeometry((R - 6) * MM, 3 * MM, 10, 28), mat);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = -h / 2 * MM;
+  g.add(ring);
+  const tab = new THREE.Mesh(roundedBox(18 * MM, Math.max(h, 10) * MM, 4 * MM, 1 * MM), mat);
+  tab.position.set(0, -h / 2 * MM, -(R - 2) * MM);
+  g.add(tab);
+  return { group: g, body: ring };
+}
+
+/** A soft carrying case: a closed rounded box with a lid seam and an arch handle -- a bag,
+ *  not an open bin. */
+export function caseGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), metalness: 0.05, roughness: 0.85 });
+  const body = new THREE.Mesh(roundedBox(w * MM, h * MM, d * MM, Math.min(w, d, h) * 0.16 * MM), mat);
+  body.position.y = -h / 2 * MM;
+  g.add(body);
+  // Lid seam -- a thin band a third of the way down.
+  const seam = new THREE.Mesh(roundedBox((w + 2) * MM, 4 * MM, (d + 2) * MM, 2 * MM),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.7), metalness: 0.1, roughness: 0.8 }));
+  seam.position.y = -h / 3 * MM;
+  g.add(seam);
+  // An arch handle on top.
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(Math.min(w, 60) * 0.4 * MM, 4 * MM, 8, 20, Math.PI), mat);
+  handle.position.set(0, 2 * MM, 0);
+  g.add(handle);
+  return { group: g, body };
+}
+
+/** A rail set sold on its own (CK-902-1 collapsible rails): a pair of rail profiles at the
+ *  frame's spacing, no ends -- what you actually get in the box. */
+export function railsGroup({ w, d, thick, section, color = BLK_ }) {
+  const g = new THREE.Group();
+  const railWidth = section.rail_width_mm;
+  const prof = {
+    outerWall: (d / 2 - section.channel_mm[1]) * MM,
+    channel: (section.channel_mm[1] - section.channel_mm[0]) * MM,
+    lip: (section.lip_mm[1] - section.lip_mm[0]) * MM,
+  };
+  for (const s of [-1, 1]) {
+    const r = new THREE.Mesh(railProfile(w * MM, thick * MM, prof, s), metalE(color, 0.8, 0.42));
+    r.position.set(0, -thick / 2 * MM, s * (d / 2 - railWidth / 2) * MM);
+    g.add(r);
+  }
+  return { group: g, body: g.children[0] };
+}
+
+/** A flat connector plate with a couple of studs (LV-312 frame connector, the height
+ *  adjuster's plate): a thin plate, not a block. */
+export function plateGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const mat = metalE(color, 0.85, 0.35);
+  const t = Math.min(h, 8);
+  const plate = new THREE.Mesh(roundedBox(w * MM, t * MM, d * MM, 2 * MM), mat);
+  plate.position.y = -t / 2 * MM;
+  g.add(plate);
+  rivetsInto(g, [[-w / 4, 0], [w / 4, 0]], 1, color);
+  return { group: g, body: plate };
+}
+
+/** A flat grill / griddle plate: a slab with parallel ridges on top, the way a grill plate
+ *  is cast (S-029HA and the like). */
+export function gridPlateGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const mat = metalE(color, 0.35, 0.6);
+  const t = Math.max(h, 6);
+  const slab = new THREE.Mesh(roundedBox(w * MM, t * MM, d * MM, 2 * MM), mat);
+  slab.position.y = -t / 2 * MM;
+  g.add(slab);
+  const ridge = metalE(0x1b1e22, 0.3, 0.65);
+  for (let i = -3; i <= 3; i++) {
+    const r = new THREE.Mesh(new THREE.BoxGeometry((w - 20) * MM, 3 * MM, 4 * MM), ridge);
+    r.position.set(0, 1.5 * MM, i * (d / 8) * MM);
+    g.add(r);
+  }
+  return { group: g, body: slab };
 }

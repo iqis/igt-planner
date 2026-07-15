@@ -1,10 +1,9 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { materialFor, roundedBox, railProfile, meshWires, isMesh,
-         boardMaterial, flatRect, boardFromOutline, grainMaterial,
-         jikaroRing, jikaroSeams } from "./materials.js";
-import { moduleGroup, flatBoardGeo as flatGeo } from "./parts3d.js";
+import { materialFor, roundedBox, boardMaterial, grainMaterial } from "./materials.js";
+import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
+         jikaroGroup, hangRackGroup } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -482,18 +481,8 @@ const edgeMeshes = [];   // meshes carrying .edge      (the hover-to-extend hand
 // sampled off the product photos. Which surface wears which is what tells the families
 // apart, so they are named here rather than pulled from a single swatch that can only be
 // one colour.
-const ALU = 0xc4c8ca;      // brushed aluminium: standard rails, corner plates, the rivets
-const BLK = 0x24262a;      // anodised black:  end pieces, and the collapsible's side rails
-
-/** A row of rivets along a line -- the little domed pins that hold the frame's plates on.
- *  Cheap, and most of what makes bare stock read as a fabricated part rather than a bar. */
-function rivets(g, top, pts, color = ALU) {
-  for (const [x, z] of pts) {
-    const r = stock(new THREE.CylinderGeometry(2.6 * MM, 2.6 * MM, 3 * MM, 8), color, 0.9, 0.3);
-    r.position.set(x, top + 1, z).multiplyScalar(MM);
-    g.add(r);
-  }
-}
+// The frame's aluminium/black finishes and its rivets now live with the geometry, in
+// frameGroup (parts3d.js) -- ALU/BLK and the rivet helper moved there with the shell.
 
 function drawFrame(g, n) {
   const p = PARTS[n.sku];
@@ -501,72 +490,20 @@ function drawFrame(g, n) {
   const top = topOf(n);
   const isSel = state.sel === n.id;
   const glow = isSel ? 0x2e1806 : 0x000000;
-  const S = SECTION;                       // measured off CK-149's plan view
-  const railWidth = S.rail_width_mm;
-  const endW = S.end_piece_mm;
 
-  // The two families wear the finishes the other way round. The STANDARD frame is silver
-  // channel rails on the long sides with BLACK anodised end pieces on the short ends -- the
-  // black ends are the iconic part, and they were being drawn silver. The COLLAPSIBLE frame
-  // (which comes apart into rails + folding ends) is black all round its long sides, with
-  // SILVER corner brackets at the four hinge points. Sampled colours confirm it: CK-149
-  // reads silver, CK-903 reads near-black.
+  // The frame SHELL -- rails, black end pieces, hook holes, corner plates, rivets -- is built
+  // by frameGroup in parts3d.js, so the part bench draws the identical frame (recess and all)
+  // instead of a slab. The two families wear the finishes the other way round (standard =
+  // silver rails + black ends; collapsible = black rails + silver corner hinges); frameGroup
+  // reads p.collapsible for it. Legs and modules are placement, and stay here.
   const collapsible = !!p.collapsible;
-  const railColor = collapsible ? BLK : ALU;
-
-  // Two extruded rails and two ends -- not a slab. There are no dividers; a "unit" is a
-  // 250mm notion along the run. The rail is a real channel: outer wall, groove, inner lip.
-  // The groove is what the rail joint slides into and what the leg sockets sit in; the lip
-  // is what a 360mm module RESTS on.
-  const prof = {
-    outerWall: (f.d / 2 - S.channel_mm[1]) * MM,              // 248 - 241.7 = 6.3mm
-    channel: (S.channel_mm[1] - S.channel_mm[0]) * MM,        // 59.2mm
-    lip: (S.lip_mm[1] - S.lip_mm[0]) * MM,                    // 24.0mm
-  };
-  for (const s of [-1, 1]) {
-    const r = stock(railProfile(f.w * MM, FRAME_THICK * MM, prof, s), railColor, 0.8, 0.42, glow);
-    r.position.set(0, top - FRAME_THICK / 2, s * (f.d / 2 - railWidth / 2)).multiplyScalar(MM);
-    r.userData.node = n; g.add(r); nodeMeshes.push(r);
-  }
-  // The end pieces are ANODISED BLACK -- the hook holes live in them, and it is where an
-  // extension attaches. This is the frame's signature, and it was silver.
-  for (const x of [-(f.w - endW) / 2, (f.w - endW) / 2]) {
-    const e = stock(roundedBox(endW * MM, FRAME_THICK * MM, f.d * MM, 2 * MM), BLK, 0.55, 0.5, glow);
-    e.position.set(x, top - FRAME_THICK / 2, 0).multiplyScalar(MM);
-    e.userData.node = n; g.add(e); nodeMeshes.push(e);
-  }
-  // The hook holes, in the black end pieces, where an extension's wire hooks drop in.
-  // Measured: x = +/-406.5 (16.5mm in from the end face), z = +/-143.9.
-  for (const [hx, hz] of (FRAMES[n.sku]?.hook_holes_mm
-      || [[-(f.w / 2 - HOLE_INSET), -143.9], [-(f.w / 2 - HOLE_INSET), 143.9],
-          [f.w / 2 - HOLE_INSET, -143.9], [f.w / 2 - HOLE_INSET, 143.9]])) {
-    const x = Math.sign(hx) * (f.w / 2 - HOLE_INSET);          // hold the inset, not the x
-    const hole = stock(new THREE.CylinderGeometry(6 * MM, 6 * MM, (FRAME_THICK + 2) * MM, 10), 0x0e0f12, 0.2, 0.8);
-    hole.position.set(x, top - FRAME_THICK / 2, hz).multiplyScalar(MM);
-    g.add(hole);
-  }
-
-  // Corner hardware -- a silver plate at each of the four corners. On the standard frame it
-  // is the leg-socket plate (measured on the underside); on the collapsible it is the fold
-  // hinge, and it is larger and rivetted, sitting proud on top of the black side rails.
-  const cornerX = f.w / 2 - (collapsible ? 34 : 26);
-  const cornerZ = f.d / 2 - railWidth / 2;
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const plate = stock(
-      roundedBox((collapsible ? 60 : 46) * MM, 4 * MM, (collapsible ? railWidth - 4 : 44) * MM, 2 * MM),
-      ALU, 0.85, 0.35, glow);
-    plate.position.set(sx * cornerX, top + 2, sz * cornerZ).multiplyScalar(MM);
-    g.add(plate);
-    rivets(g, top + 3, [
-      [sx * (cornerX - 16), sz * (cornerZ - 12)], [sx * (cornerX + 16), sz * (cornerZ - 12)],
-      [sx * (cornerX - 16), sz * (cornerZ + 12)], [sx * (cornerX + 16), sz * (cornerZ + 12)],
-    ]);
-  }
-
-  // No unit dividers. A "unit" is a 250mm notion along a CONTINUOUS rail -- there are no
-  // bars between them, and drawing little stubs at each boundary invented a grid the frame
-  // does not have. (The comment two functions up has said "no physical dividers" the whole
-  // time; the render was contradicting it.)
+  const { group: shell, pick } = frameGroup({
+    w: f.w, d: f.d, thick: FRAME_THICK, collapsible,
+    section: SECTION, hookHoles: FRAMES[n.sku]?.hook_holes_mm, holeInset: HOLE_INSET, glow,
+  });
+  shell.position.y = top * MM;
+  for (const m of pick) { m.userData.node = n; nodeMeshes.push(m); }
+  g.add(shell);
 
   // Legs: tapered tube with a foot, the way they actually are.
   // The legs go in the sockets, and the sockets were measured off the frame's underside:
@@ -660,44 +597,17 @@ function drawFrame(g, n) {
 function drawHangRack(g, n, pl, cx, top) {
   const p = PARTS[pl.sku];
   const a = p.assembled_mm;
-  const w = a.w, d = a.d, drop = a.h;
-  const steel = new THREE.Color(swatchOf(p.sku));
-  const est = p.assembled_estimated;
-  const mat = new THREE.MeshStandardMaterial({
-    color: steel, metalness: 0.9, roughness: 0.28,
-    transparent: est, opacity: est ? 0.78 : 1,
+  // Body, side panels, hooks and shelves come from hangRackGroup in parts3d.js -- one rack,
+  // both renderers. It hangs from y=0 to -drop, so place it at the slot centre and the frame
+  // top. CK-220's assembled height is not published (only packed), so it is drawn a little
+  // translucent to say "estimated".
+  const { group, pick } = hangRackGroup({
+    w: a.w, d: a.d, drop: a.h, tiers: p.tiers || 1,
+    hasSurface: !!p.has_surface, color: swatchOf(p.sku), estimated: p.assembled_estimated,
   });
-  const bar = (bw, bh, bd, x, y, z) => {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(bw * MM, bh * MM, bd * MM), mat);
-    m.position.set((cx + x) * MM, y * MM, z * MM);
-    m.userData.placement = pl; m.userData.node = n;
-    g.add(m); slotMeshes.push(m);
-  };
-
-  // Hooks over both rails, at the top. Two per side, like the manual's four.
-  const railZ = n && (footprint(n).d / 2 - SECTION.rail_width_mm / 2);
-  for (const sz of [-1, 1])
-    for (const sx of [-0.5, 0.5])
-      bar(16, 10, 40, sx * (w - 40), top + 2, sz * railZ);
-
-  // Side panels: one at each end, dropping the full depth. Drawn as thin plates.
-  for (const sx of [-1, 1])
-    bar(6, drop, d, sx * (w / 2 - 3), top - drop / 2, 0);
-
-  // The shelves. CK-230: a single solid base plate at the bottom (its own surface).
-  // CK-220: two open frames -- draw each as a rectangular rim, no floor.
-  const tiers = p.tiers || 1;
-  for (let i = 1; i <= tiers; i++) {
-    const y = top - (drop * i) / tiers;
-    if (p.has_surface) {
-      bar(w - 12, 8, d, 0, y, 0);                 // solid shelf
-    } else {
-      bar(w - 12, 20, 12, 0, y, d / 2 - 6);       // front rail
-      bar(w - 12, 20, 12, 0, y, -(d / 2 - 6));    // back rail
-      bar(12, 20, d, w / 2 - 6, y, 0);            // right rail
-      bar(12, 20, d, -(w / 2 - 6), y, 0);         // left rail
-    }
-  }
+  group.position.set(cx * MM, top * MM, 0);
+  for (const m of pick) { m.userData.placement = pl; m.userData.node = n; slotMeshes.push(m); }
+  g.add(group);
 }
 
 /** The Jikaro: an octagonal ring of four trapezoid segments, with the fire in the hole.
@@ -713,39 +623,17 @@ function drawJikaro(g, n) {
   const c = jikaroCfg(n);
   const top = topOf(n);
   const isSel = state.sel === n.id;
-  const steel = new THREE.Color(swatchOf(n.sku));
-  const thick = 6;
 
-  const ring = new THREE.Mesh(
-    jikaroRing(c.outer_mm, c.opening_mm, c.edge_mm, thick * MM),
-    materialFor(p, COLORS, isSel),
-  );
-  ring.position.y = top * MM;
-  ring.userData.node = n; g.add(ring); nodeMeshes.push(ring);
-
-  // Four pieces that read as one plate is a lie about a table you carry in four bits.
-  const seams = jikaroSeams(c.outer_mm, c.opening_mm, c.edge_mm, 0x6a7079);
-  seams.position.y = (top + 0.4) * MM;
-  g.add(seams);
-
-  // A wire leg under each segment: two uprights and a foot bar, folding, as they really are.
-  const wire = new THREE.MeshStandardMaterial({ color: steel, metalness: 0.9, roughness: 0.28 });
-  const mid = (c.outer_mm / 2 + c.opening_mm / 2) / 2;      // the middle of a segment
-  const half = c.edge_mm * 0.34;
-  for (const [ux, uz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    for (const s of [-1, 1]) {
-      const px = ux ? ux * mid : s * half;
-      const pz = uz ? uz * mid : s * half;
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(4 * MM, top * MM, 4 * MM), wire);
-      leg.position.set(px, top / 2, pz).multiplyScalar(MM);
-      g.add(leg);
-    }
-    const bar = new THREE.Mesh(
-      new THREE.BoxGeometry((ux ? 4 : half * 2) * MM, 4 * MM, (uz ? 4 : half * 2) * MM), wire);
-    if (ux) bar.geometry = new THREE.BoxGeometry(4 * MM, 4 * MM, half * 2 * MM);
-    bar.position.set(ux * mid, 8, uz * mid).multiplyScalar(MM);
-    g.add(bar);
-  }
+  // Ring, seams and folding wire legs come from jikaroGroup in parts3d.js -- same table in
+  // the bench. It builds with the ring top at y=0 and the legs dropping to -height, so the
+  // group sits at the table height and the legs reach the ground.
+  const { group } = jikaroGroup({
+    outer: c.outer_mm, opening: c.opening_mm, edge: c.edge_mm, height: top,
+    color: swatchOf(n.sku), ringMat: materialFor(p, COLORS, isSel),
+  });
+  group.position.y = top * MM;
+  const ring = group.children[0];
+  ring.userData.node = n; g.add(group); nodeMeshes.push(ring);
 }
 
 // The flat-board geometry (traced corners/notched bamboo, dimension-built rectangles with a

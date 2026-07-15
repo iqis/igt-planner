@@ -3,7 +3,9 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, flatRect,
          boardFromOutline, grainMaterial } from "./materials.js";
-import { moduleGroup, flatBoardGeo } from "./parts3d.js";
+import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
+         hangRackGroup, clampGroup, screenGroup, postArmGroup, ttaFrameGroup,
+         ringGroup, caseGroup, railsGroup, plateGroup, gridPlateGroup } from "./parts3d.js";
 
 /* The bench.
  *
@@ -31,6 +33,11 @@ const IMAGES = (await (await fetch("../catalog/images.json")).json()).images;
 // file that records the difference. Absent until someone looks.
 const VIEWS = await fetch("../catalog/views.json")
   .then(r => r.ok ? r.json() : { views: {} }).then(d => d.views || {}).catch(() => ({}));
+// The measured frame fittings -- the same file the planner reads. The bench needs the rail
+// cross-section (SECTION) and the hook-hole centres to build a real frame instead of a slab.
+const FRAMES = await fetch("../catalog/frame_fittings.json")
+  .then(r => r.ok ? r.json() : { frames: {} }).then(d => d.frames || {}).catch(() => ({}));
+const SECTION = FRAMES["CK-149"]?.section;
 
 const PARTS = Object.fromEntries(CAT.parts.map(p => [p.sku, p]));
 const swatchOf = sku => COLORS[sku]?.color_hex || "#8a929c";
@@ -93,6 +100,67 @@ let sku = null;
 
 // ---------------------------------------------------------------- draw
 
+/** A group for any NON-board part, chosen by role -- the bench's dispatcher. Every branch
+ *  returns a real shape from parts3d.js; the whole point of this function is that the last
+ *  resort is a role-appropriate form, never a featureless box. The big nodes (frame, table,
+ *  Jikaro, hanging rack) build the SAME geometry the planner does; the small hardware
+ *  (clamp, pole, screen, case, rails, ring, plate) has its own honest low-detail shape. */
+function benchGeo(p, box) {
+  const color = swatchOf(p.sku);
+  const w = box.w, d = box.d, h = box.h ?? 40;
+  const sku = p.sku, role = p.role;
+
+  // Jikaro: a layout_table, but its own octagon. Default to the published long-edge-in ring.
+  if (sku === "ST-050")
+    return jikaroGroup({ outer: 1120, opening: 600, edge: 365, height: h,
+      color, ringMat: materialFor(p, COLORS, false) }).group;
+
+  if (role === "frame" && SECTION)
+    return frameGroup({ w, d, thick: h, collapsible: !!p.collapsible, section: SECTION,
+      hookHoles: FRAMES[sku]?.hook_holes_mm }).group;
+
+  if (role === "layout_table" || role === "standalone")
+    return tableGroup(w, d, h, 30, color).group;
+
+  if (role === "hanger") {
+    if (p.span) return hangRackGroup({ w, d, drop: h, tiers: p.tiers || 1,
+      hasSurface: !!p.has_surface, color, estimated: p.assembled_estimated }).group;
+    if (sku === "DB-005") return ringGroup(w, d, h, color).group;   // a ring that holds a bag
+    return clampGroup(w, d, h, color).group;                        // CK-020 box hanger
+  }
+
+  if (role === "edge_clamp") {
+    if (sku === "CK-301") return screenGroup(w, d, h, color).group;    // folding windscreen
+    if (sku === "CK-302" || sku === "CK-305") return postArmGroup(w, d, h, color).group;
+    if (sku === "CK-303") return ttaFrameGroup(w, d, h, color).group;  // a small frame on legs
+    if (sku === "CK-306") return ringGroup(w, d, h, color).group;      // Sierra cup holder
+    return clampGroup(w, d, h, color).group;                          // CK-300 unit clamp
+  }
+
+  if (role === "case") return caseGroup(w, d, h, color).group;
+  if (role === "rails" && SECTION)
+    return railsGroup({ w, d, thick: h, section: SECTION, color }).group;
+  if (role === "joint") return plateGroup(w, d, h, color).group;
+  if (role === "frame_hook") return clampGroup(w, d, h, color).group;  // CK-175 connection hook
+
+  // A grill / griddle plate (S-029HA): a ridged slab, not a box.
+  if (role === "accessory" && !moduleGroup(p, w, d, h, color) && h < 40)
+    return gridPlateGroup(w, d, h, color).group;
+
+  // Slot modules, storage boxes, gear bags, burners, mesh trays -- moduleGroup knows them.
+  const mod = moduleGroup(p, w, d, h, color);
+  if (mod) return mod.group;
+
+  // What is left is a genuinely thin, flat thing (a sliding bamboo extension, a wood insert,
+  // a shallow tray): a low slab, honestly flat -- still not a cube.
+  const g = new THREE.Group();
+  const slab = new THREE.Mesh(roundedBox(w * MM, Math.max(h, 8) * MM, d * MM, 2 * MM),
+    materialFor(p, COLORS, false));
+  slab.position.y = -Math.max(h, 8) / 2 * MM;
+  g.add(slab);
+  return g;
+}
+
 function drawPart() {
   stage.clear();
   const p = PARTS[sku];
@@ -110,7 +178,7 @@ function drawPart() {
   const isBoard = grain || t.outline_mm || p.role === "corner";
 
   if (!isBoard) {
-    stage.add(moduleGroup(p, box.w, box.d, thick, swatchOf(sku)).group);
+    stage.add(benchGeo(p, box));
   } else {
     const board = new THREE.Mesh(flatBoardGeo(p.role, t, box.w, box.d, thick), grain
       ? grainMaterial(p, COLORS, grain, box.w, box.d, false)
