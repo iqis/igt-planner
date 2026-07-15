@@ -95,6 +95,21 @@
    "image": "https://www.snowpeak.com/cdn/shop/products/lv-093gy_low_chair_luxe_gr_hero_01.jpg?width=1000",
    "url": {"us": "https://www.snowpeak.com/products/gray-low-beach-chair-short", "jp": null},
    "reason": "Luxury Low Beach Chair (LV-093GY): same low-beach form as LV-091 but a LOWER back (owner's note), a BLACK-coated frame (not silver), and a gray-taupe canvas (0x6e5b54 sampled). Reuses the lowbeach builder -- the lower back falls out of the smaller h (640 vs 860). Wood armrests. Dims ~600x600x640 / 260mm seat are estimated off the photo (Snow Peak publishes no clean US spec)."
+  },
+  "SET-200": {
+   "role": "seating",
+   "title_en": "Campfield Futon (Sofa)",
+   "assembled_mm": {"w": 1494, "d": 749, "h": 650},
+   "seat_h_mm": 320,
+   "price": {"us": 59995, "jp": null, "uk": null},
+   "frame_hex": "0xbfc3c7",
+   "fabric_hex": "0xa08d80",
+   "wood_hex": "0xcbb083",
+   "chair": "sofa",
+   "fabric_type": "canvas",
+   "image": "https://www.snowpeak.com/cdn/shop/products/campfield_futon_starter_set_set-220_hero_01_d82f0177-1b87-4de1-ba76-72547f21b7ab.jpg?width=900",
+   "url": {"us": "https://www.snowpeak.com/products/racksotto-multi-starter-set-ar", "jp": null},
+   "reason": "Campfield Futon (SET-200) in its BASIC SOFA form only (owner: the set reconfigures many ways -- bed / chairs / shelves -- but we model just the sofa). A low two-seat loveseat: silver aluminium X-frame base, two taupe seat + two reclined back cushions (0xa08d80 sampled), natural-wood armrests on the ends. chair type 'sofa'; ~1494x749x650. A prop like the chairs."
   }
  },
 

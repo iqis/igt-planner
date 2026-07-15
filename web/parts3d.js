@@ -531,6 +531,50 @@ export function lowBeachChairGroup(w, d, h, { frame = 0xbfc3c7, fabric = 0xc6b48
   return { group: g, body: g.children[0] };
 }
 
+/** Snow Peak Campfield Futon (SET-200) in its basic SOFA form: a low two-seat loveseat -- a
+ *  silver aluminium X-frame base, taupe seat + reclined back cushions, natural-wood armrests on
+ *  the ends. The real set reconfigures many ways (bed / chairs / shelves); we model only the sofa.
+ *  Feet at y = 0, faces +z. */
+export function campfieldSofaGroup(w, d, h, { frame = 0xbfc3c7, fabric = 0xa08d80, wood = 0xcbb083, canvasTex = null } = {}) {
+  const g = new THREE.Group();
+  const tubeMat = metalE(frame, 0.7, 0.35);
+  const cushion = new THREE.MeshStandardMaterial({ color: fabric, map: canvasTex || null, roughness: 0.96, side: THREE.DoubleSide });
+  const woodMat = new THREE.MeshStandardMaterial({ color: wood, roughness: 0.55, metalness: 0.03 });
+  const cyl = (a, b, r, mat) => {
+    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), mat);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m); return m;
+  };
+  const tube = (a, b, r = 9) => cyl(a, b, r, tubeMat);
+  const box = (bw, bh, bd, x, y, z, mat, rx = 0) => {
+    const m = new THREE.Mesh(roundedBox(bw * MM, bh * MM, bd * MM, 8 * MM), mat);
+    m.position.set(x * MM, y * MM, z * MM); m.rotation.x = rx; g.add(m); return m;
+  };
+  const sw = w / 2, hd = d / 2, deckY = 200, fd = hd - 70;
+  // silver X-frame legs across the width, tied by foot + deck rails
+  for (const xc of [-w / 2 + 180, 0, w / 2 - 180]) {
+    tube([xc, deckY, fd], [xc, 8, -fd]);
+    tube([xc, deckY, -fd], [xc, 8, fd]);
+  }
+  for (const zc of [fd, -fd]) {
+    tube([-sw + 120, 8, zc], [sw - 120, 8, zc]);        // foot rail
+    tube([-sw + 120, deckY, zc], [sw - 120, deckY, zc]); // deck rail
+  }
+  box(w - 60, 22, d - 150, 0, deckY + 2, 0, cushion);   // base deck
+  for (const sx of [-1, 1]) box(w / 2 - 50, 120, d - 250, sx * (w / 4), deckY + 75, 55, cushion);   // seats
+  const bBot = deckY + 130, bTop = h - 40;
+  for (const sx of [-1, 1]) box(w / 2 - 50, bTop - bBot, 95, sx * (w / 4), (bBot + bTop) / 2, -hd + 120, cushion, -0.14);  // backs
+  for (const sx of [-1, 1]) {                            // wood armrests on the ends
+    const X = sx * (sw - 25);
+    tube([X, deckY, fd - 40], [X, 400, fd - 60], 9);
+    tube([X, deckY, -fd + 60], [X, 400, -fd + 40], 9);
+    box(52, 22, d - 210, X, 412, -10, woodMat);
+  }
+  return { group: g, body: g.children[0] };
+}
+
 /** The Jikaro: an octagonal ring of four trapezoid segments with the fire hole in the
  *  middle, standing on folding wire legs. `ringMat` paints the ring; `color` the wire.
  *  Ring top at y = 0, legs to -height. */

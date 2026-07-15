@@ -367,7 +367,7 @@
    }
   }
  },
- "count": 101,
+ "count": 102,
  "unmatched_sku": [
   "CK-904SET",
   "CK-080SET",
@@ -2735,6 +2735,42 @@
    "fabric_hex": "0x6e5b54",
    "wood_hex": "0xd8bd86",
    "chair": "lowbeach",
+   "fabric_type": "canvas"
+  },
+  {
+   "sku": "SET-200",
+   "handle": null,
+   "title_en": "Campfield Futon (Sofa)",
+   "title_jp": "",
+   "barcode": "",
+   "role": "seating",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 1494,
+    "d": 749,
+    "h": 650
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": 59995,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": "https://www.snowpeak.com/cdn/shop/products/campfield_futon_starter_set_set-220_hero_01_d82f0177-1b87-4de1-ba76-72547f21b7ab.jpg?width=900",
+   "url": {
+    "us": "https://www.snowpeak.com/products/racksotto-multi-starter-set-ar",
+    "jp": null
+   },
+   "curated_reason": "Campfield Futon (SET-200) in its BASIC SOFA form only (owner: the set reconfigures many ways -- bed / chairs / shelves -- but we model just the sofa). A low two-seat loveseat: silver aluminium X-frame base, two taupe seat + two reclined back cushions (0xa08d80 sampled), natural-wood armrests on the ends. chair type 'sofa'; ~1494x749x650. A prop like the chairs.",
+   "seat_h_mm": 320,
+   "frame_hex": "0xbfc3c7",
+   "fabric_hex": "0xa08d80",
+   "wood_hex": "0xcbb083",
+   "chair": "sofa",
    "fabric_type": "canvas"
   },
   {
