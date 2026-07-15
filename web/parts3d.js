@@ -578,9 +578,9 @@ export function campfieldSofaGroup(w, d, h, { frame = 0xbfc3c7, fabric = 0xa08d8
 /** Snow Peak Lounge Cushion (TM-096): a round cotton-canvas floor cushion, shown in its FOLDED
  *  half-circle seating form -- the round pad folded in half, so a HALF-DISC of doubled thickness.
  *  Sits on the ground (y = 0). `w` = the straight fold edge (= the open pad's diameter). */
-export function loungeCushionGroup(w, d, h, { fabric = 0xcf6a20, folded = false } = {}) {
+export function loungeCushionGroup(w, d, h, { fabric = 0xcf6a20, folded = false, canvasTex = null } = {}) {
   const g = new THREE.Group();
-  const cloth = new THREE.MeshStandardMaterial({ color: fabric, roughness: 0.95, side: THREE.DoubleSide });
+  const cloth = new THREE.MeshStandardMaterial({ color: fabric, map: canvasTex || null, roughness: 0.95, side: THREE.DoubleSide });
   const R = w / 2;
   if (folded) {
     // FOLDED form: the round pad folded in half -> a SOLID half-disc of doubled thickness. Built by

@@ -375,25 +375,36 @@ function hostEdge(n, key, guest = "ext") {
   // 45-degree edge is exactly the kind of thing it is tempting to assume symmetry about.
   if (isJikaro(n) && JIKARO_EDGES[key]) {
     const c = jikaroCfg(n);
-    const v = JIKARO_EDGES[key];
-    // The hook engages the same depth in from the edge as it does on a frame -- 16.5mm --
-    // because it is the SAME wire hook. That is a mechanical argument, not a measurement:
-    // I have not measured the Jikaro's slots. Anchoring on the outer FACE instead leaves the
-    // board's edge hanging 12mm clear of the table, which is what the first version did and
-    // what a hook, by construction, does not do.
-    const r = c.outer_mm / 2 - HOLE_INSET;
-    return { anchor: { x: v.x * r, z: v.z * r }, normal: v, len: c.edge_mm };
+    const v = JIKARO_EDGES[key], normal = { x: v.x, z: v.z };
+    const half = c.outer_mm / 2, e = c.edge_mm / 2;
+    // A 45-degree CHAMFER face sits (half+e)/sqrt2 out from centre and is sqrt2*(half-e) long;
+    // its normal is the diagonal. Owner: the spread Jikaro takes IGT extensions on all eight.
+    if (v.chamfer) {
+      const faceDist = (half + e) / Math.SQRT2 - HOLE_INSET;
+      return { anchor: { x: normal.x * faceDist, z: normal.z * faceDist }, normal, len: Math.SQRT2 * (half - e) };
+    }
+    // The hook engages the same 16.5mm depth in from the edge as it does on a frame -- the SAME
+    // wire hook. Anchoring on the outer FACE instead leaves the board's edge hanging 12mm clear.
+    const r = half - HOLE_INSET;
+    return { anchor: { x: normal.x * r, z: normal.z * r }, normal, len: c.edge_mm };
   }
   return null;
 }
 
+const S = Math.SQRT1_2;   // 1/sqrt(2)
 const JIKARO_EDGES = {
+  // the four OUTER STRAIGHT sides
   "jik+x": { x: 1, z: 0 }, "jik-x": { x: -1, z: 0 },
   "jik+z": { x: 0, z: 1 }, "jik-z": { x: 0, z: -1 },
+  // the four 45-degree CHAMFERS. Owner: in the SPREAD form all eight edges take IGT extensions,
+  // so the chamfers are offered too (gated to long_in in edgeKeysOf).
+  "jikNE": { x: S, z: S, chamfer: true }, "jikSE": { x: S, z: -S, chamfer: true },
+  "jikNW": { x: -S, z: S, chamfer: true }, "jikSW": { x: -S, z: -S, chamfer: true },
 };
 
 const EDGE_KEYS = { frame: ["end+x", "end-x", "rail+z", "rail-z"], ext: ["bracket"], table: [] };
-const edgeKeysOf = n => isJikaro(n) ? Object.keys(JIKARO_EDGES)
+const edgeKeysOf = n => isJikaro(n) ? Object.keys(JIKARO_EDGES).filter(k =>
+    !JIKARO_EDGES[k].chamfer || n.config === "long_in")   // chamfers only in the spread form
   : isSlide(PARTS[n.sku]) ? []                    // a sliding extension is a leaf -- nothing
                                                   // hooks onto it, and its phantom bracket
                                                   // edge was intercepting the click to drag it

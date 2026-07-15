@@ -86,7 +86,7 @@
     }
    },
    "bridge_note": "The central opening only becomes usable IGT space with an OPTIONAL bridge accessory laid across it (2 brackets over the opening + N bars sliding into their grooves, stainless). Like the connection hook and rail joint, a bridge cannot stand alone -- it modifies the Jikaro. See layout.bridges. Opening 600 -> 2-Unit bridge, opening 365 -> 1-Unit bridge; the opening size is what decides which fits.",
-   "hook_edges": "The four OUTER STRAIGHT sides. Snow Peak's photo (a011) shows a Bamboo IGT Table hooked to one of them, on 400mm legs. The four 45-degree CHAMFERS are not offered: nothing says a board hooks there, and the planner does not guess."
+   "hook_edges": "In the SPREAD (long-edge-in) form, ALL EIGHT edges take IGT extensions -- the four outer straight sides (a011 shows a Bamboo IGT Table on one, on 400mm legs) AND the four 45-degree chamfers (owner correction; earlier the chamfers were withheld). The compact form offers the four straight sides."
   },
   "GF-051": {
    "name": "Takibi Garden Table",
