@@ -361,6 +361,25 @@ function openEdges(n) {
 
 const anyOpenEdge = () => state.nodes.some(n => openEdges(n).length > 0);
 
+// A node's ASSEMBLY -- the connected component it belongs to. Follow host links (of ANY kind,
+// unlike rootOf which stops at non-ext) up to the free root, then gather everything sharing it.
+// A hooked board, a sliding extension, a frame joined to another frame: one assembly, moved and
+// selected as one.
+function asmRoot(n) {
+  const seen = new Set();
+  while (n.host && !seen.has(n.id)) {
+    seen.add(n.id);
+    const h = byId(n.host);
+    if (!h) break;                       // dangling host -> treat the current node as the root
+    n = h;
+  }
+  return n;
+}
+function assemblyOf(n) {
+  const root = asmRoot(n);
+  return state.nodes.filter(m => asmRoot(m) === root);
+}
+
 // ---------------------------------------------------------------- hook chain
 
 /** Put a hooked board where its hooks are.
@@ -861,8 +880,11 @@ function drawTable(g, n) {
  *  where the holes are and nowhere else. There is no handle down the long side of a frame,
  *  because there are no holes down the long side of a frame. */
 function drawEdgeHandles() {
-  if (!anyOpenEdge()) return;
+  const s = sel();
+  if (!s) return;                        // select-first: the add-handles belong to the selection
+  const asm = new Set(assemblyOf(s));
   for (const n of state.nodes) {
+    if (!asm.has(n)) continue;
     for (const e of openEdges(n)) {
       const m = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
@@ -886,8 +908,11 @@ function drawEdgeHandles() {
  *  -- an occupied cell has none -- so hovering the frame's interior offers exactly the unit
  *  accessories that the space left can still hold. */
 function drawSlotHandles() {
+  const s = sel();
+  if (!s) return;                        // select-first: module slots show on the selected frame
+  const asm = new Set(assemblyOf(s));
   for (const n of state.nodes) {
-    if (n.kind !== "frame") continue;
+    if (n.kind !== "frame" || !asm.has(n)) continue;
     const cells = occupancy(n);
     const top = topOf(n);
     for (let i = 0; i < cells.length; i++) {
@@ -1247,7 +1272,10 @@ canvas.addEventListener("pointerdown", e => {
   }
 
   const nd = ray.intersectObjects(nodeMeshes, false)[0];
-  if (!nd) return;
+  if (!nd) {                             // pressed empty space -> deselect (and drop its handles)
+    if (state.sel != null) { state.sel = null; render(); }
+    return;
+  }
   const n = nd.object.userData.node;
   state.sel = n.id;
   // A hooked board hangs where its hooks are. Dragging it would be asking the model to
