@@ -501,8 +501,9 @@ export function lowBeachChairGroup(w, d, h, { frame = 0xbfc3c7, fabric = 0xc6b48
     m.position.set(x * MM, y * MM, z * MM); m.rotation.x = rx; g.add(m); return m;
   };
   const sw = w / 2 - 30;
-  // side-profile joints as [z, y]: front foot, seat front, hinge, back top, back foot
-  const FF = [270, 0], SF = [175, 305], HB = [-115, 285], BT = [-255, 815], BF = [-175, 0];
+  // side-profile joints as [z, y]: front foot, seat front, hinge, back top, back foot. The back
+  // top rides off `h`, so a lower-backed sibling (the Luxury chair) falls out of its dimensions.
+  const FF = [270, 0], SF = [175, 305], HB = [-115, 285], BT = [-255, h - 45], BF = [-175, 0];
   for (const sx of [-1, 1]) {
     const X = sx * sw;
     tube([X, FF[1], FF[0]], [X, SF[1], SF[0]]);   // front leg

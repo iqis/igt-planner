@@ -367,7 +367,7 @@
    }
   }
  },
- "count": 100,
+ "count": 101,
  "unmatched_sku": [
   "CK-904SET",
   "CK-080SET",
@@ -2697,6 +2697,42 @@
    "seat_h_mm": 300,
    "frame_hex": "0xbfc3c7",
    "fabric_hex": "0xc6b487",
+   "wood_hex": "0xd8bd86",
+   "chair": "lowbeach",
+   "fabric_type": "canvas"
+  },
+  {
+   "sku": "LV-093",
+   "handle": null,
+   "title_en": "Luxury Low Beach Chair",
+   "title_jp": "",
+   "barcode": "",
+   "role": "seating",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 600,
+    "d": 600,
+    "h": 640
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": 24995,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": "https://www.snowpeak.com/cdn/shop/products/lv-093gy_low_chair_luxe_gr_hero_01.jpg?width=1000",
+   "url": {
+    "us": "https://www.snowpeak.com/products/gray-low-beach-chair-short",
+    "jp": null
+   },
+   "curated_reason": "Luxury Low Beach Chair (LV-093GY): same low-beach form as LV-091 but a LOWER back (owner's note), a BLACK-coated frame (not silver), and a gray-taupe canvas (0x6e5b54 sampled). Reuses the lowbeach builder -- the lower back falls out of the smaller h (640 vs 860). Wood armrests. Dims ~600x600x640 / 260mm seat are estimated off the photo (Snow Peak publishes no clean US spec).",
+   "seat_h_mm": 260,
+   "frame_hex": "0x232528",
+   "fabric_hex": "0x6e5b54",
    "wood_hex": "0xd8bd86",
    "chair": "lowbeach",
    "fabric_type": "canvas"

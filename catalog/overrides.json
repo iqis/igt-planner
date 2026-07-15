@@ -80,6 +80,21 @@
    "image": "https://www.snowpeak.com/cdn/shop/products/1_b0cf14da-57c9-4de7-bece-bea067bfe504.jpg?width=1000",
    "url": {"us": "https://www.snowpeak.com/products/low-beach-chair", "jp": null},
    "reason": "Low Beach Chair (LV-091KH): a low, reclined beach chair -- SILVER aluminium tube frame, khaki canvas sling (seat + high reclined back, 0xc6b487 sampled from the photo), two STRAIGHT laminated-bamboo armrests. Low 300mm seat, 650x580x860. A prop like the folding chair; chair type 'lowbeach'."
+  },
+  "LV-093": {
+   "role": "seating",
+   "title_en": "Luxury Low Beach Chair",
+   "assembled_mm": {"w": 600, "d": 600, "h": 640},
+   "seat_h_mm": 260,
+   "price": {"us": 24995, "jp": null, "uk": null},
+   "frame_hex": "0x232528",
+   "fabric_hex": "0x6e5b54",
+   "wood_hex": "0xd8bd86",
+   "chair": "lowbeach",
+   "fabric_type": "canvas",
+   "image": "https://www.snowpeak.com/cdn/shop/products/lv-093gy_low_chair_luxe_gr_hero_01.jpg?width=1000",
+   "url": {"us": "https://www.snowpeak.com/products/gray-low-beach-chair-short", "jp": null},
+   "reason": "Luxury Low Beach Chair (LV-093GY): same low-beach form as LV-091 but a LOWER back (owner's note), a BLACK-coated frame (not silver), and a gray-taupe canvas (0x6e5b54 sampled). Reuses the lowbeach builder -- the lower back falls out of the smaller h (640 vs 860). Wood armrests. Dims ~600x600x640 / 260mm seat are estimated off the photo (Snow Peak publishes no clean US spec)."
   }
  },
 
