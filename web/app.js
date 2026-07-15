@@ -558,11 +558,10 @@ function drawFrame(g, n) {
     ]);
   }
 
-  for (let i = 1; i < p.units; i++) {
-    const t = stock(roundedBox(3 * MM, (FRAME_THICK + 1) * MM, railWidth * MM, 0.4 * MM), 0x596069);
-    t.position.set(slotX(n, i * 2), top - FRAME_THICK / 2, -(f.d / 2 - railWidth / 2)).multiplyScalar(MM);
-    g.add(t);
-  }
+  // No unit dividers. A "unit" is a 250mm notion along a CONTINUOUS rail -- there are no
+  // bars between them, and drawing little stubs at each boundary invented a grid the frame
+  // does not have. (The comment two functions up has said "no physical dividers" the whole
+  // time; the render was contradicting it.)
 
   // Legs: tapered tube with a foot, the way they actually are.
   // The legs go in the sockets, and the sockets were measured off the frame's underside:
