@@ -157,19 +157,20 @@ export function railProfile(length, thickness, section, outward = 1) {
 
   // Drawn in XY: x runs ACROSS the rail, from its outer face inward; y is its thickness.
   //
-  // A FLAT top, and a shallow RECESS cut into the inner edge that a module drops into and
-  // fills EXACTLY -- its surface finishing flush with the rail top, its edge landing right
-  // against the flat, with no gap either side.
+  // A FLAT top, and a ~10mm RECESS cut into the inner edge that a module's edge drops into
+  // and fills EXACTLY: its surface flush with the rail top, its edge against the flat, no
+  // gap and no clipping.
   //
-  // Two earlier versions were both wrong, and the owner caught both. First the inner seat
-  // ran to full height, a raised lip the module then sat proud of. Then I recessed the seat
-  // but LEFT the deep central groove I had modelled from the plan view -- so the module sat
-  // in the recess but a 60mm channel still gaped open between it and the rail's outer edge,
-  // an "extra depression" that is not there on the real rail. The rail top is simply flat;
-  // the groove was a misreading of the underside photo. Gone. The recess is only as wide as
-  // the module's edge rests on, and only as deep as it needs to sit flush.
-  const recess = Math.min(t * 0.4, 8 * 0.001);         // how far the seat sits below the top
-  const seatW = lip + channel * 0.35;                  // just enough ledge for the module edge
+  // Three earlier versions, three catches by the owner. (1) the inner seat ran to full
+  // height -- a raised lip the module sat proud of. (2) I recessed it but kept the deep
+  // central groove from the plan view -- a 60mm channel gaping open beside the module. (3)
+  // the recess was too SHALLOW (8mm) and too WIDE, so a 12mm module clipped THROUGH the rail
+  // and an empty strip of recess showed past its edge. The seat depth must match the module
+  // edge that sits in it (~10mm, the module's flange) and the seat width must match how far
+  // the module overhangs the rail (~the lip), so the module fills it exactly. RAIL_RECESS in
+  // app.js is the matching depth the modules are drawn to.
+  const recess = Math.min(t * 0.42, 10 * 0.001);       // ~10mm -- matches RAIL_RECESS
+  const seatW = lip;                                   // the module rests on the lip, no wider
   const s = new THREE.Shape();
   s.moveTo(-w / 2, -t / 2);                             // bottom, outer
   s.lineTo(w / 2, -t / 2);                              // bottom, inner

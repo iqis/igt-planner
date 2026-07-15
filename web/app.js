@@ -13,6 +13,11 @@ import { moduleGroup, flatBoardGeo as flatGeo } from "./parts3d.js";
 const MM = 0.001;
 
 const FRAME_THICK = 30;
+// The rail's inner recess is ~10mm deep, and a flat module's edge drops into it as its
+// flange. So a slotted flat board is DRAWN 10mm thick -- it fills the recess exactly and its
+// top finishes flush with the rail, instead of clipping through the rail as a full-thickness
+// slab or floating proud of it. Matches `recess` in railProfile.
+const RAIL_RECESS = 10;
 // A module's rim lands at z = +/-180 and rests on the rail's inner lip (158.5 .. 182.5).
 // That 360 is the SEAT, not the span between the rails -- which is 317. See SECTION.
 const MODULE_SEAT = 360;
@@ -615,10 +620,13 @@ function drawFrame(g, n) {
     if (built) { dropModule(g, n, pl, cx, top, built); continue; }
 
     // A flat insert or lid that drops into the slot: a bamboo board, a stainless lid-tray.
+    // Drawn at the RECESS depth, not its full thickness, so its edge fills the rail's ~10mm
+    // rebate and its face lands flush -- a full-thickness slab would clip straight through
+    // the rail's inner wall (which is exactly what the owner was seeing).
     const grain = textureOf(p2.sku, "grain");
     if (grain) {
       const geo = t => flatBoardGeo(p2, w, d, t);
-      const board = new THREE.Mesh(geo(h), grainMaterial(p2, COLORS, grain, w, d, false));
+      const board = new THREE.Mesh(geo(RAIL_RECESS), grainMaterial(p2, COLORS, grain, w, d, false));
       board.position.set(cx, top, 0).multiplyScalar(MM);
       board.userData.placement = pl; board.userData.node = n;
       g.add(board); slotMeshes.push(board);
