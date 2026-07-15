@@ -16,12 +16,12 @@
 
   "ST-050": {
     "what": "The Jikaro Fire Ring Table: an octagonal table (1120mm across, 400mm tall) with an open centre for a fire pit or ring, standing on eight wire legs. A standalone table, not part of the IGT rail system.",
-    "model": "jikaroGroup -- one octagon ring (outer 1120, central opening 600, extruded flat) on eight U-hairpin legs, one at each octagon vertex, each hairpin spread TANGENTIALLY along the edge with a notched foot bar.",
+    "model": "jikaroGroup -- one octagon ring (outer 1120, central opening 600, extruded flat) on eight U-hairpin legs. Each hairpin runs ALONG one of the trapezoid's two 285mm slant edges (inner hole corner out to the outer flat corner) -- two per segment, eight in all -- dropping to a foot bar with a shallow centre notch.",
     "fits": "Standalone. No hooks or brackets; it does not join the frame rail. Snow Peak groups it with the layout tables by height (400mm datum), not by connection.",
     "confidence": "medium",
-    "derived": ["octagon outline and the central opening are traced off the top-view photograph", "overall 1120mm and height 400mm are from the catalogue", "eight U-hairpin legs at the eight vertices (two per trapezoid segment, near its corners), spread tangentially -- from the disassembled photo a009 AND the pair marks D,E, which each land a wire on the +x corner pair (vertices near 18° and 72°)"],
-    "assumed": ["opening 600mm and slant-edge 365mm (ring proportions eyeballed from the photo)", "hairpin half-width ~66mm and foot notch ~32mm (leg WIRE detail eyeballed; D,E fix position, not the hairpin's own width)"],
-    "unknown": ["whether the feet sit exactly on the vertex radius or a little inboard -- two noisy marks can't tell ±20mm"]
+    "derived": ["octagon outline and the central opening are traced off the top-view photograph", "overall 1120mm and height 400mm are from the catalogue", "eight U-hairpin legs running ALONG the trapezoid slant (short) edges, two per segment -- from the disassembled photo a009 AND the user's explicit correction; the pair marks D,E land on the OUTER end of the +x pair of slants, repeated to all eight by the octagon's four-fold symmetry"],
+    "assumed": ["opening 600mm and slant-edge 365mm outer / 285mm slant / 260mm depth (ring proportions from the photo + the trapezoid math)", "the two wires sit at 16% and 95% along each slant, dropping vertically (D,E fix the outer end; the inner-wire spot and the foot notch are eyeballed off a009)"],
+    "unknown": ["exact wire spacing along the slant and how vertical vs splayed the drop is -- two noisy outer marks don't pin the inner wire"]
   },
 
   "CK-153TR": {
