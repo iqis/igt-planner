@@ -172,6 +172,22 @@ function steps() {
   return out;
 }
 
+// Where two touching footprints actually MEET -- the seam, not the line between their centres.
+// Returns the fixed coordinate, the axis the seam runs along, and the overlap span on it, so a
+// step joint can be drawn ON the seam (and not shot through the middle of a table).
+function contactEdge(a, b) {
+  const A = aabb(a), B = aabb(b);
+  const ox0 = Math.max(A.x0, B.x0), ox1 = Math.min(A.x1, B.x1);   // shared x extent
+  const oz0 = Math.max(A.z0, B.z0), oz1 = Math.min(A.z1, B.z1);   // shared z extent
+  const sides = [
+    { d: Math.abs(A.x1 - B.x0), axis: "z", fixed: (A.x1 + B.x0) / 2, lo: oz0, hi: oz1 },
+    { d: Math.abs(A.x0 - B.x1), axis: "z", fixed: (A.x0 + B.x1) / 2, lo: oz0, hi: oz1 },
+    { d: Math.abs(A.z1 - B.z0), axis: "x", fixed: (A.z1 + B.z0) / 2, lo: ox0, hi: ox1 },
+    { d: Math.abs(A.z0 - B.z1), axis: "x", fixed: (A.z0 + B.z1) / 2, lo: ox0, hi: ox1 },
+  ];
+  return sides.sort((p, q) => p.d - q.d)[0];   // the side with the smallest gap is where they touch
+}
+
 // ---------------------------------------------------------------- hooks and brackets
 //
 // Both of these come off the plan-view photographs (catalog/textures.json). Nothing here
@@ -970,17 +986,26 @@ function rebuild() {
     build.add(g);
   }
 
-  // Step joints, where two touching tables stand at different heights. Drawn as the
-  // 320mm post the part actually is.
+  // Step joints, where two touching tables stand at different heights. A CK-151 comes as a PAIR
+  // (本体×2), so draw TWO -- on the seam where the tables meet, each bridging the vertical step
+  // (lower top up to higher top) at the end-hole spacing. Not one 320mm post through the middle.
   for (const [a, b] of steps()) {
-    const mid = new THREE.Vector3((a.x + b.x) / 2, 0, (a.z + b.z) / 2);
-    const hi = Math.max(topOf(a), topOf(b));
-    const post = stock(
-      new THREE.CylinderGeometry(12.7 * MM, 12.7 * MM, 320 * MM, 16),
-      new THREE.Color(swatchOf("CK-151")), 0.85, 0.3,
-    );
-    post.position.set(mid.x * MM, (hi - 160) * MM, mid.z * MM);
-    build.add(post);
+    const loT = Math.min(topOf(a), topOf(b)), hiT = Math.max(topOf(a), topOf(b));
+    const rise = hiT - loT;
+    if (rise < 5) continue;
+    const c = contactEdge(a, b);
+    const ctr = (c.lo + c.hi) / 2;
+    const off = Math.min(144, Math.max(0, (c.hi - c.lo) / 2 - 30));   // end-hole half-spacing, clamped to the seam
+    for (const s of [-1, 1]) {
+      const t = ctr + s * off;
+      const post = stock(
+        new THREE.CylinderGeometry(9 * MM, 9 * MM, rise * MM, 12),
+        new THREE.Color(swatchOf("CK-151")), 0.85, 0.3,
+      );
+      post.position.set((c.axis === "z" ? c.fixed : t) * MM, ((loT + hiT) / 2) * MM,
+        (c.axis === "z" ? t : c.fixed) * MM);
+      build.add(post);
+    }
   }
 
   drawEdgeHandles();
