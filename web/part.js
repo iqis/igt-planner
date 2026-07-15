@@ -6,7 +6,7 @@ import { materialFor, roundedBox, boardMaterial, flatRect,
 import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
          hangRackGroup, clampGroup, screenGroup, postArmGroup, ttaFrameGroup,
          ringGroup, caseGroup, railsGroup, plateGroup, gridPlateGroup,
-         slideExtGroup, entryIgtGroup, slimIgtGroup } from "./parts3d.js";
+         slideExtGroup, entryIgtGroup, slimIgtGroup, extIgtGroup } from "./parts3d.js";
 
 /* The bench.
  *
@@ -131,6 +131,12 @@ function benchGeo(p, box) {
   // The self-contained IGTs with their own FIXED folding legs, modelled part by part.
   if (sku === "CK-080R" || sku === "CK-080R-EC") return entryIgtGroup(w, d, h, color).group;
   if (sku === "CK-180") return slimIgtGroup(w, d, h, color).group;
+  // Extension IGT: two bamboo tops that slide apart. The bench shows the expanded form (its
+  // assembled_mm is the open 1348), so the central 2-Unit bay is visible.
+  if (sku === "CK-090") {
+    const e = (CAT.layout?.expandables || {})["CK-090"], c = e && e.configs[e.default];
+    return extIgtGroup(w, d, h, { bayW: c?.bay_w_mm || 500, bayD: c?.bay_d_mm || 360 }).group;
+  }
 
   if (role === "layout_table" || role === "standalone")
     return tableGroup(w, d, h, 30, color).group;

@@ -73,16 +73,19 @@
    "segment_mm": {"long": 600, "short": 365, "height": 260},
    "configs": {
     "long_in": {
-     "name": "long edge inward",
+     "name": "long edge in (spread)",
      "outer_mm": 1120, "opening_mm": 600, "edge_mm": 365,
-     "note": "The published configuration. A 600mm fire opening, and four short 365mm outer edges to hook onto."
+     "bridge_units": 2, "bridge_sku": "CPL-JT2U", "bay_d_mm": 360,
+     "note": "The published configuration -- the spread/'long edge in' assembly the user calls WAI-BEN (outward). A 600mm fire opening (= a 2-Unit IGT bay when bridged), and four short 365mm outer edges to hook onto."
     },
     "short_in": {
-     "name": "short edge inward",
+     "name": "short edge in (compact)",
      "outer_mm": 885, "opening_mm": 365, "edge_mm": 600,
-     "note": "Compact. A 365mm opening and four long 600mm outer edges. The same four pieces, turned around."
+     "bridge_units": 1, "bridge_sku": "ST-051", "bay_d_mm": 360,
+     "note": "Compact -- the 'short edge in' assembly the user calls NEI-BEN (inward), Snow Peak's 'square mode'. A 365mm opening (= a 1-Unit IGT bay when bridged) and four long 600mm outer edges. The same four pieces, turned around."
     }
    },
+   "bridge_note": "The central opening only becomes usable IGT space with an OPTIONAL bridge accessory laid across it (2 brackets over the opening + N bars sliding into their grooves, stainless). Like the connection hook and rail joint, a bridge cannot stand alone -- it modifies the Jikaro. See layout.bridges. Opening 600 -> 2-Unit bridge, opening 365 -> 1-Unit bridge; the opening size is what decides which fits.",
    "hook_edges": "The four OUTER STRAIGHT sides. Snow Peak's photo (a011) shows a Bamboo IGT Table hooked to one of them, on 400mm legs. The four 45-degree CHAMFERS are not offered: nothing says a board hooks there, and the planner does not guess."
   },
   "GF-051": {
@@ -117,6 +120,46 @@
    "connects_to": ["igt"],
    "requires_connector": "LV-312",
    "evidence": "\"tabletop that seamlessly integrates with the Iron Grill Table\"; LV-312: \"attaches to the Stainless Steel Kitchen Table to allow the insertion of an IGT Four Unit Frame within the length of the table. Set includes two Connectors.\" Note the 1100mm height -- this one does NOT sit at the datum."
+  }
+ },
+
+ "expandables": {
+  "_comment": "Self-contained tables whose FORM changes: a discrete config alters both footprint AND how many IGT unit-slots the part exposes. Passed through untouched by build_catalog (it only processes tables/joints/corners/ecosystems), so CK-090 keeps its standalone role. bay_* describes the IGT slot region a config exposes, in the node's local frame.",
+  "CK-090": {
+   "name": "Extension IGT",
+   "default": "expanded",
+   "note": "Two laminated-bamboo tabletops on one aluminium stand that slide apart. Closed it is a plain ~3-unit-long table; slid fully open it exposes a central 2-Unit IGT bay (500x360) between the two tops. Catalogue title carries a 'Risk of tipping over' warning -- the open span is cantilevered.",
+   "configs": {
+    "expanded":  {"name": "expanded (open)",  "w_mm": 1348, "d_mm": 498, "bay_units": 2, "bay_w_mm": 500, "bay_d_mm": 360,
+                  "note": "Fully slid open. 1348x498 overall (~5 units end to end); the 508mm the tops travel opens exactly a 2-Unit (500mm) IGT bay in the middle. From the manual set-contents line (2ユニット=W)500x360."},
+    "collapsed": {"name": "collapsed (closed)", "w_mm": 840,  "d_mm": 498, "bay_units": 0,
+                  "note": "Tops pushed together. 840x498 (~3 units); a plain table, no IGT bay exposed. Manual 〈最小〉840x498."}
+   }
+  }
+ },
+
+ "bridges": {
+  "_comment": "OPTIONAL bridge accessories for the Jikaro (ST-050). Each lays across the central fire opening and turns it into IGT unit-slots. They cannot exist on their own -- like the connection hook (CK-175) and rail joint (XCK-128), a bridge only modifies the Jikaro -- so the planner never places one as its own node; it is a toggle on a Jikaro and its SKU shows up in that Jikaro's parts list. Real Snow Peak accessories, mostly limited / after-market now.",
+  "ST-051": {
+   "name": "Jikaro Table 1 Unit Bridge",
+   "units": 1,
+   "for_config": "short_in",
+   "material": "stainless steel",
+   "availability": "Official Snow Peak SKU (sits next to ST-050). Now rare / discontinued; secondary market.",
+   "note": "Bridges the 365mm opening of the compact (short-edge-in) Jikaro to give one IGT unit. Recommended for the 'square mode' the copy mentions."
+  },
+  "CPL-JT2U": {
+   "name": "Jikaro Top 2 Unit Bridge",
+   "units": 2,
+   "for_config": "long_in",
+   "material": "stainless steel",
+   "bracket_mm": {"w": 635, "d": 115},
+   "bar_mm": {"w": 360, "d": 47},
+   "load_kg": 20,
+   "weight_g": 1900,
+   "contents": "2 main brackets + 2 bridge bars + storage pouch",
+   "availability": "Official version is the SEPPOUSAI (Snow Peak Festival) 2023 Autumn limited edition; CPL-JT2U is the after-market equivalent (BIGTENT). Provides space for 1 or 2 IGT-unit appliances.",
+   "note": "Two brackets rest over the 600mm opening of the spread (long-edge-in) Jikaro; the two bars slide into grooves on the brackets to make a 2-Unit IGT bay."
   }
  },
 

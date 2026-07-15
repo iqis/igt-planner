@@ -15,13 +15,13 @@
   ],
 
   "ST-050": {
-    "what": "The Jikaro Fire Ring Table: an octagonal table (1120mm across, 400mm tall) with an open centre for a fire pit or ring, standing on eight wire legs. A standalone table, not part of the IGT rail system.",
-    "model": "jikaroGroup -- one octagon ring (outer 1120, central opening 600, extruded flat) on eight U-hairpin legs. Each hairpin runs ALONG one of the trapezoid's two 285mm slant edges (inner hole corner out to the outer flat corner) -- two per segment, eight in all -- dropping to a foot bar with a shallow centre notch.",
-    "fits": "Standalone. No hooks or brackets; it does not join the frame rail. Snow Peak groups it with the layout tables by height (400mm datum), not by connection.",
+    "what": "The Jikaro Fire Ring Table: an octagonal table (1120mm across, 400mm tall) with an open centre for a fire pit or ring, standing on eight wire legs. RECONFIGURABLE: the four trapezoid segments go together two ways -- spread (long edge in: 1120 across, 600 opening) or compact (short edge in: 885 across, 365 opening). The open centre only becomes usable IGT space with an OPTIONAL bridge (2-Unit CPL-JT2U over the 600 opening, or 1-Unit ST-051 over the 365).",
+    "model": "jikaroGroup -- one octagon ring (outer/opening/edge driven by the chosen config, extruded flat) on eight U-hairpin legs. Each hairpin runs ALONG one of the trapezoid's two 285mm slant edges (inner hole corner out to the outer flat corner) -- two per segment, eight in all -- dropping to a foot bar with a shallow centre notch. When a bridge is on, jikaroBridge lays two stainless brackets across the opening with the slide-in bars dividing it into 1 or 2 IGT units.",
+    "fits": "Standalone. It does not hook to the frame rail; Snow Peak groups it with the layout tables by height (400mm datum). Its OWN centre, bridged, hosts IGT unit accessories (1U compact / 2U spread). A Bamboo IGT Table can also hook to one outer 365mm edge (a011).",
     "confidence": "medium",
-    "derived": ["octagon outline and the central opening are traced off the top-view photograph", "overall 1120mm and height 400mm are from the catalogue", "eight U-hairpin legs running ALONG the trapezoid slant (short) edges, two per segment -- from the disassembled photo a009 AND the user's explicit correction; the pair marks D,E land on the OUTER end of the +x pair of slants, repeated to all eight by the octagon's four-fold symmetry"],
-    "assumed": ["opening 600mm and slant-edge 365mm outer / 285mm slant / 260mm depth (ring proportions from the photo + the trapezoid math)", "the two wires sit at 16% and 95% along each slant, dropping vertically (D,E fix the outer end; the inner-wire spot and the foot notch are eyeballed off a009)"],
-    "unknown": ["exact wire spacing along the slant and how vertical vs splayed the drop is -- two noisy outer marks don't pin the inner wire"]
+    "derived": ["octagon outline and the central opening are traced off the top-view photograph", "overall 1120mm and height 400mm are from the catalogue", "two assembly configs (long-edge-in 1120/600, short-edge-in 885/365) reconstructed from the two plan photos a007/a008 at their two scales, cross-checked against the segment invariant and the spec table", "eight U-hairpin legs running ALONG the trapezoid slant (short) edges, two per segment -- from the disassembled photo a009 AND the user's explicit correction; the pair marks D,E land on the OUTER end of the +x pair of slants, repeated to all eight by the octagon's four-fold symmetry", "the bridge is a real optional accessory (ST-051 1U / CPL-JT2U 2U); opening size decides which fits (600->2U, 365->1U), confirmed against the IGT W=250n+96 formula"],
+    "assumed": ["opening 600mm and slant-edge 365mm outer / 285mm slant / 260mm depth (ring proportions from the photo + the trapezoid math)", "the two wires sit at 16% and 95% along each slant, dropping vertically (D,E fix the outer end; the inner-wire spot and the foot notch are eyeballed off a009)", "the bridge is modelled schematically (2 brackets + N bars); exact bracket profile from the CPL-JT2U spec (635x115 bracket, 360x47 bars)"],
+    "unknown": ["exact wire spacing along the slant and how vertical vs splayed the drop is -- two noisy outer marks don't pin the inner wire", "the official Snow Peak SKU of the 2-Unit bridge (a SEPPOUSAI festival limited; CPL-JT2U is the after-market equivalent)"]
   },
 
   "CK-153TR": {
@@ -132,6 +132,36 @@
     "derived": ["no long-side rail; wood slats; dark end caps; thin black wire folding legs (hero photo)", "940x403x408 from the catalogue"],
     "assumed": ["seven slats; wire-leg splay ~44mm out, eyeballed off the hero"],
     "unknown": ["the exact wire-leg shape and how the short ends carry the slats"]
+  },
+
+  "CK-090": {
+    "what": "Extension IGT: a self-contained table of TWO laminated-bamboo tops on one aluminium stand, on built-in folding tube legs. RECONFIGURABLE by sliding: closed it is a plain ~3-unit table (840x498); slid fully open (1348x498) the two tops part to expose a central 2-Unit IGT bay (500x360) between them. The catalogue title carries a 'Risk of tipping over' warning -- the open span is cantilevered.",
+    "model": "extIgtGroup -- an aluminium frame ring + two bamboo tops (one each side of the centre), fixed folding tube legs at the ends. When expanded, two silver rails bridge the gap to frame the 2-Unit bay; when collapsed the tops meet and there is no bay. footprint and bay follow the chosen config (layout.expandables.CK-090).",
+    "fits": "Standalone unit with its own legs (no separate leg SKU). Expanded, its centre bay hosts IGT unit accessories -- the point of the part. Stands at the 400mm datum, so it joins the layout as a node.",
+    "confidence": "medium",
+    "derived": ["two bamboo tops on an aluminium stand with folding legs (hero 04977 + alt 06)", "max 1348x498 / min 840x498 and the central (2ユニット=W)500x360 bay -- straight from the manual set-contents", "the 508mm the tops travel = exactly the 2-Unit (500mm) opening; 840~=3 units, 1348~=5 units by W=250n+96"],
+    "assumed": ["two-panel split with the bay dead-centre; leg splay reused from the entry IGT, eyeballed", "the collapsed form is a usable flat table (vs merely a carry state)"],
+    "unknown": ["the exact slide/stand mechanism and how the tops lock at each end of travel", "whether intermediate opening widths are usable or only the two detents"]
+  },
+
+  "ST-051": {
+    "what": "Jikaro Table 1 Unit Bridge: the OPTIONAL stainless bridge that lays across the compact (short-edge-in, 365mm opening) Jikaro to turn its fire hole into ONE IGT unit-slot. Official Snow Peak SKU, now rare.",
+    "model": "jikaroBridge (units=1) -- two brackets over the opening + one slide-in bar. NOT a placeable node: like the connection hook and rail joint it cannot stand alone, so it is a toggle on a Jikaro (ST-050) and shows up in that Jikaro's parts list. See layout.bridges.",
+    "fits": "Only on a Jikaro in the compact/'square' config (365mm opening). Provides 1 IGT unit for a burner or tray in the table's centre.",
+    "confidence": "low",
+    "derived": ["a real optional 1-Unit bridge for the Jikaro (Amazon/JP listings, SKU ST-051 -- sits next to ST-050)", "1 IGT unit, matched to the 365mm compact opening"],
+    "assumed": ["modelled schematically (2 brackets + 1 bar) by analogy to the 2-Unit CPL-JT2U spec; no published dimensions for the 1-Unit"],
+    "unknown": ["its exact dimensions and bracket profile", "current availability (discontinued/limited)"]
+  },
+
+  "CPL-JT2U": {
+    "what": "Jikaro Top 2 Unit Bridge: the OPTIONAL stainless bridge that lays across the spread (long-edge-in, 600mm opening) Jikaro to turn its fire hole into a 2-Unit IGT bay. The official version is a SEPPOUSAI (Snow Peak Festival) 2023 Autumn limited edition; CPL-JT2U is the after-market equivalent.",
+    "model": "jikaroBridge (units=2) -- two brackets over the opening + two slide-in bars at the unit divisions. NOT a placeable node: a toggle on a Jikaro (ST-050), reflected in its parts list. See layout.bridges.",
+    "fits": "Only on a Jikaro in the spread config (600mm opening). Provides 2 IGT units (or a 1/2-unit appliance) in the table's centre.",
+    "confidence": "medium",
+    "derived": ["a real optional 2-Unit bridge (BIGTENT CPL-JT2U; official = festival limited)", "2 IGT units, matched to the 600mm spread opening", "stainless, 2 main brackets 635x115mm + 2 bridge bars 360x47mm, ~1.9kg, 20kg load, brackets rest over the opening and the bars slide into their grooves (product spec)"],
+    "assumed": ["modelled schematically -- bracket length = opening + rim overlap; bars at the unit centres"],
+    "unknown": ["the official Snow Peak festival SKU code"]
   },
 
   "GS-450R-US": {

@@ -376,6 +376,52 @@ export function slimIgtGroup(w, d, height) {
   return { group: g, body: g.children[0] };
 }
 
+/** Extension IGT (CK-090): two laminated-bamboo tops on an aluminium stand that SLIDE APART.
+ *  Closed it is a plain table; slid open it exposes a central IGT bay between the two tops.
+ *  `w` is the CURRENT footprint width (1348 open / 840 closed); `bayW` the gap opened between
+ *  the tops (0 when closed) -- silver IGT rails show across that gap. Fixed folding tube legs.
+ *  Top at y = 0. Returns { group, body, bay } -- bay = {w,d} of the exposed slot, or null. */
+export function extIgtGroup(w, d, height, { bayW = 0, bayD = 360 } = {}) {
+  const g = new THREE.Group();
+  const alu = metalE(0xd0d3d7, 0.85, 0.35);
+  const bamboo = new THREE.MeshStandardMaterial({ color: 0xcaa96b, roughness: 0.64, metalness: 0.04 });
+  const thick = 22, bar = 12;
+  const topW = (w - bayW) / 2;                        // each bamboo top's slice of the width
+  // aluminium stand: a shallow ring of four bars round the whole footprint
+  for (const sz of [-1, 1]) {
+    const b = new THREE.Mesh(roundedBox(w * MM, thick * MM, bar * MM, 1.5 * MM), alu);
+    b.position.set(0, -thick / 2 * MM, sz * (d / 2 - bar / 2) * MM); g.add(b);
+  }
+  for (const sx of [-1, 1]) {
+    const b = new THREE.Mesh(roundedBox(bar * MM, thick * MM, d * MM, 1.5 * MM), alu);
+    b.position.set(sx * (w / 2 - bar / 2) * MM, -thick / 2 * MM, 0); g.add(b);
+  }
+  // the two bamboo tops, one each side of the centre bay
+  const panelD = d - 2 * bar, panelW = topW - 8;
+  for (const sx of [-1, 1]) {
+    const cx = sx * (bayW / 2 + topW / 2);
+    const p = new THREE.Mesh(roundedBox(panelW * MM, (thick - 6) * MM, panelD * MM, 1 * MM), bamboo);
+    p.position.set(cx * MM, -(thick - 6) / 2 * MM - 3 * MM, 0); g.add(p);
+  }
+  // the exposed IGT bay: two silver rails bridging the gap, at the datum, framing the slot
+  if (bayW > 0) {
+    const rail = metalE(0xbfc3c7, 0.9, 0.3);
+    for (const sz of [-1, 1]) {
+      const r = new THREE.Mesh(roundedBox((bayW + 16) * MM, (thick - 4) * MM, 16 * MM, 1.5 * MM), rail);
+      r.position.set(0, -(thick - 4) / 2 * MM, sz * (bayD / 2) * MM); g.add(r);
+    }
+    for (const sx of [-1, 1]) {                       // short end lips closing the slot
+      const e = new THREE.Mesh(roundedBox(14 * MM, (thick - 4) * MM, bayD * MM, 1.5 * MM), rail);
+      e.position.set(sx * (bayW / 2) * MM, -(thick - 4) / 2 * MM, 0); g.add(e);
+    }
+  }
+  // two built-in folding tube legs at the ends
+  const legMat = metalE(0xc6c9cd, 0.85, 0.32);
+  for (const ex of [-1, 1])
+    foldLeg(g, { ex, w, d, top: -thick, footY: -(height - thick), mat: legMat, r: 6, splay: 18, inset: 40, zIn: 30, feet: true });
+  return { group: g, body: g.children[0], bay: bayW > 0 ? { w: bayW, d: bayD } : null };
+}
+
 /** The Jikaro: an octagonal ring of four trapezoid segments with the fire hole in the
  *  middle, standing on folding wire legs. `ringMat` paints the ring; `color` the wire.
  *  Ring top at y = 0, legs to -height. */
@@ -425,6 +471,29 @@ export function jikaroGroup({ outer, opening, edge, height, color, ringMat }) {
     strut(feet[0], mid); strut(mid, feet[1]);    // foot bar, dipping to the feet with a centre notch
   }
   return { group: g, body: ring };
+}
+
+/** The OPTIONAL Jikaro bridge (ST-051 1-Unit / CPL-JT2U 2-Unit): brackets laid over the fire
+ *  opening with bars sliding into them, turning the hole into an IGT unit-slot. Stainless.
+ *  `opening` = the Jikaro's central opening (600 spread / 365 compact); `units` = 1 or 2. Built
+ *  with its top at y = 0 so the caller drops it at the ring's datum height. Returns { group }. */
+export function jikaroBridge({ opening, units = 2 }) {
+  const g = new THREE.Group();
+  const ss = metalE(0xccd0d4, 0.92, 0.26);
+  const bayW = units * 250, bayD = 360;
+  // Two main brackets: the long rails a module bridges, spanning the opening (they rest on the
+  // rim both sides -> a touch longer), one at each depth edge.
+  for (const sz of [-1, 1]) {
+    const b = new THREE.Mesh(roundedBox((opening + 40) * MM, 24 * MM, 20 * MM, 2 * MM), ss);
+    b.position.set(0, -12 * MM, sz * (bayD / 2) * MM); g.add(b);
+  }
+  // Two bars closing the bay's SHORT ENDS. The middle stays OPEN -- IGT has no unit dividers, a
+  // unit is a 250mm notion along a continuous rail, so a bar bisecting the slot would be wrong.
+  for (const sx of [-1, 1]) {
+    const bar = new THREE.Mesh(roundedBox(16 * MM, 12 * MM, bayD * MM, 1.5 * MM), ss);
+    bar.position.set(sx * (bayW / 2) * MM, -8 * MM, 0); g.add(bar);
+  }
+  return { group: g, body: g.children[0] };
 }
 
 /** A hanging rack that hooks over a frame's rails and drops shelves inside its depth.

@@ -3,8 +3,8 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, grainMaterial } from "./materials.js";
 import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
-         jikaroGroup, hangRackGroup, slideExtGroup,
-         entryIgtGroup, slimIgtGroup } from "./parts3d.js";
+         jikaroGroup, jikaroBridge, hangRackGroup, slideExtGroup,
+         entryIgtGroup, slimIgtGroup, extIgtGroup } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -96,12 +96,22 @@ const JIKARO = "ST-050";
 const jikaroCfg = n => (LAYOUT.tables?.[JIKARO]?.configs || {})[n?.config || "long_in"];
 const isJikaro = n => n?.sku === JIKARO && jikaroCfg(n);
 
+// Expandable self-contained tables (CK-090 Extension IGT): a config that changes footprint AND
+// exposed unit-slots. Read lazily -- LAYOUT is fetched at boot, after these arrows are defined.
+const expDef = sku => (LAYOUT.expandables || {})[sku];
+const expCfg = n => { const e = expDef(n?.sku); return e && e.configs[n?.config || e.default]; };
+const isExpandable = n => !!expDef(n?.sku);
+
 function footprintOf(sku, kind, node) {
   const p = PARTS[sku];
   if (kind === "frame") return { w: 250 * p.units + overhead(), d: p.assembled_mm?.d ?? 496 };
   if (sku === JIKARO && node) {
     const c = jikaroCfg(node);
     if (c) return { w: c.outer_mm, d: c.outer_mm };
+  }
+  if (node && isExpandable(node)) {
+    const c = expCfg(node);
+    if (c) return { w: c.w_mm, d: c.d_mm };
   }
   const a = p.assembled_mm;
   return { w: a?.w ?? 496, d: a?.d ?? 496 };
@@ -796,6 +806,14 @@ function drawJikaro(g, n) {
   group.position.y = top * MM;
   const ring = group.children[0];
   ring.userData.node = n; g.add(group); nodeMeshes.push(ring);
+
+  // An OPTIONAL bridge across the fire opening turns it into an IGT bay (2U spread / 1U compact).
+  if (n.bridge) {
+    const { group: bg } = jikaroBridge({ opening: c.opening_mm, units: c.bridge_units || 2 });
+    bg.position.y = top * MM;
+    bg.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
+    g.add(bg);
+  }
 }
 
 // The flat-board geometry (traced corners/notched bamboo, dimension-built rectangles with a
@@ -833,9 +851,15 @@ function drawTable(g, n) {
   // The self-contained IGTs with their own fixed folding legs are built part by part
   // (parts3d.js). The builder draws the top at y=0 with the legs hanging below, so lift it to
   // the work-surface height; the node group g is already turned and placed.
-  if (n.sku === "CK-080R" || n.sku === "CK-080R-EC" || n.sku === "CK-180") {
+  if (n.sku === "CK-080R" || n.sku === "CK-080R-EC" || n.sku === "CK-180" || n.sku === "CK-090") {
     const f = footprint(n), tp = topOf(n);
-    const built = (n.sku === "CK-180" ? slimIgtGroup : entryIgtGroup)(f.w, f.d, tp);
+    let built;
+    if (n.sku === "CK-090") {
+      const c = expCfg(n);
+      built = extIgtGroup(f.w, f.d, tp, { bayW: c?.bay_w_mm || 0, bayD: c?.bay_d_mm || 360 });
+    } else {
+      built = (n.sku === "CK-180" ? slimIgtGroup : entryIgtGroup)(f.w, f.d, tp);
+    }
     built.group.position.y = tp * MM;
     built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(built.group);
@@ -1590,8 +1614,10 @@ function addNode(sku) {
     id: state.nextId++, sku, kind, x: 0, z: 0, rot: 0,
     leg: kind === "frame" ? "CK-114" : null,
     placements: [],
-    // Four pieces, two ways round. Default to the one Snow Peak publishes.
-    ...(sku === JIKARO ? { config: "long_in" } : {}),
+    // Four pieces, two ways round. Default to the one Snow Peak publishes; no bridge yet.
+    ...(sku === JIKARO ? { config: "long_in", bridge: false } : {}),
+    // Expandable tables (CK-090) open to their default config.
+    ...(expDef(sku) ? { config: expDef(sku).default } : {}),
   };
   // Land it flush against the right edge of what is already there. This is a layout
   // system -- tables connect. Dropping the new one in open space and making you drag
@@ -1787,6 +1813,25 @@ function paintPalette() {
     for (const [key, c] of Object.entries(cfgs))
       acts.append(chip(c.name, n.config === key,
         `${c.outer_mm}mm across, ${c.opening_mm}mm fire opening, four ${c.edge_mm}mm edges to hook to`,
+        () => { n.config = key; render(); }));
+    // The optional bridge across the fire opening -> an IGT bay. The unit count and the SKU
+    // follow the assembly (600 opening -> 2U/CPL-JT2U, 365 -> 1U/ST-051).
+    const jc = jikaroCfg(n);
+    acts.append(chip(
+      n.bridge ? `bridge ✓ ${jc.bridge_units}U · ${jc.bridge_sku}` : `+ bridge (${jc.bridge_units}U)`,
+      !!n.bridge,
+      n.bridge ? `${jc.bridge_units}-Unit bridge (${jc.bridge_sku}) across the ${jc.opening_mm}mm opening — click to remove`
+               : `lay the optional ${jc.bridge_units}-Unit bridge (${jc.bridge_sku}) across the ${jc.opening_mm}mm opening to make an IGT bay`,
+      () => { n.bridge = !n.bridge; render(); }));
+  }
+  // Expandable table (CK-090): slide the two tops together or apart. Open exposes the IGT bay.
+  if (n && isExpandable(n)) {
+    const e = expDef(n.sku), cur = n.config || e.default;
+    for (const [key, c] of Object.entries(e.configs))
+      acts.append(chip(
+        c.bay_units ? `${c.name} · ${c.bay_units}U bay` : c.name,
+        cur === key,
+        `${c.w_mm}×${c.d_mm}mm` + (c.bay_units ? ` — opens a ${c.bay_units}-Unit bay` : ` — closed, no bay`),
         () => { n.config = key; render(); }));
   }
   // Height adjuster: a hooked board sits flush with its host, or drops ONE rung of the ladder
