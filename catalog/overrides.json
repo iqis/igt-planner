@@ -114,8 +114,8 @@
   "TM-096OR": {
    "role": "seating",
    "title_en": "Lounge Cushion (Orange)",
-   "assembled_mm": {"w": 495, "d": 247, "h": 100},
-   "seat_h_mm": 100,
+   "assembled_mm": {"w": 495, "d": 495, "h": 50},
+   "seat_h_mm": 50,
    "price": {"us": 4995, "jp": null, "uk": null},
    "fabric_hex": "0xcf6a20",
    "chair": "cushion",
@@ -127,8 +127,8 @@
   "TM-096GR": {
    "role": "seating",
    "title_en": "Lounge Cushion (Olive)",
-   "assembled_mm": {"w": 495, "d": 247, "h": 100},
-   "seat_h_mm": 100,
+   "assembled_mm": {"w": 495, "d": 495, "h": 50},
+   "seat_h_mm": 50,
    "price": {"us": 4995, "jp": null, "uk": null},
    "fabric_hex": "0x76752f",
    "chair": "cushion",

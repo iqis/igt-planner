@@ -2971,8 +2971,8 @@
    "region_exclusive": "jp",
    "assembled_mm": {
     "w": 495,
-    "d": 247,
-    "h": 100
+    "d": 495,
+    "h": 50
    },
    "packed_mm": null,
    "weight_g": 650,
@@ -2989,7 +2989,7 @@
     "jp": null
    },
    "curated_reason": "Lounge Cushion (TM-096GR): the olive-green variant of TM-096OR. Same round-folded-to-half-circle floor cushion; olive canvas.",
-   "seat_h_mm": 100,
+   "seat_h_mm": 50,
    "fabric_hex": "0x76752f",
    "chair": "cushion",
    "fabric_type": "canvas"
@@ -3005,8 +3005,8 @@
    "region_exclusive": "jp",
    "assembled_mm": {
     "w": 495,
-    "d": 247,
-    "h": 100
+    "d": 495,
+    "h": 50
    },
    "packed_mm": null,
    "weight_g": 650,
@@ -3023,7 +3023,7 @@
     "jp": null
    },
    "curated_reason": "Lounge Cushion (TM-096OR): a ROUND cotton-canvas floor cushion, modelled in its FOLDED half-circle seating form (fold the round pad in half -> a half-disc of doubled thickness), as the product photos show. Brick-orange. Open pad ~495mm diameter x 50mm; folded ~495x247x100. chair type 'cushion'; a floor prop, no frame.",
-   "seat_h_mm": 100,
+   "seat_h_mm": 50,
    "fabric_hex": "0xcf6a20",
    "chair": "cushion",
    "fabric_type": "canvas"

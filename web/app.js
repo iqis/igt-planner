@@ -936,6 +936,7 @@ function drawProp(g, n) {
     canvasTex: mesh ? null : chairTex("canvas", CANVAS_TEX, 4, true),
     meshAlpha: mesh ? chairTex("mesh", MESH_ALPHA, 6, false) : null,
     woodTex: p.chair === "shelf" ? woodGrain("shelfwood", 3, 1) : null,   // bamboo grain on the shelf top
+    folded: n.config === "folded",                                        // lounge cushion: round vs folded
   });
   built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
   g.add(built.group);
@@ -1737,6 +1738,8 @@ function addNode(sku) {
     ...(sku === JIKARO ? { config: "long_in", bridge: false } : {}),
     // Expandable tables (CK-090) open to their default config.
     ...(expDef(sku) ? { config: expDef(sku).default } : {}),
+    // A lounge cushion defaults to its round (open) form; it can be folded to a half-circle.
+    ...(p.chair === "cushion" ? { config: "round" } : {}),
   };
   // A prop (chair) is free-standing: drop it IN FRONT of the layout (+z) rather than butt it
   // against a table edge, and stagger repeats sideways so they don't stack. Then just drag it.
@@ -1976,6 +1979,14 @@ function paintPalette() {
         cur === key,
         `${c.w_mm}×${c.d_mm}mm` + (c.bay_units ? ` — opens a ${c.bay_units}-Unit bay` : ` — closed, no bay`),
         () => { n.config = key; pruneModules(n); render(); }));
+  }
+  // Lounge cushion: round (open) or folded to a half-circle -- a form toggle like the Jikaro's.
+  if (n && n.kind === "prop" && PARTS[n.sku].chair === "cushion") {
+    const cur = n.config || "round";
+    for (const [key, label, hint] of [
+      ["round", "◯ round", "the open round pad"],
+      ["folded", "◗ folded", "folded in half to a half-circle (doubled thickness) for seating"]])
+      acts.append(chip(label, cur === key, hint, () => { n.config = key; render(); }));
   }
   // Height adjuster: a hooked board sits flush with its host, or drops ONE rung of the ladder
   // (830->660->400->300) via a CK-151. One step per adjuster -- lower still means chaining.

@@ -578,19 +578,30 @@ export function campfieldSofaGroup(w, d, h, { frame = 0xbfc3c7, fabric = 0xa08d8
 /** Snow Peak Lounge Cushion (TM-096): a round cotton-canvas floor cushion, shown in its FOLDED
  *  half-circle seating form -- the round pad folded in half, so a HALF-DISC of doubled thickness.
  *  Sits on the ground (y = 0). `w` = the straight fold edge (= the open pad's diameter). */
-export function loungeCushionGroup(w, d, h, { fabric = 0xcf6a20 } = {}) {
+export function loungeCushionGroup(w, d, h, { fabric = 0xcf6a20, folded = false } = {}) {
   const g = new THREE.Group();
   const cloth = new THREE.MeshStandardMaterial({ color: fabric, roughness: 0.95, side: THREE.DoubleSide });
   const R = w / 2;
-  // the half-disc pad: a half-cylinder lying flat (round faces up/down), curved edge toward +z
-  const pad = new THREE.Mesh(new THREE.CylinderGeometry(R * MM, R * MM, h * MM, 48, 1, false, 0, Math.PI), cloth);
+  if (folded) {
+    // FOLDED form: the round pad folded in half -> a SOLID half-disc of doubled thickness. Built by
+    // extruding a half-circle shape (all faces closed, so no stray cap strip). Lies flat, curved
+    // edge to the front, centred.
+    const thk = h * 2;
+    const shape = new THREE.Shape();
+    shape.absarc(0, 0, R * MM, 0, Math.PI, false);
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: thk * MM, bevelEnabled: false, curveSegments: 44 });
+    const pad = new THREE.Mesh(geo, cloth);
+    pad.rotation.x = -Math.PI / 2;        // lay it flat: thickness along Y, half-circle in XZ
+    pad.position.z = R / 2 * MM;          // centre the D-shape
+    g.add(pad);
+    return { group: g, body: pad };
+  }
+  // DEFAULT round form: a full disc lying flat, with a soft centre tuft
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(R * MM, R * MM, h * MM, 56), cloth);
   pad.position.y = h / 2 * MM; g.add(pad);
-  // cap the open flat face (the fold edge), and score a seam where the two layers meet
-  const flat = new THREE.Mesh(roundedBox(w * MM, h * MM, 4 * MM, 1 * MM), cloth);
-  flat.position.y = h / 2 * MM; g.add(flat);
-  const seam = new THREE.Mesh(roundedBox((w - 20) * MM, 3 * MM, 5 * MM, 1 * MM),
-    new THREE.MeshStandardMaterial({ color: fabric, roughness: 0.6, metalness: 0.0 }));
-  seam.position.set(0, h / 2 * MM, 1 * MM); g.add(seam);
+  const tuft = new THREE.Mesh(new THREE.CylinderGeometry(16 * MM, 16 * MM, (h + 3) * MM, 16),
+    new THREE.MeshStandardMaterial({ color: fabric, roughness: 0.7 }));
+  tuft.position.y = (h - 1.5) / 2 * MM; g.add(tuft);
   return { group: g, body: pad };
 }
 
