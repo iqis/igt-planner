@@ -986,25 +986,37 @@ function rebuild() {
     build.add(g);
   }
 
-  // Step joints, where two touching tables stand at different heights. A CK-151 comes as a PAIR
-  // (本体×2), so draw TWO -- on the seam where the tables meet, each bridging the vertical step
-  // (lower top up to higher top) at the end-hole spacing. Not one 320mm post through the middle.
+  // Step joints, where two touching tables stand at different heights. The CK-151 is a stainless
+  // post of FIXED length (~320mm) that screws to the HIGHER table and hangs down; the lower
+  // table's hook drops into whichever HOLE matches the step -- 830->660 = 170mm, 660->400 =
+  // 260mm, 400->300 = 100mm below the top. It comes as a PAIR (本体×2), so draw two on the seam.
+  const CK151_LEN = 320, CK151_HOLES = [100, 170, 260];   // hole depths from the top, mm
+  const SILVER = new THREE.Color(0xb9bdc2);
   for (const [a, b] of steps()) {
     const loT = Math.min(topOf(a), topOf(b)), hiT = Math.max(topOf(a), topOf(b));
-    const rise = hiT - loT;
+    const rise = Math.round(hiT - loT);
     if (rise < 5) continue;
     const c = contactEdge(a, b);
     const ctr = (c.lo + c.hi) / 2;
     const off = Math.min(144, Math.max(0, (c.hi - c.lo) / 2 - 30));   // end-hole half-spacing, clamped to the seam
     for (const s of [-1, 1]) {
       const t = ctr + s * off;
+      const px = (c.axis === "z" ? c.fixed : t), pz = (c.axis === "z" ? t : c.fixed);
       const post = stock(
-        new THREE.CylinderGeometry(9 * MM, 9 * MM, rise * MM, 12),
-        new THREE.Color(swatchOf("CK-151")), 0.85, 0.3,
+        new THREE.CylinderGeometry(9 * MM, 9 * MM, CK151_LEN * MM, 12), SILVER, 0.9, 0.28,
       );
-      post.position.set((c.axis === "z" ? c.fixed : t) * MM, ((loT + hiT) / 2) * MM,
-        (c.axis === "z" ? t : c.fixed) * MM);
+      post.position.set(px * MM, (hiT - CK151_LEN / 2) * MM, pz * MM);   // hangs from the higher top
       build.add(post);
+      // the three hole positions; the one that matches this step (== rise) is the join, drawn dark
+      for (const hole of CK151_HOLES) {
+        const used = Math.abs(hole - rise) < 8;
+        const ring = stock(
+          new THREE.CylinderGeometry(9.8 * MM, 9.8 * MM, 5 * MM, 12),
+          new THREE.Color(used ? 0x2b2f35 : 0x8b9096), 0.4, 0.6,
+        );
+        ring.position.set(px * MM, (hiT - hole) * MM, pz * MM);
+        build.add(ring);
+      }
     }
   }
 
