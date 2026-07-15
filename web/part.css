@@ -114,6 +114,36 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
 #links { margin-bottom: .8rem; }
 #links .chip { text-decoration: none; }
 
+/* My understanding of the part, in plain language, with the epistemic status kept visible:
+   what is derived (measured), assumed (inferred), or unknown -- so feedback has a target. */
+#understand { margin-bottom: 1rem; font-size: .7rem; line-height: 1.5; }
+#understand .u-what { color: var(--ink); line-height: 1.55; margin-bottom: .5rem; }
+#understand .u-row { color: var(--dim); margin-bottom: .35rem; }
+#understand .u-row span {
+  display: inline-block; font-size: .58rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--faint); margin-right: .4rem;
+}
+#understand .epi {
+  margin: .4rem 0; padding: .3rem 0 .3rem .5rem; border-left: 2px solid var(--line);
+}
+#understand .epi span {
+  font-size: .58rem; letter-spacing: .06em; text-transform: uppercase; color: var(--faint);
+}
+#understand .epi ul { margin: .15rem 0 0; padding-left: 1rem; color: var(--dim); }
+#understand .epi li { margin: .1rem 0; }
+#understand .epi.d { border-color: var(--ok); }         /* derived  -- measured off a source */
+#understand .epi.d span { color: var(--ok); }
+#understand .epi.a { border-color: var(--caution); }    /* assumed  -- my inference */
+#understand .epi.a span { color: var(--caution-ink); }
+#understand .epi.u { border-color: var(--bad); }        /* unknown  -- not known */
+#understand .epi.u span { color: var(--bad); }
+#understand .u-tag {
+  margin-top: .5rem; font-size: .58rem; letter-spacing: .04em;
+  padding: .2rem .4rem; border-radius: 3px; display: inline-block;
+}
+#understand .u-tag.ok { background: var(--sel-bg); color: var(--accent); }
+#understand .u-tag.auto { background: var(--raise); color: var(--faint); }
+
 #facts { font-size: .68rem; line-height: 1.6; }
 #facts .quote { color: var(--dim); font-style: normal; border-left: 2px solid var(--line); padding-left: .45rem; }
 #facts .row { display: flex; justify-content: space-between; gap: .6rem; padding: .18rem 0; border-bottom: 1px solid var(--line-soft); }

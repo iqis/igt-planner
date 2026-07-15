@@ -1,0 +1,136 @@
+{
+  "_comment": [
+    "MY per-part understanding, in plain language, for the user to check and correct.",
+    "",
+    "The bench SYNTHESISES a baseline for every part from its role, title and dimensions",
+    "(see ROLE_DEF / ROLE_MODEL in part.js). This file is the hand-written layer on top:",
+    "where I have looked hard at a part, I write what it is, how I model it, how it fits,",
+    "and -- kept honest and separate -- what is DERIVED (read off a manual/photo/dimension),",
+    "what is ASSUMED (my inference, could be wrong), and what is UNKNOWN.",
+    "",
+    "Only parts I have actually studied need an entry. A missing entry is not an error;",
+    "it means the bench is showing the role-based baseline and I have not reviewed it yet.",
+    "Give feedback against any line and I will move it between derived/assumed/unknown or fix it.",
+    "Fields: what, model, fits, confidence(high|medium|low), derived[], assumed[], unknown[]."
+  ],
+
+  "ST-050": {
+    "what": "The Jikaro Fire Ring Table: an octagonal table (1120mm across, 400mm tall) with an open centre for a fire pit or ring, standing on eight wire legs. A standalone table, not part of the IGT rail system.",
+    "model": "jikaroGroup -- one octagon ring (outer 1120, central opening 600, extruded flat) on eight hairpin legs.",
+    "fits": "Standalone. No hooks or brackets; it does not join the frame rail. Snow Peak groups it with the layout tables by height (400mm datum), not by connection.",
+    "confidence": "low",
+    "derived": ["octagon outline and the central opening are traced off the top-view photograph", "overall 1120mm and height 400mm are from the catalogue"],
+    "assumed": ["opening 600mm and slant-edge 365mm (ring proportions eyeballed from the photo)", "eight legs, two per trapezoid segment, hairpins on the two SHORT (slant) edges"],
+    "unknown": ["the exact leg position and footprint -- this is the OPEN question; the pair marks A-E on hero_01 are the data meant to settle it"]
+  },
+
+  "CK-153TR": {
+    "what": "Renewed Bamboo IGT Sliding Extension (short): a small bamboo board (423x220) that grips the frame's long rail and cantilevers outward, adding a shelf beside the table.",
+    "model": "slideExtGroup -- a bamboo slab with two under-brackets that clip over the rail; the board top carries the real grain/logo texture (from the alt_02 top-view photo).",
+    "fits": "Clips onto the frame's LONG side (the rail), not the short end. Slides freely along the rail (the planner snaps it in 25mm steps). Two CK-153TR end to end span the same length as a Three Unit Frame (846mm).",
+    "confidence": "medium",
+    "derived": ["dimensions 423x220x33 from the catalogue", "top texture is the real alt_02 orthographic top view", "mounts on the long rail (manual/photo)"],
+    "assumed": ["bracket shape and the 220mm cantilever reach", "25mm slide snap is a planner convenience, not a real detent"],
+    "unknown": ["how far two of them must overlap/space to avoid fouling each other on the same rail"]
+  },
+
+  "CK-154TR": {
+    "what": "Renewed Bamboo IGT Sliding Extension Long: the longer sibling of CK-153TR (548x220), same idea -- a bamboo board that grips the rail and reaches out.",
+    "model": "slideExtGroup, same builder as CK-153TR, longer board.",
+    "fits": "Clips onto the frame's LONG rail and slides. Two CK-154TR end to end span the same length as a Four Unit Frame (1096mm).",
+    "confidence": "medium",
+    "derived": ["dimensions 548x220x33 from the catalogue", "two of them = Four Unit Frame length (1096mm)"],
+    "assumed": ["bracket shape and cantilever reach, shared with CK-153TR"],
+    "unknown": ["overlap/spacing rule when several share one rail"]
+  },
+
+  "CK-117TR": {
+    "what": "Renewed Bamboo IGT Table Long: a full-length (1096mm) bamboo tabletop that hooks onto a frame end and runs the length out -- the four-unit extension surface.",
+    "model": "tableGroup -- a flat bamboo slab, with the plan-view photo laid under it in the same frame so the hook and bracket positions can be checked against the board.",
+    "fits": "Hooks onto the frame's SHORT end (its hooks drop into the black end pieces) and carries straight on for four units. Takes its host frame's leg SKU.",
+    "confidence": "medium",
+    "derived": ["1096mm = four units (250*4+96) from the dimension", "hooks on the short end, from the frame-fittings plan view"],
+    "assumed": ["exact hook mm positions where not yet measured off a photo"],
+    "unknown": []
+  },
+
+  "CK-116TR": {
+    "what": "Renewed Bamboo IGT Table Regular: the 846mm (three-unit) bamboo tabletop; same as CK-117TR one size down.",
+    "model": "tableGroup -- flat bamboo slab with the plan view underlaid.",
+    "fits": "Hooks onto the frame's short end and carries on for three units.",
+    "confidence": "medium",
+    "derived": ["846mm = three units (250*3+96)"],
+    "assumed": ["exact hook positions where unmeasured"],
+    "unknown": []
+  },
+
+  "CK-119TR": {
+    "what": "Bamboo Right Corner Extension: a 496mm square bamboo board that turns the run 90 degrees at a corner (the LEFT-hand version is CK-118TR).",
+    "model": "tableGroup -- a square flat slab. The corner turn is what makes it special: its hook edge and bracket edge are PERPENDICULAR, so the layout changes direction through it.",
+    "fits": "Hooks on one edge, offers brackets on an adjacent (not opposite) edge, so the run leaves at 90 degrees. Left/right decides which way it turns.",
+    "confidence": "medium",
+    "derived": ["496mm square from the catalogue", "corner (perpendicular hook vs bracket edge) from the role and the plan view"],
+    "assumed": ["which physical edge is hook vs bracket for R vs L, where not yet measured"],
+    "unknown": []
+  },
+
+  "CK-150": {
+    "what": "IGT Four Unit Frame: the rigid four-unit (1096mm) leg frame -- the backbone a run is built on. Silver corner plates carry the leg sockets; black end pieces carry the holes an extension's hooks drop into.",
+    "model": "frameGroup -- the frame cross-section swept to length, with the hook-holes along the ends and sockets at the corners.",
+    "fits": "The central node: takes legs at the corners, extensions hook onto its short ends, sliding boards clip on its long rails, and frames join frame-to-frame via the rail joint (XCK-128).",
+    "confidence": "medium",
+    "derived": ["1096mm = four units", "hook-holes on the ends and leg sockets at corners, from the underside plan view"],
+    "assumed": ["exact cross-section profile where read off a single photo"],
+    "unknown": []
+  },
+
+  "CK-149": {
+    "what": "IGT Three Unit Frame: the 846mm rigid frame; CK-150 one size down.",
+    "model": "frameGroup, three-unit length.",
+    "fits": "Same as CK-150: legs at corners, extensions on the ends, boards on the rails, joins to other frames.",
+    "confidence": "medium",
+    "derived": ["846mm = three units"],
+    "assumed": ["cross-section profile detail"],
+    "unknown": []
+  },
+
+  "CK-904": {
+    "what": "Collapsible IGT 4 Unit Frame: the folding version of the four-unit frame -- rails that collapse for packing rather than a rigid weld.",
+    "model": "frameGroup with collapsible=true, four-unit length.",
+    "fits": "Same role as CK-150 (legs, extensions, rails, frame joints) but folds flat; pairs with the collapsible rails (CK-904-1).",
+    "confidence": "medium",
+    "derived": ["1096mm = four units", "collapsible, from the title and the separate rails part"],
+    "assumed": ["how the fold changes the rail cross-section vs the rigid frame"],
+    "unknown": []
+  },
+
+  "GS-450R-US": {
+    "what": "Flat Burner: a low, flat single-burner stove sized to drop into two IGT units (270x410), sitting flush in the frame like a tabletop.",
+    "model": "moduleGroup (a slot module) with a real top texture cropped from the burner's own top-view photo.",
+    "fits": "Drops into the frame as a 2-unit slot module -- its rim rests on the rails, the body hangs below.",
+    "confidence": "medium",
+    "derived": ["270x410 = 2 units wide", "top texture from the a016 top-view photo"],
+    "assumed": ["how deep the body hangs below the rail line"],
+    "unknown": []
+  },
+
+  "XCK-128-01": {
+    "what": "Multi Function Table Rail Joint (2-piece set): the little joint that ties one frame's long rail to the next, so two frames read as one continuous run.",
+    "model": "plateGroup -- a small connecting plate; it is hardware, not a surface.",
+    "fits": "Joins frame long-rail to frame long-rail. It is why frames line up side by side; without it they are just two tables near each other.",
+    "confidence": "medium",
+    "derived": ["joins the long rails, from the manual"],
+    "assumed": ["exact plate geometry (modelled as a generic plate)"],
+    "unknown": ["dimensions -- the catalogue gives none"]
+  },
+
+  "GF-010": {
+    "what": "Garden Unit Table Wood Insert: a wood insert for the Garden Unit Table. Currently EXCLUDED from the planner.",
+    "model": "not modelled (excluded).",
+    "fits": "Excluded -- it belongs to the Garden Unit Table ecosystem, which the planner does not cover yet.",
+    "confidence": "high",
+    "derived": ["excluded, by decision"],
+    "assumed": [],
+    "unknown": []
+  }
+}

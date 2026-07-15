@@ -39,6 +39,10 @@ const VIEWS = await fetch("../catalog/views.json")
 const FRAMES = await fetch("../catalog/frame_fittings.json")
   .then(r => r.ok ? r.json() : { frames: {} }).then(d => d.frames || {}).catch(() => ({}));
 const SECTION = FRAMES["CK-149"]?.section;
+// My hand-written understanding of specific parts (what / model / fits + derived/assumed/unknown).
+// The bench synthesises a baseline for every part from role; this is the layer I've reviewed.
+const UNDERSTOOD = await fetch("../catalog/understanding.json")
+  .then(r => r.ok ? r.json() : {}).catch(() => ({}));
 
 const PARTS = Object.fromEntries(CAT.parts.map(p => [p.sku, p]));
 const swatchOf = sku => COLORS[sku]?.color_hex || "#8a929c";
@@ -389,6 +393,88 @@ const money = p => [
 
 /** Everything the catalog holds, and nothing invented. A field it does not have is shown
  *  as absent, not filled in with a plausible number. */
+// A plain-language meaning for each role, and how a part of that role is modelled. This is the
+// baseline understanding the bench shows for EVERY part; understanding.json overrides it where
+// I have actually reviewed the part.
+const ROLE_DEF = {
+  frame: "a rigid leg frame -- the backbone a run is built on",
+  extension_table: "a bamboo tabletop that hooks onto a frame end and runs the length out",
+  corner: "a board that turns the run 90 degrees at a corner",
+  extension: "a bamboo board that grips the frame's long rail and reaches out",
+  layout_table: "a standalone layout-system table (grouped by height, not joined by rail)",
+  standalone: "a self-contained IGT table with its own legs",
+  slot_module: "a unit-sized module that drops into the frame -- rim on the rails, body below",
+  hanger: "hangs off a frame edge -- a rack, shelf or box below the table",
+  edge_clamp: "clamps to a unit edge (the TTA accessory family)",
+  case: "a carrying case for a frame or set",
+  rails: "the collapsible rails that pair with a folding frame",
+  joint: "hardware that connects one table or frame to another",
+  rail_joint: "the joint that ties one frame's long rail to the next",
+  frame_hook: "a connection hook between frames",
+  leg: "a leg set -- a height, not a surface",
+  accessory: "an accessory that sits on or in the frame",
+  storage: "a gear box sized in IGT units",
+  set: "a bundle of other parts, not a single object",
+  excluded: "excluded from the planner",
+};
+const ROLE_MODEL = {
+  frame: "frameGroup -- the measured cross-section swept to length, with hook-holes and leg sockets",
+  extension_table: "tableGroup -- a flat slab with the plan-view photo underlaid in the same frame",
+  corner: "tableGroup -- a flat slab whose hook and bracket edges are perpendicular, so it turns the run",
+  extension: "slideExtGroup -- a bamboo slab with under-brackets that clip over the rail",
+  layout_table: "tableGroup (ST-050 is modelled as its own octagon)",
+  standalone: "tableGroup -- a slab on its own legs",
+  slot_module: "moduleGroup -- a unit-sized box; burners carry a real top texture",
+  hanger: "hangRackGroup / ringGroup / clampGroup, by kind",
+  edge_clamp: "a windscreen / arm / small frame / cup ring / clamp, by SKU",
+  case: "caseGroup -- a soft case volume",
+  rails: "railsGroup -- the rail cross-section, no top",
+  joint: "plateGroup -- a small connecting plate (hardware)",
+  rail_joint: "plateGroup -- a small connecting plate (hardware)",
+  frame_hook: "clampGroup -- a small hook",
+  leg: "not a surface -- shown at its height only",
+  accessory: "gridPlateGroup for thin grills, else moduleGroup, else an honest flat slab",
+  storage: "moduleGroup -- a box sized in units",
+  set: "not modelled as one object (it is a bundle)",
+  excluded: "not modelled",
+};
+const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+const cleanName = t => (t || "").replace(/ONLINE.*$|／\s*EC.*$|\/\s*EC.*$/, "").trim();
+
+// Say, in plain language, what I think this part IS and how I model it -- and keep what I
+// DERIVED separate from what I ASSUMED and what I do not know, so feedback has something to aim at.
+function paintUnderstanding() {
+  const p = PARTS[sku];
+  const u = UNDERSTOOD[sku];
+  const name = cleanName(p.title_en) || p.sku;
+  const what = u?.what || `${name} — ${ROLE_DEF[p.role] || p.role || "a part of the IGT system"}.`;
+  const model = u?.model || ROLE_MODEL[p.role] || "a plain slab, sized from the catalogue.";
+  const arr = v => Array.isArray(v) ? v : (v ? [v] : []);   // some fields are a string, some a list
+  const rel = [];
+  if (arr(p.attaches_to).length) rel.push(`attaches to ${arr(p.attaches_to).join(", ")}`);
+  if (arr(p.connects_to).length) rel.push(`connects to ${arr(p.connects_to).join(", ")}`);
+  if (p.mounts) rel.push(`mounts ${p.mounts}`);
+  if (p.mounted_by) rel.push(`mounted by ${p.mounted_by}`);
+  if (arr(p.contains).length) rel.push(`bundles ${arr(p.contains).length} parts`);
+  const fits = u?.fits || (rel.length ? cap(rel.join("; ")) + "." : "");
+
+  const epi = (label, arr, cls) => (arr && arr.length)
+    ? `<div class="epi ${cls}"><span>${label}</span><ul>${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`
+    : "";
+
+  $("understand").innerHTML =
+    `<div class="u-what">${esc(what)}</div>`
+    + `<div class="u-row"><span>how I model it</span>${esc(model)}</div>`
+    + (fits ? `<div class="u-row"><span>how it fits</span>${esc(fits)}</div>` : "")
+    + epi("derived", u?.derived, "d")
+    + epi("assumed", u?.assumed, "a")
+    + epi("unknown", u?.unknown, "u")
+    + `<div class="u-tag ${u ? "ok" : "auto"}">${u
+        ? `hand-reviewed${u.confidence ? ` · confidence ${esc(u.confidence)}` : ""}`
+        : "baseline from role — not yet hand-reviewed"}</div>`;
+}
+
 function paintFacts() {
   const p = PARTS[sku];
   const t = TEXTURES[sku] || {};
@@ -499,6 +585,7 @@ function select(next) {
   paintPhoto();
   paintGallery();
   paintLinks();
+  paintUnderstanding();
   paintFacts();
   annoReset();
   anno3dReset();
