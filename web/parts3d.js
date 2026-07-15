@@ -631,6 +631,36 @@ export function foldingBenchGroup(w, d, h, { frame = 0x232528, fabric = 0x8c8279
   return { group: g, body: g.children[0] };
 }
 
+/** Snow Peak Bamboo Folding Shelf / Bench (LV-066TR & siblings): a rigid laminated-BAMBOO top on
+ *  folding stainless end X-frames -- a multi-use narrow table / bench / storage shelf. Top at
+ *  y = h, faces +z. `woodTex` grains the bamboo. From the LV-066TR photo. */
+export function bambooShelfGroup(w, d, h, { frame = 0xcfd3d7, wood = 0xcaa96b, woodTex = null } = {}) {
+  const g = new THREE.Group();
+  const tubeMat = metalE(frame, 0.85, 0.3);   // stainless
+  const woodMat = new THREE.MeshStandardMaterial({ color: wood, map: woodTex || null, roughness: 0.6, metalness: 0.03 });
+  const tube = (a, b, r = 9) => {
+    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), tubeMat);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m); return m;
+  };
+  const topThk = 22, sw = w / 2 - 25, sd = d / 2 - 10, fd = d / 2 + 20;
+  const top = new THREE.Mesh(roundedBox(w * MM, topThk * MM, d * MM, 3 * MM), woodMat);
+  top.position.y = (h - topThk / 2) * MM; g.add(top);
+  for (const sx of [-1, 1]) {                  // end X-frames
+    const X = sx * sw;
+    tube([X, h - topThk, sd], [X, 8, -fd]);
+    tube([X, h - topThk, -sd], [X, 8, fd]);
+    for (const z of [-fd, fd]) {
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(10 * MM, 12 * MM, 12 * MM, 10), metalE(0x1c1e22, 0.1, 0.85));
+      cap.position.set(X * MM, 6 * MM, z * MM); g.add(cap);
+    }
+  }
+  tube([-sw, 130, 0], [sw, 130, 0], 5);        // lengthwise stretcher
+  return { group: g, body: top };
+}
+
 /** The Jikaro: an octagonal ring of four trapezoid segments with the fire hole in the
  *  middle, standing on folding wire legs. `ringMat` paints the ring; `color` the wire.
  *  Ring top at y = 0, legs to -height. */

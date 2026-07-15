@@ -367,7 +367,7 @@
    }
   }
  },
- "count": 107,
+ "count": 109,
  "unmatched_sku": [
   "CK-904SET",
   "CK-080SET",
@@ -2547,6 +2547,76 @@
     "jp": "https://ec.snowpeak.co.jp/item/SNP0124A0301"
    },
    "manual": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hc2/hf7/8974914289694/CK-904-1_manual.pdf"
+  },
+  {
+   "sku": "LV-065TR",
+   "handle": null,
+   "title_en": "Bamboo Folding Bench",
+   "title_jp": "",
+   "barcode": "",
+   "role": "seating",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 590,
+    "d": 300,
+    "h": 340
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": 12995,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": "https://www.snowpeak.com/collections/bamboo",
+    "jp": null
+   },
+   "curated_reason": "Bamboo Folding Bench / Shelf, regular (LV-065TR): the shorter sibling of LV-066TR, same bamboo-top-on-folding-X-legs form. Reuses the shelf builder. Dims ~590x300x340 are ESTIMATED (no clean US spec found) -- shorter than the Long.",
+   "seat_h_mm": 340,
+   "frame_hex": "0xcfd3d7",
+   "wood_hex": "0xcaa96b",
+   "chair": "shelf",
+   "fabric_type": "wood"
+  },
+  {
+   "sku": "LV-066TR",
+   "handle": null,
+   "title_en": "Bamboo Folding Bench Long",
+   "title_jp": "フォールディングシェルフ ロング竹",
+   "barcode": "",
+   "role": "seating",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 1095,
+    "d": 330,
+    "h": 394
+   },
+   "packed_mm": null,
+   "weight_g": 5800,
+   "material": "竹集成材、ステンレス、アルミニウム合金",
+   "price": {
+    "us": 15995,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": "https://www.snowpeak.com/cdn/shop/products/long_folding_shelf_bamboo_lv-066tr_hero_01.jpg?width=1000",
+   "url": {
+    "us": "https://www.snowpeak.com/products/long-folding-shelf-bamboo-lv-066tr",
+    "jp": null
+   },
+   "curated_reason": "Bamboo Folding Bench / Shelf Long (LV-066TR): a rigid laminated-bamboo top on folding stainless end X-frames -- a multi-use narrow table / bench / storage shelf. 1095x330x394. chair type 'shelf'; the bamboo top wears the real bamboo grain.",
+   "seat_h_mm": 394,
+   "frame_hex": "0xcfd3d7",
+   "wood_hex": "0xcaa96b",
+   "chair": "shelf",
+   "fabric_type": "wood"
   },
   {
    "sku": "LV-071GY",

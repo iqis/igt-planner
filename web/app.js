@@ -6,7 +6,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          jikaroGroup, jikaroBridge, hangRackGroup, slideExtGroup,
          entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop,
          foldingChairGroup, lowBeachChairGroup, campfieldSofaGroup,
-         loungeCushionGroup, foldingBenchGroup } from "./parts3d.js";
+         loungeCushionGroup, foldingBenchGroup, bambooShelfGroup } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -919,7 +919,7 @@ function drawSlideExt(g, n) {
 }
 
 // Prop geometry by `chair` type. A prop's builder takes (w, d, h, opts) and returns { group }.
-const PROP_BUILDERS = { folding: foldingChairGroup, lowbeach: lowBeachChairGroup, sofa: campfieldSofaGroup, cushion: loungeCushionGroup, bench: foldingBenchGroup };
+const PROP_BUILDERS = { folding: foldingChairGroup, lowbeach: lowBeachChairGroup, sofa: campfieldSofaGroup, cushion: loungeCushionGroup, bench: foldingBenchGroup, shelf: bambooShelfGroup };
 
 /** A free-standing prop (a chair): built at floor level (y = 0), tagged for selection + drag like
  *  a table but never connected to the IGT grid -- no hooks, no bay, no legs. */
@@ -935,6 +935,7 @@ function drawProp(g, n) {
     seatH: p.seat_h_mm || 400,
     canvasTex: mesh ? null : chairTex("canvas", CANVAS_TEX, 4, true),
     meshAlpha: mesh ? chairTex("mesh", MESH_ALPHA, 6, false) : null,
+    woodTex: p.chair === "shelf" ? woodGrain("shelfwood", 3, 1) : null,   // bamboo grain on the shelf top
   });
   built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
   g.add(built.group);

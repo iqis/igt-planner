@@ -163,6 +163,24 @@
    "image": "https://www.snowpeak.com/cdn/shop/products/mesh_folding_bench_lv-071m-bk_hero_01.jpg?width=1000",
    "url": {"us": "https://www.snowpeak.com/products/mesh-folding-bench", "jp": null},
    "reason": "Mesh Folding Bench (LV-071M-BK): black frame + see-through black mesh sling (perforated alphaMap), the bench version of the mesh folding chair. Same bench form."
+  },
+  "LV-066TR": {
+   "role": "seating", "title_en": "Bamboo Folding Bench Long",
+   "assembled_mm": {"w": 1095, "d": 330, "h": 394}, "seat_h_mm": 394,
+   "price": {"us": 15995, "jp": null, "uk": null},
+   "frame_hex": "0xcfd3d7", "wood_hex": "0xcaa96b", "chair": "shelf", "fabric_type": "wood",
+   "image": "https://www.snowpeak.com/cdn/shop/products/long_folding_shelf_bamboo_lv-066tr_hero_01.jpg?width=1000",
+   "url": {"us": "https://www.snowpeak.com/products/long-folding-shelf-bamboo-lv-066tr", "jp": null},
+   "reason": "Bamboo Folding Bench / Shelf Long (LV-066TR): a rigid laminated-bamboo top on folding stainless end X-frames -- a multi-use narrow table / bench / storage shelf. 1095x330x394. chair type 'shelf'; the bamboo top wears the real bamboo grain."
+  },
+  "LV-065TR": {
+   "role": "seating", "title_en": "Bamboo Folding Bench",
+   "assembled_mm": {"w": 590, "d": 300, "h": 340}, "seat_h_mm": 340,
+   "price": {"us": 12995, "jp": null, "uk": null},
+   "frame_hex": "0xcfd3d7", "wood_hex": "0xcaa96b", "chair": "shelf", "fabric_type": "wood",
+   "image": null,
+   "url": {"us": "https://www.snowpeak.com/collections/bamboo", "jp": null},
+   "reason": "Bamboo Folding Bench / Shelf, regular (LV-065TR): the shorter sibling of LV-066TR, same bamboo-top-on-folding-X-legs form. Reuses the shelf builder. Dims ~590x300x340 are ESTIMATED (no clean US spec found) -- shorter than the Long."
   }
  },
 
