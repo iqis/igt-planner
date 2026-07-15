@@ -502,6 +502,7 @@ function select(next) {
   paintFacts();
   annoReset();
   anno3dReset();
+  pairReset();
   history.replaceState(null, "", `?sku=${sku}`);
   $("detail").scrollTop = 0;
 }
@@ -580,6 +581,15 @@ function annoRender() {
     actx.lineWidth = 2; actx.strokeStyle = "#fff"; actx.stroke();
     annoLabel(String(n), x, y, "#fff", W);
   }
+  // The photo halves of the correspondences -- only those pinned on the image now shown.
+  const url = annoUrl();
+  pairs.forEach((pr, i) => {
+    if (pr.img && pr.img !== url) return;
+    const x = pr.ph.x * W, y = pr.ph.y * H;
+    actx.beginPath(); actx.arc(x, y, 7, 0, 7); actx.fillStyle = "#d13ad1"; actx.fill();
+    actx.lineWidth = 2; actx.strokeStyle = "#fff"; actx.stroke();
+    annoLabel(pairLetter(i), x, y, "#fff", W);
+  });
 }
 const annoAt = e => {
   const r = $("shot").getBoundingClientRect();
@@ -601,6 +611,7 @@ function annoHit(p) {
 }
 annocanvas.addEventListener("pointerdown", e => {
   const p = annoAt(e), hit = annoHit(p);
+  if (pairMode) { pairAddPhoto(p); return; }   // photo half of a pair -- click the model first
   if (hit) { annoDrag = hit; annocanvas.setPointerCapture(e.pointerId); return; }  // grab to move
   if (annoTool === "poly") {
     (annoPoly ??= { type: "poly", pts: [] }).pts.push({ x: p.x, y: p.y }); annoRender();
@@ -689,7 +700,8 @@ function anno3dAdd(v, save = true) {
 }
 function anno3dChrome() {
   $("mark3d").classList.toggle("on", mark3d);
-  $("mark3dundo").hidden = $("mark3dclear").hidden = !(mark3d || anno3d.length);
+  $("pairmode").classList.toggle("on", pairMode);
+  $("mark3dundo").hidden = $("mark3dclear").hidden = !(mark3d || pairMode || anno3d.length || pairs.length);
 }
 function anno3dReset() {    // load the marks saved for the part now shown
   for (const a of anno3d) a.el.remove();
@@ -700,20 +712,107 @@ function anno3dReset() {    // load the marks saved for the part now shown
   } catch { /* ignore */ }
   anno3dChrome();
 }
-$("mark3d").onclick = () => { mark3d = !mark3d; anno3dChrome(); };
-$("mark3dundo").onclick = () => { const a = anno3d.pop(); if (a) a.el.remove(); anno3dSave(); anno3dPlace(); anno3dChrome(); };
-$("mark3dclear").onclick = () => { for (const a of anno3d) a.el.remove(); anno3d = []; anno3dSave(); anno3dChrome(); };
+$("mark3d").onclick = () => {
+  mark3d = !mark3d;
+  if (mark3d && pairMode) { pairMode = false; if (pairPend) { pairPend.mEl.remove(); pairPend = null; pairModelLabels(); } }
+  anno3dChrome();
+};
+// undo/clear act on whichever 3D-view mode is live: correspondences in pair mode, points otherwise.
+$("mark3dundo").onclick = () => {
+  if (pairMode) {
+    if (pairPend) { pairPend.mEl.remove(); pairPend = null; pairModelLabels(); }   // back out a half-made pair
+    else { const p = pairs.pop(); if (p) { p.mEl.remove(); pairSave(); pairModelLabels(); annoRender(); } }
+  } else { const a = anno3d.pop(); if (a) a.el.remove(); anno3dSave(); anno3dPlace(); }
+  anno3dChrome();
+};
+$("mark3dclear").onclick = () => {
+  if (pairMode) {
+    for (const p of pairs) p.mEl.remove(); pairs = [];
+    if (pairPend) { pairPend.mEl.remove(); pairPend = null; }
+    pairSave(); pairModelLabels(); annoRender();
+  } else { for (const a of anno3d) a.el.remove(); anno3d = []; anno3dSave(); }
+  anno3dChrome();
+};
 canvas.addEventListener("pointerdown", e => { down3 = { x: e.clientX, y: e.clientY }; });
 canvas.addEventListener("pointerup", e => {
   const d = down3; down3 = null;
-  if (!mark3d || !d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5) return;   // moved => a drag/orbit
+  if ((!mark3d && !pairMode) || !d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5) return; // drag = orbit
   const r = canvas.getBoundingClientRect();
   ray3.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1,
     -((e.clientY - r.top) / r.height) * 2 + 1), camera);
   // Only the part's own MESHES -- not the reference grid or axis lines that also live in stage.
   const hit = ray3.intersectObjects(stage.children, true).find(h => h.object.isMesh);
-  if (hit) anno3dAdd(hit.point);
+  if (!hit) return;
+  if (pairMode) pairStartModel(hit.point); else anno3dAdd(hit.point);
   anno3dChrome();
+});
+
+// ---------------------------------------------------------------- pair model <-> photo
+// Link a point on the MODEL to a point on the PHOTO. In pair mode: click the model (the half
+// shows magenta, dashed while it waits), then click the matching spot on the photo -- both are
+// lettered A, B, C. The letter IS the correspondence. Read as data (model mm + photo px) off
+// window.__bench.pairs(). Persists per part.
+let pairMode = false;
+let pairs = [];            // {v: Vector3 (model), ph:{x,y} photo frac, img: url, mEl: div}
+let pairPend = null;       // {v, mEl} model half awaiting its photo point
+const PAIR_KEY = "igt-pairs";
+const pairLetter = i => String.fromCharCode(65 + (i % 26)) + (i >= 26 ? Math.floor(i / 26) : "");
+function pairSave() {
+  try {
+    const all = JSON.parse(localStorage.getItem(PAIR_KEY) || "{}");
+    if (pairs.length) all[sku] = pairs.map(p => ({ v: [p.v.x, p.v.y, p.v.z], ph: [p.ph.x, p.ph.y], img: p.img }));
+    else delete all[sku];
+    localStorage.setItem(PAIR_KEY, JSON.stringify(all));
+  } catch { /* private mode */ }
+}
+function pairModelLabels() {   // reproject the model halves each frame, like anno3d
+  const r = canvas.getBoundingClientRect();
+  const put = (v, el, txt, cls) => {
+    const p = v.clone().project(camera);
+    el.textContent = txt; el.className = "a3d " + cls;
+    el.style.left = ((p.x * 0.5 + 0.5) * r.width) + "px";
+    el.style.top = ((-p.y * 0.5 + 0.5) * r.height) + "px";
+    el.style.display = p.z < 1 ? "flex" : "none";
+  };
+  pairs.forEach((p, i) => put(p.v, p.mEl, pairLetter(i), "pair"));
+  if (pairPend) put(pairPend.v, pairPend.mEl, pairLetter(pairs.length), "pend");
+}
+function pairStartModel(pt) {   // model half -> pending (a new click replaces an unfinished one)
+  if (pairPend) pairPend.mEl.remove();
+  const mEl = document.createElement("div"); anno3dLayer.append(mEl);
+  pairPend = { v: pt.clone(), mEl };
+  pairModelLabels();
+}
+function pairAddPhoto(p) {       // photo half -> completes the pending pair (needs a model half)
+  if (!pairPend) return false;
+  pairs.push({ v: pairPend.v, ph: { x: p.x, y: p.y }, img: annoUrl(), mEl: pairPend.mEl });
+  pairPend = null;
+  pairModelLabels(); annoRender(); pairSave();
+  return true;
+}
+function pairReset() {          // load the pairs saved for the part now shown
+  for (const p of pairs) p.mEl.remove();
+  if (pairPend) pairPend.mEl.remove();
+  pairs = []; pairPend = null;
+  try {
+    for (const rec of (JSON.parse(localStorage.getItem(PAIR_KEY) || "{}")[sku] || [])) {
+      const mEl = document.createElement("div"); anno3dLayer.append(mEl);
+      pairs.push({ v: new THREE.Vector3(...rec.v), ph: { x: rec.ph[0], y: rec.ph[1] }, img: rec.img, mEl });
+    }
+  } catch { /* ignore */ }
+  pairModelLabels();
+}
+$("pairmode").onclick = () => {
+  pairMode = !pairMode;
+  if (pairMode) mark3d = false;                    // one 3D-view mode at a time
+  if (!pairMode && pairPend) { pairPend.mEl.remove(); pairPend = null; pairModelLabels(); }
+  anno3dChrome();
+};
+// Load any image to annotate -- a file off disk, or a pasted URL (Enter).
+$("annofile").onchange = e => { const f = e.target.files?.[0]; if (f) loadAnnoImage(URL.createObjectURL(f)); e.target.value = ""; };
+$("annourl").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  const u = e.target.value.trim(); if (u) { loadAnnoImage(u); e.target.blur(); }
 });
 
 // ---------------------------------------------------------------- boot
@@ -731,6 +830,7 @@ addEventListener("resize", resize);
   controls.update();
   renderer.render(scene, camera);
   anno3dPlace();          // keep the 3D-point labels glued to the model as it orbits
+  pairModelLabels();      // ...and the model halves of the correspondences
 })();
 
 // Theme -- shared with the planner (same localStorage key). The panels are pure CSS
@@ -771,4 +871,15 @@ window.__bench = { THREE, scene, camera, controls, PARTS, TEXTURES, select, setV
   // The points marked ON the 3D model, as millimetres in the part's own frame.
   anno3d: () => anno3d.map((a, i) => ({ n: i + 1,
     mm: { x: Math.round(a.v.x * 1000), y: Math.round(a.v.y * 1000), z: Math.round(a.v.z * 1000) } })),
+  // The model<->photo correspondences: each lettered pair as model mm AND photo px.
+  pairs: () => {
+    const img = $("photo"), W = img.naturalWidth, H = img.naturalHeight;
+    return pairs.map((p, i) => ({
+      label: pairLetter(i),
+      model_mm: { x: Math.round(p.v.x * 1000), y: Math.round(p.v.y * 1000), z: Math.round(p.v.z * 1000) },
+      photo_px: { x: Math.round(p.ph.x * W), y: Math.round(p.ph.y * H) },
+      photo_frac: { x: +p.ph.x.toFixed(4), y: +p.ph.y.toFixed(4) },
+      image: p.img,
+    }));
+  },
 };

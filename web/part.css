@@ -18,6 +18,7 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
 /* Mark the 3D model: a toggle top-right, numbered labels floating at the clicked 3D points. */
 #mark3dbar { position: absolute; top: .7rem; right: .7rem; }
 #mark3d.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+#pairmode.on { background: #c837c8; border-color: #c837c8; color: #fff; }
 #anno3d { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .a3d {
   position: absolute; transform: translate(-50%, -50%);
@@ -27,6 +28,18 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
   background: #2f9bff; color: #fff; font: bold 11px ui-monospace, monospace;
   box-shadow: 0 1px 5px rgba(0, 0, 0, .55);
 }
+.a3d.pair { background: #d13ad1; }            /* a correspondence half on the model */
+.a3d.pend { background: #d13ad1; opacity: .55; border-style: dashed; }
+
+/* Load any image to annotate -- a file off disk or a pasted URL. */
+#annoload { margin-bottom: .8rem; gap: .3rem; }
+#annoload label { cursor: pointer; }
+#annourl {
+  flex: 1; min-width: 0; font: .68rem ui-monospace, monospace;
+  padding: .28rem .4rem; border: 1px solid var(--line); border-radius: 3px;
+  background: var(--raise); color: var(--ink);
+}
+#annourl::placeholder { color: var(--faint); }
 
 #axes {
   position: absolute; bottom: .7rem; left: .7rem;

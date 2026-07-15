@@ -38,6 +38,7 @@
          window.__bench.anno3d(). -->
     <div id="mark3dbar" class="chips">
       <button id="mark3d" class="chip">✏ mark 3D</button>
+      <button id="pairmode" class="chip" title="link a model point to a photo point">🔗 pair</button>
       <button id="mark3dundo" class="chip" hidden>undo</button>
       <button id="mark3dclear" class="chip" hidden>clear</button>
     </div>
@@ -62,6 +63,10 @@
     </div>
     <div id="shot"><img id="photo" alt=""><svg id="marks"></svg><canvas id="annocanvas"></canvas></div>
     <div class="hint" id="annohint">click to add · <b>drag a mark to move it</b> · double-click to finish a line · a thumbnail loads another image · marks are saved</div>
+    <div id="annoload" class="chips">
+      <label class="chip">load image<input type="file" id="annofile" accept="image/*" hidden></label>
+      <input type="text" id="annourl" placeholder="…or paste an image URL, then Enter">
+    </div>
 
     <h2>Every photograph <span class="hint">— say what each one is</span></h2>
     <div id="gallery"></div>
