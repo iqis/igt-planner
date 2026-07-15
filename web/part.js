@@ -5,7 +5,8 @@ import { materialFor, roundedBox, boardMaterial, flatRect,
          boardFromOutline, grainMaterial } from "./materials.js";
 import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
          hangRackGroup, clampGroup, screenGroup, postArmGroup, ttaFrameGroup,
-         ringGroup, caseGroup, railsGroup, plateGroup, gridPlateGroup } from "./parts3d.js";
+         ringGroup, caseGroup, railsGroup, plateGroup, gridPlateGroup,
+         slideExtGroup } from "./parts3d.js";
 
 /* The bench.
  *
@@ -136,6 +137,9 @@ function benchGeo(p, box) {
     if (sku === "CK-306") return ringGroup(w, d, h, color).group;      // Sierra cup holder
     return clampGroup(w, d, h, color).group;                          // CK-300 unit clamp
   }
+
+  // A bamboo sliding extension (CK-153/154): mounts on the frame's long side, reaches out.
+  if (role === "extension") return slideExtGroup(w, d, h, color).group;
 
   if (role === "case") return caseGroup(w, d, h, color).group;
   if (role === "rails" && SECTION)

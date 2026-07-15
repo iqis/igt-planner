@@ -496,6 +496,35 @@ export function plateGroup(w, d, h, color) {
   return { group: g, body: plate };
 }
 
+/** A bamboo sliding extension (CK-153/154): a cantilevered bamboo board that mounts on the
+ *  frame's LONG side and reaches outward. Two silver brackets on ONE long edge hook over the
+ *  rail; the board's top finishes about level with the frame top. Photographed, not guessed
+ *  (JP a002/a003 show the two hinged brackets gripping the rail, the board reaching out).
+ *  Board top at y = 0; the mounting edge is at -z, so the board reaches toward +z. */
+export function slideExtGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const wood = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), metalness: 0.05, roughness: 0.7 });
+  const board = 16;                                   // the bamboo itself; h(33) is board + bracket
+  const top = new THREE.Mesh(roundedBox(w * MM, board * MM, d * MM, 6 * MM), wood);
+  top.position.y = -board / 2 * MM;
+  g.add(top);
+
+  // Two slide brackets on the mounting (-z) long edge: a foot lying on the board and an
+  // upstand at the very edge that hooks over the rail. Spaced like the hero shot.
+  const steel = metalE(0xc8ccd2, 0.9, 0.28);
+  const edgeZ = -(d / 2);
+  const bx = Math.min(w * 0.22, 110);
+  for (const sx of [-1, 1]) {
+    const foot = new THREE.Mesh(roundedBox(32 * MM, 4 * MM, 46 * MM, 1 * MM), steel);
+    foot.position.set(sx * bx * MM, 2 * MM, (edgeZ + 28) * MM);
+    g.add(foot);
+    const lip = new THREE.Mesh(roundedBox(32 * MM, 20 * MM, 7 * MM, 1 * MM), steel);
+    lip.position.set(sx * bx * MM, 8 * MM, (edgeZ + 4) * MM);
+    g.add(lip);
+  }
+  return { group: g, body: top };
+}
+
 /** A flat grill / griddle plate: a slab with parallel ridges on top, the way a grill plate
  *  is cast (S-029HA and the like). */
 export function gridPlateGroup(w, d, h, color) {
