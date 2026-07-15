@@ -359,15 +359,16 @@ export function igtWoodTop({ units, color, skip = [], d, thick = 14, tex = null 
  *  end caps, rods and legs. Top at y = 0. */
 export function slimIgtGroup(w, d, height) {
   const g = new THREE.Group();
-  const dark = new THREE.MeshStandardMaterial({ color: 0x8a5f36, roughness: 0.55, metalness: 0.05 });
+  // The frame is BLACK-coated steel (spec: スチール カチオン電着塗装) -- only the top is teak.
+  const black = metalE(0x24262a, 0.5, 0.5);
   const thick = 16, cap = 26;
-  // dark wood end caps (the short ends -- there is NO rail down the long sides)
+  // black steel end caps (the short ends -- there is NO rail down the long sides)
   for (const sx of [-1, 1]) {
-    const c = new THREE.Mesh(roundedBox(cap * MM, (thick + 8) * MM, d * MM, 1.5 * MM), dark);
+    const c = new THREE.Mesh(roundedBox(cap * MM, (thick + 8) * MM, d * MM, 1.5 * MM), black);
     c.position.set(sx * (w / 2 - cap / 2) * MM, -(thick + 8) / 2 * MM, 0); g.add(c);
   }
-  // a thin silver support rod under each long edge (carries the removable panels -- NOT a rail)
-  const rod = metalE(0xcfd2d6, 0.9, 0.3);
+  // a thin black support rod under each long edge (carries the removable panels -- NOT a rail)
+  const rod = black;
   for (const sz of [-1, 1]) {
     const r = new THREE.Mesh(new THREE.CylinderGeometry(3 * MM, 3 * MM, (w - 2 * cap) * MM, 8), rod);
     r.rotation.z = Math.PI / 2;
@@ -387,8 +388,8 @@ export function slimIgtGroup(w, d, height) {
  *  Top at y = 0. Returns { group, body, bay } -- bay = {w,d} of the exposed slot, or null. */
 export function extIgtGroup(w, d, height, { bayW = 0, bayD = 360, tex = null } = {}) {
   const g = new THREE.Group();
-  const alu = metalE(0xd0d3d7, 0.85, 0.35);
-  const bamboo = new THREE.MeshStandardMaterial({ color: 0xcaa96b, map: tex || null, roughness: 0.62, metalness: 0.03 });
+  const alu = metalE(0x26282c, 0.7, 0.45);   // BLACK frame -- the real CK-090 stand is matte black
+  const bamboo = new THREE.MeshStandardMaterial({ color: 0xd8bd86, map: tex || null, roughness: 0.62, metalness: 0.03 });
   const thick = 22, bar = 12;
   const topW = (w - bayW) / 2;                        // each bamboo top's slice of the width
   // aluminium stand: a shallow ring of four bars round the whole footprint
@@ -419,8 +420,8 @@ export function extIgtGroup(w, d, height, { bayW = 0, bayD = 360, tex = null } =
       e.position.set(sx * (bayW / 2) * MM, -(thick - 4) / 2 * MM, 0); g.add(e);
     }
   }
-  // two built-in folding tube legs at the ends
-  const legMat = metalE(0xc6c9cd, 0.85, 0.32);
+  // two built-in folding tube legs at the ends -- black, matching the frame
+  const legMat = metalE(0x1e2024, 0.6, 0.5);
   for (const ex of [-1, 1])
     foldLeg(g, { ex, w, d, top: -thick, footY: -(height - thick), mat: legMat, r: 6, splay: 18, inset: 40, zIn: 30, feet: true });
   return { group: g, body: g.children[0], bay: bayW > 0 ? { w: bayW, d: bayD } : null };
@@ -481,9 +482,12 @@ export function jikaroGroup({ outer, opening, edge, height, color, ringMat }) {
  *  opening with bars sliding into them, turning the hole into an IGT unit-slot. Stainless.
  *  `opening` = the Jikaro's central opening (600 spread / 365 compact); `units` = 1 or 2. Built
  *  with its top at y = 0 so the caller drops it at the ring's datum height. Returns { group }. */
-export function jikaroBridge({ opening, units = 2 }) {
+export function jikaroBridge({ opening, units = 2, tex = null }) {
   const g = new THREE.Group();
-  const ss = metalE(0xccd0d4, 0.92, 0.26);
+  // Brushed stainless -- the `tex` map (fine directional streaks) gives it the 拉丝 finish.
+  const ss = tex
+    ? new THREE.MeshStandardMaterial({ color: 0xd2d5d9, map: tex, metalness: 0.9, roughness: 0.42 })
+    : metalE(0xccd0d4, 0.92, 0.26);
   const bayW = units * 250, bayD = 360;
   // Two main brackets: the long rails a module bridges, spanning the opening (they rest on the
   // rim both sides -> a touch longer), one at each depth edge.

@@ -52,16 +52,19 @@ const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
 // shared cache so their tiling (repeat) does not fight the sliding extension, which draws the
 // same bamboo photo at a different size. One instance per (key), repeat baked in once.
 const WOOD_GRAIN = "tex/CK-116TR_grain.jpg";   // a clean bamboo crop -- no printed logo, unlike the _top photo
+const TEAK_GRAIN = "tex/CK-180_teak.jpg";       // real teak, rectified from the CK-180 product photo
+const STEEL_TEX = "tex/brushed_steel.jpg";      // brushed stainless (拉丝) for the Jikaro bridge
 const woodTexCache = {};
-function woodGrain(key, rx, ry) {
+function woodGrain(key, rx, ry, path = WOOD_GRAIN) {
   if (woodTexCache[key]) return woodTexCache[key];
-  const t = texLoader.load(WOOD_GRAIN);
+  const t = texLoader.load(path);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = THREE.SRGBColorSpace;
   t.repeat.set(rx, ry);
   woodTexCache[key] = t;
   return t;
 }
+const steelTex = () => woodGrain("steel", 3, 1, STEEL_TEX);
 // The flat burner (GS-450R) shows its real top -- stainless well, brass head, ports, grate.
 const burnerTop = sku => sku.startsWith("GS-450R") ? loadTex("tex/GS-450R_top.jpg") : null;
 
@@ -863,7 +866,7 @@ function drawJikaro(g, n) {
 
   // An OPTIONAL bridge across the fire opening turns it into an IGT bay (2U spread / 1U compact).
   if (n.bridge) {
-    const { group: bg } = jikaroBridge({ opening: c.opening_mm, units: c.bridge_units || 2 });
+    const { group: bg } = jikaroBridge({ opening: c.opening_mm, units: c.bridge_units || 2, tex: steelTex() });
     bg.position.y = top * MM;
     bg.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(bg);
@@ -931,8 +934,9 @@ function drawTable(g, n) {
 
     const cells = occupancy(n), skip = [];
     for (let i = 0; i < cells.length; i++) if (cells[i]) skip.push(i);
-    const top = igtWoodTop({ units: si.units, color: si.top === "teak" ? 0xb98046 : 0xd8bd86,
-      skip, d: f.d, tex: woodGrain("tile", 1, 2) });
+    const teak = si.top === "teak";
+    const top = igtWoodTop({ units: si.units, color: teak ? 0xffffff : 0xd8bd86,
+      skip, d: f.d, tex: teak ? woodGrain("teak", 1, 2, TEAK_GRAIN) : woodGrain("tile", 1, 2) });
     top.group.position.y = tp * MM;
     top.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(top.group);

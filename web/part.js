@@ -60,10 +60,11 @@ const loadTex = path => (texCache[path] ??= texLoader.load(path));
 const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
 // Dedicated grain instances for the self-IGT wood tops (own tiling, kept off the shared cache).
 const WOOD_GRAIN = "tex/CK-116TR_grain.jpg";   // clean bamboo crop, no printed logo
+const TEAK_GRAIN = "tex/CK-180_teak.jpg";       // real teak, from the CK-180 photo
 const woodTexCache = {};
-function woodGrain(key, rx, ry) {
+function woodGrain(key, rx, ry, path = WOOD_GRAIN) {
   if (woodTexCache[key]) return woodTexCache[key];
-  const t = texLoader.load(WOOD_GRAIN);
+  const t = texLoader.load(path);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = THREE.SRGBColorSpace;
   t.repeat.set(rx, ry);
@@ -147,8 +148,9 @@ function benchGeo(p, box) {
     const si = (CAT.layout?.self_igt || {})[sku] || { units: 3, top: sku === "CK-180" ? "teak" : "bamboo" };
     const wrap = new THREE.Group();
     wrap.add((sku === "CK-180" ? slimIgtGroup : entryIgtGroup)(w, d, h).group);
-    wrap.add(igtWoodTop({ units: si.units, color: si.top === "teak" ? 0xb98046 : 0xd8bd86,
-      skip: [], d, tex: woodGrain("tile", 1, 2) }).group);
+    const teak = si.top === "teak";
+    wrap.add(igtWoodTop({ units: si.units, color: teak ? 0xffffff : 0xd8bd86,
+      skip: [], d, tex: teak ? woodGrain("teak", 1, 2, TEAK_GRAIN) : woodGrain("tile", 1, 2) }).group);
     return wrap;
   }
   // Extension IGT: two bamboo tops that slide apart. The bench shows the expanded form (its
