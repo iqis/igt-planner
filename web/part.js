@@ -54,6 +54,7 @@ const textureOf = (sku, key = "file") => {
 // The sliding extension's own bamboo, rectified from its top-view photo and cropped to grain.
 const loadTex = path => (texCache[path] ??= texLoader.load(path));
 const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
+const burnerTop = sku => sku.startsWith("GS-450R") ? loadTex("tex/GS-450R_top.jpg") : null;
 
 // The axis a set of measured points sits on. Same rule as the planner uses, so what you
 // see here is what the layout will do with it.
@@ -155,7 +156,7 @@ function benchGeo(p, box) {
     return gridPlateGroup(w, d, h, color).group;
 
   // Slot modules, storage boxes, gear bags, burners, mesh trays -- moduleGroup knows them.
-  const mod = moduleGroup(p, w, d, h, color);
+  const mod = moduleGroup(p, w, d, h, color, burnerTop(sku));
   if (mod) return mod.group;
 
   // What is left is a genuinely thin, flat thing (a sliding bamboo extension, a wood insert,

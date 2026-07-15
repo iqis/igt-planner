@@ -73,12 +73,27 @@ function cyl(g, rTop, rBot, h, seg, mat, x, y, z, rx = 0) {
 
 // The burners, by what their photographs show -- one round head or two, a flat grill plate,
 // or a charcoal BBQ with a split top. `spec` is the same object app.js keys by SKU.
-export function burnerGroup(spec, w, d, h) {
+export function burnerGroup(spec, w, d, h, topTex = null) {
   const g = new THREE.Group();
   const steel = 0x9aa0a8, dark = 0x26292e;
 
   // The stainless housing, dropped in. Rim at y=0, body hanging to -h.
   const body = box(g, w, h, d, 3, metal(steel, 0.85, 0.35), 0, -h / 2, 0);
+
+  // A flat burner (GS-450R) carries its REAL top as a photo: the stainless well, the brass
+  // head with its ring of ports, the pot-support grate over it -- laid on the housing rim.
+  // It is a flat burner, so there is no modelled cylinder head; the picture is the top.
+  if (topTex) {
+    const s = Math.min(w, d) * 0.96;
+    const top = new THREE.Mesh(new THREE.PlaneGeometry(s * MM, s * MM),
+      new THREE.MeshStandardMaterial({ map: topTex, metalness: 0.5, roughness: 0.5 }));
+    top.rotation.x = -Math.PI / 2;             // lay it flat, facing up
+    top.position.y = 1.4 * MM;
+    g.add(top);
+    for (let i = 0; i < (spec.knobs || 0); i++)
+      cyl(g, 9, 9, 10, 16, metal(0x1c1f24, 0.4, 0.6), 0, -h * 0.35, d / 2 + 4, Math.PI / 2);
+    return { group: g, body };
+  }
 
   if (spec.bbq) {
     const lift = 34, half = (w - 16) / 2;
@@ -154,9 +169,9 @@ export function meshTrayGroup(w, d, h, color) {
  *
  *  Returns null for a part that is genuinely just a thin slab (a shallow tray); the caller
  *  draws that itself. `color` is the part's swatch, passed in so this stays state-free. */
-export function moduleGroup(p, w, d, h, color) {
+export function moduleGroup(p, w, d, h, color, topTex = null) {
   const bspec = burnerOf(p.sku);
-  if (bspec) return burnerGroup(bspec, w, d, h);
+  if (bspec) return burnerGroup(bspec, w, d, h, topTex);
   if (isMesh(p)) return meshTrayGroup(w, d, h, new THREE.Color(color));
   if (h >= 60) return binGroup(w, d, h, { open: true, color });   // a box you put things in
   return null;                                                    // a thin tray: a slab

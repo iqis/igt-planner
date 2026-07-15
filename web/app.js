@@ -47,6 +47,8 @@ const textureOf = (sku, key = "file") => {
 // hero) and cropped to a clean grain -- so it wears its real surface, not a borrowed one.
 const loadTex = path => (texCache[path] ??= texLoader.load(path));
 const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
+// The flat burner (GS-450R) shows its real top -- stainless well, brass head, ports, grate.
+const burnerTop = sku => sku.startsWith("GS-450R") ? loadTex("tex/GS-450R_top.jpg") : null;
 
 // Colours come from Snow Peak's product photography (catalog/colors.json). The swatch in
 // the palette is the same colour the part is rendered in, so the two never drift.
@@ -646,7 +648,7 @@ function drawFrame(g, n) {
 
     // Everything with a real 3D form comes from parts3d.js, so the part bench draws the
     // identical object. A burner, a wire mesh tray, a box or bin -- built once, shared.
-    const built = moduleGroup(p2, w, d, h, swatchOf(p2.sku));
+    const built = moduleGroup(p2, w, d, h, swatchOf(p2.sku), burnerTop(p2.sku));
     if (built) { dropModule(g, n, pl, cx, top, built); continue; }
 
     // A flat insert or lid that drops into the slot: a bamboo board, a stainless lid-tray.
