@@ -284,23 +284,36 @@ export function jikaroGroup({ outer, opening, edge, height, color, ringMat }) {
   seams.position.y = 0.4 * MM;
   g.add(seams);
 
+  // Eight folding wire legs -- TWO per segment, at the two ENDS of its outer edge (its pair of
+  // slanted short sides), not the middle where they used to float. Each is a U-shaped hairpin
+  // (a009, the disassembled photo): two near-vertical wires that widen and kick slightly
+  // outward to a foot bar. NOT an A-frame -- the U is the real shape.
   const wire = metalE(color, 0.9, 0.28);
-  const mid = (outer / 2 + opening / 2) / 2;
-  const half = edge * 0.34;
+  const R = outer / 2, e = edge / 2;
+  const strut = (a, b) => {
+    const va = new THREE.Vector3(...a).multiplyScalar(MM);
+    const vb = new THREE.Vector3(...b).multiplyScalar(MM);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(3 * MM, 3 * MM, va.distanceTo(vb), 6), wire);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m);
+  };
+  const inset = 24, top = 40, foot = 56, kick = 30;   // corner inset; U width at top/foot; outward kick
   for (const [ux, uz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    for (const s of [-1, 1]) {
-      const px = ux ? ux * mid : s * half;
-      const pz = uz ? uz * mid : s * half;
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(4 * MM, height * MM, 4 * MM), wire);
-      leg.position.set(px * MM, -height / 2 * MM, pz * MM);
-      g.add(leg);
+    const tx = -uz, tz = ux;                            // tangential, along the outer edge
+    for (const s of [-1, 1]) {                          // the two ends of the segment
+      const cx = ux * R + tx * s * (e - inset), cz = uz * R + tz * s * (e - inset);
+      const legs = [];
+      for (const u of [-1, 1]) {                        // the two wires of one U
+        const t0 = [cx + tx * u * top / 2, 0, cz + tz * u * top / 2];
+        const t1 = [cx + tx * u * foot / 2 + ux * kick, -height, cz + tz * u * foot / 2 + uz * kick];
+        strut(t0, t1);
+        legs.push(t1);
+      }
+      strut(legs[0], legs[1]);                          // the foot joining them
     }
-    const bar = new THREE.Mesh(
-      new THREE.BoxGeometry((ux ? 4 : half * 2) * MM, 4 * MM, (uz ? 4 : half * 2) * MM), wire);
-    bar.position.set(ux * mid * MM, (-height + 8) * MM, uz * mid * MM);
-    g.add(bar);
   }
-  return { group: g, body: g.children[0] };
+  return { group: g, body: ring };
 }
 
 /** A hanging rack that hooks over a frame's rails and drops shelves inside its depth.
