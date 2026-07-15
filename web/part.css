@@ -15,6 +15,19 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
 
 #viewbar { position: absolute; top: .7rem; left: .7rem; }
 
+/* Mark the 3D model: a toggle top-right, numbered labels floating at the clicked 3D points. */
+#mark3dbar { position: absolute; top: .7rem; right: .7rem; }
+#mark3d.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+#anno3d { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.a3d {
+  position: absolute; transform: translate(-50%, -50%);
+  min-width: 17px; height: 17px; padding: 0 4px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 9px; border: 1.5px solid #fff;
+  background: #2f9bff; color: #fff; font: bold 11px ui-monospace, monospace;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, .55);
+}
+
 #axes {
   position: absolute; bottom: .7rem; left: .7rem;
   font-size: .64rem; color: var(--faint); line-height: 1.5;

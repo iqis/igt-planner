@@ -33,6 +33,15 @@
   <div id="stage">
     <canvas id="canvas"></canvas>
     <div id="viewbar" class="chips"></div>
+    <!-- Mark the MODEL itself: click on it to drop a numbered point at that exact 3D spot
+         (a raycast, so the coordinate is real). Drag still orbits. Read them as mm off
+         window.__bench.anno3d(). -->
+    <div id="mark3dbar" class="chips">
+      <button id="mark3d" class="chip">✏ mark 3D</button>
+      <button id="mark3dundo" class="chip" hidden>undo</button>
+      <button id="mark3dclear" class="chip" hidden>clear</button>
+    </div>
+    <div id="anno3d"></div>
     <div id="axes"></div>
   </div>
 

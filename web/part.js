@@ -501,6 +501,7 @@ function select(next) {
   paintLinks();
   paintFacts();
   annoReset();
+  anno3dReset();
   history.replaceState(null, "", `?sku=${sku}`);
   $("detail").scrollTop = 0;
 }
@@ -651,6 +652,70 @@ function loadAnnoImage(url) {
 $("photo").addEventListener("load", annoResize);
 addEventListener("resize", annoResize);
 
+// ---------------------------------------------------------------- annotate the 3D model
+// Click the MODEL to drop a numbered point at that exact spot -- a RAYCAST, so the millimetres
+// are real, not eyeballed off an oblique photo (the reason this beats marking the photo for
+// placing geometry). Drag still orbits. Persists per part; read the points as mm off
+// window.__bench.anno3d(). The part sits at the origin, so world mm == the part's own mm.
+const ray3 = new THREE.Raycaster();
+let mark3d = false;
+let anno3d = [];           // {v: THREE.Vector3 (scene units = metres), el: label div}
+let down3 = null;
+const anno3dLayer = $("anno3d");
+const ANNO3D_KEY = "igt-anno3d";
+
+function anno3dSave() {
+  try {
+    const all = JSON.parse(localStorage.getItem(ANNO3D_KEY) || "{}");
+    if (anno3d.length) all[sku] = anno3d.map(a => [a.v.x, a.v.y, a.v.z]); else delete all[sku];
+    localStorage.setItem(ANNO3D_KEY, JSON.stringify(all));
+  } catch { /* private mode -- just won't persist */ }
+}
+function anno3dPlace() {    // number + position each label by projecting its 3D point to screen
+  const r = canvas.getBoundingClientRect();
+  anno3d.forEach((a, i) => {
+    const p = a.v.clone().project(camera);
+    a.el.textContent = i + 1;
+    a.el.style.left = ((p.x * 0.5 + 0.5) * r.width) + "px";
+    a.el.style.top = ((-p.y * 0.5 + 0.5) * r.height) + "px";
+    a.el.style.display = p.z < 1 ? "flex" : "none";
+  });
+}
+function anno3dAdd(v, save = true) {
+  const el = document.createElement("div"); el.className = "a3d"; anno3dLayer.append(el);
+  anno3d.push({ v: v.clone(), el });
+  if (save) anno3dSave();
+  anno3dPlace();
+}
+function anno3dChrome() {
+  $("mark3d").classList.toggle("on", mark3d);
+  $("mark3dundo").hidden = $("mark3dclear").hidden = !(mark3d || anno3d.length);
+}
+function anno3dReset() {    // load the marks saved for the part now shown
+  for (const a of anno3d) a.el.remove();
+  anno3d = [];
+  try {
+    for (const [x, y, z] of (JSON.parse(localStorage.getItem(ANNO3D_KEY) || "{}")[sku] || []))
+      anno3dAdd(new THREE.Vector3(x, y, z), false);
+  } catch { /* ignore */ }
+  anno3dChrome();
+}
+$("mark3d").onclick = () => { mark3d = !mark3d; anno3dChrome(); };
+$("mark3dundo").onclick = () => { const a = anno3d.pop(); if (a) a.el.remove(); anno3dSave(); anno3dPlace(); anno3dChrome(); };
+$("mark3dclear").onclick = () => { for (const a of anno3d) a.el.remove(); anno3d = []; anno3dSave(); anno3dChrome(); };
+canvas.addEventListener("pointerdown", e => { down3 = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener("pointerup", e => {
+  const d = down3; down3 = null;
+  if (!mark3d || !d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5) return;   // moved => a drag/orbit
+  const r = canvas.getBoundingClientRect();
+  ray3.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1,
+    -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+  // Only the part's own MESHES -- not the reference grid or axis lines that also live in stage.
+  const hit = ray3.intersectObjects(stage.children, true).find(h => h.object.isMesh);
+  if (hit) anno3dAdd(hit.point);
+  anno3dChrome();
+});
+
 // ---------------------------------------------------------------- boot
 
 function resize() {
@@ -665,6 +730,7 @@ addEventListener("resize", resize);
   requestAnimationFrame(loop);
   controls.update();
   renderer.render(scene, camera);
+  anno3dPlace();          // keep the 3D-point labels glued to the model as it orbits
 })();
 
 // Theme -- shared with the planner (same localStorage key). The panels are pure CSS
@@ -702,4 +768,7 @@ window.__bench = { THREE, scene, camera, controls, PARTS, TEXTURES, select, setV
       labels: annoItems.filter(i => i.type === "text").map(t => ({ text: t.text, px: px(t.x, t.y) })),
     };
   },
+  // The points marked ON the 3D model, as millimetres in the part's own frame.
+  anno3d: () => anno3d.map((a, i) => ({ n: i + 1,
+    mm: { x: Math.round(a.v.x * 1000), y: Math.round(a.v.y * 1000), z: Math.round(a.v.z * 1000) } })),
 };
