@@ -272,6 +272,27 @@
     "note": "Two brackets rest over the 600mm opening of the spread (long-edge-in) Jikaro; the two bars slide into grooves on the brackets to make a 2-Unit IGT bay."
    }
   },
+  "self_igt": {
+   "_comment": "Self-contained IGTs that ARE 3-unit frames in a fixed body: they ship with custom bamboo/teak tops that have NO separate SKU, and those tops LIFT OUT so standard IGT units drop into the frame -- which is what makes them IGTs. Modelled as a 3-unit bay whose default fill is the wood top; a module simply takes a top piece's place. Passed through untouched by build_catalog. units in half-unit tiles = units*2.",
+   "CK-080R": {
+    "units": 3,
+    "top": "bamboo",
+    "bay_d_mm": 360,
+    "note": "Entry IGT. Tops = 2x one-unit + 2x half-unit bamboo (manual set-contents); 833x440 body, ~41mm end margins round the 750mm 3-unit run."
+   },
+   "CK-080R-EC": {
+    "units": 3,
+    "top": "bamboo",
+    "bay_d_mm": 360,
+    "note": "Entry IGT, black finish -- same 3-unit frame as CK-080R."
+   },
+   "CK-180": {
+    "units": 3,
+    "top": "teak",
+    "bay_d_mm": 360,
+    "note": "IGT Slim. SIX removable half-unit teak panels = a 3-unit frame; any panel lifts out for a stovetop or workspace. 940x403 body."
+   }
+  },
   "ecosystems": {
    "tta": {
     "name": "Table Top Architect",

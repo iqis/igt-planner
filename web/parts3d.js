@@ -310,12 +310,13 @@ function foldLeg(g, { ex, w, d, top, footY, mat, r, splay, inset, zIn, feet = fa
   }
 }
 
-/** Entry IGT (CK-080R): a self-contained unit -- an aluminium IGT frame (rails all round) with a
- *  bamboo slat top, on two built-in folding TUBE legs that splay out past the short ends. */
+/** Entry IGT (CK-080R): a self-contained 3-unit IGT frame -- an aluminium ring on two built-in
+ *  folding TUBE legs. Its bamboo top is REMOVABLE (2x one-unit + 2x half-unit pieces, no SKU) so
+ *  IGT units drop in; the top itself is drawn by igtWoodTop, per free half-unit, so this builds
+ *  only the frame + legs. Top at y = 0. */
 export function entryIgtGroup(w, d, height) {
   const g = new THREE.Group();
   const alu = metalE(0xd0d3d7, 0.85, 0.35);
-  const bamboo = 0xcaa96b;                 // the bamboo top -- not the catalogue swatch
   const thick = 26, bar = 12;
   // the aluminium frame: a shallow ring of four bars round the top edge
   for (const sz of [-1, 1]) {
@@ -326,15 +327,6 @@ export function entryIgtGroup(w, d, height) {
     const b = new THREE.Mesh(roundedBox(bar * MM, thick * MM, d * MM, 1.5 * MM), alu);
     b.position.set(sx * (w / 2 - bar / 2) * MM, -thick / 2 * MM, 0); g.add(b);
   }
-  // bamboo panels filling the frame, set a touch below the rail lip
-  const wood = new THREE.MeshStandardMaterial({ color: bamboo, roughness: 0.66, metalness: 0.04 });
-  const innerW = w - 2 * bar, innerD = d - 2 * bar, n = 4, gap = 5;
-  const pw = (innerW - (n - 1) * gap) / n;
-  for (let i = 0; i < n; i++) {
-    const px = -innerW / 2 + pw / 2 + i * (pw + gap);
-    const s = new THREE.Mesh(roundedBox(pw * MM, (thick - 8) * MM, innerD * MM, 1 * MM), wood);
-    s.position.set(px * MM, -(thick - 8) / 2 * MM - 3 * MM, 0); g.add(s);
-  }
   // two built-in folding tube legs
   const legMat = metalE(0xc6c9cd, 0.85, 0.32);
   for (const ex of [-1, 1])
@@ -342,30 +334,41 @@ export function entryIgtGroup(w, d, height) {
   return { group: g, body: g.children[0] };
 }
 
-/** Slim IGT (CK-180): the slim one -- NO long-side rails at all, just a run of wood slats between
- *  two dark end caps, on two built-in folding THIN-WIRE legs that splay wide. */
+/** The removable custom top of a self-contained IGT (Entry/Slim): one wood tile per FREE
+ *  half-unit across the 3-unit run, so a dropped module simply takes a tile's place -- which is
+ *  exactly how the real tops lift out. `skip` = occupied half-slot indices; `color` bamboo/teak;
+ *  `d` the body depth (the tile spans the IGT depth, centred). Tiles hang just below y = 0. */
+export function igtWoodTop({ units, color, skip = [], d, thick = 14 }) {
+  const g = new THREE.Group();
+  const wood = new THREE.MeshStandardMaterial({ color, roughness: 0.64, metalness: 0.04 });
+  const HALF = 125, run = units * 250, tileD = Math.min(d - 40, 360), gap = 4;
+  const skipSet = new Set(skip);
+  for (let i = 0; i < units * 2; i++) {
+    if (skipSet.has(i)) continue;                       // a module sits here instead
+    const cx = -run / 2 + i * HALF + HALF / 2;
+    const tile = new THREE.Mesh(roundedBox((HALF - gap) * MM, thick * MM, tileD * MM, 1 * MM), wood);
+    tile.position.set(cx * MM, -thick / 2 * MM, 0); g.add(tile);
+  }
+  return { group: g };
+}
+
+/** Slim IGT (CK-180): a self-contained 3-unit IGT frame -- NO long-side rails, just two dark end
+ *  caps and thin support rods, on two folding THIN-WIRE legs. Its top is SIX removable half-unit
+ *  teak panels (any lifts out for a stovetop) -- drawn by igtWoodTop -- so this builds only the
+ *  end caps, rods and legs. Top at y = 0. */
 export function slimIgtGroup(w, d, height) {
   const g = new THREE.Group();
-  // Natural teak, hard-coded -- the catalogue swatch for this SKU is the dark metal, not the wood.
-  const wood = new THREE.MeshStandardMaterial({ color: 0xc7a06a, roughness: 0.66, metalness: 0.04 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x8a5f36, roughness: 0.55, metalness: 0.05 });
   const thick = 16, cap = 26;
-  // wood slats running the LENGTH between the end caps -- there is NO rail down the long sides
-  const n = 7, gap = 3, slatLen = w - 2 * cap, sd = (d - (n - 1) * gap) / n;
-  for (let i = 0; i < n; i++) {
-    const sz = -d / 2 + sd / 2 + i * (sd + gap);
-    const s = new THREE.Mesh(roundedBox(slatLen * MM, thick * MM, sd * MM, 1 * MM), wood);
-    s.position.set(0, -thick / 2 * MM, sz * MM); g.add(s);
-  }
-  // dark wood end caps
+  // dark wood end caps (the short ends -- there is NO rail down the long sides)
   for (const sx of [-1, 1]) {
     const c = new THREE.Mesh(roundedBox(cap * MM, (thick + 8) * MM, d * MM, 1.5 * MM), dark);
     c.position.set(sx * (w / 2 - cap / 2) * MM, -(thick + 8) / 2 * MM, 0); g.add(c);
   }
-  // a thin silver support rod under each long edge (holds the slats -- NOT an IGT rail)
+  // a thin silver support rod under each long edge (carries the removable panels -- NOT a rail)
   const rod = metalE(0xcfd2d6, 0.9, 0.3);
   for (const sz of [-1, 1]) {
-    const r = new THREE.Mesh(new THREE.CylinderGeometry(3 * MM, 3 * MM, slatLen * MM, 8), rod);
+    const r = new THREE.Mesh(new THREE.CylinderGeometry(3 * MM, 3 * MM, (w - 2 * cap) * MM, 8), rod);
     r.rotation.z = Math.PI / 2;
     r.position.set(0, -(thick + 1) * MM, sz * (d / 2 - 5) * MM); g.add(r);
   }

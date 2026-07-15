@@ -4,7 +4,7 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, grainMaterial } from "./materials.js";
 import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          jikaroGroup, jikaroBridge, hangRackGroup, slideExtGroup,
-         entryIgtGroup, slimIgtGroup, extIgtGroup } from "./parts3d.js";
+         entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -101,6 +101,10 @@ const isJikaro = n => n?.sku === JIKARO && jikaroCfg(n);
 const expDef = sku => (LAYOUT.expandables || {})[sku];
 const expCfg = n => { const e = expDef(n?.sku); return e && e.configs[n?.config || e.default]; };
 const isExpandable = n => !!expDef(n?.sku);
+
+// Self-contained IGTs (Entry / Slim) -- a 3-unit frame in a fixed body whose custom wood top
+// lifts out per half-unit so IGT units drop in.
+const selfIgt = sku => (LAYOUT.self_igt || {})[sku];
 
 function footprintOf(sku, kind, node) {
   const p = PARTS[sku];
@@ -552,6 +556,7 @@ function bayUnits(n) {
   if (n.kind === "frame") return PARTS[n.sku].units || 0;
   if (isJikaro(n) && n.bridge) return jikaroCfg(n).bridge_units || 0;
   if (isExpandable(n)) return expCfg(n)?.bay_units || 0;
+  if (selfIgt(n.sku)) return selfIgt(n.sku).units || 0;   // Entry/Slim: a 3-unit frame, top lifts out
   return 0;
 }
 const hasBay = n => bayUnits(n) > 0;
@@ -883,19 +888,36 @@ function drawTable(g, n) {
   // The self-contained IGTs with their own fixed folding legs are built part by part
   // (parts3d.js). The builder draws the top at y=0 with the legs hanging below, so lift it to
   // the work-surface height; the node group g is already turned and placed.
-  if (n.sku === "CK-080R" || n.sku === "CK-080R-EC" || n.sku === "CK-180" || n.sku === "CK-090") {
+  // Extension IGT: two bamboo tops that slide apart, exposing a central 2-unit bay.
+  if (n.sku === "CK-090") {
     const f = footprint(n), tp = topOf(n);
-    let built;
-    if (n.sku === "CK-090") {
-      const c = expCfg(n);
-      built = extIgtGroup(f.w, f.d, tp, { bayW: c?.bay_w_mm || 0, bayD: c?.bay_d_mm || 360 });
-    } else {
-      built = (n.sku === "CK-180" ? slimIgtGroup : entryIgtGroup)(f.w, f.d, tp);
-    }
+    const c = expCfg(n);
+    const built = extIgtGroup(f.w, f.d, tp, { bayW: c?.bay_w_mm || 0, bayD: c?.bay_d_mm || 360 });
     built.group.position.y = tp * MM;
     built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(built.group);
     if (bayUnits(n)) drawModules(g, n, tp);   // the opened centre bay hosts modules
+    return;
+  }
+
+  // Entry / Slim IGT: a 3-unit frame in a fixed body. Build the frame + fixed legs, lay the
+  // REMOVABLE wood top over the FREE half-units only, and let drawModules fill the occupied ones
+  // -- so dropping a unit literally takes a top piece's place.
+  const si = selfIgt(n.sku);
+  if (si) {
+    const f = footprint(n), tp = topOf(n);
+    const built = (n.sku === "CK-180" ? slimIgtGroup : entryIgtGroup)(f.w, f.d, tp);
+    built.group.position.y = tp * MM;
+    built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
+    g.add(built.group);
+
+    const cells = occupancy(n), skip = [];
+    for (let i = 0; i < cells.length; i++) if (cells[i]) skip.push(i);
+    const top = igtWoodTop({ units: si.units, color: si.top === "teak" ? 0xc7a06a : 0xcaa96b, skip, d: f.d });
+    top.group.position.y = tp * MM;
+    top.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
+    g.add(top.group);
+    drawModules(g, n, tp);
     return;
   }
 

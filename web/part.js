@@ -6,7 +6,7 @@ import { materialFor, roundedBox, boardMaterial, flatRect,
 import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
          hangRackGroup, clampGroup, screenGroup, postArmGroup, ttaFrameGroup,
          ringGroup, caseGroup, railsGroup, plateGroup, gridPlateGroup,
-         slideExtGroup, entryIgtGroup, slimIgtGroup, extIgtGroup } from "./parts3d.js";
+         slideExtGroup, entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop } from "./parts3d.js";
 
 /* The bench.
  *
@@ -129,8 +129,15 @@ function benchGeo(p, box) {
       hookHoles: FRAMES[sku]?.hook_holes_mm }).group;
 
   // The self-contained IGTs with their own FIXED folding legs, modelled part by part.
-  if (sku === "CK-080R" || sku === "CK-080R-EC") return entryIgtGroup(w, d, h, color).group;
-  if (sku === "CK-180") return slimIgtGroup(w, d, h, color).group;
+  // Entry / Slim IGT: a 3-unit frame whose custom wood top lifts out for IGT units. The bench
+  // shows the full top (no modules placed) over the frame + fixed folding legs.
+  if (sku === "CK-080R" || sku === "CK-080R-EC" || sku === "CK-180") {
+    const si = (CAT.layout?.self_igt || {})[sku] || { units: 3, top: sku === "CK-180" ? "teak" : "bamboo" };
+    const wrap = new THREE.Group();
+    wrap.add((sku === "CK-180" ? slimIgtGroup : entryIgtGroup)(w, d, h).group);
+    wrap.add(igtWoodTop({ units: si.units, color: si.top === "teak" ? 0xc7a06a : 0xcaa96b, skip: [], d }).group);
+    return wrap;
+  }
   // Extension IGT: two bamboo tops that slide apart. The bench shows the expanded form (its
   // assembled_mm is the open 1348), so the central 2-Unit bay is visible.
   if (sku === "CK-090") {
