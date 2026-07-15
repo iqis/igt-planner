@@ -10,9 +10,34 @@
 // picking data on `body`; these builders stay state-free.
 
 import * as THREE from "three";
-import { roundedBox, meshWires, isMesh } from "./materials.js";
+import { roundedBox, meshWires, isMesh, flatRect, boardFromOutline } from "./materials.js";
 
 const MM = 0.001;
+
+/** The geometry of a flat board, by what its shape actually is -- three cases, one rule:
+ *
+ *    corner            genuinely not a rectangle (a quarter round, an angle trapezoid)
+ *                      -> trace the silhouette. High-contrast bamboo, traces cleanly.
+ *    finger_hole_mm    a stainless lid: a clean published rectangle with a THROUGH hole
+ *                      -> build the rectangle from its dimensions and punch the hole.
+ *    otherwise         a bamboo board whose finger notch is cut into its EDGE
+ *                      -> trace the silhouette, so the edge notch comes along for free.
+ *
+ *  The rectangles are built from millimetres, never traced -- a pale plate on white tore
+ *  into a Z. The traces are kept only where the shape is not a number we already have.
+ *  `role` is the part's role, `t` its textures.json record, `w/d/thickMM` millimetres.
+ *  Returns geometry hanging from its top face.
+ */
+export function flatBoardGeo(role, t, w, d, thickMM) {
+  t = t || {};
+  const hole = t.finger_hole_mm;
+  if (role === "corner" && t.outline_mm) return boardFromOutline(t.outline_mm, thickMM * MM);
+  if (hole)
+    return flatRect(w * MM, d * MM, thickMM * MM, 6 * MM,
+      { x: hole.x * MM, z: hole.z * MM, r: hole.r * MM });
+  if (t.outline_mm) return boardFromOutline(t.outline_mm, thickMM * MM);   // bamboo, edge notch
+  return flatRect(w * MM, d * MM, thickMM * MM, 6 * MM);
+}
 
 // The burners, by what their photographs show -- looked at, not guessed. Kept here with the
 // geometry it drives, and keyed by base SKU (region suffixes stripped).

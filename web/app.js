@@ -4,7 +4,7 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, railProfile, meshWires, isMesh,
          boardMaterial, flatRect, boardFromOutline, grainMaterial,
          jikaroRing, jikaroSeams } from "./materials.js";
-import { moduleGroup } from "./parts3d.js";
+import { moduleGroup, flatBoardGeo as flatGeo } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -572,21 +572,16 @@ function drawFrame(g, n) {
     if (built) { dropModule(g, n, pl, cx, top, built); continue; }
 
     // A flat insert or lid that drops into the slot: a bamboo board, a stainless lid-tray.
-    // Every one of them is a REGULAR UNIT-SIZE RECTANGLE, and its exact size is published --
-    // so build the rectangle from the dimensions and put the photograph on it. Tracing a
-    // silhouette from the photo was pure fragility here: a pale lid on white tore into a Z,
-    // for a shape we already know to the millimetre. Trace only the parts that are genuinely
-    // NOT rectangles -- the corners -- and even then only in drawTable.
     const grain = textureOf(p2.sku, "grain");
     if (grain) {
-      const board = new THREE.Mesh(flatRect(w * MM, d * MM, h * MM, 6 * MM),
-        grainMaterial(p2, COLORS, grain, w, d, false));
+      const geo = t => flatBoardGeo(p2, w, d, t);
+      const board = new THREE.Mesh(geo(h), grainMaterial(p2, COLORS, grain, w, d, false));
       board.position.set(cx, top, 0).multiplyScalar(MM);
       board.userData.placement = pl; board.userData.node = n;
       g.add(board); slotMeshes.push(board);
       const tex = textureOf(p2.sku);
       if (tex) {
-        const decal = new THREE.Mesh(flatRect(w * MM, d * MM, 0.4 * MM, 6 * MM),
+        const decal = new THREE.Mesh(geo(0.4),
           boardMaterial(p2, COLORS, tex, w * MM, d * MM, false));
         decal.position.set(cx, top + 0.4, 0).multiplyScalar(MM);
         g.add(decal);
@@ -702,6 +697,10 @@ function drawJikaro(g, n) {
   }
 }
 
+// The flat-board geometry (traced corners/notched bamboo, dimension-built rectangles with a
+// punched finger hole) lives in parts3d.js so the part bench builds the identical shape.
+const flatBoardGeo = (p, w, d, thickMM) => flatGeo(p.role, TEXTURES[p.sku], w, d, thickMM);
+
 /** Drop a shared part group into a frame slot: place it at the slot centre with its rim at
  *  the frame top, and make its `body` the drag target. The geometry lives in parts3d.js so
  *  the part bench draws the identical thing -- one shape, one source. */
@@ -723,18 +722,12 @@ function drawTable(g, n) {
   // what the frame's rail is; the spec says 25mm, and the spec is right there.
   const thick = p.assembled_mm?.h ?? 25;
 
-  // The shape: only a CORNER is genuinely not a rectangle (a quarter round, or an angle
-  // extension's trapezoid), and only there does the traced silhouette earn its keep. A plain
-  // extension table is a published rectangle; build it from its dimensions rather than trace
-  // a photo of a shape we already know. Same rule as the inserts -- trace the curves, not the
-  // rectangles.
-  //
-  // boardFromOutline/flatRect hang from their TOP FACE; roundedBox is centred on its middle.
-  const isCorner = p.role === "corner";
-  const ring = isCorner ? TEXTURES[p.sku]?.outline_mm : null;
+  // The shape comes from flatBoardGeo -- trace the corners and the notched bamboo, build the
+  // rectangles (and punch their finger holes) from dimensions. A layout table that isn't a
+  // board keeps the centred roundedBox.
+  const ring = TEXTURES[p.sku]?.outline_mm;
   let geo, hangs = true;
-  if (ring) geo = boardFromOutline(ring, thick * MM);
-  else if (n.kind === "ext") geo = flatRect(f.w * MM, f.d * MM, thick * MM, 8 * MM);
+  if (n.kind === "ext" || ring) geo = flatBoardGeo(p, f.w, f.d, thick);
   else { geo = roundedBox(f.w * MM, thick * MM, f.d * MM, 2.2 * MM); hangs = false; }
 
   // The plan view is the TOP. Snow Peak's own studio shot (JP a099) settles it: the two
@@ -753,9 +746,9 @@ function drawTable(g, n) {
   m.userData.node = n; g.add(m); nodeMeshes.push(m);
 
   const tex = textureOf(p.sku);
-  if (tex) {
+  if (tex && (n.kind === "ext" || ring)) {
     const decal = new THREE.Mesh(
-      ring ? boardFromOutline(ring, 0.4 * MM) : flatRect(f.w * MM, f.d * MM, 0.4 * MM, 8 * MM),
+      flatBoardGeo(p, f.w, f.d, 0.4),
       boardMaterial(p, COLORS, tex, f.w * MM, f.d * MM, isSel),
     );
     decal.position.set(0, top + 0.5, 0).multiplyScalar(MM);

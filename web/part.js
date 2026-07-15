@@ -3,7 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, flatRect,
          boardFromOutline, grainMaterial } from "./materials.js";
-import { moduleGroup } from "./parts3d.js";
+import { moduleGroup, flatBoardGeo } from "./parts3d.js";
 
 /* The bench.
  *
@@ -103,33 +103,25 @@ function drawPart() {
   const thick = box.h ?? 25;
   const grain = textureOf(sku, "grain");
 
-  // Only a CORNER is genuinely not a rectangle; trace its silhouette. Everything else flat --
-  // extension tables, inserts, lids -- is a published rectangle, so build it from its
-  // dimensions and put the photo on it. Tracing a rectangle from a pale photo was the whole
-  // source of the torn shapes.
-  const ring = p.role === "corner" ? TEXTURES[sku]?.outline_mm : null;
+  // A flat board -- a corner (traced), a bamboo board (traced, edge notch), or a stainless
+  // lid (a dimension-built rectangle with a punched finger hole). Same shape rule as the
+  // planner, from parts3d. A part with no board shape at all (a burner, a box, a mesh tray)
+  // comes from moduleGroup instead.
+  const isBoard = grain || t.outline_mm || p.role === "corner";
 
-  // A part with a real 3D form -- a burner, a box, a mesh tray -- comes from the SAME shared
-  // builder the planner uses. Before this, the bench drew every non-board part as a flat slab
-  // of its bounding box, which is why so much of the catalog looked like untextured cubes.
-  const built = !ring && !grain ? moduleGroup(p, box.w, box.d, thick, swatchOf(sku)) : null;
-  if (built) {
-    stage.add(built.group);
+  if (!isBoard) {
+    stage.add(moduleGroup(p, box.w, box.d, thick, swatchOf(sku)).group);
   } else {
-    const geo = ring ? boardFromOutline(ring, thick * MM)
-                     : flatRect(box.w * MM, box.d * MM, thick * MM, 8 * MM);
-    const board = new THREE.Mesh(geo, grain
+    const board = new THREE.Mesh(flatBoardGeo(p.role, t, box.w, box.d, thick), grain
       ? grainMaterial(p, COLORS, grain, box.w, box.d, false)
       : materialFor(p, COLORS, false));
-    board.position.y = 0;                       // flatRect / boardFromOutline hang from the top
+    board.position.y = 0;                       // hangs from the top face
     stage.add(board);
 
     const tex = textureOf(sku);
     if (show.photo && tex) {
-      const decal = new THREE.Mesh(
-        ring ? boardFromOutline(ring, 0.4 * MM) : flatRect(box.w * MM, box.d * MM, 0.4 * MM, 8 * MM),
-        boardMaterial(p, COLORS, tex, box.w * MM, box.d * MM, false),
-      );
+      const decal = new THREE.Mesh(flatBoardGeo(p.role, t, box.w, box.d, 0.4),
+        boardMaterial(p, COLORS, tex, box.w * MM, box.d * MM, false));
       decal.position.y = 0.5 * MM;
       stage.add(decal);
     }

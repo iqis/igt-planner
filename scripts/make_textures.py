@@ -195,6 +195,7 @@ def main():
         fit = measure_fittings(cut, box) if hooked else None
         edges = measure_edges(cut, box, fit) if hooked else {}
         ring = outline_mm(cut, box)
+        hole = finger_hole(cut, box) if not hooked else None
 
         grain_from(cut).save(TEX / f"{p['sku']}_grain.jpg", quality=88)
 
@@ -206,7 +207,9 @@ def main():
                          "wanted": round(want, 3), "aspect_error": round(err, 3),
                          "source": url,
                          "picked_by": "declared" if told else "aspect",
-                         "outline_mm": ring, **(fit or {}), **edges}
+                         "outline_mm": ring,
+                         **({"finger_hole_mm": hole} if hole else {}),
+                         **(fit or {}), **edges}
         nh, nb = (fit or {}).get("hooks_found", 0), (fit or {}).get("brackets_found", 0)
         how = "told " if told else "guess"
         flag = ""
@@ -495,6 +498,58 @@ def measure_edges(img, box, fit):
         "turn": canon,
         "turn_snapped": bool(near),
     }
+
+
+def finger_hole(img, box):
+    """The finger hole in a lid, in mm -- a real THROUGH-hole, so it can be cut out of the
+    geometry rather than merely painted.
+
+    On a white sweep a through-hole reads as background, ENCLOSED by the plate -- exactly
+    what binary_fill_holes finds. The trap is that a bright reflection on a pale lid also
+    reads as an enclosed 'hole', but it is large and off to the side, so filter: a finger
+    hole is small (a finger, 8-30mm across), round, and it is the roundest such blob. The
+    bamboo boards have no through-hole -- their finger notch is cut into the EDGE, which is
+    part of the silhouette and comes free from outline_mm -- so this returns None for them.
+
+    Work from the RGB, NOT the alpha: for a pale lid the alpha has already been solidified
+    (the hole filled) so the outline could be traced, and reading it here would find nothing.
+    The RGB still shows the hole as a patch of background colour.
+    """
+    a = np.asarray(img.convert("RGB"), dtype=np.int16)
+    edge = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]]).reshape(-1, 3)
+    bg = np.median(edge, axis=0)
+    board = ndimage.binary_closing(np.abs(a - bg).sum(axis=2) > BG_TOL, structure=np.ones((3, 3)))
+    holes = ndimage.binary_fill_holes(board) & ~board
+    ys, xs = np.nonzero(ndimage.binary_fill_holes(board))
+    x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
+    W, H = x1 - x0 + 1, y1 - y0 + 1
+    mmx, mmy = box["w"] / W, box["d"] / H
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+
+    lab, n = ndimage.label(holes)
+    best = None
+    for i in range(1, n + 1):
+        m = lab == i
+        a = int(m.sum())
+        yy, xx = np.nonzero(m)
+        w, h = xx.max() - xx.min() + 1, yy.max() - yy.min() + 1
+        r_mm = (w * mmx + h * mmy) / 4
+        if not (6 <= r_mm <= 30):                  # a finger, not a reflection or a screw
+            continue
+        if not (0.6 < (w / max(h, 1)) < 1.7):      # round
+            continue
+        fill = a / (np.pi * (w / 2) * (h / 2))     # a disc fills its bbox ellipse ~1.0
+        if fill < 0.6:
+            continue
+        score = fill - abs(round((xx.mean() - cx) * mmx, 1)) / box["w"]  # prefer central
+        if best is None or score > best[0]:
+            best = (score, xx.mean(), yy.mean(), r_mm)
+    if not best:
+        return None
+    _, hx, hy, r = best
+    return {"x": round(float((hx - cx) * mmx), 1),
+            "z": round(float((hy - cy) * mmy), 1),
+            "r": round(float(r), 1)}
 
 
 def grain_from(img):

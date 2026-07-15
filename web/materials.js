@@ -307,7 +307,7 @@ export function boardMaterial(p, colors, texture, w, d, selected) {
  *  of the board instead of on top of it. Building the shape in the ground plane, the way
  *  quarterRound() already did, puts the caps where the photo belongs.
  */
-export function flatRect(w, d, thickness, radius = 6) {
+export function flatRect(w, d, thickness, radius = 6, hole = null) {
   const r = Math.min(radius, w / 2 - 0.001, d / 2 - 0.001);
   const s = new THREE.Shape();
   const x = w / 2, y = d / 2;
@@ -321,6 +321,14 @@ export function flatRect(w, d, thickness, radius = 6) {
   s.lineTo(-x, -y + r);
   s.quadraticCurveTo(-x, -y, -x + r, -y);
 
+  // The finger hole, cut clean THROUGH the plate -- a real opening, not a dark disc painted
+  // on. `hole` is {x, z, r} in the same units. z maps to the shape's y, negated the way
+  // boardFromOutline negates it, so the punched hole lands where the photo's hole is.
+  if (hole) {
+    const path = new THREE.Path();
+    path.absarc(hole.x, -hole.z, hole.r, 0, Math.PI * 2, false);
+    s.holes.push(path);
+  }
   return slab(s, thickness);   // top face at y = 0, exactly `thickness` thick
 }
 
