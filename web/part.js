@@ -349,7 +349,13 @@ function paintGallery() {
       + `<span class="tag">${im.source}·${im.tag.replace(/\.(jpg|jpeg|png)$/i, "")}</span>`
       + (view ? `<span class="said">${view}</span>` : "")
       + (im.url === used ? `<span class="using">measured</span>` : "");
-    a.title = view ? `you said: ${view}` : "unlabelled — tell me what this is";
+    a.title = (view ? `you said: ${view}` : "unlabelled") + " — click to load it above and mark it up";
+    // Click loads it into the photo pane to annotate; ctrl/cmd/middle-click still opens the tab.
+    a.onclick = ev => {
+      if (ev.metaKey || ev.ctrlKey || ev.button === 1) return;
+      ev.preventDefault();
+      loadAnnoImage(im.url);
+    };
     el.append(a);
   }
 }
@@ -494,9 +500,105 @@ function select(next) {
   paintGallery();
   paintLinks();
   paintFacts();
+  annoReset();
   history.replaceState(null, "", `?sku=${sku}`);
   $("detail").scrollTop = 0;
 }
+
+// ---------------------------------------------------------------- annotate
+// Points (auto-NUMBERED), arrows and text labels, drawn on a canvas over the photo, so a
+// reference can be talked about like a geometry figure -- "put a leg at point 3, another at 5".
+// Coordinates are stored as fractions of the image, so they survive resizing. Delivery is a
+// screenshot (CDN photos are cross-origin, so the canvas can't be exported to a file).
+const annocanvas = $("annocanvas");
+const actx = annocanvas.getContext("2d");
+let annoTool = "point";
+let annoItems = [];        // {type:'point'|'arrow'|'text', x, y, x2?, y2?, text?}  x/y are 0..1
+let annoDrag = null;
+
+function annoResize() {
+  const r = $("shot").getBoundingClientRect();
+  const dpr = Math.min(devicePixelRatio, 2);
+  annocanvas.width = Math.max(1, Math.round(r.width * dpr));
+  annocanvas.height = Math.max(1, Math.round(r.height * dpr));
+  actx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  annoRender();
+}
+function annoRender() {
+  const r = $("shot").getBoundingClientRect();
+  const W = r.width, H = r.height;
+  actx.clearRect(0, 0, W, H);
+  const items = annoDrag ? [...annoItems, annoDrag] : annoItems;
+  let n = 0;
+  for (const it of items) {
+    const x = it.x * W, y = it.y * H;
+    if (it.type === "arrow") {
+      const x2 = it.x2 * W, y2 = it.y2 * H, a = Math.atan2(y2 - y, x2 - x);
+      actx.strokeStyle = "#ff7a3a"; actx.fillStyle = "#ff7a3a"; actx.lineWidth = 2.5;
+      actx.beginPath(); actx.moveTo(x, y); actx.lineTo(x2, y2); actx.stroke();
+      actx.beginPath(); actx.moveTo(x2, y2);
+      actx.lineTo(x2 - 12 * Math.cos(a - 0.42), y2 - 12 * Math.sin(a - 0.42));
+      actx.lineTo(x2 - 12 * Math.cos(a + 0.42), y2 - 12 * Math.sin(a + 0.42));
+      actx.closePath(); actx.fill();
+    } else if (it.type === "text") {
+      actx.font = "bold 14px ui-monospace, monospace";
+      actx.lineWidth = 3.5; actx.strokeStyle = "#101215"; actx.fillStyle = "#ffd24a";
+      actx.strokeText(it.text, x + 5, y + 5); actx.fillText(it.text, x + 5, y + 5);
+    } else {
+      n++;
+      actx.beginPath(); actx.arc(x, y, 7, 0, 7);
+      actx.fillStyle = "#2f9bff"; actx.fill();
+      actx.lineWidth = 2; actx.strokeStyle = "#fff"; actx.stroke();
+      actx.font = "bold 13px ui-monospace, monospace";
+      actx.lineWidth = 3.5; actx.strokeStyle = "#101215";
+      actx.strokeText(n, x + 10, y - 7);
+      actx.fillStyle = "#fff"; actx.fillText(n, x + 10, y - 7);
+    }
+  }
+}
+const annoAt = e => {
+  const r = $("shot").getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+};
+annocanvas.addEventListener("pointerdown", e => {
+  const p = annoAt(e);
+  if (annoTool === "arrow") {
+    annoDrag = { type: "arrow", x: p.x, y: p.y, x2: p.x, y2: p.y };
+    annocanvas.setPointerCapture(e.pointerId);
+  } else if (annoTool === "text") {
+    const t = prompt("label:");
+    if (t) { annoItems.push({ type: "text", ...p, text: t }); annoRender(); }
+  } else {
+    annoItems.push({ type: "point", ...p }); annoRender();
+  }
+});
+annocanvas.addEventListener("pointermove", e => {
+  if (!annoDrag) return;
+  const p = annoAt(e); annoDrag.x2 = p.x; annoDrag.y2 = p.y; annoRender();
+});
+annocanvas.addEventListener("pointerup", () => {
+  if (!annoDrag) return;
+  if (Math.hypot(annoDrag.x2 - annoDrag.x, annoDrag.y2 - annoDrag.y) > 0.01) annoItems.push(annoDrag);
+  annoDrag = null; annoRender();
+});
+for (const b of document.querySelectorAll(".anno-tool"))
+  b.onclick = () => {
+    annoTool = b.dataset.tool;
+    document.querySelectorAll(".anno-tool").forEach(x => x.classList.toggle("on", x === b));
+  };
+$("announdo").onclick = () => { annoItems.pop(); annoRender(); };
+$("annoclear").onclick = () => { annoItems = []; annoRender(); };
+function annoReset() { annoItems = []; annoDrag = null; annoRender(); }
+/** Load a reference image into the photo pane to mark up. Its own measurements do not apply,
+ *  so the measurement overlay is cleared. */
+function loadAnnoImage(url) {
+  $("shot").style.display = "";       // paintPhoto hides it when a part has no measured-from shot
+  $("marks").innerHTML = "";
+  annoReset();
+  $("photo").src = url;
+}
+$("photo").addEventListener("load", annoResize);
+addEventListener("resize", annoResize);
 
 // ---------------------------------------------------------------- boot
 
@@ -514,7 +616,23 @@ addEventListener("resize", resize);
   renderer.render(scene, camera);
 })();
 
+// Theme -- shared with the planner (same localStorage key). The panels are pure CSS
+// variables; the 3D canvas follows by reading the resolved --scene off :root.
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  const bg = getComputedStyle(document.documentElement).getPropertyValue("--scene").trim() || "#14161a";
+  scene.background = new THREE.Color(bg);
+  $("theme").textContent = t === "light" ? "☀" : "☾";
+}
+applyTheme(localStorage.getItem("igt-theme") || "dark");
+$("theme").onclick = () => {
+  const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  localStorage.setItem("igt-theme", next);
+  applyTheme(next);
+};
+
 resize();
 select(new URLSearchParams(location.search).get("sku") || "CK-119TR");
+annoResize();
 
 window.__bench = { THREE, scene, camera, controls, PARTS, TEXTURES, select, setView, show, redraw };

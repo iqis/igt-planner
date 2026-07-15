@@ -24,6 +24,7 @@
     one part, alone, next to the photograph it was measured from
     <span class="muted">— <a href="./">back to the planner</a></span>
   </div>
+  <button id="theme" class="chip" title="light / dark theme">☾</button>
 </header>
 
 <main class="bench">
@@ -40,7 +41,17 @@
     <!-- The photo and the model are shown in the SAME frame: +x right, +z down, origin at
          the board's centre. If the model does not look like the photo, one of them is
          lying, and this is where you see which. -->
-    <div id="shot"><img id="photo" alt=""><svg id="marks"></svg></div>
+    <!-- Annotate the photo -- drop points, drag arrows, add labels -- to point at exactly
+         what you mean. Click a thumbnail below to load a different reference to mark up. -->
+    <div id="annobar" class="chips">
+      <button class="chip anno-tool on" data-tool="point">• point</button>
+      <button class="chip anno-tool" data-tool="arrow">↘ arrow</button>
+      <button class="chip anno-tool" data-tool="text">A text</button>
+      <button class="chip" id="announdo">undo</button>
+      <button class="chip" id="annoclear">clear</button>
+    </div>
+    <div id="shot"><img id="photo" alt=""><svg id="marks"></svg><canvas id="annocanvas"></canvas></div>
+    <div class="hint" id="annohint">click the photo to mark it · click a thumbnail to load another image</div>
 
     <h2>Every photograph <span class="hint">— say what each one is</span></h2>
     <div id="gallery"></div>

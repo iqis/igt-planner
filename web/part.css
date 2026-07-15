@@ -6,9 +6,9 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
 #parts { border-right: 1px solid var(--line); }
 #parts .grp {
   font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
-  color: #5c6472; margin: .7rem 0 .3rem;
+  color: var(--faint); margin: .7rem 0 .3rem;
 }
-#parts .part.on { border-color: var(--accent); background: #2a241c; }
+#parts .part.on { border-color: var(--accent); background: var(--sel-bg); }
 #parts .part .sp { font-size: .6rem; }
 
 #detail { border-left: 1px solid var(--line); }
@@ -17,7 +17,7 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
 
 #axes {
   position: absolute; bottom: .7rem; left: .7rem;
-  font-size: .64rem; color: #5c6472; line-height: 1.5;
+  font-size: .64rem; color: var(--faint); line-height: 1.5;
 }
 #axes b { color: var(--accent); }
 
@@ -25,7 +25,7 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
    +x right, +z down, origin at the board's centre. */
 #shot {
   position: relative;
-  background: #0e1013;
+  background: var(--sunken);
   border: 1px solid var(--line);
   border-radius: 3px;
   margin-bottom: .7rem;
@@ -33,6 +33,14 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
 }
 #shot img { width: 100%; display: block; }
 #shot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+/* Annotation: points (auto-numbered), arrows, text labels, drawn on a canvas over the photo.
+   Numbered points read like a geometry figure -- "the leg goes at point 3". */
+#annobar { margin-bottom: .35rem; }
+.anno-tool.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+#annohint { display: block; font-size: .6rem; color: var(--faint); margin: -.35rem 0 .7rem; line-height: 1.4; }
+#shot { cursor: crosshair; }
+#annocanvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
 
 .mk-hook { fill: #ff6b5a; stroke: #14161a; stroke-width: 1; }
 .mk-leg  { fill: #5aa9ff; stroke: #14161a; stroke-width: 1; }
@@ -55,7 +63,7 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
   border: 1px solid var(--line);
   border-radius: 3px;
   overflow: hidden;
-  background: #0e1013;
+  background: var(--sunken);
 }
 .thumb:hover { border-color: var(--accent); }
 .thumb.used { border-color: var(--ok); }
@@ -64,7 +72,7 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
   position: absolute; left: 0; bottom: 0; right: 0;
   font: 8px/1.5 ui-monospace, monospace;
   padding: 1px 3px;
-  background: rgba(14, 16, 19, .82);
+  background: var(--overlay);
   color: var(--dim);
   text-align: center;
 }
@@ -73,7 +81,7 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
   font: 8px/1.4 ui-monospace, monospace;
   padding: 1px 4px;
   border-radius: 2px;
-  background: var(--accent); color: #14161a;
+  background: var(--accent); color: var(--on-accent);
 }
 .thumb .using { background: var(--ok); left: auto; right: 2px; }
 
@@ -81,14 +89,14 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
 #links .chip { text-decoration: none; }
 
 #facts { font-size: .68rem; line-height: 1.6; }
-#facts .quote { color: #8b93a1; font-style: normal; border-left: 2px solid var(--line); padding-left: .45rem; }
-#facts .row { display: flex; justify-content: space-between; gap: .6rem; padding: .18rem 0; border-bottom: 1px solid #23272e; }
+#facts .quote { color: var(--dim); font-style: normal; border-left: 2px solid var(--line); padding-left: .45rem; }
+#facts .row { display: flex; justify-content: space-between; gap: .6rem; padding: .18rem 0; border-bottom: 1px solid var(--line-soft); }
 #facts .row span { color: var(--dim); white-space: nowrap; }
 #facts .row b { font-weight: 500; text-align: right; }
 #facts .hook b { color: #ff6b5a; }
 #facts .leg b  { color: #5aa9ff; }
-#facts .none b { color: #5c6472; }
-#facts .note { color: #5c6472; font-size: .64rem; margin-top: .6rem; line-height: 1.45; }
+#facts .none b { color: var(--faint); }
+#facts .note { color: var(--faint); font-size: .64rem; margin-top: .6rem; line-height: 1.45; }
 
 @media (max-width: 1100px) {
   main.bench { grid-template-columns: 1fr; grid-template-rows: auto 55vh auto; }

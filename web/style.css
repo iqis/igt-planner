@@ -22,6 +22,9 @@
   --caution-ink: #d8a34a;
   --shadow: rgba(0, 0, 0, .6);
   --scene: #14161a;       /* the 3D canvas clear colour -- read by app.js too */
+  --sunken: #0e1013;      /* photo and thumbnail wells, a step BELOW the panel */
+  --overlay: rgba(14, 16, 19, .82);   /* the tag strip laid over a thumbnail */
+  --sel-bg: #2a241c;      /* a selected row's accent-tinted fill (part bench) */
   font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
 }
 
@@ -51,6 +54,9 @@
   --caution-ink: #8f6716;
   --shadow: rgba(24, 34, 54, .16);
   --scene: #e9ebee;
+  --sunken: #e4e7ea;
+  --overlay: rgba(245, 246, 248, .86);
+  --sel-bg: #f6ecda;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
