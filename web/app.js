@@ -982,7 +982,22 @@ function openMenu() {
 }
 
 btn.onclick = openMenu;
-addEventListener("keydown", e => { if (e.key === "Escape") setHover(null); });
+addEventListener("keydown", e => { if (e.key === "Escape") { setHover(null); hideModMenu(); } });
+
+// The action menu for a placed module -- reached by right-click or a left long-press, so a
+// removal is a considered second click, not a twitchy one. Positioned at the pointer.
+const modmenu = $("modmenu");
+function showModMenu(node, pl, clientX, clientY) {
+  const p = PARTS[pl.sku];
+  modmenu.innerHTML = `<div class="mhead">${p.title_en}</div>`
+    + `<div class="act del">× remove from frame</div>`;
+  modmenu.querySelector(".act.del").onclick = () => { removePlacement(node, pl); hideModMenu(); };
+  const sr = $("stage").getBoundingClientRect();
+  modmenu.style.left = Math.max(4, Math.min(clientX - sr.left, sr.width - 172)) + "px";
+  modmenu.style.top = Math.max(4, Math.min(clientY - sr.top, sr.height - 72)) + "px";
+  modmenu.hidden = false;
+}
+const hideModMenu = () => { modmenu.hidden = true; };
 
 // A menu row is a swatch, a name and a span — no room for the picture or the numbers.
 // Passing over one opens a card beside the menu with the thumbnail (web/img/SKU.jpg) and
@@ -1130,7 +1145,7 @@ function paintSlotMenu() {
 
 const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
-let dragNode = null, dragMod = null;
+let dragNode = null, dragMod = null, longPress = null;
 const dragOff = new THREE.Vector3();
 
 const toPtr = e => {
@@ -1144,6 +1159,7 @@ const hitPlane = y => {
 };
 
 canvas.addEventListener("pointerdown", e => {
+  hideModMenu();                      // any press elsewhere dismisses the module menu
   toPtr(e);
   ray.setFromCamera(ptr, camera);
 
@@ -1172,9 +1188,15 @@ canvas.addEventListener("pointerdown", e => {
 
   const mod = ray.intersectObjects(slotMeshes, false)[0];
   if (mod) {
-    dragMod = { pl: mod.object.userData.placement, node: mod.object.userData.node };
-    state.sel = dragMod.node.id;
+    const pl = mod.object.userData.placement, node = mod.object.userData.node;
+    dragMod = { pl, node, downX: e.clientX, downY: e.clientY, moved: false };
+    state.sel = node.id;
     controls.enabled = false;
+    // Hold still (a long press) and the action menu opens instead of a drag. Moving past a
+    // few pixels first (see pointermove) cancels it -- then it is a drag, as before.
+    longPress = setTimeout(() => {
+      if (dragMod && !dragMod.moved) { showModMenu(node, pl, dragMod.downX, dragMod.downY); dragMod = null; }
+    }, 450);
     paint();
     return;
   }
@@ -1230,6 +1252,11 @@ canvas.addEventListener("pointermove", e => {
 
   if (dragMod) {
     const { pl, node } = dragMod;
+    // Past a few pixels this is a drag, not a long press: cancel the pending menu.
+    if (!dragMod.moved && Math.hypot(e.clientX - dragMod.downX, e.clientY - dragMod.downY) > 5) {
+      dragMod.moved = true;
+      clearTimeout(longPress);
+    }
     const at = hitPlane(topOf(node));
     if (!at) return;
     // Undo the node's own rotation to get a position along its rail.
@@ -1251,18 +1278,18 @@ canvas.addEventListener("pointermove", e => {
   render();
 });
 
-addEventListener("pointerup", () => { dragNode = dragMod = null; controls.enabled = true; });
+addEventListener("pointerup", () => { clearTimeout(longPress); dragNode = dragMod = null; controls.enabled = true; });
 
-// Right-click a module in a frame to take it back out -- you drop them in and drag them in
-// the scene, so removing them here too (not only from the Build list) keeps it all in one place.
+// Right-click a module in a frame to open its action menu (Remove). Only when the click is
+// actually on a module -- anywhere else the browser's own context menu is left alone.
 canvas.addEventListener("contextmenu", e => {
   toPtr(e);
   ray.setFromCamera(ptr, camera);
   const hit = ray.intersectObjects(slotMeshes, false)[0];
-  if (!hit) return;                                  // not on a module -- leave the menu alone
+  if (!hit) return;
   e.preventDefault();
   const { placement, node } = hit.object.userData;
-  if (placement && node) removePlacement(node, placement);
+  if (placement && node) showModMenu(node, placement, e.clientX, e.clientY);
 });
 
 /** Pull a dragged table flush against whatever it is nearly touching. Layout tables are

@@ -276,6 +276,33 @@ h2 {
 #preview .pv-row b { color: var(--ink); font-weight: 600; }
 #preview .pv-sku { color: var(--faint); }
 
+/* Right-click / long-press a placed module: a little action menu at the pointer. */
+#modmenu[hidden] { display: none; }
+#modmenu {
+  position: absolute;
+  min-width: 160px;
+  padding: .3rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: 0 6px 22px var(--shadow);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+#modmenu .mhead {
+  font-size: .62rem; color: var(--faint);
+  padding: .15rem .3rem .25rem; line-height: 1.3;
+}
+#modmenu .act {
+  display: flex; align-items: center; gap: .4rem;
+  padding: .35rem .45rem; font-size: .72rem;
+  border: 1px solid transparent; border-radius: 3px;
+  background: var(--raise); cursor: pointer;
+}
+#modmenu .act.del:hover { background: var(--warn-bg); color: var(--warn-ink); border-color: var(--bad); }
+
 /* layout-system additions */
 .muted { color: var(--faint); }
 #hint b { color: var(--accent); font-weight: 600; }
