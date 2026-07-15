@@ -480,6 +480,56 @@ export function foldingChairGroup(w, d, h, { frame = 0x232528, fabric = 0x8c8279
   return { group: g, body: g.children[0] };
 }
 
+/** Snow Peak Low Beach Chair (LV-091): a low, reclined beach chair -- a SILVER aluminium tube
+ *  frame, a khaki canvas sling (seat + high reclined back), and two straight laminated-BAMBOO
+ *  armrests. Low seat (~300mm), feet on the ground at y = 0, faces +z. From the LV-091KH photo. */
+export function lowBeachChairGroup(w, d, h, { frame = 0xbfc3c7, fabric = 0xc6b487, wood = 0xd8bd86, seatH = 300, canvasTex = null } = {}) {
+  const g = new THREE.Group();
+  const tubeMat = metalE(frame, 0.7, 0.35);
+  const cloth = new THREE.MeshStandardMaterial({ color: fabric, map: canvasTex || null, roughness: 0.92, side: THREE.DoubleSide });
+  const woodMat = new THREE.MeshStandardMaterial({ color: wood, roughness: 0.55, metalness: 0.03 });
+  const cyl = (a, b, r, mat) => {
+    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), mat);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m); return m;
+  };
+  const tube = (a, b, r = 9) => cyl(a, b, r, tubeMat);
+  const box = (bw, bh, bd, x, y, z, mat, rx = 0) => {
+    const m = new THREE.Mesh(roundedBox(bw * MM, bh * MM, bd * MM, 3 * MM), mat);
+    m.position.set(x * MM, y * MM, z * MM); m.rotation.x = rx; g.add(m); return m;
+  };
+  const sw = w / 2 - 30;
+  // side-profile joints as [z, y]: front foot, seat front, hinge, back top, back foot
+  const FF = [270, 0], SF = [175, 305], HB = [-115, 285], BT = [-255, 815], BF = [-175, 0];
+  for (const sx of [-1, 1]) {
+    const X = sx * sw;
+    tube([X, FF[1], FF[0]], [X, SF[1], SF[0]]);   // front leg
+    tube([X, SF[1], SF[0]], [X, HB[1], HB[0]]);   // seat rail
+    tube([X, HB[1], HB[0]], [X, BT[1], BT[0]]);   // reclined back rail
+    tube([X, HB[1], HB[0]], [X, BF[1], BF[0]]);   // back leg
+    tube([X, SF[1], 150], [X, 376, 132], 8);      // armrest front support
+    box(46, 16, 270, X, 384, -4, woodMat);        // straight wood armrest
+    for (const f of [FF, BF]) {                    // black feet
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(13 * MM, 15 * MM, 12 * MM, 10), metalE(0x1c1e22, 0.1, 0.85));
+      cap.position.set(X * MM, 6 * MM, f[0] * MM); g.add(cap);
+    }
+  }
+  // cross rails tie the two side frames together
+  tube([-sw, FF[1], FF[0]], [sw, FF[1], FF[0]]);
+  tube([-sw, BF[1], BF[0]], [sw, BF[1], BF[0]]);
+  tube([-sw, SF[1], SF[0]], [sw, SF[1], SF[0]]);
+  tube([-sw, BT[1], BT[0]], [sw, BT[1], BT[0]]);
+  tube([-sw, HB[1], HB[0]], [sw, HB[1], HB[0]]);
+  // canvas sling: seat panel + reclined back panel
+  box(2 * sw - 10, 10, 300, 0, 291, 30, cloth);
+  const blen = Math.hypot(BT[0] - HB[0], BT[1] - HB[1]);   // panel: tall (blen) in Y, thin in Z
+  box(2 * sw - 10, blen, 10, 0, (HB[1] + BT[1]) / 2, (HB[0] + BT[0]) / 2, cloth,
+    Math.atan2(BT[0] - HB[0], BT[1] - HB[1]));
+  return { group: g, body: g.children[0] };
+}
+
 /** The Jikaro: an octagonal ring of four trapezoid segments with the fire hole in the
  *  middle, standing on folding wire legs. `ringMat` paints the ring; `color` the wire.
  *  Ring top at y = 0, legs to -height. */

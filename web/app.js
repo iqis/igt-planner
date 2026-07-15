@@ -5,7 +5,7 @@ import { materialFor, roundedBox, boardMaterial, grainMaterial } from "./materia
 import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          jikaroGroup, jikaroBridge, hangRackGroup, slideExtGroup,
          entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop,
-         foldingChairGroup } from "./parts3d.js";
+         foldingChairGroup, lowBeachChairGroup } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -917,16 +917,21 @@ function drawSlideExt(g, n) {
   body.userData.node = n; g.add(group); nodeMeshes.push(body);
 }
 
+// Prop geometry by `chair` type. A prop's builder takes (w, d, h, opts) and returns { group }.
+const PROP_BUILDERS = { folding: foldingChairGroup, lowbeach: lowBeachChairGroup };
+
 /** A free-standing prop (a chair): built at floor level (y = 0), tagged for selection + drag like
  *  a table but never connected to the IGT grid -- no hooks, no bay, no legs. */
 function drawProp(g, n) {
   const p = PARTS[n.sku];
   const a = p.assembled_mm || { w: 500, d: 500, h: 800 };
   const mesh = p.fabric_type === "mesh";
-  const built = foldingChairGroup(a.w, a.d, a.h, {
+  const build = PROP_BUILDERS[p.chair] || foldingChairGroup;
+  const built = build(a.w, a.d, a.h, {
     frame: Number(p.frame_hex) || 0x232528,
     fabric: Number(p.fabric_hex) || 0x8c8279,
-    seatH: p.seat_h_mm || 450,
+    wood: Number(p.wood_hex) || 0xd8bd86,
+    seatH: p.seat_h_mm || 400,
     canvasTex: mesh ? null : chairTex("canvas", CANVAS_TEX, 4, true),
     meshAlpha: mesh ? chairTex("mesh", MESH_ALPHA, 6, false) : null,
   });

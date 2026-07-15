@@ -367,7 +367,7 @@
    }
   }
  },
- "count": 99,
+ "count": 100,
  "unmatched_sku": [
   "CK-904SET",
   "CK-080SET",
@@ -2663,6 +2663,42 @@
    "frame_hex": "0xbfc3c7",
    "fabric_hex": "0x962436",
    "chair": "folding",
+   "fabric_type": "canvas"
+  },
+  {
+   "sku": "LV-091",
+   "handle": null,
+   "title_en": "Low Beach Chair",
+   "title_jp": "",
+   "barcode": "",
+   "role": "seating",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 650,
+    "d": 580,
+    "h": 860
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": 14995,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": "https://www.snowpeak.com/cdn/shop/products/1_b0cf14da-57c9-4de7-bece-bea067bfe504.jpg?width=1000",
+   "url": {
+    "us": "https://www.snowpeak.com/products/low-beach-chair",
+    "jp": null
+   },
+   "curated_reason": "Low Beach Chair (LV-091KH): a low, reclined beach chair -- SILVER aluminium tube frame, khaki canvas sling (seat + high reclined back, 0xc6b487 sampled from the photo), two STRAIGHT laminated-bamboo armrests. Low 300mm seat, 650x580x860. A prop like the folding chair; chair type 'lowbeach'.",
+   "seat_h_mm": 300,
+   "frame_hex": "0xbfc3c7",
+   "fabric_hex": "0xc6b487",
+   "wood_hex": "0xd8bd86",
+   "chair": "lowbeach",
    "fabric_type": "canvas"
   },
   {

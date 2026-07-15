@@ -65,6 +65,21 @@
    "image": "https://www.snowpeak.com/cdn/shop/products/mesh_folding_chair_lv-077m-bk_hero_01.jpg?width=1000",
    "url": {"us": "https://www.snowpeak.com/products/mesh-folding-chair", "jp": null},
    "reason": "Mesh variant: the same folding director's-chair frame (black), but the seat/back/armrests are a SEE-THROUGH black polyester MESH -- modelled as a dark fabric with a perforated alphaMap (tex/chair_mesh.png). Same 566x594x838 / 457mm seat as LV-077."
+  },
+  "LV-091": {
+   "role": "seating",
+   "title_en": "Low Beach Chair",
+   "assembled_mm": {"w": 650, "d": 580, "h": 860},
+   "seat_h_mm": 300,
+   "price": {"us": 14995, "jp": null, "uk": null},
+   "frame_hex": "0xbfc3c7",
+   "fabric_hex": "0xc6b487",
+   "wood_hex": "0xd8bd86",
+   "chair": "lowbeach",
+   "fabric_type": "canvas",
+   "image": "https://www.snowpeak.com/cdn/shop/products/1_b0cf14da-57c9-4de7-bece-bea067bfe504.jpg?width=1000",
+   "url": {"us": "https://www.snowpeak.com/products/low-beach-chair", "jp": null},
+   "reason": "Low Beach Chair (LV-091KH): a low, reclined beach chair -- SILVER aluminium tube frame, khaki canvas sling (seat + high reclined back, 0xc6b487 sampled from the photo), two STRAIGHT laminated-bamboo armrests. Low 300mm seat, 650x580x860. A prop like the folding chair; chair type 'lowbeach'."
   }
  },
 
