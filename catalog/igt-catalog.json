@@ -367,7 +367,7 @@
    }
   }
  },
- "count": 97,
+ "count": 99,
  "unmatched_sku": [
   "CK-904SET",
   "CK-080SET",
@@ -2549,10 +2549,10 @@
    "manual": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/hc2/hf7/8974914289694/CK-904-1_manual.pdf"
   },
   {
-   "sku": "LV-077",
+   "sku": "LV-077GY",
    "handle": null,
-   "title_en": "Folding Chair",
-   "title_jp": "",
+   "title_en": "Folding Chair (Gray)",
+   "title_jp": "FDチェアワイド グレー",
    "barcode": "",
    "role": "seating",
    "collections": [],
@@ -2562,9 +2562,13 @@
     "d": 594,
     "h": 838
    },
-   "packed_mm": null,
-   "weight_g": null,
-   "material": "",
+   "packed_mm": {
+    "w": 580.0,
+    "d": 110.0,
+    "h": 690.0
+   },
+   "weight_g": 3600,
+   "material": "本体／アルミニウム合金、シート／ポリエステル帆布、アームレスト／ポリエステル帆布・ウレタンフォーム",
    "price": {
     "us": 14995,
     "jp": null,
@@ -2576,11 +2580,90 @@
     "us": "https://www.snowpeak.com/products/gray-folding-chair",
     "jp": null
    },
-   "curated_reason": "First NON-IGT prop: the Snow Peak Folding Chair (director's chair). A free-standing piece placed AROUND the layout -- it does not connect to the IGT grid, occupies no slot, and joins no assembly. role 'seating' -> a 'prop' node: draggable, rotatable, in the bill, nothing else. 566x594x838mm, 457mm seat, black aluminium X-frame + taupe polyester canvas seat/back/armrests (LV-077GY). Modelled from the product photo.",
+   "curated_reason": "First NON-IGT prop: the Snow Peak Folding Chair (director's chair). A free-standing piece placed AROUND the layout -- it does not connect to the IGT grid, occupies no slot, joins no assembly. role 'seating' -> a 'prop' node: draggable, rotatable, billed, nothing else. 566x594x838mm, 457mm seat; BLACK aluminium X-frame + taupe polyester-canvas seat/back/armrests. Modelled from the LV-077GY photo.",
    "seat_h_mm": 457,
    "frame_hex": "0x232528",
    "fabric_hex": "0x8c8279",
-   "chair": "folding"
+   "chair": "folding",
+   "fabric_type": "canvas"
+  },
+  {
+   "sku": "LV-077M-BK",
+   "handle": null,
+   "title_en": "Mesh Folding Chair",
+   "title_jp": "メッシュFDチェア ブラック",
+   "barcode": "",
+   "role": "seating",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 566,
+    "d": 594,
+    "h": 838
+   },
+   "packed_mm": {
+    "w": 580.0,
+    "d": 110.0,
+    "h": 690.0
+   },
+   "weight_g": 3100,
+   "material": "フレーム/アルミニウム合金、シート/ポリエステル、アームレスト/ウレタンフォーム",
+   "price": {
+    "us": 15995,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": "https://www.snowpeak.com/cdn/shop/products/mesh_folding_chair_lv-077m-bk_hero_01.jpg?width=1000",
+   "url": {
+    "us": "https://www.snowpeak.com/products/mesh-folding-chair",
+    "jp": null
+   },
+   "curated_reason": "Mesh variant: the same folding director's-chair frame (black), but the seat/back/armrests are a SEE-THROUGH black polyester MESH -- modelled as a dark fabric with a perforated alphaMap (tex/chair_mesh.png). Same 566x594x838 / 457mm seat as LV-077.",
+   "seat_h_mm": 457,
+   "frame_hex": "0x232528",
+   "fabric_hex": "0x2b2d31",
+   "chair": "folding",
+   "fabric_type": "mesh"
+  },
+  {
+   "sku": "LV-077RD",
+   "handle": null,
+   "title_en": "Folding Chair (Red)",
+   "title_jp": "FDチェアワイド RD",
+   "barcode": "",
+   "role": "seating",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 566,
+    "d": 594,
+    "h": 838
+   },
+   "packed_mm": {
+    "w": 580.0,
+    "d": 110.0,
+    "h": 690.0
+   },
+   "weight_g": 3600,
+   "material": "本体／アルミニウム合金、シート／ポリエステル帆布、アームレスト／ポリエステル帆布・ウレタンフォーム",
+   "price": {
+    "us": 14995,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": "https://www.snowpeak.com/cdn/shop/products/folding_chair_rd_lv-077rd_hero_01.jpg?width=1000",
+   "url": {
+    "us": "https://www.snowpeak.com/products/red-folding-camp-chair",
+    "jp": null
+   },
+   "curated_reason": "Red variant of the Folding Chair. Same director's-chair frame and dimensions as LV-077GY, but a SILVER bare-aluminium frame (the gray/mesh ones are black-coated) and a deep-crimson canvas (0x962436, sampled from the LV-077RD photo).",
+   "seat_h_mm": 457,
+   "frame_hex": "0xbfc3c7",
+   "fabric_hex": "0x962436",
+   "chair": "folding",
+   "fabric_type": "canvas"
   },
   {
    "sku": "CK-080SET",

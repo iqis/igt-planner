@@ -66,6 +66,18 @@ function woodGrain(key, rx, ry, path = WOOD_GRAIN) {
   return t;
 }
 const steelTex = () => woodGrain("steel", 3, 1, STEEL_TEX);
+// Chair fabrics: a canvas weave (a colour map) and a perforated mesh (an alphaMap -- kept in
+// LINEAR space, since it is coverage data, not colour).
+const CANVAS_TEX = "tex/canvas.jpg", MESH_ALPHA = "tex/chair_mesh.png";
+function chairTex(key, path, rep, srgb) {
+  if (woodTexCache[key]) return woodTexCache[key];
+  const t = texLoader.load(path);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.repeat.set(rep, rep);
+  woodTexCache[key] = t;
+  return t;
+}
 // The flat burner (GS-450R) shows its real top -- stainless well, brass head, ports, grate.
 const burnerTop = sku => sku.startsWith("GS-450R") ? loadTex("tex/GS-450R_top.jpg") : null;
 
@@ -910,10 +922,13 @@ function drawSlideExt(g, n) {
 function drawProp(g, n) {
   const p = PARTS[n.sku];
   const a = p.assembled_mm || { w: 500, d: 500, h: 800 };
+  const mesh = p.fabric_type === "mesh";
   const built = foldingChairGroup(a.w, a.d, a.h, {
     frame: Number(p.frame_hex) || 0x232528,
     fabric: Number(p.fabric_hex) || 0x8c8279,
     seatH: p.seat_h_mm || 450,
+    canvasTex: mesh ? null : chairTex("canvas", CANVAS_TEX, 4, true),
+    meshAlpha: mesh ? chairTex("mesh", MESH_ALPHA, 6, false) : null,
   });
   built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
   g.add(built.group);
