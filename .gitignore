@@ -1,4 +1,5 @@
 data/
 runs/
+anno/
 __pycache__/
 *.pyc

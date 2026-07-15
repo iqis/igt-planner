@@ -7,11 +7,15 @@
 
 import argparse
 import http.server
+import json
+import re
 import socketserver
 from functools import partial
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+ANNO = ROOT / "anno"
+SKU_RE = re.compile(r"[A-Za-z0-9._-]{1,40}")
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -20,6 +24,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # confusing way to debug a scraper.
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
+
+    # The bench POSTs its annotations here so they land on disk in a readable form --
+    # points/pairs as mm and px -- instead of living only in the browser's localStorage.
+    # One file per part, anno/<sku>.json, so the marks can be read straight off the disk.
+    def do_POST(self):
+        if self.path.rstrip("/") != "/anno":
+            self.send_error(404)
+            return
+        try:
+            n = int(self.headers.get("Content-Length", 0))
+            payload = json.loads(self.rfile.read(n) or b"{}")
+        except (ValueError, json.JSONDecodeError):
+            self.send_error(400, "bad json")
+            return
+        sku = str(payload.get("sku", "")).strip()
+        if not SKU_RE.fullmatch(sku):          # no path traversal via the filename
+            self.send_error(400, "bad sku")
+            return
+        ANNO.mkdir(exist_ok=True)
+        (ANNO / f"{sku}.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), "utf-8")
+        self.send_response(204)
+        self.end_headers()
 
     def log_message(self, *a):
         pass

@@ -503,6 +503,7 @@ function select(next) {
   annoReset();
   anno3dReset();
   pairReset();
+  backendSync();          // mirror the newly-shown part's marks to anno/<sku>.json
   history.replaceState(null, "", `?sku=${sku}`);
   $("detail").scrollTop = 0;
 }
@@ -528,6 +529,7 @@ function annoSave() {
     if (annoItems.length) all[annoUrl()] = annoItems; else delete all[annoUrl()];
     localStorage.setItem(ANNO_KEY, JSON.stringify(all));
   } catch { /* private mode / quota -- annotations just won't persist */ }
+  backendSync();
 }
 function annoLoadFor(url) {
   annoPoly = annoArrow = annoDrag = null;
@@ -681,6 +683,7 @@ function anno3dSave() {
     if (anno3d.length) all[sku] = anno3d.map(a => [a.v.x, a.v.y, a.v.z]); else delete all[sku];
     localStorage.setItem(ANNO3D_KEY, JSON.stringify(all));
   } catch { /* private mode -- just won't persist */ }
+  backendSync();
 }
 function anno3dPlace() {    // number + position each label by projecting its 3D point to screen
   const r = canvas.getBoundingClientRect();
@@ -760,10 +763,11 @@ const pairLetter = i => String.fromCharCode(65 + (i % 26)) + (i >= 26 ? Math.flo
 function pairSave() {
   try {
     const all = JSON.parse(localStorage.getItem(PAIR_KEY) || "{}");
-    if (pairs.length) all[sku] = pairs.map(p => ({ v: [p.v.x, p.v.y, p.v.z], ph: [p.ph.x, p.ph.y], img: p.img }));
+    if (pairs.length) all[sku] = pairs.map(p => ({ v: [p.v.x, p.v.y, p.v.z], ph: [p.ph.x, p.ph.y], img: p.img, iw: p.iw, ih: p.ih }));
     else delete all[sku];
     localStorage.setItem(PAIR_KEY, JSON.stringify(all));
   } catch { /* private mode */ }
+  backendSync();
 }
 function pairModelLabels() {   // reproject the model halves each frame, like anno3d
   const r = canvas.getBoundingClientRect();
@@ -785,7 +789,8 @@ function pairStartModel(pt) {   // model half -> pending (a new click replaces a
 }
 function pairAddPhoto(p) {       // photo half -> completes the pending pair (needs a model half)
   if (!pairPend) return false;
-  pairs.push({ v: pairPend.v, ph: { x: p.x, y: p.y }, img: annoUrl(), mEl: pairPend.mEl });
+  const im = $("photo");        // pin the image's pixel size so photo_px survives switching images
+  pairs.push({ v: pairPend.v, ph: { x: p.x, y: p.y }, img: annoUrl(), iw: im.naturalWidth, ih: im.naturalHeight, mEl: pairPend.mEl });
   pairPend = null;
   pairModelLabels(); annoRender(); pairSave();
   return true;
@@ -797,7 +802,7 @@ function pairReset() {          // load the pairs saved for the part now shown
   try {
     for (const rec of (JSON.parse(localStorage.getItem(PAIR_KEY) || "{}")[sku] || [])) {
       const mEl = document.createElement("div"); anno3dLayer.append(mEl);
-      pairs.push({ v: new THREE.Vector3(...rec.v), ph: { x: rec.ph[0], y: rec.ph[1] }, img: rec.img, mEl });
+      pairs.push({ v: new THREE.Vector3(...rec.v), ph: { x: rec.ph[0], y: rec.ph[1] }, img: rec.img, iw: rec.iw, ih: rec.ih, mEl });
     }
   } catch { /* ignore */ }
   pairModelLabels();
@@ -848,6 +853,20 @@ $("theme").onclick = () => {
   applyTheme(next);
 };
 
+// Push a readable snapshot -- points/pairs as mm and px -- to the server, which drops it at
+// anno/<sku>.json, so the marks can be read straight off the disk with no browser round-trip.
+// Defined BEFORE boot: select() calls it, so its state must be initialised first (no TDZ).
+let backendTimer = 0;
+function backendSync() {
+  clearTimeout(backendTimer);
+  backendTimer = setTimeout(() => {
+    const b = window.__bench; if (!b) return;
+    const body = JSON.stringify({ sku, updated_epoch_ms: performance.timeOrigin + performance.now(),
+      anno3d: b.anno3d(), pairs: b.pairs(), photo: b.anno() });
+    fetch("/anno", { method: "POST", headers: { "Content-Type": "application/json" }, body }).catch(() => {});
+  }, 300);
+}
+
 resize();
 select(new URLSearchParams(location.search).get("sku") || "CK-119TR");
 annoResize();
@@ -871,15 +890,18 @@ window.__bench = { THREE, scene, camera, controls, PARTS, TEXTURES, select, setV
   // The points marked ON the 3D model, as millimetres in the part's own frame.
   anno3d: () => anno3d.map((a, i) => ({ n: i + 1,
     mm: { x: Math.round(a.v.x * 1000), y: Math.round(a.v.y * 1000), z: Math.round(a.v.z * 1000) } })),
-  // The model<->photo correspondences: each lettered pair as model mm AND photo px.
-  pairs: () => {
-    const img = $("photo"), W = img.naturalWidth, H = img.naturalHeight;
-    return pairs.map((p, i) => ({
+  // The model<->photo correspondences: each lettered pair as model mm AND photo px. photo_frac
+  // is canonical (resolution-independent); photo_px uses the image's own pixel size (pinned per
+  // pair), falling back to the loaded photo, else null -- so it's right even off a stale image.
+  pairs: () => pairs.map((p, i) => {
+    const w = p.iw || (p.img === annoUrl() ? $("photo").naturalWidth : 0);
+    const h = p.ih || (p.img === annoUrl() ? $("photo").naturalHeight : 0);
+    return {
       label: pairLetter(i),
       model_mm: { x: Math.round(p.v.x * 1000), y: Math.round(p.v.y * 1000), z: Math.round(p.v.z * 1000) },
-      photo_px: { x: Math.round(p.ph.x * W), y: Math.round(p.ph.y * H) },
       photo_frac: { x: +p.ph.x.toFixed(4), y: +p.ph.y.toFixed(4) },
+      photo_px: (w && h) ? { x: Math.round(p.ph.x * w), y: Math.round(p.ph.y * h) } : null,
       image: p.img,
-    }));
-  },
+    };
+  }),
 };
