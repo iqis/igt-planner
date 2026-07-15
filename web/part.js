@@ -506,15 +506,33 @@ function select(next) {
 }
 
 // ---------------------------------------------------------------- annotate
-// Points (auto-NUMBERED), arrows and text labels, drawn on a canvas over the photo, so a
-// reference can be talked about like a geometry figure -- "put a leg at point 3, another at 5".
-// Coordinates are stored as fractions of the image, so they survive resizing. Delivery is a
-// screenshot (CDN photos are cross-origin, so the canvas can't be exported to a file).
+// Draw on the photo -- numbered POINTS, a POLYLINE, ARROWS, TEXT -- to point at exactly what
+// you mean. Marks DRAG to move, PERSIST to localStorage per image, and are readable as DATA
+// off window.__bench.anno(): the coordinates on the ORIGINAL image, not a screenshot, are what
+// gets discussed. All coords are fractions (0..1) of the image, so they survive any resize.
 const annocanvas = $("annocanvas");
 const actx = annocanvas.getContext("2d");
 let annoTool = "point";
-let annoItems = [];        // {type:'point'|'arrow'|'text', x, y, x2?, y2?, text?}  x/y are 0..1
-let annoDrag = null;
+let annoItems = [];        // {type:'point'|'poly'|'arrow'|'text', ...}
+let annoPoly = null;       // the polyline in progress
+let annoArrow = null;      // the arrow being dragged out
+let annoDrag = null;       // a handle being moved: {it,k?} or {pts,i}
+
+const ANNO_KEY = "igt-anno";
+const annoUrl = () => $("photo").getAttribute("src") || "";
+function annoSave() {
+  try {
+    const all = JSON.parse(localStorage.getItem(ANNO_KEY) || "{}");
+    if (annoItems.length) all[annoUrl()] = annoItems; else delete all[annoUrl()];
+    localStorage.setItem(ANNO_KEY, JSON.stringify(all));
+  } catch { /* private mode / quota -- annotations just won't persist */ }
+}
+function annoLoadFor(url) {
+  annoPoly = annoArrow = annoDrag = null;
+  try { annoItems = (JSON.parse(localStorage.getItem(ANNO_KEY) || "{}")[url]) || []; }
+  catch { annoItems = []; }
+}
+const annoChanged = () => { annoRender(); annoSave(); };
 
 function annoResize() {
   const r = $("shot").getBoundingClientRect();
@@ -524,78 +542,111 @@ function annoResize() {
   actx.setTransform(dpr, 0, 0, dpr, 0, 0);
   annoRender();
 }
+// A label with a dark halo, nudged so it never runs off the top/right of the pane.
+function annoLabel(txt, x, y, fill, W) {
+  actx.font = "bold 13px ui-monospace, monospace";
+  const w = actx.measureText(txt).width;
+  let lx = x + 9, ly = y - 6;
+  if (lx + w > W - 2) lx = x - 9 - w;
+  if (ly < 12) ly = y + 15;
+  actx.lineWidth = 3.5; actx.strokeStyle = "#101215"; actx.strokeText(txt, lx, ly);
+  actx.fillStyle = fill; actx.fillText(txt, lx, ly);
+}
 function annoRender() {
-  const r = $("shot").getBoundingClientRect();
-  const W = r.width, H = r.height;
+  const r = $("shot").getBoundingClientRect(), W = r.width, H = r.height;
   actx.clearRect(0, 0, W, H);
-  const items = annoDrag ? [...annoItems, annoDrag] : annoItems;
+  for (const pl of annoItems.filter(i => i.type === "poly").concat(annoPoly || [])) {
+    actx.strokeStyle = "#37c26e"; actx.fillStyle = "#37c26e"; actx.lineWidth = 2.5;
+    actx.beginPath();
+    pl.pts.forEach((p, i) => (i ? actx.lineTo : actx.moveTo).call(actx, p.x * W, p.y * H));
+    actx.stroke();
+    for (const p of pl.pts) { actx.beginPath(); actx.arc(p.x * W, p.y * H, 4, 0, 7); actx.fill(); }
+  }
+  for (const it of annoItems.filter(i => i.type === "arrow").concat(annoArrow || [])) {
+    const x = it.x * W, y = it.y * H, x2 = it.x2 * W, y2 = it.y2 * H, a = Math.atan2(y2 - y, x2 - x);
+    actx.strokeStyle = "#ff7a3a"; actx.fillStyle = "#ff7a3a"; actx.lineWidth = 2.5;
+    actx.beginPath(); actx.moveTo(x, y); actx.lineTo(x2, y2); actx.stroke();
+    actx.beginPath(); actx.moveTo(x2, y2);
+    actx.lineTo(x2 - 12 * Math.cos(a - 0.42), y2 - 12 * Math.sin(a - 0.42));
+    actx.lineTo(x2 - 12 * Math.cos(a + 0.42), y2 - 12 * Math.sin(a + 0.42));
+    actx.closePath(); actx.fill();
+  }
+  for (const it of annoItems.filter(i => i.type === "text")) annoLabel(it.text, it.x * W, it.y * H, "#ffd24a", W);
   let n = 0;
-  for (const it of items) {
-    const x = it.x * W, y = it.y * H;
-    if (it.type === "arrow") {
-      const x2 = it.x2 * W, y2 = it.y2 * H, a = Math.atan2(y2 - y, x2 - x);
-      actx.strokeStyle = "#ff7a3a"; actx.fillStyle = "#ff7a3a"; actx.lineWidth = 2.5;
-      actx.beginPath(); actx.moveTo(x, y); actx.lineTo(x2, y2); actx.stroke();
-      actx.beginPath(); actx.moveTo(x2, y2);
-      actx.lineTo(x2 - 12 * Math.cos(a - 0.42), y2 - 12 * Math.sin(a - 0.42));
-      actx.lineTo(x2 - 12 * Math.cos(a + 0.42), y2 - 12 * Math.sin(a + 0.42));
-      actx.closePath(); actx.fill();
-    } else if (it.type === "text") {
-      actx.font = "bold 14px ui-monospace, monospace";
-      actx.lineWidth = 3.5; actx.strokeStyle = "#101215"; actx.fillStyle = "#ffd24a";
-      actx.strokeText(it.text, x + 5, y + 5); actx.fillText(it.text, x + 5, y + 5);
-    } else {
-      n++;
-      actx.beginPath(); actx.arc(x, y, 7, 0, 7);
-      actx.fillStyle = "#2f9bff"; actx.fill();
-      actx.lineWidth = 2; actx.strokeStyle = "#fff"; actx.stroke();
-      actx.font = "bold 13px ui-monospace, monospace";
-      actx.lineWidth = 3.5; actx.strokeStyle = "#101215";
-      actx.strokeText(n, x + 10, y - 7);
-      actx.fillStyle = "#fff"; actx.fillText(n, x + 10, y - 7);
-    }
+  for (const it of annoItems.filter(i => i.type === "point")) {
+    n++; const x = it.x * W, y = it.y * H;
+    actx.beginPath(); actx.arc(x, y, 7, 0, 7); actx.fillStyle = "#2f9bff"; actx.fill();
+    actx.lineWidth = 2; actx.strokeStyle = "#fff"; actx.stroke();
+    annoLabel(String(n), x, y, "#fff", W);
   }
 }
 const annoAt = e => {
   const r = $("shot").getBoundingClientRect();
   return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
 };
-annocanvas.addEventListener("pointerdown", e => {
-  const p = annoAt(e);
-  if (annoTool === "arrow") {
-    annoDrag = { type: "arrow", x: p.x, y: p.y, x2: p.x, y2: p.y };
-    annocanvas.setPointerCapture(e.pointerId);
-  } else if (annoTool === "text") {
-    const t = prompt("label:");
-    if (t) { annoItems.push({ type: "text", ...p, text: t }); annoRender(); }
-  } else {
-    annoItems.push({ type: "point", ...p }); annoRender();
+// The handle under the pointer, if any -- so an existing mark can be grabbed and dragged.
+function annoHit(p) {
+  const r = $("shot").getBoundingClientRect();
+  const near = (x, y) => Math.hypot((x - p.x) * r.width, (y - p.y) * r.height) < 11;
+  for (const it of annoItems) {
+    if (it.type === "point" || it.type === "text") { if (near(it.x, it.y)) return { it }; }
+    else if (it.type === "arrow") {
+      if (near(it.x, it.y)) return { it, k: "a" };
+      if (near(it.x2, it.y2)) return { it, k: "b" };
+    } else if (it.type === "poly")
+      for (let i = 0; i < it.pts.length; i++) if (near(it.pts[i].x, it.pts[i].y)) return { pts: it.pts, i };
   }
+  return null;
+}
+annocanvas.addEventListener("pointerdown", e => {
+  const p = annoAt(e), hit = annoHit(p);
+  if (hit) { annoDrag = hit; annocanvas.setPointerCapture(e.pointerId); return; }  // grab to move
+  if (annoTool === "poly") {
+    (annoPoly ??= { type: "poly", pts: [] }).pts.push({ x: p.x, y: p.y }); annoRender();
+  } else if (annoTool === "arrow") {
+    annoArrow = { type: "arrow", x: p.x, y: p.y, x2: p.x, y2: p.y }; annocanvas.setPointerCapture(e.pointerId);
+  } else if (annoTool === "text") {
+    const t = prompt("label:"); if (t) { annoItems.push({ type: "text", ...p, text: t }); annoChanged(); }
+  } else { annoItems.push({ type: "point", ...p }); annoChanged(); }
 });
 annocanvas.addEventListener("pointermove", e => {
-  if (!annoDrag) return;
-  const p = annoAt(e); annoDrag.x2 = p.x; annoDrag.y2 = p.y; annoRender();
+  const p = annoAt(e);
+  if (annoDrag) {
+    if (annoDrag.pts) annoDrag.pts[annoDrag.i] = { x: p.x, y: p.y };
+    else if (annoDrag.k === "b") { annoDrag.it.x2 = p.x; annoDrag.it.y2 = p.y; }
+    else { annoDrag.it.x = p.x; annoDrag.it.y = p.y; }
+    annoRender();
+  } else if (annoArrow) { annoArrow.x2 = p.x; annoArrow.y2 = p.y; annoRender(); }
 });
 annocanvas.addEventListener("pointerup", () => {
-  if (!annoDrag) return;
-  if (Math.hypot(annoDrag.x2 - annoDrag.x, annoDrag.y2 - annoDrag.y) > 0.01) annoItems.push(annoDrag);
-  annoDrag = null; annoRender();
+  if (annoDrag) { annoDrag = null; annoChanged(); }
+  else if (annoArrow) {
+    if (Math.hypot(annoArrow.x2 - annoArrow.x, annoArrow.y2 - annoArrow.y) > 0.01) annoItems.push(annoArrow);
+    annoArrow = null; annoChanged();
+  }
 });
+annocanvas.addEventListener("dblclick", () => {   // finish the polyline
+  if (annoPoly?.pts.length >= 2) annoItems.push(annoPoly);
+  annoPoly = null; annoChanged();
+});
+function annoFinishPoly() { if (annoPoly?.pts.length >= 2) annoItems.push(annoPoly); annoPoly = null; }
 for (const b of document.querySelectorAll(".anno-tool"))
   b.onclick = () => {
+    annoFinishPoly(); annoChanged();
     annoTool = b.dataset.tool;
     document.querySelectorAll(".anno-tool").forEach(x => x.classList.toggle("on", x === b));
   };
-$("announdo").onclick = () => { annoItems.pop(); annoRender(); };
-$("annoclear").onclick = () => { annoItems = []; annoRender(); };
-function annoReset() { annoItems = []; annoDrag = null; annoRender(); }
+$("announdo").onclick = () => { if (annoPoly) annoPoly = null; else annoItems.pop(); annoChanged(); };
+$("annoclear").onclick = () => { annoItems = []; annoPoly = null; annoChanged(); };
+/** Reload the marks saved for whatever image is now in the pane. */
+function annoReset() { annoLoadFor(annoUrl()); annoResize(); }
 /** Load a reference image into the photo pane to mark up. Its own measurements do not apply,
- *  so the measurement overlay is cleared. */
+ *  so the measurement overlay is cleared; the marks saved for THAT image come back. */
 function loadAnnoImage(url) {
   $("shot").style.display = "";       // paintPhoto hides it when a part has no measured-from shot
   $("marks").innerHTML = "";
-  annoReset();
-  $("photo").src = url;
+  annoLoadFor(url);
+  $("photo").src = url;               // load event -> annoResize -> render
 }
 $("photo").addEventListener("load", annoResize);
 addEventListener("resize", annoResize);
@@ -635,4 +686,20 @@ resize();
 select(new URLSearchParams(location.search).get("sku") || "CK-119TR");
 annoResize();
 
-window.__bench = { THREE, scene, camera, controls, PARTS, TEXTURES, select, setView, show, redraw };
+window.__bench = { THREE, scene, camera, controls, PARTS, TEXTURES, select, setView, show, redraw,
+  // The annotations, so they can be read straight off the page -- numbered points, arrows and
+  // text labels, as fractions of the image AND its pixels. No screenshot needed to read them.
+  anno: () => {
+    const img = $("photo"), W = img.naturalWidth, H = img.naturalHeight;
+    const px = (x, y) => ({ x: Math.round(x * W), y: Math.round(y * H) });
+    let n = 0;
+    return {
+      image: img.getAttribute("src"), naturalWidth: W, naturalHeight: H,
+      points: annoItems.filter(i => i.type === "point")
+        .map(p => ({ n: ++n, frac: { x: +p.x.toFixed(4), y: +p.y.toFixed(4) }, px: px(p.x, p.y) })),
+      polylines: annoItems.filter(i => i.type === "poly").map(pl => ({ px: pl.pts.map(p => px(p.x, p.y)) })),
+      arrows: annoItems.filter(i => i.type === "arrow").map(a => ({ from: px(a.x, a.y), to: px(a.x2, a.y2) })),
+      labels: annoItems.filter(i => i.type === "text").map(t => ({ text: t.text, px: px(t.x, t.y) })),
+    };
+  },
+};
