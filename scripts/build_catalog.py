@@ -513,11 +513,14 @@ def main():
     # it exists, and it unlocks the frame's entire long side. A catalog built only from
     # what the taxonomy hands you has holes exactly where the taxonomy has them.
     known = {p["sku"] for p in parts}
+    # Fields the _add block sets itself; everything ELSE in the entry is copied through verbatim
+    # (so a curated part -- e.g. a chair -- can carry its own seat_h_mm, frame_hex, fabric_hex).
+    ADD_HANDLED = {"role", "title_en", "reason", "assembled_mm", "price", "weight_g", "image", "url"}
     for sku, add in (overrides.get("_add") or {}).items():
         if sku in known:
             continue
         j = jp_by_sku.get(sku, {})
-        parts.append({
+        rec = {
             "sku": sku,
             "handle": None,
             "title_en": add.get("title_en") or j.get("jp_title", ""),
@@ -526,16 +529,21 @@ def main():
             "role": add.get("role", "accessory"),
             "collections": [],
             "region_exclusive": "jp",
-            "assembled_mm": j.get("assembled_mm"),
+            # A curated entry may state its own assembled size / price / weight / image / url; else JP.
+            "assembled_mm": add.get("assembled_mm") or j.get("assembled_mm"),
             "packed_mm": j.get("packed_mm"),
-            "weight_g": j.get("weight_g"),
+            "weight_g": add.get("weight_g") or j.get("weight_g"),
             "material": j.get("material", ""),
-            "price": region_prices(sku, None, regions),
+            "price": add.get("price") or region_prices(sku, None, regions),
             "available": {},
-            "image": None,
-            "url": {"us": None, "jp": j.get("jp_url")},
+            "image": add.get("image"),
+            "url": add.get("url") or {"us": None, "jp": j.get("jp_url")},
             "curated_reason": add.get("reason"),
-        })
+        }
+        for k, v in add.items():
+            if k not in ADD_HANDLED:
+                rec[k] = v
+        parts.append(rec)
 
     applied = 0
     for rec in parts:

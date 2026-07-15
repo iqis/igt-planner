@@ -427,6 +427,53 @@ export function extIgtGroup(w, d, height, { bayW = 0, bayD = 360, tex = null } =
   return { group: g, body: g.children[0], bay: bayW > 0 ? { w: bayW, d: bayD } : null };
 }
 
+/** Snow Peak Folding Chair (LV-077): a director's chair -- a black aluminium X-frame (it folds
+ *  side to side, so the crossing X sits in the front and back faces) carrying a taupe canvas seat,
+ *  back and armrests. The FIRST non-IGT prop: free-standing, feet on the ground at y = 0. Faces
+ *  +z (back panel at -z). Modelled from the LV-077GY product photo. */
+export function foldingChairGroup(w, d, h, { frame = 0x232528, fabric = 0x8c8279, seatH = 457 } = {}) {
+  const g = new THREE.Group();
+  const tubeMat = metalE(frame, 0.45, 0.5);
+  const cloth = new THREE.MeshStandardMaterial({ color: fabric, roughness: 0.92, metalness: 0.0, side: THREE.DoubleSide });
+  const tube = (a, b, r = 9) => {
+    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 10), tubeMat);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m); return m;
+  };
+  const pad = (bw, bh, bd, x, y, z) => {
+    const m = new THREE.Mesh(roundedBox(bw * MM, bh * MM, bd * MM, 3 * MM), cloth);
+    m.position.set(x * MM, y * MM, z * MM); g.add(m); return m;
+  };
+  const sw = w / 2 - 35, fw = w / 2, sd = 195, armH = seatH + 150;
+
+  // front & back X-frames -- each crosses a top seat corner to the opposite foot; the two sit at
+  // z = +/-sd and, seen head-on, overlap into the single X the photo shows.
+  for (const zc of [sd, -sd]) {
+    tube([-sw, seatH, zc], [fw, 8, zc]);
+    tube([sw, seatH, zc], [-fw, 8, zc]);
+  }
+  // side foot rails + seat side rails tie the front frame to the back frame
+  for (const sx of [-1, 1]) {
+    tube([sx * fw, 8, sd], [sx * fw, 8, -sd]);
+    tube([sx * sw, seatH, sd], [sx * sw, seatH, -sd]);
+  }
+  pad(2 * sw, 12, 2 * sd, 0, seatH - 14, 0);   // seat sling
+
+  // back posts (tilt back) + canvas panel floating above the arms
+  for (const sx of [-1, 1]) tube([sx * sw, seatH, -sd], [sx * sw, h, -sd - 45], 8);
+  pad(2 * sw + 20, 165, 14, 0, h - 95, -sd - 30);
+
+  // armrests: a front support up, the arm tube back to the post, a canvas pad on top
+  for (const sx of [-1, 1]) {
+    tube([sx * sw, seatH, sd], [sx * sw, armH, sd - 5], 8);
+    tube([sx * sw, armH, sd - 5], [sx * sw, armH, -sd + 20], 8);
+    pad(48, 20, 2 * sd - 25, sx * sw, armH + 13, 7.5);
+  }
+  return { group: g, body: g.children[0] };
+}
+
 /** The Jikaro: an octagonal ring of four trapezoid segments with the fire hole in the
  *  middle, standing on folding wire legs. `ringMat` paints the ring; `color` the wire.
  *  Ring top at y = 0, legs to -height. */

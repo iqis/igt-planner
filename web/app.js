@@ -4,7 +4,8 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, grainMaterial } from "./materials.js";
 import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          jikaroGroup, jikaroBridge, hangRackGroup, slideExtGroup,
-         entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop } from "./parts3d.js";
+         entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop,
+         foldingChairGroup } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -202,9 +203,11 @@ function neighbours(n) {
  *  step joint (CK-151) -- that is what the part is for, and the only thing it is for. */
 function steps() {
   const out = [];
-  for (const n of state.nodes)
+  for (const n of state.nodes) {
+    if (n.kind === "prop") continue;                 // a free-standing prop (chair) is not a table
     for (const m of neighbours(n))
-      if (n.id < m.id && Math.abs(topOf(n) - topOf(m)) > 5) out.push([n, m]);
+      if (m.kind !== "prop" && n.id < m.id && Math.abs(topOf(n) - topOf(m)) > 5) out.push([n, m]);
+  }
   return out;
 }
 
@@ -902,6 +905,20 @@ function drawSlideExt(g, n) {
   body.userData.node = n; g.add(group); nodeMeshes.push(body);
 }
 
+/** A free-standing prop (a chair): built at floor level (y = 0), tagged for selection + drag like
+ *  a table but never connected to the IGT grid -- no hooks, no bay, no legs. */
+function drawProp(g, n) {
+  const p = PARTS[n.sku];
+  const a = p.assembled_mm || { w: 500, d: 500, h: 800 };
+  const built = foldingChairGroup(a.w, a.d, a.h, {
+    frame: Number(p.frame_hex) || 0x232528,
+    fabric: Number(p.fabric_hex) || 0x8c8279,
+    seatH: p.seat_h_mm || 450,
+  });
+  built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
+  g.add(built.group);
+}
+
 function drawTable(g, n) {
   if (isJikaro(n)) return drawJikaro(g, n);
   if (isSlide(n.sku ? PARTS[n.sku] : null)) return drawSlideExt(g, n);
@@ -1124,7 +1141,7 @@ function rebuild() {
     const g = new THREE.Group();
     g.position.set(n.x * MM, 0, n.z * MM);
     g.rotation.y = -n.rot;
-    (n.kind === "frame" ? drawFrame : drawTable)(g, n);
+    (n.kind === "frame" ? drawFrame : n.kind === "prop" ? drawProp : drawTable)(g, n);
     build.add(g);
   }
 
@@ -1663,6 +1680,7 @@ const HOOKS_ON = new Set(["extension_table", "corner"]);
 // A sliding extension is a hooked node too (it hangs off a host edge, is not dragged), so it
 // is kind "ext" -- but a rail-only one, offered on long edges and drawn as a cantilever.
 const kindOf = p => (p.role === "frame" ? "frame"
+  : p.role === "seating" ? "prop"                 // a free-standing chair -- placed, not connected
   : (HOOKS_ON.has(p.role) || isSlide(p)) ? "ext" : "table");
 
 // A leg SET is two legs -- "Each purchase includes two legs", and the JP spec agrees
@@ -1698,6 +1716,19 @@ function addNode(sku) {
     // Expandable tables (CK-090) open to their default config.
     ...(expDef(sku) ? { config: expDef(sku).default } : {}),
   };
+  // A prop (chair) is free-standing: drop it IN FRONT of the layout (+z) rather than butt it
+  // against a table edge, and stagger repeats sideways so they don't stack. Then just drag it.
+  if (kind === "prop") {
+    const tables = state.nodes.filter(m => m.kind !== "ext" && m.kind !== "prop");
+    const zFront = tables.length ? Math.max(...tables.map(m => aabb(m).z1)) : 0;
+    const nProps = state.nodes.filter(m => m.kind === "prop").length;
+    n.x = (nProps - 1) * 650;
+    n.z = zFront + footprint(n).d / 2 + 250;
+    state.nodes.push(n);
+    state.sel = n.id;
+    render();
+    return;
+  }
   // Land it flush against the right edge of what is already there. This is a layout
   // system -- tables connect. Dropping the new one in open space and making you drag
   // it into contact would be a worse default than the thing the system is for.
@@ -1872,6 +1903,11 @@ function paintPalette() {
   for (const p of [...BY_ROLE.layout_table, ...BY_ROLE.standalone])
     tab.append(partRow(p, () => addNode(p.sku), false));
 
+  // Non-IGT props placed around the layout (chairs). Free-standing -- add and drag.
+  const seat = $("seating"); seat.innerHTML = "";
+  for (const p of BY_ROLE.seating)
+    seat.append(partRow(p, () => addNode(p.sku), false));
+
   const n = sel();
   const hooked = n?.kind === "ext";
   // Legs set the height only for a frame or a hooked extension. A self-contained IGT (Entry, Slim,
@@ -1986,7 +2022,7 @@ function paintPalette() {
 // every repaint so the filter survives re-renders; an empty query shows everything.
 function filterPalette() {
   const q = ($("palsearch").value || "").trim().toLowerCase();
-  for (const id of ["add", "tables", "legs", "modules"])
+  for (const id of ["add", "tables", "seating", "legs", "modules"])
     for (const el of $(id).children)
       el.style.display = (!q || (el.dataset.search || "").includes(q)) ? "" : "none";
 }
@@ -2304,6 +2340,7 @@ BY_ROLE = {
     .sort((a, b) => (a.tiers || 0) - (b.tiers || 0)),
   layout_table: by("layout_table").filter(p => p.assembled_mm),
   standalone: by("standalone").filter(p => p.assembled_mm),
+  seating: by("seating").filter(p => p.assembled_mm),
   unsourced: inScope.filter(p => hookRoles(p) && !HOOKABLE.includes(p)),
 };
 

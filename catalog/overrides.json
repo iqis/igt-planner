@@ -23,6 +23,19 @@
    "role": "bridge",
    "title_en": "Jikaro Top 2 Unit Bridge",
    "reason": "The optional 2-Unit bridge for the Jikaro (ST-050): two stainless brackets over the spread (long-edge-in, 600mm) opening + two slide-in bars, making a 2-Unit IGT bay. A toggle on the Jikaro, not its own node (cannot stand alone). The official version is a SEPPOUSAI (Snow Peak Festival) 2023 Autumn limited edition; CPL-JT2U is the after-market equivalent. role 'bridge' is picked up by no palette. See layout.bridges."
+  },
+  "LV-077": {
+   "role": "seating",
+   "title_en": "Folding Chair",
+   "assembled_mm": {"w": 566, "d": 594, "h": 838},
+   "seat_h_mm": 457,
+   "price": {"us": 14995, "jp": null, "uk": null},
+   "frame_hex": "0x232528",
+   "fabric_hex": "0x8c8279",
+   "chair": "folding",
+   "image": "https://www.snowpeak.com/cdn/shop/products/folding_chair_gy_lv-077gy_hero_01.jpg?v=1587494927&width=1000",
+   "url": {"us": "https://www.snowpeak.com/products/gray-folding-chair", "jp": null},
+   "reason": "First NON-IGT prop: the Snow Peak Folding Chair (director's chair). A free-standing piece placed AROUND the layout -- it does not connect to the IGT grid, occupies no slot, and joins no assembly. role 'seating' -> a 'prop' node: draggable, rotatable, in the bill, nothing else. 566x594x838mm, 457mm seat, black aluminium X-frame + taupe polyester canvas seat/back/armrests (LV-077GY). Modelled from the product photo."
   }
  },
 
