@@ -128,6 +128,12 @@ const JIKARO = "ST-050";
 const jikaroCfg = n => (LAYOUT.tables?.[JIKARO]?.configs || {})[n?.config || "long_in"];
 const isJikaro = n => n?.sku === JIKARO && jikaroCfg(n);
 
+// The Connection Table (LV-381): a layout table that ALSO takes IGT extensions on its two ends,
+// so a run can carry on off it. Owner: it has two hole sets at different pitches (tables +
+// accessories); we model the table-hook edges, which use the same wire hook as a frame end.
+const CONN_TABLE = "LV-381";
+const isConnTable = n => n?.sku === CONN_TABLE;
+
 // Expandable self-contained tables (CK-090 Extension IGT): a config that changes footprint AND
 // exposed unit-slots. Read lazily -- LAYOUT is fetched at boot, after these arrows are defined.
 const expDef = sku => (LAYOUT.expandables || {})[sku];
@@ -389,6 +395,16 @@ function hostEdge(n, key, guest = "ext") {
     const r = half - HOLE_INSET;
     return { anchor: { x: normal.x * r, z: normal.z * r }, normal, len: c.edge_mm };
   }
+
+  // The Connection Table's ends carry an IGT extension the SAME way a frame end does -- the same
+  // wire hook, dropping 16.5mm in from the end face. It stands at the datum, so the run does too.
+  if (isConnTable(n)) {
+    if (key === "end+x") return { anchor: { x: f.w / 2 - HOLE_INSET, z: 0 }, normal: { x: 1, z: 0 }, len: f.d };
+    if (key === "end-x") return { anchor: { x: -(f.w / 2 - HOLE_INSET), z: 0 }, normal: { x: -1, z: 0 }, len: f.d };
+    // The two LONG SIDES take an extension too (a second hole set at its own pitch, owner's note).
+    if (key === "side+z") return { anchor: { x: 0, z: f.d / 2 - HOLE_INSET }, normal: { x: 0, z: 1 }, len: f.w };
+    if (key === "side-z") return { anchor: { x: 0, z: -(f.d / 2 - HOLE_INSET), }, normal: { x: 0, z: -1 }, len: f.w };
+  }
   return null;
 }
 
@@ -406,6 +422,7 @@ const JIKARO_EDGES = {
 const EDGE_KEYS = { frame: ["end+x", "end-x", "rail+z", "rail-z"], ext: ["bracket"], table: [] };
 const edgeKeysOf = n => isJikaro(n) ? Object.keys(JIKARO_EDGES).filter(k =>
     !JIKARO_EDGES[k].chamfer || n.config === "long_in")   // chamfers only in the spread form
+  : isConnTable(n) ? ["end+x", "end-x", "side+z", "side-z"]   // Connection Table: ends AND long sides
   : isSlide(PARTS[n.sku]) ? []                    // a sliding extension is a leaf -- nothing
                                                   // hooks onto it, and its phantom bracket
                                                   // edge was intercepting the click to drag it
