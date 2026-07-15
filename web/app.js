@@ -1599,14 +1599,18 @@ function partRow(p, fn, dead, why) {
     + `<span class="nm">${p.title_en}</span>`
     + `<span class="sp">${s ? s / 2 + "u" : ""}</span>`;
   el.title = why || `${p.sku} — ${p.title_en}`;
+  el.dataset.search = `${p.sku} ${p.title_en || ""}`.toLowerCase();   // palette search key
   if (!dead) el.onclick = () => fn(p);
   return el;
 }
 
 function paintPalette() {
   const add = $("add"); add.innerHTML = "";
-  for (const p of BY_ROLE.frame)
-    add.append(chip(`${p.units}u${p.collapsible ? " ⤢" : ""}`, false, p.title_en, () => addNode(p.sku)));
+  for (const p of BY_ROLE.frame) {
+    const c = chip(`${p.units}u${p.collapsible ? " ⤢" : ""}`, false, p.title_en, () => addNode(p.sku));
+    c.dataset.search = `${p.sku} ${p.title_en}`.toLowerCase();
+    add.append(c);
+  }
 
   const tab = $("tables"); tab.innerHTML = "";
   const open = anyOpenEdge();
@@ -1628,11 +1632,14 @@ function paintPalette() {
   const n = sel();
   const hooked = n?.kind === "ext";
   const legs = $("legs"); legs.innerHTML = "";
-  for (const p of BY_ROLE.leg)
-    legs.append(chip(`${p.height_mm}`, n?.leg === p.sku,
+  for (const p of BY_ROLE.leg) {
+    const c = chip(`${p.height_mm}`, n?.leg === p.sku,
       hooked ? `an extension is flush with what it hooks to — it takes the same legs, `
              + `so this sets them for the whole run` : p.title_en,
-      () => { if (n) setLeg(n, p.sku); }));
+      () => { if (n) setLeg(n, p.sku); });
+    c.dataset.search = `${p.sku} ${p.title_en}`.toLowerCase();
+    legs.append(c);
+  }
 
   const acts = $("actions"); acts.innerHTML = "";
   if (n && isJikaro(n)) {
@@ -1675,7 +1682,18 @@ function paintPalette() {
   }
 
   $("selname").textContent = n ? PARTS[n.sku].title_en : "nothing selected";
+  filterPalette();       // re-apply the current search over the freshly painted rows
 }
+
+// Find a part by name or number: hide the palette rows and chips that don't match. Runs after
+// every repaint so the filter survives re-renders; an empty query shows everything.
+function filterPalette() {
+  const q = ($("palsearch").value || "").trim().toLowerCase();
+  for (const id of ["add", "tables", "legs", "modules"])
+    for (const el of $(id).children)
+      el.style.display = (!q || (el.dataset.search || "").includes(q)) ? "" : "none";
+}
+$("palsearch").addEventListener("input", filterPalette);
 
 function paintSlots() {
   const bar = $("slotbar"); bar.innerHTML = "";

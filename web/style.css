@@ -108,6 +108,20 @@ h2 {
 }
 .hint { text-transform: none; letter-spacing: 0; color: var(--faint); }
 
+/* Find a part by name or number -- used in both the planner palette and the bench list. */
+.search {
+  width: 100%;
+  padding: .38rem .5rem;
+  margin-bottom: .6rem;
+  font: .72rem ui-monospace, monospace;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--raise);
+  color: var(--ink);
+}
+.search::placeholder { color: var(--faint); }
+.search:focus { outline: none; border-color: var(--accent); }
+
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; }
 .chip {
   padding: .3rem .5rem;

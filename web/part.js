@@ -550,7 +550,9 @@ function paintChrome() {
 }
 
 function paintList() {
-  const el = $("parts"); el.innerHTML = "";
+  const el = $("partlist"); el.innerHTML = "";
+  const q = ($("partsearch").value || "").trim().toLowerCase();
+  const match = p => !q || p.sku.toLowerCase().includes(q) || (p.title_en || "").toLowerCase().includes(q);
   const groups = [
     ["hook-on boards", p => p.role === "extension_table" || p.role === "corner"],
     ["slot modules", p => p.role === "slot_module"],
@@ -558,7 +560,7 @@ function paintList() {
     ["everything else", p => !["extension_table", "corner", "slot_module", "frame"].includes(p.role)],
   ];
   for (const [name, test] of groups) {
-    const ps = CAT.parts.filter(p => p.assembled_mm && test(p));
+    const ps = CAT.parts.filter(p => p.assembled_mm && test(p) && match(p));
     if (!ps.length) continue;
     const h = document.createElement("div");
     h.className = "grp"; h.textContent = name; el.append(h);
@@ -574,6 +576,7 @@ function paintList() {
     }
   }
 }
+$("partsearch").addEventListener("input", paintList);   // filter the list by name or part number
 
 function redraw() { drawPart(); paintChrome(); }
 
