@@ -571,21 +571,22 @@ function drawFrame(g, n) {
     const built = moduleGroup(p2, w, d, h, swatchOf(p2.sku));
     if (built) { dropModule(g, n, pl, cx, top, built); continue; }
 
-    // A wood insert is a bamboo board that drops into the slot -- the SAME kind of object
-    // as an extension table, just sitting in the grid instead of beside it. It was being
-    // drawn as a plain cube while its own plan-view photo and traced outline sat unused.
-    // Give it the board treatment: real silhouette, real grain, top flush with the frame.
+    // A flat insert or lid that drops into the slot: a bamboo board, a stainless lid-tray.
+    // Every one of them is a REGULAR UNIT-SIZE RECTANGLE, and its exact size is published --
+    // so build the rectangle from the dimensions and put the photograph on it. Tracing a
+    // silhouette from the photo was pure fragility here: a pale lid on white tore into a Z,
+    // for a shape we already know to the millimetre. Trace only the parts that are genuinely
+    // NOT rectangles -- the corners -- and even then only in drawTable.
     const grain = textureOf(p2.sku, "grain");
-    const ring = TEXTURES[p2.sku]?.outline_mm;
-    if (grain && ring) {
-      const board = new THREE.Mesh(boardFromOutline(ring, h * MM),
+    if (grain) {
+      const board = new THREE.Mesh(flatRect(w * MM, d * MM, h * MM, 6 * MM),
         grainMaterial(p2, COLORS, grain, w, d, false));
       board.position.set(cx, top, 0).multiplyScalar(MM);
       board.userData.placement = pl; board.userData.node = n;
       g.add(board); slotMeshes.push(board);
       const tex = textureOf(p2.sku);
       if (tex) {
-        const decal = new THREE.Mesh(boardFromOutline(ring, 0.4 * MM),
+        const decal = new THREE.Mesh(flatRect(w * MM, d * MM, 0.4 * MM, 6 * MM),
           boardMaterial(p2, COLORS, tex, w * MM, d * MM, false));
         decal.position.set(cx, top + 0.4, 0).multiplyScalar(MM);
         g.add(decal);
@@ -722,12 +723,15 @@ function drawTable(g, n) {
   // what the frame's rail is; the spec says 25mm, and the spec is right there.
   const thick = p.assembled_mm?.h ?? 25;
 
-  // The silhouette comes from the photograph, not from a guess about what shape the
-  // bounding box implies -- and crucially, from the SAME photograph that paints it.
+  // The shape: only a CORNER is genuinely not a rectangle (a quarter round, or an angle
+  // extension's trapezoid), and only there does the traced silhouette earn its keep. A plain
+  // extension table is a published rectangle; build it from its dimensions rather than trace
+  // a photo of a shape we already know. Same rule as the inserts -- trace the curves, not the
+  // rectangles.
   //
-  // boardFromOutline/flatRect hang from their TOP FACE; roundedBox is centred on its
-  // middle. Two conventions, so say which one out loud rather than remember it.
-  const ring = TEXTURES[p.sku]?.outline_mm;
+  // boardFromOutline/flatRect hang from their TOP FACE; roundedBox is centred on its middle.
+  const isCorner = p.role === "corner";
+  const ring = isCorner ? TEXTURES[p.sku]?.outline_mm : null;
   let geo, hangs = true;
   if (ring) geo = boardFromOutline(ring, thick * MM);
   else if (n.kind === "ext") geo = flatRect(f.w * MM, f.d * MM, thick * MM, 8 * MM);
@@ -749,9 +753,9 @@ function drawTable(g, n) {
   m.userData.node = n; g.add(m); nodeMeshes.push(m);
 
   const tex = textureOf(p.sku);
-  if (tex && ring) {
+  if (tex) {
     const decal = new THREE.Mesh(
-      boardFromOutline(ring, 0.4 * MM),
+      ring ? boardFromOutline(ring, 0.4 * MM) : flatRect(f.w * MM, f.d * MM, 0.4 * MM, 8 * MM),
       boardMaterial(p, COLORS, tex, f.w * MM, f.d * MM, isSel),
     );
     decal.position.set(0, top + 0.5, 0).multiplyScalar(MM);

@@ -101,31 +101,33 @@ function drawPart() {
 
   const t = TEXTURES[sku] || {};
   const thick = box.h ?? 25;
-  const ring = t.outline_mm;
   const grain = textureOf(sku, "grain");
+
+  // Only a CORNER is genuinely not a rectangle; trace its silhouette. Everything else flat --
+  // extension tables, inserts, lids -- is a published rectangle, so build it from its
+  // dimensions and put the photo on it. Tracing a rectangle from a pale photo was the whole
+  // source of the torn shapes.
+  const ring = p.role === "corner" ? TEXTURES[sku]?.outline_mm : null;
 
   // A part with a real 3D form -- a burner, a box, a mesh tray -- comes from the SAME shared
   // builder the planner uses. Before this, the bench drew every non-board part as a flat slab
   // of its bounding box, which is why so much of the catalog looked like untextured cubes.
-  // Its top sits at y = 0, the plane the grid marks, the way it embeds flush in a frame.
   const built = !ring && !grain ? moduleGroup(p, box.w, box.d, thick, swatchOf(sku)) : null;
   if (built) {
     stage.add(built.group);
   } else {
-    // A flat board: its real silhouette and its own photograph, or a plain slab if neither.
     const geo = ring ? boardFromOutline(ring, thick * MM)
                      : flatRect(box.w * MM, box.d * MM, thick * MM, 8 * MM);
     const board = new THREE.Mesh(geo, grain
       ? grainMaterial(p, COLORS, grain, box.w, box.d, false)
       : materialFor(p, COLORS, false));
-    board.position.y = 0;                       // boardFromOutline hangs from its top face
+    board.position.y = 0;                       // flatRect / boardFromOutline hang from the top
     stage.add(board);
 
-    // The photograph, laid on the TOP face -- where its subject (hooks, brackets) actually is.
     const tex = textureOf(sku);
-    if (show.photo && tex && ring) {
+    if (show.photo && tex) {
       const decal = new THREE.Mesh(
-        boardFromOutline(ring, 0.4 * MM),
+        ring ? boardFromOutline(ring, 0.4 * MM) : flatRect(box.w * MM, box.d * MM, 0.4 * MM, 8 * MM),
         boardMaterial(p, COLORS, tex, box.w * MM, box.d * MM, false),
       );
       decal.position.y = 0.5 * MM;
