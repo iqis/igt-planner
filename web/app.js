@@ -538,6 +538,7 @@ const stock = (geo, color, metalness = 0.8, roughness = 0.42, emissive = 0x00000
 const nodeMeshes = [];   // meshes carrying .node      (picking + dragging tables)
 const slotMeshes = [];   // meshes carrying .placement (dragging modules)
 const edgeMeshes = [];   // meshes carrying .edge      (the hover-to-extend handles)
+const slotHandleMeshes = []; // meshes carrying .slot   (hover-a-free-slot-to-add-a-module)
 
 // The two anodised finishes on an IGT frame -- brushed aluminium and matte black -- both
 // sampled off the product photos. Which surface wears which is what tells the families
@@ -848,11 +849,43 @@ function drawEdgeHandles() {
   }
 }
 
+/** An invisible pad over every FREE half-slot of every frame. Hovering it is how you say
+ *  "put a module here". Like the edge handles, it appears only where a part can actually go
+ *  -- an occupied cell has none -- so hovering the frame's interior offers exactly the unit
+ *  accessories that the space left can still hold. */
+function drawSlotHandles() {
+  for (const n of state.nodes) {
+    if (n.kind !== "frame") continue;
+    const cells = occupancy(n);
+    const top = topOf(n);
+    for (let i = 0; i < cells.length; i++) {
+      if (cells[i]) continue;                       // taken -- no handle
+      const xLocal = slotX(n, i) + HALF / 2;         // centre of the half-slot
+      const w = rotv({ x: xLocal, z: 0 }, n.rot);
+      const m = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshBasicMaterial({
+          color: 0x5aa9ff, transparent: true, opacity: 0, depthWrite: false,
+        }),
+      );
+      m.scale.set(HALF * 0.92 * MM, 30 * MM, 300 * MM);
+      m.rotation.y = -n.rot;
+      m.position.set((n.x + w.x) * MM, (top - 6) * MM, (n.z + w.z) * MM);
+      m.renderOrder = 2;
+      m.userData.slot = { node: n, start: i, key: "slot" + i, isSlot: true,
+        mid: { x: n.x + w.x, y: top, z: n.z + w.z } };
+      build.add(m);
+      slotHandleMeshes.push(m);
+    }
+  }
+}
+
 function rebuild() {
   build.clear();
   nodeMeshes.length = 0;
   slotMeshes.length = 0;
   edgeMeshes.length = 0;
+  slotHandleMeshes.length = 0;
 
   for (const n of state.nodes) {
     const g = new THREE.Group();
@@ -876,6 +909,7 @@ function rebuild() {
   }
 
   drawEdgeHandles();
+  drawSlotHandles();
 
   // Raycasting reads matrixWorld, and three only refreshes it inside render(). Every mesh
   // here is brand new, so until the next frame they all still sit at the origin and the
@@ -905,8 +939,11 @@ function toScreen(mm) {
 
 function paintHover() {
   for (const m of edgeMeshes)
-    m.material.opacity = hover && m.userData.edge.node.id === hover.node.id
+    m.material.opacity = hover && !hover.isSlot && m.userData.edge.node.id === hover.node.id
       && m.userData.edge.key === hover.key ? 0.42 : 0;
+  for (const m of slotHandleMeshes)
+    m.material.opacity = hover?.isSlot && m.userData.slot.node.id === hover.node.id
+      && m.userData.slot.start === hover.start ? 0.3 : 0;
 }
 
 /** Keep the button glued to its edge while the camera orbits. */
@@ -930,7 +967,8 @@ function setHover(e) {
   hidePreview();
   btn.hidden = !e;
   if (e) {
-    btn.title = `hook an extension onto the ${PARTS[e.node.sku].title_en}`;
+    btn.title = e.isSlot ? "add a unit accessory to this slot"
+      : `hook an extension onto the ${PARTS[e.node.sku].title_en}`;
     followHover();
   }
   paintHover();
@@ -938,7 +976,7 @@ function setHover(e) {
 
 function openMenu() {
   if (!hover) return;
-  paintMenu();
+  if (hover.isSlot) paintSlotMenu(); else paintMenu();
   menu.hidden = false;
   followHover();
 }
@@ -1047,6 +1085,46 @@ function paintMenu() {
   }
 }
 
+/** The menu for a free slot inside a frame: the unit accessories that fit the space left
+ *  HERE. A module needs `span` contiguous free half-slots from the hovered one; anything
+ *  wider than the run is left out, so the list is exactly what can still go in. */
+function paintSlotMenu() {
+  menu.innerHTML = "";
+  const n = hover.node, start = hover.start;
+  const free = freeRunFrom(n, start);
+  const head = document.createElement("div");
+  head.className = "mhead";
+  head.textContent = `${free / 2}u free here — a unit accessory that fits`;
+  menu.append(head);
+
+  const list = [...BY_ROLE.slot_module, ...BY_ROLE.hang_rack];
+  let offered = 0;
+  for (const p of list) {
+    if (spanOf(p) > free || !canPlaceAt(n, start, spanOf(p))) continue;   // will not fit here
+    if (isHangRack(p) && hasHangRack(n)) continue;                        // one rack per frame
+    const c = compat(p.sku, n.sku);
+    if (c.level === "blocked") continue;
+
+    const row = document.createElement("div");
+    row.className = "part" + (c.level === "unlisted" ? " caution" : "");
+    const usd = p.price?.us ? "$" + TO_USD.us(p.price.us).toFixed(0) : "";
+    row.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
+      + `<span class="nm">${p.title_en}</span>`
+      + `<span class="sp">${c.level === "unlisted" ? "?" : usd}</span>`;
+    row.title = c.level === "unlisted" ? `${p.sku} — ${c.why}` : `${p.sku} — ${spanOf(p) / 2}u`;
+    row.onclick = () => { placeModuleAt(p.sku, n, start); setHover(null); };
+    wirePreview(row, p);
+    menu.append(row);
+    offered++;
+  }
+  if (!offered) {
+    const none = document.createElement("div");
+    none.className = "mhead";
+    none.textContent = "nothing in the catalog fits the space left here.";
+    menu.append(none);
+  }
+}
+
 // ---------------------------------------------------------------- interaction
 
 const ray = new THREE.Raycaster();
@@ -1079,6 +1157,13 @@ canvas.addEventListener("pointerdown", e => {
   const edge = ray.intersectObjects(edgeMeshes, false)[0];
   if (edge) {
     setHover(edge.object.userData.edge);
+    openMenu();
+    return;
+  }
+  // A free slot inside a frame: press it to add a module that fits the space there.
+  const slot = ray.intersectObjects(slotHandleMeshes, false)[0];
+  if (slot) {
+    setHover(slot.object.userData.slot);
     openMenu();
     return;
   }
@@ -1119,6 +1204,13 @@ canvas.addEventListener("pointermove", e => {
       // belongs to the handle now, and a stray drag here should not spin the camera.
       controls.enabled = false;
       setHover(hit.object.userData.edge);
+      return;
+    }
+    // A free slot inside a frame gets the same treatment: hovering it offers a module.
+    const hitS = ray.intersectObjects(slotHandleMeshes, false)[0];
+    if (hitS) {
+      controls.enabled = false;
+      setHover(hitS.object.userData.slot);
       return;
     }
     controls.enabled = true;
@@ -1351,6 +1443,25 @@ function placeModule(sku) {
   if (start < 0) return;
   n.placements.push({ sku, span, start });
   render();
+}
+
+/** Place a module at a SPECIFIC half-slot -- the one the pointer was over. Same rules as
+ *  placeModule, just an exact spot instead of the first that fits. */
+function placeModuleAt(sku, n, start) {
+  if (!n || n.kind !== "frame") return;
+  if (isHangRack(PARTS[sku]) && hasHangRack(n)) return;
+  const span = spanOf(PARTS[sku]);
+  if (!canPlaceAt(n, start, span)) return;
+  n.placements.push({ sku, span, start });
+  render();
+}
+
+/** How many contiguous free half-slots run from `start` -- the biggest module that fits here. */
+function freeRunFrom(n, start) {
+  const cells = occupancy(n);
+  let k = 0;
+  for (let i = start; i < cells.length && !cells[i]; i++) k++;
+  return k;
 }
 
 // ---------------------------------------------------------------- ui
