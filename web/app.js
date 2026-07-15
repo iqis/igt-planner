@@ -927,6 +927,7 @@ function setHover(e) {
   if (same) return;
   hover = e;
   menu.hidden = true;
+  hidePreview();
   btn.hidden = !e;
   if (e) {
     btn.title = `hook an extension onto the ${PARTS[e.node.sku].title_en}`;
@@ -944,6 +945,42 @@ function openMenu() {
 
 btn.onclick = openMenu;
 addEventListener("keydown", e => { if (e.key === "Escape") setHover(null); });
+
+// A menu row is a swatch, a name and a span — no room for the picture or the numbers.
+// Passing over one opens a card beside the menu with the thumbnail (web/img/SKU.jpg) and
+// the details: full name, sku, assembled size, price, weight.
+const preview = $("preview");
+const usd1 = p => (p.price?.us ? "$" + TO_USD.us(p.price.us).toFixed(0) : "");
+function showPreview(p, rowEl) {
+  const a = p.assembled_mm;
+  const span = spanOf(p) ? `${spanOf(p) / 2}u` : "";
+  preview.innerHTML =
+    `<img src="img/${p.sku}.jpg" alt="">`
+    + `<div class="pv-name">${p.title_en}</div>`
+    + `<div class="pv-row"><span class="pv-sku">${p.sku}</span><b>${usd1(p)}</b></div>`
+    + (a ? `<div class="pv-row"><span>size</span><b>${a.w}×${a.d}×${a.h}mm</b></div>` : "")
+    + (span ? `<div class="pv-row"><span>span</span><b>${span}</b></div>` : "")
+    + (p.weight_g ? `<div class="pv-row"><span>weight</span><b>${(p.weight_g / 1000).toFixed(2)}kg</b></div>` : "");
+  const img = preview.querySelector("img");
+  img.onerror = () => { img.style.visibility = "hidden"; };
+  // Beside the hovered ROW (always visible), to its LEFT; flip right if there is no room,
+  // and clamp inside the stage so it never escapes over the panels.
+  const sr = $("stage").getBoundingClientRect();
+  const rr = rowEl.getBoundingClientRect();
+  const W = 202;
+  let left = rr.left - sr.left - W - 6;
+  if (left < 4) left = rr.right - sr.left + 8;
+  left = Math.max(4, Math.min(left, sr.width - W));
+  const top = Math.max(4, Math.min(rr.top - sr.top - 4, sr.height - 210));
+  preview.style.left = `${left}px`;
+  preview.style.top = `${top}px`;
+  preview.hidden = false;
+}
+const hidePreview = () => { preview.hidden = true; };
+function wirePreview(row, p) {
+  row.addEventListener("mouseenter", () => showPreview(p, row));
+  row.addEventListener("mouseleave", hidePreview);
+}
 
 /** What may legally hook onto this edge.
  *
@@ -1005,6 +1042,7 @@ function paintMenu() {
       : `${p.sku} — ${Math.round(f.w)}×${Math.round(f.d)}mm`
         + (kindOf(p) === "frame" ? " — joins end to end (+ CK-175)" : "");
     row.onclick = () => { attach(p.sku, hover.node, hover.key); setHover(null); };
+    wirePreview(row, p);
     menu.append(row);
   }
 }
