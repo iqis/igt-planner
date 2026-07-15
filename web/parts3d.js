@@ -299,12 +299,14 @@ export function jikaroGroup({ outer, opening, edge, height, color, ringMat }) {
   seams.position.y = 0.4 * MM;
   g.add(seams);
 
-  // Eight folding wire legs -- TWO per segment, one on each of its two SHORT edges: the
-  // slanted sides that run from the inner (long) edge out to the outer (short) edge, the
-  // trapezoid's 285mm sides. NOT on the outer edge, and not the middle. Each is a U-shaped
-  // hairpin (a009): two near-vertical wires that widen and kick outward to a foot bar.
+  // Eight folding wire legs -- a U-hairpin at each of the octagon's eight VERTICES
+  // (jikaroRing verts (±e,±R),(±R,±e)), i.e. two per trapezoid segment, one near each of its
+  // corners. Two corrections over the old version, both grounded: POSITION is the corner, not
+  // 0.86 along a slant; and ORIENTATION is TANGENTIAL -- the two wires spread ALONG the edge,
+  // not radially in/out. Confirmed against the disassembled photo (a009), and the user's marks
+  // D,E land a wire each on the +x corner pair (vertices near 18° and 72°).
   const wire = metalE(color, 0.9, 0.28);
-  const o = opening / 2, R = outer / 2, e = edge / 2;
+  const R = outer / 2, e = edge / 2;
   const strut = (a, b) => {
     const va = new THREE.Vector3(...a).multiplyScalar(MM);
     const vb = new THREE.Vector3(...b).multiplyScalar(MM);
@@ -313,24 +315,23 @@ export function jikaroGroup({ outer, opening, edge, height, color, ringMat }) {
     m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
     g.add(m);
   };
-  const F = 0.86, top = 38, foot = 52, kick = 28;   // out along the slant; U width top/foot; kick
-  for (const [ux, uz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    for (const s of [-1, 1]) {                        // the segment's two slant (short) sides
-      const ix = o * ux - s * o * uz, iz = o * uz + s * o * ux;   // inner corner (hole side)
-      const ox = R * ux - s * e * uz, oz = R * uz + s * e * ux;   // outer corner (edge side)
-      const cx = ix + F * (ox - ix), cz = iz + F * (oz - iz);     // leg, out along the slant
-      const sl = Math.hypot(ox - ix, oz - iz) || 1;
-      const ax = (ox - ix) / sl, az = (oz - iz) / sl;            // along the slant (U width)
-      const L = Math.hypot(cx, cz) || 1, rx = cx / L, rz = cz / L; // outward radial (foot kick)
-      const legs = [];
-      for (const u of [-1, 1]) {                       // the two wires of one U
-        const t0 = [cx + ax * u * top / 2, 0, cz + az * u * top / 2];
-        const t1 = [cx + ax * u * foot / 2 + rx * kick, -height, cz + az * u * foot / 2 + rz * kick];
-        strut(t0, t1);
-        legs.push(t1);
-      }
-      strut(legs[0], legs[1]);                         // the foot joining them
+  const verts = [[e, R], [-e, R], [-e, -R], [e, -R], [R, e], [R, -e], [-R, -e], [-R, e]];
+  const HW = 66, kick = 12, notch = 32, inset = 0.97;  // half-width; outward foot kick; foot-bar centre rise; top pulled under the plate
+  for (const [vx, vz] of verts) {
+    const L = Math.hypot(vx, vz) || 1;
+    const rx = vx / L, rz = vz / L;              // outward radial
+    const tx = -rz, tz = rx;                     // tangent, along the edge -- the hairpin's width
+    const ax = vx * inset, az = vz * inset;      // anchor, a touch under the plate
+    const feet = [];
+    for (const u of [-1, 1]) {                   // the hairpin's two wires
+      const t0 = [ax + tx * u * HW, 0, az + tz * u * HW];
+      const t1 = [ax + tx * u * HW + rx * kick, -height, az + tz * u * HW + rz * kick];
+      strut(t0, t1);
+      feet.push(t1);
     }
+    // foot bar: dips to each foot, rises to a shallow notch between them (the a009 profile)
+    const mid = [(feet[0][0] + feet[1][0]) / 2, -height + notch, (feet[0][2] + feet[1][2]) / 2];
+    strut(feet[0], mid); strut(mid, feet[1]);
   }
   return { group: g, body: ring };
 }
