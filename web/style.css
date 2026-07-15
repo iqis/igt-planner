@@ -134,6 +134,8 @@ h2 {
 }
 .chip:hover { border-color: var(--accent); }
 .chip.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.chip.dead { opacity: .35; cursor: not-allowed; }
+.chip.dead:hover { border-color: var(--line); }
 
 .parts { display: flex; flex-direction: column; gap: .25rem; }
 .part {

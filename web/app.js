@@ -48,6 +48,20 @@ const textureOf = (sku, key = "file") => {
 // hero) and cropped to a clean grain -- so it wears its real surface, not a borrowed one.
 const loadTex = path => (texCache[path] ??= texLoader.load(path));
 const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
+// Dedicated grain instances for the self-IGT wood tops, keyed by tile shape. Kept OUT of the
+// shared cache so their tiling (repeat) does not fight the sliding extension, which draws the
+// same bamboo photo at a different size. One instance per (key), repeat baked in once.
+const WOOD_GRAIN = "tex/CK-116TR_grain.jpg";   // a clean bamboo crop -- no printed logo, unlike the _top photo
+const woodTexCache = {};
+function woodGrain(key, rx, ry) {
+  if (woodTexCache[key]) return woodTexCache[key];
+  const t = texLoader.load(WOOD_GRAIN);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.repeat.set(rx, ry);
+  woodTexCache[key] = t;
+  return t;
+}
 // The flat burner (GS-450R) shows its real top -- stainless well, brass head, ports, grate.
 const burnerTop = sku => sku.startsWith("GS-450R") ? loadTex("tex/GS-450R_top.jpg") : null;
 
@@ -138,6 +152,10 @@ function topOf(n, depth = 0) {
     if (h && depth < 16) return topOf(h, depth + 1) - stepDropMm(hostLegOf(h), n.step || 0);
     return (PARTS[n.leg]?.height_mm ?? 0) + (PARTS[n.sku].assembled_mm?.h ?? 25);
   }
+  // Self-contained IGTs stand at the datum by design; Slim's 408mm is within tolerance of 400, so
+  // snap them to the datum -- they line up with any 400mm table and join via a connection hook, not
+  // a height adjuster.
+  if (selfIgt(n.sku)) return LAYOUT.datum_height_mm;
   return PARTS[n.sku].height_mm ?? PARTS[n.sku].assembled_mm?.h ?? LAYOUT.datum_height_mm;
 }
 
@@ -892,7 +910,7 @@ function drawTable(g, n) {
   if (n.sku === "CK-090") {
     const f = footprint(n), tp = topOf(n);
     const c = expCfg(n);
-    const built = extIgtGroup(f.w, f.d, tp, { bayW: c?.bay_w_mm || 0, bayD: c?.bay_d_mm || 360 });
+    const built = extIgtGroup(f.w, f.d, tp, { bayW: c?.bay_w_mm || 0, bayD: c?.bay_d_mm || 360, tex: woodGrain("ext", 2, 2) });
     built.group.position.y = tp * MM;
     built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(built.group);
@@ -913,7 +931,8 @@ function drawTable(g, n) {
 
     const cells = occupancy(n), skip = [];
     for (let i = 0; i < cells.length; i++) if (cells[i]) skip.push(i);
-    const top = igtWoodTop({ units: si.units, color: si.top === "teak" ? 0xc7a06a : 0xcaa96b, skip, d: f.d });
+    const top = igtWoodTop({ units: si.units, color: si.top === "teak" ? 0xb98046 : 0xd8bd86,
+      skip, d: f.d, tex: woodGrain("tile", 1, 2) });
     top.group.position.y = tp * MM;
     top.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(top.group);
@@ -1802,12 +1821,12 @@ function freeBlock(n, cell) {
 
 // ---------------------------------------------------------------- ui
 
-function chip(label, on, title, fn) {
+function chip(label, on, title, fn, dead = false) {
   const c = document.createElement("button");
-  c.className = "chip" + (on ? " on" : "");
+  c.className = "chip" + (on ? " on" : "") + (dead ? " dead" : "");
   c.textContent = label;
   c.title = title || "";
-  c.onclick = fn;
+  if (!dead) c.onclick = fn;
   return c;
 }
 
@@ -1851,12 +1870,18 @@ function paintPalette() {
 
   const n = sel();
   const hooked = n?.kind === "ext";
+  // Legs set the height only for a frame or a hooked extension. A self-contained IGT (Entry, Slim,
+  // Extension IGT) and the Jikaro carry their OWN fixed-height built-in legs, so the length options
+  // don't apply -- grey them out rather than let a dead click imply they do something.
+  const legFixed = !!n && n.kind !== "frame" && n.kind !== "ext";
   const legs = $("legs"); legs.innerHTML = "";
   for (const p of BY_ROLE.leg) {
     const c = chip(`${p.height_mm}mm`, n?.leg === p.sku,
-      hooked ? `an extension is flush with what it hooks to — it takes the same legs, `
+      legFixed ? `${PARTS[n.sku].title_en} has fixed built-in legs — its height isn't adjustable`
+        : hooked ? `an extension is flush with what it hooks to — it takes the same legs, `
              + `so this sets them for the whole run` : p.title_en,
-      () => { if (n) setLeg(n, p.sku); });
+      () => { if (n) setLeg(n, p.sku); },
+      legFixed);
     c.dataset.search = `${p.sku} ${p.title_en}`.toLowerCase();
     legs.append(c);
   }

@@ -58,6 +58,18 @@ const textureOf = (sku, key = "file") => {
 // The sliding extension's own bamboo, rectified from its top-view photo and cropped to grain.
 const loadTex = path => (texCache[path] ??= texLoader.load(path));
 const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
+// Dedicated grain instances for the self-IGT wood tops (own tiling, kept off the shared cache).
+const WOOD_GRAIN = "tex/CK-116TR_grain.jpg";   // clean bamboo crop, no printed logo
+const woodTexCache = {};
+function woodGrain(key, rx, ry) {
+  if (woodTexCache[key]) return woodTexCache[key];
+  const t = texLoader.load(WOOD_GRAIN);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.repeat.set(rx, ry);
+  woodTexCache[key] = t;
+  return t;
+}
 const burnerTop = sku => sku.startsWith("GS-450R") ? loadTex("tex/GS-450R_top.jpg") : null;
 
 // The axis a set of measured points sits on. Same rule as the planner uses, so what you
@@ -135,14 +147,15 @@ function benchGeo(p, box) {
     const si = (CAT.layout?.self_igt || {})[sku] || { units: 3, top: sku === "CK-180" ? "teak" : "bamboo" };
     const wrap = new THREE.Group();
     wrap.add((sku === "CK-180" ? slimIgtGroup : entryIgtGroup)(w, d, h).group);
-    wrap.add(igtWoodTop({ units: si.units, color: si.top === "teak" ? 0xc7a06a : 0xcaa96b, skip: [], d }).group);
+    wrap.add(igtWoodTop({ units: si.units, color: si.top === "teak" ? 0xb98046 : 0xd8bd86,
+      skip: [], d, tex: woodGrain("tile", 1, 2) }).group);
     return wrap;
   }
   // Extension IGT: two bamboo tops that slide apart. The bench shows the expanded form (its
   // assembled_mm is the open 1348), so the central 2-Unit bay is visible.
   if (sku === "CK-090") {
     const e = (CAT.layout?.expandables || {})["CK-090"], c = e && e.configs[e.default];
-    return extIgtGroup(w, d, h, { bayW: c?.bay_w_mm || 500, bayD: c?.bay_d_mm || 360 }).group;
+    return extIgtGroup(w, d, h, { bayW: c?.bay_w_mm || 500, bayD: c?.bay_d_mm || 360, tex: woodGrain("ext", 2, 2) }).group;
   }
 
   if (role === "layout_table" || role === "standalone")

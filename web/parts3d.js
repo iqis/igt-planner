@@ -338,9 +338,10 @@ export function entryIgtGroup(w, d, height) {
  *  half-unit across the 3-unit run, so a dropped module simply takes a tile's place -- which is
  *  exactly how the real tops lift out. `skip` = occupied half-slot indices; `color` bamboo/teak;
  *  `d` the body depth (the tile spans the IGT depth, centred). Tiles hang just below y = 0. */
-export function igtWoodTop({ units, color, skip = [], d, thick = 14 }) {
+export function igtWoodTop({ units, color, skip = [], d, thick = 14, tex = null }) {
   const g = new THREE.Group();
-  const wood = new THREE.MeshStandardMaterial({ color, roughness: 0.64, metalness: 0.04 });
+  // `tex` (a grain map configured by the caller) gives the wood its figure; `color` tints it.
+  const wood = new THREE.MeshStandardMaterial({ color, map: tex || null, roughness: 0.62, metalness: 0.03 });
   const HALF = 125, run = units * 250, tileD = Math.min(d - 40, 360), gap = 4;
   const skipSet = new Set(skip);
   for (let i = 0; i < units * 2; i++) {
@@ -384,10 +385,10 @@ export function slimIgtGroup(w, d, height) {
  *  `w` is the CURRENT footprint width (1348 open / 840 closed); `bayW` the gap opened between
  *  the tops (0 when closed) -- silver IGT rails show across that gap. Fixed folding tube legs.
  *  Top at y = 0. Returns { group, body, bay } -- bay = {w,d} of the exposed slot, or null. */
-export function extIgtGroup(w, d, height, { bayW = 0, bayD = 360 } = {}) {
+export function extIgtGroup(w, d, height, { bayW = 0, bayD = 360, tex = null } = {}) {
   const g = new THREE.Group();
   const alu = metalE(0xd0d3d7, 0.85, 0.35);
-  const bamboo = new THREE.MeshStandardMaterial({ color: 0xcaa96b, roughness: 0.64, metalness: 0.04 });
+  const bamboo = new THREE.MeshStandardMaterial({ color: 0xcaa96b, map: tex || null, roughness: 0.62, metalness: 0.03 });
   const thick = 22, bar = 12;
   const topW = (w - bayW) / 2;                        // each bamboo top's slice of the width
   // aluminium stand: a shallow ring of four bars round the whole footprint
