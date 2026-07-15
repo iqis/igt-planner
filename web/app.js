@@ -119,11 +119,28 @@ function topOf(n, depth = 0) {
   if (n.kind === "frame") return (PARTS[n.leg]?.height_mm ?? 0) + FRAME_THICK;
   if (n.kind === "ext") {
     const h = byId(n.host);
-    if (h && depth < 16) return topOf(h, depth + 1);
+    // Flush with the host, MINUS any height-adjuster step (n.step rungs down the ladder).
+    if (h && depth < 16) return topOf(h, depth + 1) - stepDropMm(hostLegOf(h), n.step || 0);
     return (PARTS[n.leg]?.height_mm ?? 0) + (PARTS[n.sku].assembled_mm?.h ?? 25);
   }
   return PARTS[n.sku].height_mm ?? PARTS[n.sku].assembled_mm?.h ?? LAYOUT.datum_height_mm;
 }
+
+// The IGT height ladder -- the leg SKUs top to bottom. A height adjuster (CK-151) bridges ONE
+// adjacent step and only downward (per the CK-151 manual: 830<->660<->400<->300; it CANNOT skip
+// a step like 830->400, and CANNOT raise). legAtStep drops a leg SKU by `step` rungs, clamped.
+const HEIGHT_LADDER = ["CK-114", "CK-113", "CK-112", "CK-109"];   // 830, 660, 400, 300 mm
+const legRung = leg => HEIGHT_LADDER.indexOf(leg);
+function legAtStep(fromLeg, step = 0) {
+  const i = legRung(fromLeg);
+  if (i < 0) return fromLeg;
+  return HEIGHT_LADDER[Math.max(0, Math.min(i + step, HEIGHT_LADDER.length - 1))];
+}
+const legMm = leg => PARTS[leg]?.height_mm ?? 0;
+const stepDropMm = (fromLeg, step = 0) => legMm(fromLeg) - legMm(legAtStep(fromLeg, step));
+const stepRoom = hostLeg => Math.max(0, HEIGHT_LADDER.length - 1 - legRung(hostLeg));  // rungs left below
+// The leg a host effectively stands on -- its own, or the datum leg for a legless layout table.
+const hostLegOf = h => h?.leg || PARTS[h?.sku]?.requires_leg || LAYOUT.leg_at_datum;
 
 /** World-space AABB, honouring the node's rotation. */
 function aabb(n) {
@@ -426,7 +443,8 @@ function place(n) {
   // height, and the datum tables are all 400mm, so a board hooked to one takes the 400mm
   // IGT Low leg (CK-112). Snow Peak's photo of a Bamboo table on the Jikaro shows exactly
   // that, and it is the same arithmetic that made CK-112 the datum leg in the first place.
-  n.leg = h.leg || PARTS[h.sku]?.requires_leg || LAYOUT.leg_at_datum || n.leg;
+  // Flush takes the host's leg; a height adjuster drops it n.step rungs down the ladder.
+  n.leg = legAtStep(hostLegOf(h), n.step || 0) || n.leg;
 }
 
 const SLIDE_SNAP = 25;   // mm -- a light grid so a dragged extension lands tidy, not free-float
@@ -1556,6 +1574,14 @@ function setLeg(n, sku) {
   root.leg = sku;
   render();
 }
+
+// A hooked board's height adjuster: step it DOWN the ladder from its host. Clamped to one rung
+// (one CK-151 bridges one adjacent step) and to the floor of the ladder.
+function setStep(n, step) {
+  const room = Math.min(1, stepRoom(hostLegOf(byId(n.host))));
+  n.step = Math.max(0, Math.min(step, room));
+  render();
+}
 function rootOf(n, depth = 0) {
   if (n.kind !== "ext" || depth > 16) return n;
   const h = byId(n.host);
@@ -1679,6 +1705,21 @@ function paintPalette() {
         `${c.outer_mm}mm across, ${c.opening_mm}mm fire opening, four ${c.edge_mm}mm edges to hook to`,
         () => { n.config = key; render(); }));
   }
+  // Height adjuster: a hooked board sits flush with its host, or drops ONE rung of the ladder
+  // (830->660->400->300) via a CK-151. One step per adjuster -- lower still means chaining.
+  if (n && n.kind === "ext" && n.host && !isSlide(PARTS[n.sku])) {
+    const hostLeg = hostLegOf(byId(n.host));
+    const room = Math.min(1, stepRoom(hostLeg));
+    for (let s = 0; s <= room; s++) {
+      const leg = legAtStep(hostLeg, s);
+      acts.append(chip(
+        s === 0 ? `⇥ ${legMm(hostLeg)}mm` : `↓ ${legMm(leg)}mm +adj`,
+        (n.step || 0) === s,
+        s === 0 ? "flush — the same height as what it hooks to"
+                : `one step down (${legMm(hostLeg)}→${legMm(leg)}mm) with an IGT Height Adjuster (CK-151)`,
+        () => setStep(n, s)));
+    }
+  }
   if (n) {
     if (!n.host) acts.append(chip("⟲ turn 90°", false, "rotate this table", () => rotateNode(n)));
     acts.append(chip("× remove", false,
@@ -1757,8 +1798,12 @@ function bomLines() {
     const conn = PARTS[n.sku].requires_connector;
     if (conn && PARTS[conn]) lines.push({ sku: conn, req: true });
   }
-  // One step joint per height change between touching tables.
-  for (let i = 0; i < steps().length; i++) lines.push({ sku: "CK-151", req: true });
+  // One step joint per LEGAL (one-rung) height change between touching tables. A skip of more
+  // than one rung is not a thing a CK-151 can bridge, so it gets a warning, not a part.
+  for (const [a, b] of steps()) {
+    const hi = topOf(a) >= topOf(b) ? a : b, lo = hi === a ? b : a;
+    if (legRung(hostLegOf(lo)) - legRung(hostLegOf(hi)) === 1) lines.push({ sku: "CK-151", req: true });
+  }
   return lines;
 }
 
@@ -1806,9 +1851,20 @@ function paintWarnings() {
     d.className = cls; d.textContent = msg; w.append(d);
   };
 
-  for (const [a, b] of steps())
-    add(`${PARTS[a.sku].title_en} and ${PARTS[b.sku].title_en} meet at different heights `
-      + `(${topOf(a)} vs ${topOf(b)}mm). That needs an IGT Height Adjuster — added.`, "warn info");
+  for (const [a, b] of steps()) {
+    const hi = topOf(a) >= topOf(b) ? a : b, lo = hi === a ? b : a;
+    const rungs = legRung(hostLegOf(lo)) - legRung(hostLegOf(hi));   // how far DOWN the ladder
+    const names = `${PARTS[a.sku].title_en} and ${PARTS[b.sku].title_en}`;
+    if (rungs === 1)
+      add(`${names} meet one step apart (${topOf(hi)} vs ${topOf(lo)}mm) — an IGT Height Adjuster `
+        + `(CK-151) bridges it. Added.`, "warn info");
+    else if (rungs > 1)
+      add(`${names} meet ${topOf(hi)} vs ${topOf(lo)}mm — that is ${rungs} steps, and a Height `
+        + `Adjuster only bridges ONE. Put them at adjacent heights, or chain a table between.`, "warn");
+    else
+      add(`${names} meet at different heights (${topOf(hi)} vs ${topOf(lo)}mm), off the standard `
+        + `ladder — a Height Adjuster may not fit. Check the heights.`, "warn");
+  }
 
   // The datum is the reason the fire-side tables specify low legs: they are all 400mm,
   // and so is the IGT Low leg. A frame at 830mm simply cannot meet one flush.
