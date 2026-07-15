@@ -442,13 +442,15 @@ function place(n) {
   // A sliding extension does not centre on the rail -- it SLIDES, and you can DRAG it along
   // (unlike a hooked board, pinned by its hooks). Its position is a stored offset from the
   // middle of the run, snapped to a light grid and clamped to the rail.
-  if (isSlide(PARTS[n.sku]) && e.rail) {
+  // On the long rail, BOTH a sliding extension and a hook-on board move along the rail -- apply
+  // the stored offset. The slide then cantilevers and drops its legs; a hook-on board falls
+  // through and keeps its host's legs.
+  if (n.rail && e.rail) {
     const along = { x: dir.z, z: -dir.x };
-    const off = slideOffset(n, h);
+    const off = isSlide(PARTS[n.sku]) ? slideOffset(n, h) : (n.slide || 0);
     n.x += along.x * off;
     n.z += along.z * off;
-    n.leg = null;                              // it cantilevers off the rail; no legs
-    return;
+    if (isSlide(PARTS[n.sku])) { n.leg = null; return; }   // cantilevers off the rail; no legs
   }
 
   // A board flush with its host stands at its host's height, so it takes its host's legs.
@@ -469,7 +471,10 @@ const SLIDE_SNAP = 25;   // mm -- a light grid so a dragged extension lands tidy
  *  on the same rail -- two must NOT overlap. Neighbours are classed by which side they are on
  *  now, so the board slides up to TOUCHING one but not through it. */
 function slideBounds(n, host) {
-  const bw = railW(PARTS[n.sku]);
+  // A sliding extension must fit ON the rail, so subtract its width. A hook-on board just hangs
+  // from a rail joint at a POINT and can overhang, so it ranges over the whole rail (bw = 0) --
+  // otherwise a board wider than the frame clamps to a zero range and cannot be dragged at all.
+  const bw = isSlide(PARTS[n.sku]) ? railW(PARTS[n.sku]) : 0;
   const rail = Math.max(0, (footprint(host).w - bw) / 2);
   let lo = -rail, hi = rail;
   const cur = n.slide ?? 0;
@@ -1289,12 +1294,12 @@ canvas.addEventListener("pointerdown", e => {
   toPtr(e);
   ray.setFromCamera(ptr, camera);
 
-  // A sliding extension is GRABBED to drag it, and it sits ON the rail -- so the rail's own
-  // "add here" edge handle (still shown while the rail has room) would otherwise swallow the
-  // click. The board cantilevers out toward you, so it is the CLOSER hit; prefer it.
+  // Anything on the long rail -- a sliding extension OR a hook-on board -- is GRABBED to drag it
+  // ALONG the rail. It sits on the rail, so the rail's own "add here" edge handle would otherwise
+  // swallow the click; the board is the closer hit, so prefer it.
   const edge = ray.intersectObjects(edgeMeshes, false)[0];
   const slideHit = ray.intersectObjects(nodeMeshes, false)
-    .find(h => { const nn = h.object.userData.node; return nn?.host && isSlide(PARTS[nn.sku]); });
+    .find(h => { const nn = h.object.userData.node; return nn?.host && nn?.rail; });
   if (slideHit && (!edge || slideHit.distance <= edge.distance + 1)) {
     dragSlide = slideHit.object.userData.node;
     state.sel = dragSlide.id;
@@ -1589,7 +1594,9 @@ function attach(sku, host, key) {
     id: state.nextId++, sku, kind: kindOf(PARTS[sku]), host: host.id, edge: key,
     x: 0, z: 0, rot: 0, leg: slide ? null : host.leg, placements: [],
     rail: key.startsWith("rail"),
-    ...(slide ? { slide: initialSlide(host, key, sku) } : {}),
+    // Anything on the long rail carries a slide offset so it can be dragged ALONG the rail --
+    // a sliding extension starts staggered, a hook-on board starts centred (0).
+    ...(key.startsWith("rail") ? { slide: slide ? initialSlide(host, key, sku) : 0 } : {}),
   };
   state.nodes.push(n);
   state.sel = n.id;
