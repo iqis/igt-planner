@@ -671,10 +671,18 @@ function drawFrame(g, n) {
     const ref = FRAMES["CK-149"];
     const inset = ref ? (846 / 2) - Math.abs(ref.leg_sockets_mm[0][0]) : 40;
     const sideIn = ref ? (496 / 2) - Math.abs(ref.leg_sockets_mm[0][1]) : 40;
-    const spots = measured || [
+    let spots = measured || [
       [-(f.w / 2 - inset), -(f.d / 2 - sideIn)], [-(f.w / 2 - inset), f.d / 2 - sideIn],
       [f.w / 2 - inset, -(f.d / 2 - sideIn)], [f.w / 2 - inset, f.d / 2 - sideIn],
     ];
+    // Frames joined with a CK-175 can SHARE the joint: the continuation drops the two legs at
+    // its joined end (the pair nearest the host). User's choice -- default keeps its own four.
+    const host2 = byId(n.host);
+    if (host2 && n.sharedJoint) {
+      const loc = rotv({ x: host2.x - n.x, z: host2.z - n.z }, -n.rot);   // host direction, frame-local
+      const jointX = Math.sign(loc.x);
+      spots = spots.filter(([lx]) => Math.sign(lx) !== jointX);
+    }
     for (const [lx, lz] of spots) {
       const shaft = stock(
         new THREE.CylinderGeometry(LEG_R * MM, LEG_R * 0.82 * MM, h * MM, 16),
@@ -1783,6 +1791,16 @@ function paintPalette() {
         () => setStep(n, s)));
     }
   }
+  // A frame joined to another with a CK-175 can keep its own four legs (what the one connection
+  // photo shows) OR share the joint and drop the pair at the joined end. The user chooses.
+  if (n && n.kind === "frame" && n.host) {
+    acts.append(chip("4 legs", !n.sharedJoint,
+      "keep its own four legs — both frames legged at the joint (the connection photo)",
+      () => { n.sharedJoint = false; render(); }));
+    acts.append(chip("2 legs · shared joint", !!n.sharedJoint,
+      "drop the two legs at the joined end and share the host's",
+      () => { n.sharedJoint = true; render(); }));
+  }
   if (n) {
     if (!n.host) acts.append(chip("⟲ turn 90°", false, "rotate this table", () => rotateNode(n)));
     acts.append(chip("× remove", false,
@@ -1843,8 +1861,10 @@ function bomLines() {
   const lines = [];
   for (const n of state.nodes) {
     lines.push({ sku: n.sku, node: n });
-    // A set is two legs. A frame stands on four.
-    const sets = LEG_SETS[n.kind] ?? 0;
+    // A set is two legs. A frame stands on four -- unless it shares a CK-175 joint, in which
+    // case the continuation drops the pair at the joined end and stands on two.
+    const shared = n.host && n.kind === "frame" && n.sharedJoint;
+    const sets = shared ? 1 : (LEG_SETS[n.kind] ?? 0);
     if (n.leg) for (let i = 0; i < sets; i++)
       lines.push({ sku: n.leg, req: n.kind === "ext" });
     // Hooked onto the frame's long rail: a wire-hook board hangs from a pair of rail joints.
