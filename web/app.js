@@ -2819,7 +2819,30 @@ function paintOutliner() {
   }
 }
 
-function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); }
+// Dimensions read-out: the layout's overall footprint, and the selected object's own size.
+function paintDimHud() {
+  const hud = $("dimhud"); if (!hud) return;
+  const objs = state.nodes.filter(n => n.kind !== "footprint");   // footprints are references, not the build
+  let overall = "";
+  if (objs.length) {
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (const n of objs) { const a = aabb(n); x0 = Math.min(x0, a.x0); x1 = Math.max(x1, a.x1); z0 = Math.min(z0, a.z0); z1 = Math.max(z1, a.z1); }
+    overall = `layout <b>${((x1 - x0) / 1000).toFixed(2)} × ${((z1 - z0) / 1000).toFixed(2)} m</b>`;
+  }
+  const n = sel();
+  let selLine = "";
+  if (n) {
+    const f = footprint(n), h = selTop(n);
+    const size = n.kind === "footprint"
+      ? `${Math.round(f.w)} × ${Math.round(f.d)} mm`
+      : `${Math.round(f.w)} × ${Math.round(f.d)} × ${Math.round(h)} mm`;
+    selLine = `${PARTS[n.sku].title_en}  <b>${size}</b>`;
+  }
+  hud.innerHTML = (overall ? `<div>${overall}</div>` : "") + (selLine ? `<div class="sel">${selLine}</div>` : "");
+  hud.hidden = !overall && !selLine;
+}
+
+function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); }
 // ---------------------------------------------------------------- undo / redo
 // Snapshots of the layout (nodes only -- selection is transient, not worth an undo step). Every
 // committed render pushes one; a drag pushes only its final state (see pointerup). Ctrl/Cmd-Z

@@ -203,6 +203,21 @@ h2 {
 #stage { position: relative; min-width: 0; }
 #canvas { width: 100%; height: 100%; display: block; }
 
+/* Dimensions read-out, top-left of the viewport: the layout's overall extent, and the selected
+   object's size. A design tool should always tell you how big the thing is. */
+#dimhud[hidden] { display: none; }
+#dimhud {
+  position: absolute;
+  bottom: .7rem; left: .7rem;
+  font-size: .66rem;
+  color: var(--dim);
+  pointer-events: none;
+  line-height: 1.5;
+  text-shadow: 0 1px 2px var(--bg), 0 0 2px var(--bg);
+}
+#dimhud .sel { color: var(--accent); }
+#dimhud b { color: var(--ink); font-weight: 600; }
+
 #slotbar {
   position: absolute;
   left: 50%;
