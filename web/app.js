@@ -894,7 +894,7 @@ function drawModules(g, n, top) {
 
     // Everything with a real 3D form comes from parts3d.js, so the part bench draws the
     // identical object. A burner, a wire mesh tray, a box or bin -- built once, shared.
-    const built = moduleGroup(p2, w, d, h, swatchOf(p2.sku), burnerTop(p2.sku));
+    const built = moduleGroup(p2, w, d, h, swatchOf(p2.sku), burnerTop(p2.sku), pl.config);
     if (built) { dropModule(g, n, pl, cx, top, built); continue; }
 
     // A flat insert or lid that drops into the slot: a bamboo board, a stainless lid-tray.
@@ -1687,11 +1687,41 @@ addEventListener("keydown", e => {
 // The action menu for a placed module -- reached by right-click or a left long-press, so a
 // removal is a considered second click, not a twitchy one. Positioned at the pointer.
 const modmenu = $("modmenu");
+// A few modules can be configured in place -- the BBQ's two halves are each a grill net or a
+// griddle plate (it ships with two nets; the plate is a separate buy, and is size-shared with the
+// Takibi Fire & Grill L). The choice rides on the PLACEMENT, not the part: two BBQs in a layout can
+// be set up differently.
+const MODULE_CONFIGS = {
+  "CK-160": {
+    default: "nets",
+    options: {
+      nets:   ["◫◫ two nets", "焼き網 ×2 — what it ships with"],
+      mixed:  ["◫▬ net + plate", "one grill net, one 鉄板 griddle plate"],
+      plates: ["▬▬ two plates", "two 鉄板 griddle plates"],
+    },
+  },
+};
+const moduleCfgOf = sku => MODULE_CONFIGS[sku.replace(/-(US|INT|EC|R)$/i, "")];
+
 function showModMenu(node, pl, clientX, clientY) {
   const p = PARTS[pl.sku];
-  modmenu.innerHTML = `<div class="mhead">${p.title_en}</div>`
-    + `<div class="act del">× remove from frame</div>`;
-  modmenu.querySelector(".act.del").onclick = () => { removePlacement(node, pl); hideModMenu(); };
+  modmenu.innerHTML = `<div class="mhead">${p.title_en}</div>`;
+  // Its own options first -- you right-clicked the thing, so act on the thing.
+  const cfg = moduleCfgOf(pl.sku);
+  if (cfg) {
+    const cur = pl.config || cfg.default;
+    for (const [key, [label, hint]] of Object.entries(cfg.options)) {
+      const row = document.createElement("div");
+      row.className = "act" + (cur === key ? " on" : "");
+      row.textContent = label; row.title = hint;
+      row.onclick = () => { pl.config = key; hideModMenu(); render(); };
+      modmenu.append(row);
+    }
+  }
+  const del = document.createElement("div");
+  del.className = "act del"; del.textContent = "× remove from frame";
+  del.onclick = () => { removePlacement(node, pl); hideModMenu(); };
+  modmenu.append(del);
   const sr = $("stage").getBoundingClientRect();
   modmenu.style.left = Math.max(4, Math.min(clientX - sr.left, sr.width - 172)) + "px";
   modmenu.style.top = Math.max(4, Math.min(clientY - sr.top, sr.height - 72)) + "px";

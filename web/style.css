@@ -484,6 +484,8 @@ h2 {
   border: 1px solid transparent; border-radius: 3px;
   background: var(--raise); cursor: pointer;
 }
+#modmenu .act:hover { border-color: var(--accent); }
+#modmenu .act.on { border-color: var(--accent); background: var(--sel-bg); font-weight: 600; }
 #modmenu .act.del:hover { background: var(--warn-bg); color: var(--warn-ink); border-color: var(--bad); }
 
 /* layout-system additions */

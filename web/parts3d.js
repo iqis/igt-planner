@@ -205,6 +205,15 @@ export function stainlessBoxGroup(w, d, h, { color = 0xb9bec4, wall = 3 } = {}) 
   return { group: g, body };
 }
 
+// What the BBQ's two halves can be. It SHIPS with two 焼き網 nets; a 鉄板 griddle plate is bought
+// separately and takes either net's place (owner) -- so the halves are independent. The cooking
+// surfaces are size-shared with the Takibi Fire & Grill L, so a plate bought for one fits the other.
+export const BBQ_SURFACES = {
+  nets:   ["net", "net"],
+  mixed:  ["net", "plate"],
+  plates: ["plate", "plate"],
+};
+
 /** Double BBQ Box (CK-160; JP リフトアップBBQ BOX, "lift-up"): a charcoal BBQ that drops into the
  *  frame. Its manual settles what it is, and it is NOT the grate-half + griddle-half the old bbq
  *  branch drew. There is no griddle:
@@ -227,9 +236,14 @@ export function stainlessBoxGroup(w, d, h, { color = 0xb9bec4, wall = 3 } = {}) 
  *  measures across the splayed stands and the stands come off. D360 is real -- it is the rim, and
  *  it lands on the rail lip like any module.
  *
- *  Rim at y = 0 hanging to -bodyH, and the nets RISE ABOVE it -- the exception this file's header
- *  already names. */
-export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 120 } = {}) {
+ *  EITHER HALF SWAPS (owner): a 鉄板 griddle plate takes a net's place, so the two halves are
+ *  independently net-or-plate -- `surfaces`. Two nets is what it SHIPS with; the plate is bought
+ *  separately. Its cooking surfaces are size-shared with the Takibi Fire & Grill L.
+ *
+ *  Rim at y = 0 hanging to -bodyH, and the surfaces RISE ABOVE it -- the exception this file's
+ *  header already names. */
+export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 120,
+                                       surfaces = ["net", "net"] } = {}) {
   const wallD = wallSpan(d), wall = 2;
   const { group: g, body } = binGroup(bodyW, wallD, bodyH, { open: true, color, wall });
   const mat = metal(color, 0.8, 0.4);
@@ -277,17 +291,27 @@ export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 12
     link([x, -6, zs], [x, yTop, -zs]);
   }
 
-  // The two 焼き網: a woven wire grid in a thin border, one per unit. The pitch is representative --
-  // the real mesh is finer than it is worth drawing.
+  // The two cooking surfaces, one per unit -- each independently a 焼き網 net or a 鉄板 griddle
+  // plate. A net is a woven wire grid in a thin border (the pitch is representative; the real mesh
+  // is finer than it is worth drawing). A plate is what it sounds like: a solid slab with a raised
+  // lip to hold the fat in, and it reads DARK -- it is not stainless.
   const netMat = metal(0xd0d4d9, 0.92, 0.24);
-  for (const sx of [-1, 1]) {
-    const nw = lfW / 2 - 3, nd = lfD - 8, cx = sx * (lfW / 4 + 1.5), rim = 6, pitch = 22;
+  const plateMat = metal(0x33373d, 0.42, 0.55);
+  for (const [i, sx] of [[0, -1], [1, 1]]) {
+    const nw = lfW / 2 - 3, nd = lfD - 8, cx = sx * (lfW / 4 + 1.5), rim = 6;
+    if (surfaces[i] === "plate") {
+      box(g, nw, 7, nd, 1.5, plateMat, cx, lift - 3.5, 0);                      // the slab
+      for (const sz of [-1, 1]) box(g, nw, 5, 3, 1, plateMat, cx, lift + 2.5, sz * (nd / 2 - 1.5));
+      for (const s2 of [-1, 1]) box(g, 3, 5, nd, 1, plateMat, cx + s2 * (nw / 2 - 1.5), lift + 2.5, 0);
+      continue;
+    }
+    const pitch = 22;
     for (const sz of [-1, 1]) box(g, nw, 4, rim, 1, netMat, cx, lift - 2, sz * (nd / 2 - rim / 2));
     for (const s2 of [-1, 1]) box(g, rim, 4, nd, 1, netMat, cx + s2 * (nw / 2 - rim / 2), lift - 2, 0);
     const iw = nw - 2 * rim, id = nd - 2 * rim;
     const nx = Math.max(2, Math.round(iw / pitch)), nz = Math.max(2, Math.round(id / pitch));
-    for (let i = 1; i < nx; i++) box(g, 2, 2, id, 0, netMat, cx - iw / 2 + (i * iw) / nx, lift - 1.5, 0);
-    for (let i = 1; i < nz; i++) box(g, iw, 2, 2, 0, netMat, cx, lift - 3.5, -id / 2 + (i * id) / nz);
+    for (let j = 1; j < nx; j++) box(g, 2, 2, id, 0, netMat, cx - iw / 2 + (j * iw) / nx, lift - 1.5, 0);
+    for (let j = 1; j < nz; j++) box(g, iw, 2, 2, 0, netMat, cx, lift - 3.5, -id / 2 + (j * id) / nz);
   }
   return { group: g, body };
 }
@@ -302,13 +326,14 @@ export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 12
  *  BBQ's lift frame and its two nets) -- the exception, built in, not the norm.
  *
  *  Returns null for a part that is genuinely just a thin slab (a shallow tray); the caller
- *  draws that itself. `color` is the part's swatch, passed in so this stays state-free. */
-export function moduleGroup(p, w, d, h, color, topTex = null) {
+ *  draws that itself. `color` is the part's swatch, passed in so this stays state-free; `cfg` is
+ *  the placement's chosen configuration, for the few modules that have one. */
+export function moduleGroup(p, w, d, h, color, topTex = null, cfg = null) {
   // The two stainless boxes are their own shapes, not the generic bin: both hang by a measured rim,
   // and the BBQ carries a whole charcoal fire. They go FIRST, before the generic h >= 60 bin.
   const base = p.sku.replace(/-(US|INT|EC|R)$/i, "");
   if (base === "CK-025") return stainlessBoxGroup(w, d, h, { color });
-  if (base === "CK-160") return bbqBoxGroup(w, d, h, { color });
+  if (base === "CK-160") return bbqBoxGroup(w, d, h, { color, surfaces: BBQ_SURFACES[cfg] || BBQ_SURFACES.nets });
   const bspec = burnerOf(p.sku);
   if (bspec) return burnerGroup(bspec, w, d, h, topTex);
   if (isMesh(p)) return meshTrayGroup(w, d, h, new THREE.Color(color));

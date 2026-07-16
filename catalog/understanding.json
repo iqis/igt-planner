@@ -317,5 +317,12 @@
   "TP-815/TP-820 (not TP-880/882); Takibi Octa=TP-430, Takibi Hexa M=TP-440S (not TP-810/830);",
   "TP-861S is Hexa M ('S'=Set not Small), TP-862=Hexa L, Evo Pro=TP-260/TP-250R. NOT Snow Peak",
   "products (dropped): 'Minimalists' (closest: Lago 1) and 'Takibi Tarp Wing' (tent-Mark DESIGNS)."
- ]
+ ],
+ "CK-160": {
+  "what": "Double BBQ Box (リフトアップBBQ BOX, 'lift-up'): a charcoal BBQ that drops into an IGT frame. Its manual (セット内容 + steps 1-6) is the authority: 本体 (stainless box, vent row low in each long wall), インナートレー/炭床 (a perforated dark charcoal bed inside), 昇降フレーム (a LIFT frame on links, raised by a crank), 焼き網 x2 (TWO grill nets, side by side, half the top each -- this is what 'Double' means), plus フタ, スタンド x2, ハンドル.",
+  "model": "bbqBoxGroup. Body built at the 収納 size W500 x H120, NOT the published W605 x H175: step 6 mounts it to the frame by REMOVING the handle and stands, and 500 = exactly two IGT units, one per net. The 55 that H175 has over the packed 120 is the lift frame standing up. D360 is real -- it is the rim, landing on the rail lip (RAIL_SPAN: clear span 317, lip |z| 158.5..182.5 from frame_fittings.json CK-149). The lid/stands/handle are not built (step 1 removes the lid; step 6 the other two).",
+  "fits": "span 4 HALF-units = 2 units = 500mm, which the catalog already had right. Rim on the rails, body below, lift frame + surfaces above -- the documented exception to 'a module embeds flush'.",
+  "corrected": "It used to be modelled as BURNERS['CK-160'] = {bbq:true} -> burnerGroup's bbq branch, which drew 'a grate half and a griddle half'. There is no griddle in the box: the dark slab in the gallery is the LID resting inverted on the nets ('rest the lid on the grate to hold in heat'), and step 1 takes it off. That branch is deleted; CK-160 is not a burner.",
+  "owner_notes": "OWNER (2026-07-16), beyond what the manual shows: (1) the cooking surface SWAPS -- a 鉄板 griddle plate takes a 焼き網 net's place, so the two halves are independently net-or-plate. Two nets is what it SHIPS with; the plate is a separate buy. Modelled as a placement config (nets / mixed / plates) on the module's own right-click menu -- the choice rides on the PLACEMENT, so two BBQs in one layout can differ. (2) Its size is interchangeable with the TAKIBI FIRE & GRILL L -- a cooking surface bought for one fits the other. OPEN: the griddle plate's exact SKU is unconfirmed (GR-055-INT Okonomiyaki Griddle and S-029HD Grill Plate Half Deep are in the catalog but neither is verified as this one's plate), so the swap is visual only and adds no BOM line yet."
+ }
 }
