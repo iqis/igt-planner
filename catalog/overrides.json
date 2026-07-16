@@ -1471,6 +1471,28 @@
     "uk": null
    },
    "reason": "Snow Peak TAKIBI Tarp Octa (TP-430): shelter FOOTPRINT for scale reference — fire-resistant. fabric 510x450cm stretched octagon on 2 centre poles. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "GR-006": {
+   "role": "accessory",
+   "title_en": "Grill Plate (black-steel griddle)",
+   "assembled_mm": {
+    "w": 500.0,
+    "d": 330.0,
+    "h": 35.0
+   },
+   "weight_g": 3600,
+   "surface": "plate",
+   "price": {
+    "us": null,
+    "jp": 5940,
+    "uk": null
+   },
+   "image": "https://img.snowpeak.co.jp/img/item/SNP01/SNP0104A0116/SNP0104A0116_x_a099.jpg",
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0104A0116"
+   },
+   "reason": "グリルプレート黒皮鉄板 -- THE 鉄板, and the part that closes the OPEN question CK-160's note left ('the griddle plate's exact SKU is unconfirmed... GR-055-INT and S-029HD are in the catalog but neither is verified'). It is neither: it is GR-006, 500x330x35, 3.6kg, 2.5mm black steel. Snow Peak cross-lists it in BOTH directions -- GR-006's 関連アイテム are 焚火台グリルブリッジL and リフトアップBBQ BOX; CK-160's are GR-006 and S-029HA. Its 500 is not approximately the CK-160's 500, it IS the 500 -- the two-IGT-unit number, and the reason the owner's 'CK-160 and Takibi L share surfaces' holds. FULL size: it replaces BOTH nets, not one. JP-only, so price.us is null (absent from the US Takibi collection), not zero."
   }
  },
  "GF-051": {

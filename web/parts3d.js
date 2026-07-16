@@ -344,10 +344,25 @@ export function stainlessBoxGroup(w, d, h, { color = 0xb9bec4, wall = 3 } = {}) 
 // stove is flush, which is the rim at y = 0.
 const LID_PROUD = 15;
 
-export const BBQ_SURFACES = {
-  nets:   ["net", "net"],
-  mixed:  ["net", "plate"],
-  plates: ["plate", "plate"],
+// What the CK-160's top can be. Owner: "可以用铁板换烤网" -- and Snow Peak backs it in BOTH
+// directions: CK-160's 関連アイテム are exactly GR-006 and S-029HA, and GR-006's own page names
+// リフトアップBBQ BOX. So the surfaces really are shared with the Takibi Fire & Grill L (owner) --
+// and the number they share is the 500: GR-006 is not approximately the CK-160's 500, it IS it, the
+// two-IGT-unit number. What is NOT shared is the Takibi's own 455 rim; these overhang that bowl and
+// bear on the Grill Bridge's rails, and it is a coincidence of the useful kind that the size which
+// spans a 445 bridge is also the size that drops into a 500 x 360 box.
+//
+// Three options, every one a real SKU on the bill:
+//   nets    what it SHIPS with -- 焼き網 x2, one per unit, already on the box's own line
+//   halves  S-029HA 焼アミハーフ Pro. x2, 339 x 206 each -- cross-listed on the CK-160
+//   plate   GR-006, 500 x 330 -- FULL size: it replaces BOTH nets, not one
+// There is deliberately NO net+plate mix: the only half-size plate Snow Peak makes (S-029HD) is
+// 20mm too deep for the CK-160's 360 and is not on its 関連アイテム list, so that combination would
+// be a shape with no part behind it.
+export const BBQ_SURFACE_SKUS = {
+  nets:   [],
+  halves: ["S-029HA", "S-029HA"],
+  plate:  ["GR-006"],
 };
 
 /** Double BBQ Box (CK-160; JP リフトアップBBQ BOX, "lift-up"): a charcoal BBQ that drops into the
@@ -379,7 +394,7 @@ export const BBQ_SURFACES = {
  *  Rim at y = 0 hanging to -bodyH, and the surfaces RISE ABOVE it -- the exception this file's
  *  header already names. */
 export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 120,
-                                       surfaces = ["net", "net"] } = {}) {
+                                       surface = "nets" } = {}) {
   const wallD = wallSpan(d), wall = 2;
   const { group: g, body } = binGroup(bodyW, wallD, bodyH, { open: true, color, wall });
   const mat = metal(color, 0.8, 0.4);
@@ -427,27 +442,30 @@ export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 12
     link([x, -6, zs], [x, yTop, -zs]);
   }
 
-  // The two cooking surfaces, one per unit -- each independently a 焼き網 net or a 鉄板 griddle
-  // plate. A net is a woven wire grid in a thin border (the pitch is representative; the real mesh
-  // is finer than it is worth drawing). A plate is what it sounds like: a solid slab with a raised
-  // lip to hold the fat in, and it reads DARK -- it is not stainless.
+  // The cooking surface, laid on the lift frame. Each option is a real part at its published size,
+  // so what you see is what you'd buy: a net is a wire grid in a thin border (the pitch is
+  // representative -- the real mesh is finer than it is worth drawing), a 鉄板 is a solid slab with
+  // a raised lip to hold the fat in, and it reads DARK -- it is not stainless.
   const netMat = metal(0xd0d4d9, 0.92, 0.24);
   const plateMat = metal(0x33373d, 0.42, 0.55);
-  for (const [i, sx] of [[0, -1], [1, 1]]) {
-    const nw = lfW / 2 - 3, nd = lfD - 8, cx = sx * (lfW / 4 + 1.5), rim = 6;
-    if (surfaces[i] === "plate") {
-      box(g, nw, 7, nd, 1.5, plateMat, cx, lift - 3.5, 0);                      // the slab
-      for (const sz of [-1, 1]) box(g, nw, 5, 3, 1, plateMat, cx, lift + 2.5, sz * (nd / 2 - 1.5));
-      for (const s2 of [-1, 1]) box(g, 3, 5, nd, 1, plateMat, cx + s2 * (nw / 2 - 1.5), lift + 2.5, 0);
-      continue;
-    }
-    const pitch = 22;
+  const net = (nw, nd, cx) => {
+    const rim = 6, pitch = 22;
     for (const sz of [-1, 1]) box(g, nw, 4, rim, 1, netMat, cx, lift - 2, sz * (nd / 2 - rim / 2));
-    for (const s2 of [-1, 1]) box(g, rim, 4, nd, 1, netMat, cx + s2 * (nw / 2 - rim / 2), lift - 2, 0);
+    for (const sx of [-1, 1]) box(g, rim, 4, nd, 1, netMat, cx + sx * (nw / 2 - rim / 2), lift - 2, 0);
     const iw = nw - 2 * rim, id = nd - 2 * rim;
     const nx = Math.max(2, Math.round(iw / pitch)), nz = Math.max(2, Math.round(id / pitch));
     for (let j = 1; j < nx; j++) box(g, 2, 2, id, 0, netMat, cx - iw / 2 + (j * iw) / nx, lift - 1.5, 0);
     for (let j = 1; j < nz; j++) box(g, iw, 2, 2, 0, netMat, cx, lift - 3.5, -id / 2 + (j * id) / nz);
+  };
+  if (surface === "plate") {
+    // GR-006, 500 x 330 x 35: ONE plate over the whole top. Its 500 is the body's 500 exactly.
+    box(g, 500, 8, 330, 1.5, plateMat, 0, lift - 4, 0);
+    for (const sz of [-1, 1]) box(g, 500, 27, 4, 1, plateMat, 0, lift + 9.5, sz * 163);
+    for (const sx of [-1, 1]) box(g, 4, 27, 330, 1, plateMat, sx * 248, lift + 9.5, 0);
+  } else if (surface === "halves") {
+    for (const sx of [-1, 1]) net(339, 206, sx * 106);   // S-029HA x2, at their published 339 x 206
+  } else {
+    for (const sx of [-1, 1]) net(lfW / 2 - 3, lfD - 8, sx * (lfW / 4 + 1.5));   // the 焼き網 it ships with
   }
   return { group: g, body };
 }
@@ -568,7 +586,7 @@ export function moduleGroup(p, w, d, h, color, topTex = null, cfg = null) {
   // and the BBQ carries a whole charcoal fire. They go FIRST, before the generic h >= 60 bin.
   const base = p.sku.replace(/-(US|INT|EC|R)$/i, "");
   if (base === "CK-025") return stainlessBoxGroup(w, d, h, { color });
-  if (base === "CK-160") return bbqBoxGroup(w, d, h, { color, surfaces: BBQ_SURFACES[cfg] || BBQ_SURFACES.nets });
+  if (base === "CK-160") return bbqBoxGroup(w, d, h, { color, surface: cfg || "nets" });
   const bspec = burnerOf(p.sku);
   // GS-230 is an appliance, and its assembled_mm describes the DEPLOYED envelope (563 over the
   // splayed windscreen, 383 over the knobs) rather than the body -- so the d/h the caller derives

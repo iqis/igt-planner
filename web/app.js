@@ -7,7 +7,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop,
          foldingChairGroup, lowBeachChairGroup, campfieldSofaGroup,
          loungeCushionGroup, foldingBenchGroup, bambooShelfGroup,
-         takeChairGroup, shelterFootprint } from "./parts3d.js";
+         takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -1701,12 +1701,15 @@ const MODULE_CONFIGS = {
       closed:  ["▬ cover on", "the cover clamped flat over the stove — sits ~15mm proud; off, it's flush"],
     },
   },
+  // Every option is a real SKU, and Snow Peak cross-lists both of the bought ones on this box's own
+  // page. No net+plate mix: the only half-size plate (S-029HD) is 20mm too deep for the 360 and
+  // isn't on its 関連アイテム list -- that combination would be a shape with no part behind it.
   "CK-160": {
     default: "nets",
     options: {
       nets:   ["◫◫ two nets", "焼き網 ×2 — what it ships with"],
-      mixed:  ["◫▬ net + plate", "one grill net, one 鉄板 griddle plate"],
-      plates: ["▬▬ two plates", "two 鉄板 griddle plates"],
+      halves: ["▤▤ two half nets", "S-029HA 焼アミハーフ Pro. ×2, 339×206 each — cross-listed on this box"],
+      plate:  ["▬ griddle plate", "GR-006 グリルプレート黒皮鉄板, 500×330 — FULL size, it replaces both nets. Its 500 IS this box's 500"],
     },
   },
 };
@@ -2817,7 +2820,13 @@ function bomLines() {
       if (b) lines.push({ sku: b, req: true });
     }
     // Modules dropped into any host's bay (frame, bridged Jikaro, opened Extension IGT).
-    for (const pl of n.placements || []) lines.push({ sku: pl.sku, node: n, pl });
+    for (const pl of n.placements || []) {
+      lines.push({ sku: pl.sku, node: n, pl });
+      // A module's chosen surface is a part you BUY -- the CK-160's nets come in the box, but the
+      // half nets (S-029HA x2) and the 鉄板 (GR-006) do not, and Snow Peak lists both on its page.
+      for (const sku of BBQ_SURFACE_SKUS[pl.config] || [])
+        if (PARTS[sku]) lines.push({ sku, req: true });
+    }
     const conn = PARTS[n.sku].requires_connector;
     if (conn && PARTS[conn]) lines.push({ sku: conn, req: true });
   }
