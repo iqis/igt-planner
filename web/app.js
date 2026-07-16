@@ -113,6 +113,7 @@ function toggleInSel(id) {
   else { state.selSet.add(id); state.sel = id; }
 }
 const selectedIds = () => state.selSet.size ? [...state.selSet] : (state.sel != null ? [state.sel] : []);
+const isSelectedId = id => state.selSet.size ? state.selSet.has(id) : id === state.sel;
 
 // Rotate a vector in the ground plane. three's `rotation.y = -r` maps a local vector at
 // angle a to world angle a + r, so this and the mesh always agree about which way is out.
@@ -1344,12 +1345,13 @@ function rebuild() {
   edgeMeshes.length = 0;
   slotHandleMeshes.length = 0;
 
+  const selIds = new Set(selectedIds());
   for (const n of state.nodes) {
     const g = new THREE.Group();
     g.position.set(n.x * MM, 0, n.z * MM);
     g.rotation.y = -n.rot;
     (n.kind === "frame" ? drawFrame : n.kind === "prop" ? drawProp : n.kind === "footprint" ? drawFootprint : drawTable)(g, n);
-    if (n.id === state.sel) addSelBox(g, n);   // CAD-style outline around the selected object
+    if (selIds.has(n.id)) addSelBox(g, n);   // CAD-style outline around each selected object
     build.add(g);
   }
 
@@ -1479,13 +1481,23 @@ function paintSelTools() {
   replaceMenu.hidden = true;   // any repaint (selection change, action) closes a stale replace popup
   if (!n) { selTools.hidden = true; return; }
   selTools.innerHTML = "";
-  if (!n.host) {
-    selTools.append(toolBtn("⟲", "rotate 90°  (R)", "", () => rotateNode(n)));
-    selTools.append(toolBtn("⧉", "duplicate  (Ctrl+D)", "", () => duplicateNode(n)));
+  // A multi-selection gets a compact toolbar: a count, duplicate-all (the free ones), delete-all.
+  if (state.selSet.size > 1) {
+    const count = document.createElement("span");
+    count.className = "count"; count.textContent = `${state.selSet.size} selected`;
+    selTools.append(count);
+    selTools.append(toolBtn("⧉", "duplicate all  (Ctrl+D)", "", () => duplicateSelected()));
+    const sep0 = document.createElement("span"); sep0.className = "sep"; selTools.append(sep0);
+    selTools.append(toolBtn("✕", "delete all  (Del)", "danger", () => removeNode(n)));
+  } else {
+    if (!n.host) {
+      selTools.append(toolBtn("⟲", "rotate 90°  (R)", "", () => rotateNode(n)));
+      selTools.append(toolBtn("⧉", "duplicate  (Ctrl+D)", "", () => duplicateNode(n)));
+    }
+    if (replaceOptions(n).length > 1) selTools.append(toolBtn("⇄", "replace with a similar part", "", () => openReplaceMenu(n)));
+    const sep = document.createElement("span"); sep.className = "sep"; selTools.append(sep);
+    selTools.append(toolBtn("✕", "delete  (Del)", "danger", () => removeNode(n)));
   }
-  if (replaceOptions(n).length > 1) selTools.append(toolBtn("⇄", "replace with a similar part", "", () => openReplaceMenu(n)));
-  const sep = document.createElement("span"); sep.className = "sep"; selTools.append(sep);
-  selTools.append(toolBtn("✕", "delete  (Del)", "danger", () => removeNode(n)));
   selTools.hidden = false;
   followSelTools();
 }
@@ -1798,7 +1810,7 @@ canvas.addEventListener("pointerdown", e => {
     .find(h => { const nn = h.object.userData.node; return nn?.host && nn?.rail; });
   if (slideHit && (!edge || slideHit.distance <= edge.distance + 1)) {
     dragSlide = slideHit.object.userData.node;
-    state.sel = dragSlide.id;
+    selectOnly(dragSlide.id);
     controls.enabled = false;
     render();
     return;
@@ -1830,7 +1842,7 @@ canvas.addEventListener("pointerdown", e => {
   if (mod) {
     const pl = mod.object.userData.placement, node = mod.object.userData.node;
     dragMod = { pl, node, downX: e.clientX, downY: e.clientY, moved: false };
-    state.sel = node.id;
+    selectOnly(node.id);
     controls.enabled = false;
     // Hold still (a long press) and the action menu opens instead of a drag. Moving past a
     // few pixels first (see pointermove) cancels it -- then it is a drag, as before.
@@ -1843,11 +1855,13 @@ canvas.addEventListener("pointerdown", e => {
 
   const nd = ray.intersectObjects(nodeMeshes, false)[0];
   if (!nd) {                             // pressed empty space -> deselect (and drop its handles)
-    if (state.sel != null) { state.sel = null; render(); }
+    if (state.sel != null || state.selSet.size) { selectOnly(null); render(); }
     return;
   }
   const n = nd.object.userData.node;
-  state.sel = n.id;
+  // Shift / Ctrl / Cmd toggles this object in the multi-selection (and never starts a drag).
+  if (e.shiftKey || e.ctrlKey || e.metaKey) { toggleInSel(n.id); render(); return; }
+  selectOnly(n.id);
   // A hooked board hangs where its hooks are. Dragging it would be asking the model to
   // lie: it cannot be anywhere else. Select it, do not move it.
   if (!n.host) {
@@ -2092,7 +2106,7 @@ function addNode(sku) {
       n.z = (Math.min(...zs) + Math.max(...zs)) / 2;
     }
     state.nodes.unshift(n);   // render first, under everything -- it is the floor plan
-    state.sel = n.id;
+    selectOnly(n.id);
     render();
     return;
   }
@@ -2105,7 +2119,7 @@ function addNode(sku) {
     n.x = (nProps - 1) * 650;
     n.z = zFront + footprint(n).d / 2 + 250;
     state.nodes.push(n);
-    state.sel = n.id;
+    selectOnly(n.id);
     render();
     return;
   }
@@ -2117,7 +2131,7 @@ function addNode(sku) {
   n.x = right === null ? 0 : right + footprint(n).w / 2;
   if (free.length) n.z = free[free.length - 1].z;
   state.nodes.push(n);
-  state.sel = n.id;
+  selectOnly(n.id);
   render();
 }
 
@@ -2136,7 +2150,7 @@ function attach(sku, host, key) {
     ...(key.startsWith("rail") ? { slide: slide ? initialSlide(host, key, sku) : 0 } : {}),
   };
   state.nodes.push(n);
-  state.sel = n.id;
+  selectOnly(n.id);
   render();
 }
 
@@ -2144,12 +2158,17 @@ function attach(sku, host, key) {
  *  happen to be near each other -- take out the frame and the extensions have nothing to
  *  hang from. They come down with it. */
 function removeNode(n) {
-  const doomed = new Set([n.id]);
+  // Remove n, OR -- if it's part of a multi-selection -- every selected object, and in each case
+  // everything hooked below it. A hook chain comes down with its host.
+  const roots = (n && state.selSet.has(n.id)) ? [...state.selSet] : [n.id];
+  const doomed = new Set(roots);
   for (let i = 0; i < 16; i++)
     for (const m of state.nodes)
       if (m.host && doomed.has(m.host)) doomed.add(m.id);
   state.nodes = state.nodes.filter(m => !doomed.has(m.id));
-  if (doomed.has(state.sel)) state.sel = state.nodes[0]?.id ?? null;
+  for (const id of doomed) state.selSet.delete(id);
+  if (doomed.has(state.sel)) state.sel = [...state.selSet].pop() ?? state.nodes[0]?.id ?? null;
+  if (!state.selSet.size && state.sel != null) state.selSet.add(state.sel);
   setHover(null);
   render();
 }
@@ -2189,8 +2208,18 @@ function duplicateNode(n) {
     if (m.id === n.id) { c.x = n.x + 180; c.z = n.z + 180; }   // offset the root; children follow the host edge
   }
   state.nodes.push(...clones.map(([, c]) => c));
-  state.sel = idMap.get(n.id);
+  selectOnly(idMap.get(n.id));
   render();
+}
+
+/** Duplicate every free-standing object in the selection; the copies become the new selection. */
+function duplicateSelected() {
+  const clones = [];
+  for (const id of [...state.selSet]) {
+    const n = byId(id);
+    if (n && !n.host) { duplicateNode(n); clones.push(state.sel); }
+  }
+  if (clones.length) { state.sel = clones[clones.length - 1]; state.selSet = new Set(clones); render(); }
 }
 
 // ---- Camera navigation: smooth moves, preset angles, fit-to-scene --------------------------------
@@ -2784,14 +2813,16 @@ const KIND_GLYPH = { frame: "▤", ext: "↳", prop: "◗", footprint: "▢", ta
 function treeRow(n, depth, { module = false, pl = null } = {}) {
   const row = document.createElement("div");
   const p = PARTS[(module ? pl.sku : n.sku)];
-  row.className = "tree-row" + (!module && n.id === state.sel ? " on" : "") + (module ? " module" : "");
+  row.className = "tree-row" + (!module && isSelectedId(n.id) ? " on" : "") + (module ? " module" : "");
   row.style.paddingLeft = `${0.35 + depth * 0.85}rem`;
   row.dataset.node = n.id;   // the 3D object this row stands for (a module row points at its host)
   const glyph = module ? "·" : n.host != null ? "↳" : (KIND_GLYPH[n.kind] || "▤");
   row.innerHTML = `<span class="tw">${glyph}</span>`
     + `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
     + `<span class="nm" title="${p.title_en}">${p.title_en}</span>`;
-  row.onclick = () => { state.sel = n.id; render(); };   // a module row selects its host frame
+  // Shift / Ctrl / Cmd click adds/removes from the selection; a plain click selects just this one.
+  // (A module row has no object of its own, so it just selects its host frame.)
+  row.onclick = e => { (!module && (e.shiftKey || e.ctrlKey || e.metaKey)) ? toggleInSel(n.id) : selectOnly(n.id); render(); };
   row.onmouseenter = () => setHoverNode(n.id);           // light up the object in the 3D view
   row.onmouseleave = () => { if (hoverNodeId === n.id) setHoverNode(null); };
   const del = document.createElement("span");
@@ -2890,7 +2921,8 @@ function commitHistory() {
 function restoreHistory(json) {
   const s = JSON.parse(json);
   state.nodes = s.nodes; state.nextId = s.nextId;
-  if (!byId(state.sel)) state.sel = null;
+  for (const id of [...state.selSet]) if (!byId(id)) state.selSet.delete(id);   // drop vanished ids
+  if (!byId(state.sel)) state.sel = [...state.selSet].pop() ?? null;
   restoring = true; render(); restoring = false;   // render without pushing a fresh snapshot
   paintUndo();
 }
@@ -2915,7 +2947,7 @@ addEventListener("keydown", e => {
   // Single-key actions on the selection -- but never while typing in the search box.
   if (/^(input|textarea|select)$/i.test(e.target?.tagName || "")) return;
   const n = sel();
-  if ((e.ctrlKey || e.metaKey) && k === "d") { e.preventDefault(); if (n) duplicateNode(n); return; }
+  if ((e.ctrlKey || e.metaKey) && k === "d") { e.preventDefault(); if (state.selSet.size > 1) duplicateSelected(); else if (n) duplicateNode(n); return; }
   if (k === "delete" || k === "backspace") { e.preventDefault(); if (n) removeNode(n); return; }
   if (k === "r" && !e.ctrlKey && !e.metaKey) { if (n && !n.host) rotateNode(n); return; }
   if (k === "f") { n ? focusSelection(n) : fitAll(); return; }   // frame the selection, or fit all

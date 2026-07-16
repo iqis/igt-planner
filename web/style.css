@@ -379,6 +379,7 @@ h2 {
 #seltools button:hover { background: var(--raise); }
 #seltools button.danger:hover { background: var(--warn-bg); color: var(--warn-ink); }
 #seltools .sep { width: 1px; background: var(--line); margin: 4px 1px; }
+#seltools .count { font-size: .66rem; color: var(--dim); padding: 0 .5rem; align-self: center; white-space: nowrap; }
 
 #replacemenu {
   position: absolute;
