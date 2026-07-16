@@ -188,7 +188,8 @@ h2 {
   border-radius: 3px;
   cursor: pointer;
 }
-.tree-row:hover { background: var(--raise); }
+.tree-row:hover, .tree-row.hover { background: var(--raise); }
+.tree-row.hover { border-color: var(--line); }
 .tree-row.on { border-color: var(--accent); background: var(--sel-bg); }
 .tree-row .tw { color: var(--faint); flex: none; width: 1em; text-align: center; }
 .tree-row .sw { width: 9px; height: 9px; border-radius: 2px; flex: none; }

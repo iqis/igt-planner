@@ -1295,7 +1295,40 @@ function addSelBox(g, n) {
   g.add(box);
 }
 
+// ---- Viewport <-> outliner hover link ---------------------------------------------------------
+// Hovering an object in EITHER place lights it up in the OTHER: a faint ghost box in the 3D view,
+// a highlight on its tree row (scrolled into view). Selection is the firm correspondence (the orange
+// box + the accent row); this is the soft, no-commitment one that lets you see which is which.
+let hoverNodeId = null, hoverBox = null;
+function showHoverBox(n) {
+  if (hoverBox) { scene.remove(hoverBox); hoverBox.geometry.dispose(); hoverBox.material.dispose(); hoverBox = null; }
+  if (!n || n.id === state.sel) return;   // the selected object already wears its own box
+  const f = footprint(n), h = selTop(n), pad = 14;
+  hoverBox = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry((f.w + pad) * MM, (h + pad) * MM, (f.d + pad) * MM)),
+    // Cyan, so it's distinct from the orange SELECTION box and legible on either theme's ground.
+    new THREE.LineBasicMaterial({ color: 0x3ec6f0, transparent: true, opacity: 0.75, depthTest: false }));
+  hoverBox.position.set(n.x * MM, h / 2 * MM, n.z * MM);
+  hoverBox.rotation.y = -n.rot;
+  hoverBox.renderOrder = 8;
+  scene.add(hoverBox);
+}
+function setHoverNode(id) {
+  if (id === hoverNodeId) return;
+  hoverNodeId = id;
+  showHoverBox(id != null ? byId(id) : null);
+  let matched = null;
+  for (const row of document.querySelectorAll("#scene .tree-row")) {
+    const on = row.dataset.node === String(id);
+    row.classList.toggle("hover", on);
+    if (on && !matched) matched = row;
+  }
+  matched?.scrollIntoView({ block: "nearest" });   // bring an off-screen row into view; a no-op if visible
+}
+function clearHoverNode() { setHoverNode(null); }
+
 function rebuild() {
+  clearHoverNode();               // node positions may have moved; drop any stale hover highlight
   build.clear();
   nodeMeshes.length = 0;
   slotMeshes.length = 0;
@@ -1849,6 +1882,13 @@ canvas.addEventListener("pointermove", e => {
       const r = canvas.getBoundingClientRect();
       const s = toScreen(hover.mid);
       if (Math.hypot(e.clientX - r.left - s.x, e.clientY - r.top - s.y) > 72) setHover(null);
+    }
+    // Link the viewport to the outliner: hovering an object (when no edge/slot handle owns the
+    // pointer) lights it up and highlights its tree row. An edge hover keeps priority.
+    if (!hover) {
+      const nd = ray.intersectObjects(nodeMeshes, false)[0];
+      setHoverNode(nd ? nd.object.userData.node.id : null);
+      canvas.style.cursor = nd ? "pointer" : "";
     }
     return;
   }
@@ -2683,11 +2723,14 @@ function treeRow(n, depth, { module = false, pl = null } = {}) {
   const p = PARTS[(module ? pl.sku : n.sku)];
   row.className = "tree-row" + (!module && n.id === state.sel ? " on" : "") + (module ? " module" : "");
   row.style.paddingLeft = `${0.35 + depth * 0.85}rem`;
+  row.dataset.node = n.id;   // the 3D object this row stands for (a module row points at its host)
   const glyph = module ? "·" : n.host != null ? "↳" : (KIND_GLYPH[n.kind] || "▤");
   row.innerHTML = `<span class="tw">${glyph}</span>`
     + `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
     + `<span class="nm" title="${p.title_en}">${p.title_en}</span>`;
   row.onclick = () => { state.sel = n.id; render(); };   // a module row selects its host frame
+  row.onmouseenter = () => setHoverNode(n.id);           // light up the object in the 3D view
+  row.onmouseleave = () => { if (hoverNodeId === n.id) setHoverNode(null); };
   const del = document.createElement("span");
   del.className = "del"; del.textContent = "×";
   del.title = module ? "remove this module" : "remove this object (and anything on it)";
@@ -2702,6 +2745,7 @@ function appendTree(host, n, depth) {
   for (const c of state.nodes.filter(m => m.host === n.id)) appendTree(host, c, depth + 1);
 }
 
+let lastTreeSel;
 function paintOutliner() {
   const host = $("scene"); if (!host) return;
   host.innerHTML = "";
@@ -2710,9 +2754,15 @@ function paintOutliner() {
     const e = document.createElement("div");
     e.className = "tree-empty"; e.textContent = "nothing placed yet";
     host.append(e);
+    lastTreeSel = null;
     return;
   }
   for (const n of roots) appendTree(host, n, 0);
+  // When the selection changes (e.g. by clicking the object in 3D), bring its row into view.
+  if (state.sel !== lastTreeSel) {
+    host.querySelector(".tree-row.on")?.scrollIntoView({ block: "nearest" });
+    lastTreeSel = state.sel;
+  }
 }
 
 function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); }
