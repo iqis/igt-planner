@@ -433,6 +433,16 @@ function hostEdge(n, key, guest = "ext") {
   //
   // The four 45-degree CHAMFERS are NOT offered. Nothing says a board hooks there, and a
   // 45-degree edge is exactly the kind of thing it is tempting to assume symmetry about.
+  // The ring's APERTURE. Not an edge at all -- a HOLE, concentric with the ring, at ground level.
+  // Nothing hooks and nothing is borne: the ring simply stands around a pit that carries itself on
+  // its own feet. It is a port because the ring is BUILT around it -- see connections.interfaces.
+  if (isJikaro(n) && key === "opening") {
+    const c = jikaroCfg(n);
+    return {
+      anchor: { x: 0, z: 0 }, normal: { x: 0, z: 1 },
+      len: c.opening_mm, at: "opening", opening: c.opening_mm,
+    };
+  }
   if (isJikaro(n) && JIKARO_EDGES[key]) {
     const c = jikaroCfg(n);
     const v = JIKARO_EDGES[key], normal = { x: v.x, z: v.z };
@@ -441,7 +451,7 @@ function hostEdge(n, key, guest = "ext") {
     // its normal is the diagonal. Owner: the spread Jikaro takes IGT extensions on all eight.
     if (v.chamfer) {
       const faceDist = (half + e) / Math.SQRT2 - HOLE_INSET;
-      return { anchor: { x: normal.x * faceDist, z: normal.z * faceDist }, normal, len: Math.SQRT2 * (half - e) };
+      return { anchor: { x: normal.x * faceDist, z: normal.z * faceDist }, normal, len: Math.SQRT2 * (half - e), at: "edge" };
     }
     // NOTE (owner correction): the Jikaro joins via its built-in side KNOBS (ツマミ, in its material
     // spec), NOT the frame's wire hook -- this is the `knob` interface (symmetric, no CK-175), the
@@ -449,7 +459,7 @@ function hostEdge(n, key, guest = "ext") {
     // placeholder from the old wire-hook assumption; the real knob offset is unmeasured. See
     // layout.connections. (It only shifts the guest ~16mm, so behaviour is unaffected for now.)
     const r = half - HOLE_INSET;
-    return { anchor: { x: normal.x * r, z: normal.z * r }, normal, len: c.edge_mm };
+    return { anchor: { x: normal.x * r, z: normal.z * r }, normal, len: c.edge_mm, at: "edge" };
   }
 
   // The Connection Table's ends carry an IGT extension the SAME way a frame end does -- the same
@@ -486,8 +496,10 @@ function selfIgtEdges(n) {
   if (ports.some(p => p.at === "rail")) keys.push("rail+z", "rail-z");
   return keys;
 }
-const edgeKeysOf = n => isJikaro(n) ? Object.keys(JIKARO_EDGES).filter(k =>
-    !JIKARO_EDGES[k].chamfer || n.config === "long_in")   // chamfers only in the spread form
+const edgeKeysOf = n => isJikaro(n) ? [...Object.keys(JIKARO_EDGES).filter(k =>
+    !JIKARO_EDGES[k].chamfer || n.config === "long_in"), "opening"]   // chamfers only in the spread
+                                                  // form; the aperture in BOTH -- what fits in it
+                                                  // is decided by measuring, in legalOn
   : isConnTable(n) ? ["end+x", "end-x", "side+z", "side-z"]   // Connection Table: ends AND long sides
   : isSlide(PARTS[n.sku]) ? []                    // a sliding extension is a leaf -- nothing
                                                   // hooks onto it, and its phantom bracket
@@ -533,6 +545,10 @@ function openEdges(n) {
     const a = rotv(e.anchor, n.rot);
     out.push({
       node: n, key, len: e.len, rail: !!e.rail,
+      // Carry the edge's CLASS through. portsAt splits a host's ports by it and legalOn measures an
+      // aperture's guest with it -- drop them here and the fire pit is silently offered on the fire
+      // ring's OUTER edges, which is the exact mistake this field exists to prevent.
+      at: e.at, opening: e.opening,
       dir: rotv(e.normal, n.rot),
       mid: { x: n.x + a.x, y: topOf(n), z: n.z + a.z },
     });
@@ -575,6 +591,16 @@ function place(n) {
   if (!h) return;
   const e = hostEdge(h, n.edge, n.kind);
   if (!e) return;
+
+  // A pit in a ring does not MATE an edge -- there are no hooks on either side. It stands on the
+  // ground in the middle of the aperture, which is concentric with the ring, and square to it
+  // (a 455mm Takibi turned 45 degrees measures 643 across the diagonal and would not go in a 600
+  // opening at all). It keeps its own feet, so it takes no leg from its host -- that is the whole
+  // difference between "borne by" and "surrounded by".
+  if (e.at === "opening") {
+    n.x = h.x; n.z = h.z; n.rot = h.rot; n.leg = null;
+    return;
+  }
 
   const dir = rotv(e.normal, h.rot);
   const a = rotv(e.anchor, h.rot);
@@ -1845,7 +1871,7 @@ function wirePreview(row, p) {
 // table-scale port), OR an ADAPTER bridges the port's interface to the guest's. So "a frame joins a
 // Jikaro" (both table-scale ET ports) and "an extension board joins a frame's rail" (side_rail -> ET
 // via the rail joint XCK-128, which also -> hanging) both fall out of the data. See layout.connections.
-const EDGE_IFACES = new Set(["ext_table", "side_rail", "knob"]);   // the edge menu; slot + hanging are placed via the slot menu
+const EDGE_IFACES = new Set(["ext_table", "side_rail", "knob", "hearth"]);   // the edge menu; slot + hanging are placed via the slot menu
 
 /** The interface ports a resolved edge exposes, read from connections.hosts (a frame splits its
  *  end from its rail; a Jikaro / Connection Table / a board's bracket expose all their edge ports). */
@@ -1856,6 +1882,10 @@ function portsAt(e) {
   // carries the side_rail / hanging ports. Every other host (a board's bracket, LV-381, ST-050) has
   // one port per edge, so it needs no split.
   if (host.kind === "frame" || selfIgt(host.sku)) return ports.filter(p => (e.rail ? p.at === "rail" : p.at === "end"));
+  // A host whose edges are NOT all alike splits them the same way, by the `at` the resolved edge
+  // names. The Jikaro is the first: four outer sides that take boards, and one central aperture
+  // that takes a fire -- and without this split the fire pit would be offered on the ring's OUTSIDE.
+  if (e.at) return ports.filter(p => p.at === e.at);
   return ports;
 }
 
@@ -1869,6 +1899,7 @@ const partsForRole = role =>
     : role === "frame" ? BY_ROLE.frame
     : role === "slot_module" ? BY_ROLE.slot_module
     : role === "hanger" ? BY_ROLE.hang_rack
+    : role === "hearth" ? BY_ROLE.hearth
     : HOOKABLE.filter(p => p.role === role);            // extension_table / corner
 
 // Every part that attaches via ANY of the given interfaces -- the raw candidate list for a menu,
@@ -1894,7 +1925,19 @@ function legalOn(e) {
     if (!EDGE_IFACES.has(guest.via)) continue;         // hangers / modules go through the slot menu
     if (canAttach(guest, ports)) for (const p of partsForRole(role)) out.add(p);
   }
-  return [...out].filter(Boolean);
+  return [...out].filter(Boolean).filter(p => fitsOpening(p, e));
+}
+
+/** An aperture admits what MEASURES inside it -- nothing else about it is a rule. This is the whole
+ *  of "the big ring takes the Takibi and the small one doesn't": a Takibi Fire & Grill L is 455mm
+ *  square, the spread opening is 600 and the compact one 365, so the arithmetic decides and no list
+ *  has to be maintained. (The compact 365 is not left empty -- it takes the GS-1000 burner by the
+ *  other route: bridge it with ST-051 and it IS a 1-Unit IGT bay, which GP-040 drops into.)
+ *  Every other edge is untouched: only an opening measures its guest. */
+function fitsOpening(p, e) {
+  if (e.at !== "opening" || !e.opening) return true;
+  const a = p.assembled_mm;
+  return !!a && Math.max(a.w, a.d) <= e.opening;
 }
 
 // The ET port a hosted node occupies is BOARD-scale -- a rail joint's output, or a board's own
@@ -1908,7 +1951,10 @@ function paintMenu() {
   menu.innerHTML = "";
   const head = document.createElement("div");
   head.className = "mhead";
-  head.textContent = hover.rail
+  head.textContent = hover.at === "opening"
+    ? `into the ring — the ${Math.round(hover.opening)}mm opening the fire ring is built around. `
+      + `The pit stands on the GROUND on its own feet; the ring only surrounds it — and moves it.`
+    : hover.rail
     ? "onto the LONG rail — a board hooks on (via a rail joint), a sliding extension grips it and tiles"
     : hover.node.kind === "frame"
       ? "the frame's end: a board hooks into the holes, or another frame joins with a CK-175"
@@ -2434,7 +2480,9 @@ function attach(sku, host, key) {
   const slide = isSlide(PARTS[sku]);
   const n = {
     id: state.nextId++, sku, kind: kindOf(PARTS[sku]), host: host.id, edge: key,
-    x: 0, z: 0, rot: 0, leg: slide ? null : host.leg, placements: [],
+    // A slide cantilevers, a pit in an aperture stands on its own feet -- neither takes a leg from
+    // its host. Only what the host BEARS inherits its legs. (Same rule as hookNode.)
+    x: 0, z: 0, rot: 0, leg: (slide || key === "opening") ? null : host.leg, placements: [],
     rail: key.startsWith("rail"),
     // Anything on the long rail carries a slide offset so it can be dragged ALONG the rail --
     // a sliding extension starts staggered, a hook-on board starts centred (0).
@@ -2464,7 +2512,9 @@ function hookNode(n, host, key) {
   n.host = host.id;
   n.edge = key;
   n.rail = key.startsWith("rail");
-  n.leg = slide ? null : host.leg;
+  // A slide cantilevers and a pit in an aperture stands on its own feet -- neither takes a leg from
+  // its host. Only something the host actually BEARS inherits the host's legs.
+  n.leg = (slide || key === "opening") ? null : host.leg;
   if (n.rail) n.slide = slide ? initialSlide(host, key, n.sku) : 0;
   else delete n.slide;
 }
@@ -2484,6 +2534,10 @@ function findDropTarget(n) {
       const d = Math.hypot(n.x - wx, n.z - wz);
       if (d < bestD) {
         const occupied = state.nodes.some(m => m.id !== n.id && m.host === h.id && m.edge === key && !m.rail);
+        // An occupied EDGE means insert: the run grows by one in the middle. An occupied APERTURE
+        // just means full -- two fires do not go in one hole, and there is no "chain" to insert
+        // into -- so it stops being a target at all.
+        if (occupied && key === "opening") continue;
         bestD = d; best = { host: h, key, wx, wz, occupied };
       }
     }

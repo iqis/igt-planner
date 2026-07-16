@@ -340,6 +340,13 @@
       "LV-381"
      ],
      "desc": "built-in aluminium knobs on the top's side lock two pieces DIRECTLY -- symmetric, no host/guest, no CK-175. The SAME joint the Jikaro's four segments use between themselves, so its outer edges ARE that port; 'the Jikaro as one whole' is our abstraction over four knob-joined segments. Only the heat-resistant fire-table system (Jikaro + Connection Table) has it."
+    },
+    "hearth": {
+     "label": "Fire-ring aperture",
+     "symmetric": false,
+     "host_side": "the ring's central opening (600 spread / 365 compact)",
+     "guest_side": "the pit's own footprint, standing on the ground",
+     "desc": "The APERTURE of a fire ring, at ground level. Not a slot and not an edge -- nothing hooks, and nothing is BORNE: the ring merely stands around a pit that carries itself on its own feet, which is why a guest here takes no leg from its host. It is a port because the ring is BUILT around it: a Takibi Fire & Grill L is 455mm square, so it goes in the 600 and cannot go in the 365 -- the arithmetic decides, and no list has to be maintained. Owner: ringing the fire is the standard application (定番) -- 'if you move the table there is no reason not to move the fire pit' -- which is exactly a host-guest relation and NOT an ad-hoc multi-selection. The guest stays usable ALONE; hosting here is optional, like every other port."
     }
    },
    "hosts": {
@@ -384,6 +391,13 @@
       "iface": "slot",
       "at": "opening",
       "via": "bridge"
+     },
+     {
+      "iface": "hearth",
+      "at": "opening",
+      "note": "The fire ring's reason to exist. Gated by FIT, not by a list: only a pit that measures inside the opening is offered, which is the whole of 'the big ring takes the Takibi'. A Takibi Fire & Grill L is 455mm square -- into the spread form's 600, never the compact form's 365.",
+      "correction": "MINE, caught the same hour I wrote it. I first noted here that the compact 365 takes the GS-1000 by bridging the opening into a 1-Unit bay for GP-040 to drop into. That is false twice over and I wrote it without checking. GP-040 is span 3 = 1.5 UNITS = 375mm; a bridged compact opening is 1 Unit = 250mm, so GP-040 does not go there at all. The owner's two statements are two INDEPENDENT routes, not one chain: (a) the GS-1000 stands in the compact ring's opening DIRECTLY -- it is round and the JP spec is written as a diameter, so if phi-350 is right it clears 365 by 7.5mm a side, exactly as the Takibi L clears 600; (b) the GS-1000 ALSO mounts in an ordinary IGT bay via GP-040, the 1.5U joint frame -- which needs a real 2u/3u/4u frame and is already modelled as a slot_module. Route (b) has nothing to do with this port.",
+      "unresolved": "GS-1000 in the compact 365 opening is OWNER-ATTESTED but NOT wired: its assembled_mm is null. The catalog records the JP spec as 'phi-350x420' in prose and the pipeline REFUSED to structure it -- phi-350 reads as a clean diameter, but 420 as a height does not sit with an 800g stove, so one of the two numbers is being misread. fitsOpening needs w/d, so until a diameter is verified the part is simply not offered here. That is a silent no, and it is the right no: 350 is a number I would be inventing to make the owner's sentence come out true."
      }
     ],
     "LV-381": [
@@ -507,6 +521,9 @@
     },
     "LV-381": {
      "via": "knob"
+    },
+    "hearth": {
+     "via": "hearth"
     }
    },
    "adapters": {
