@@ -1520,7 +1520,10 @@ function paintMenu() {
       : isJikaro(hover.node)
         ? `one of the fire ring's four outer edges (${Math.round(hover.len)}mm) — at the `
           + `400mm datum, so it takes low legs`
-        : "hooks into the brackets on this edge";
+        : isConnTable(hover.node)
+          ? "the Connection Table's edge — an IGT extension hooks on here (two hole pitches, for tables and accessories)"
+          : "this board's far edge — the next extension hooks into its brackets and carries the run on, "
+            + "at the same height on its own legs";
   menu.append(head);
 
   // The host for a manual whitelist is the ROOT frame -- a corner's manual lists the frames
