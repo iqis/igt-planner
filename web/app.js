@@ -1294,6 +1294,21 @@ function selTop(n) {
 // the object's OWN group (already positioned + rotated), so it stays tight at any camera angle, and
 // drawn depth-test-off so it reads as a selection highlight that's always visible.
 const SEL_COLOR = 0xf0a463;
+
+// A ring where a dragged part will land: green on a free edge (hook on), cyan on an occupied one
+// (insert between). Lives in `build`, so it's cleared every rebuild.
+function addDropMarker(hint) {
+  const y = topOf(hint.host) * MM;
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(70 * MM, 9 * MM, 8, 28),
+    new THREE.MeshBasicMaterial({ color: hint.occupied ? 0x3ec6f0 : 0x4fc98a, transparent: true, opacity: 0.9, depthTest: false }),
+  );
+  ring.rotation.x = Math.PI / 2;
+  ring.position.set(hint.wx * MM, y + 0.006, hint.wz * MM);
+  ring.renderOrder = 10;
+  build.add(ring);
+}
+
 function addSelBox(g, n) {
   const f = footprint(n), h = selTop(n), pad = 18;
   const box = new THREE.LineSegments(
@@ -1354,6 +1369,7 @@ function rebuild() {
     if (selIds.has(n.id)) addSelBox(g, n);   // CAD-style outline around each selected object
     build.add(g);
   }
+  if (dropHint) addDropMarker(dropHint);     // where a dragged part will hook / insert on release
 
   // Step joints, where two touching tables stand at different heights. The CK-151 is a stainless
   // post of FIXED length (~320mm) that screws to the HIGHER table and hangs down; the lower
@@ -1784,7 +1800,7 @@ function paintSlotMenu() {
 
 const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
-let dragNode = null, dragMod = null, dragSlide = null, longPress = null;
+let dragNode = null, dragMod = null, dragSlide = null, longPress = null, dragHooked = false;
 const dragOff = new THREE.Vector3();
 
 const toPtr = e => {
@@ -1862,14 +1878,14 @@ canvas.addEventListener("pointerdown", e => {
   // Shift / Ctrl / Cmd toggles this object in the multi-selection (and never starts a drag).
   if (e.shiftKey || e.ctrlKey || e.metaKey) { toggleInSel(n.id); render(); return; }
   selectOnly(n.id);
-  // A hooked board hangs where its hooks are. Dragging it would be asking the model to
-  // lie: it cannot be anywhere else. Select it, do not move it.
-  if (!n.host) {
-    dragNode = n;
-    const at = hitPlane(0);
-    if (at) dragOff.set(n.x - at.x / MM, 0, n.z - at.z / MM);
-    controls.enabled = false;
-  }
+  // Any node can be dragged -- a FREE one moves, a hooked one DETACHES on the first move and floats
+  // free until dropped onto a legal edge again. (Rail-hosted nodes are caught above and slide along
+  // their rail instead of detaching.)
+  dragNode = n;
+  dragHooked = n.host != null;
+  const at = hitPlane(0);
+  if (at) dragOff.set(n.x - at.x / MM, 0, n.z - at.z / MM);
+  controls.enabled = false;
   // A sliding extension (also a hosted node) is handled up top -- it is grabbed before the
   // edge check so its rail handle cannot swallow the grab.
   render();
@@ -1952,17 +1968,33 @@ canvas.addEventListener("pointermove", e => {
 
   const at = hitPlane(0);
   if (!at) return;
-  dragNode.x = Math.round((at.x / MM + dragOff.x) / SNAP) * SNAP;
-  dragNode.z = Math.round((at.z / MM + dragOff.z) / SNAP) * SNAP;
-  snapToNeighbours(dragNode);
+  const nx = Math.round((at.x / MM + dragOff.x) / SNAP) * SNAP;
+  const nz = Math.round((at.z / MM + dragOff.z) / SNAP) * SNAP;
+  // First real move of a hooked node cuts it loose -- from here on it's a free-floating part.
+  if (dragHooked && (Math.abs(nx - dragNode.x) > 2 || Math.abs(nz - dragNode.z) > 2)) {
+    detachNode(dragNode);
+    dragHooked = false;
+  }
+  dragNode.x = nx;
+  dragNode.z = nz;
+  if (dragNode.host == null) {                    // a free/detached node can re-hook onto a legal edge
+    dropHint = findDropTarget(dragNode);
+    if (!dropHint) snapToNeighbours(dragNode);    // no edge nearby -> fall back to table-edge snapping
+  }
   render();
 });
 
 addEventListener("pointerup", () => {
   clearTimeout(longPress);
   const wasDragging = dragNode || dragMod || dragSlide;
-  dragNode = dragMod = dragSlide = null; controls.enabled = true;
-  if (wasDragging) commitHistory();   // the drag is over -- snapshot its final position, once
+  // Dropped a free/detached part on a legal edge -> hook it back on (an occupied edge = insert).
+  if (dragNode && dragNode.host == null && dropHint) {
+    if (dropHint.occupied) insertAt(dragNode, dropHint.host, dropHint.key);
+    else hookNode(dragNode, dropHint.host, dropHint.key);
+  }
+  dropHint = null;
+  dragNode = dragMod = dragSlide = null; dragHooked = false; controls.enabled = true;
+  if (wasDragging) { render(); commitHistory(); }   // resolve the new hook, snapshot once
 });
 
 // Right-click a module in a frame to open its action menu (Remove). Only when the click is
@@ -2152,6 +2184,67 @@ function attach(sku, host, key) {
   state.nodes.push(n);
   selectOnly(n.id);
   render();
+}
+
+// ---- Drag to reconnect: detach a hooked part, float it, drop it onto another legal edge --------
+// The ids of n and everything hanging off it -- a node can't be hooked to itself or its own guest.
+function subtreeIds(n) {
+  const ids = new Set([n.id]);
+  for (let i = 0; i < 16; i++)
+    for (const m of state.nodes) if (m.host != null && ids.has(m.host)) ids.add(m.id);
+  return ids;
+}
+/** Cut a hooked node loose: it keeps its current position and becomes a free-standing root. */
+function detachNode(n) {
+  n.host = null;
+  delete n.edge; delete n.rail; delete n.slide; delete n.step; delete n.sharedJoint;
+}
+/** Hook an EXISTING node onto a host edge (re-attach after a detach), like attach() but in place. */
+function hookNode(n, host, key) {
+  const slide = isSlide(PARTS[n.sku]);
+  n.host = host.id;
+  n.edge = key;
+  n.rail = key.startsWith("rail");
+  n.leg = slide ? null : host.leg;
+  if (n.rail) n.slide = slide ? initialSlide(host, key, n.sku) : 0;
+  else delete n.slide;
+}
+/** The nearest edge a dragged node could legally hook onto, within a snap radius. Returns the host,
+ *  the edge key, its world point, and whether it's already occupied (an occupied edge = insert). */
+function findDropTarget(n) {
+  const sub = subtreeIds(n), p = PARTS[n.sku];
+  let best = null, bestD = 300;   // mm snap radius
+  for (const h of state.nodes) {
+    if (sub.has(h.id) || h.kind === "footprint") continue;
+    for (const key of edgeKeysOf(h)) {
+      const e = hostEdge(h, key);
+      if (!e) continue;
+      if (!legalOn({ ...e, node: h, key }).some(x => x.sku === p.sku)) continue;
+      const a = rotv(e.anchor, h.rot);
+      const wx = h.x + a.x, wz = h.z + a.z;
+      const d = Math.hypot(n.x - wx, n.z - wz);
+      if (d < bestD) {
+        const occupied = state.nodes.some(m => m.id !== n.id && m.host === h.id && m.edge === key && !m.rail);
+        bestD = d; best = { host: h, key, wx, wz, occupied };
+      }
+    }
+  }
+  return best;
+}
+let dropHint = null;
+
+/** Drop a part onto an OCCUPIED edge -> insert it into the chain: it takes the edge, and whatever
+ *  was there re-hosts onto the newcomer's far edge, so the run grows by one in the middle. */
+function insertAt(n, host, key) {
+  const occ = state.nodes.find(m => m.id !== n.id && m.host === host.id && m.edge === key && !m.rail);
+  hookNode(n, host, key);
+  if (!occ) return;
+  const farKey = edgeKeysOf(n).find(k => {
+    const e = hostEdge(n, k);
+    return e && legalOn({ ...e, node: n, key: k }).some(x => x.sku === occ.sku);
+  });
+  if (farKey) hookNode(occ, n, farKey);
+  else detachNode(occ);   // nowhere on the newcomer for it -> leave it floating rather than overlap
 }
 
 /** Remove a node, and everything hanging off it. A hook chain is not a set of tables that
@@ -2711,6 +2804,12 @@ function paintWarnings() {
     d.className = cls; d.textContent = msg; w.append(d);
   };
 
+  // A board that has been dragged off its host and not yet dropped onto another edge.
+  for (const n of state.nodes)
+    if (n.kind === "ext" && n.host == null)
+      add(`${PARTS[n.sku].title_en} is detached — a hook-on board can't stand on its own. `
+        + `Drag it onto a highlighted edge to reconnect, or delete it.`, "warn");
+
   for (const [a, b] of steps()) {
     const hi = topOf(a) >= topOf(b) ? a : b, lo = hi === a ? b : a;
     const rungs = legRung(hostLegOf(lo)) - legRung(hostLegOf(hi));   // how far DOWN the ladder
@@ -3065,6 +3164,7 @@ $("datum").textContent = `${LAYOUT.datum_height_mm}mm`;
 // check a silhouette; orbiting by hand and squinting is how you convince yourself.
 window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
   openEdges, hookNormal, bracketNormal, turnOf, hostEdge, aabb, legalOn, portsAt, CONN,
+  findDropTarget, hookNode, detachNode, insertAt, edgeKeysOf, selectedIds,
   top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); } };
 
 resize();
