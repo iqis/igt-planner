@@ -191,6 +191,7 @@
    "ST-050": [{"iface": "knob", "at": "edge", "n": "8 spread / 4 compact"}, {"iface": "ext_table", "scale": "table", "at": "edge"}, {"iface": "hanging", "at": "edge"}, {"iface": "slot", "at": "opening", "via": "bridge"}],
    "LV-381": [{"iface": "ext_table", "scale": "table", "at": "end", "n": 2}, {"iface": "ext_table", "scale": "table", "at": "side", "n": 2}, {"iface": "knob", "at": "edge"}],
    "extension_table": [{"iface": "ext_table", "scale": "board", "at": "bracket", "note": "a board's own bracket is a BOARD-scale ET port for the NEXT board -- boards chain, a frame won't join here"}],
+   "corner": [{"iface": "ext_table", "scale": "board", "at": "bracket", "note": "a corner's far bracket is a BOARD-scale ET port -- the run turns 90 deg through the corner and the NEXT board chains on here (same as any board's bracket)"}],
    "CK-090": [{"iface": "slot", "at": "bay", "n": 2, "when": "expanded"}],
    "CK-080R": [{"iface": "slot", "at": "bay", "n": 3}],
    "CK-180":  [{"iface": "slot", "at": "bay", "n": 3}]
