@@ -567,7 +567,7 @@
    }
   }
  },
- "count": 110,
+ "count": 133,
  "unmatched_sku": [
   "CK-904SET",
   "CK-080SET",
@@ -3880,6 +3880,1452 @@
    "url": {
     "us": null,
     "jp": "https://ec.snowpeak.co.jp/item/SNP0126A0325"
+   }
+  },
+  {
+   "sku": "FES-770",
+   "handle": null,
+   "title_en": "Tortue Pro. 2026",
+   "title_jp": "トルテュPro. 2026 EDITION",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 3600,
+    "d": 5800,
+    "h": 2050
+   },
+   "packed_mm": null,
+   "weight_g": 22000,
+   "material": "［シェルター］本体／75Dシリコンポリエステルリップストップ・遮光ピグメントPUコーティング耐水圧1,500mmミニマム（ルーフ部、ウォール部、ウィンドウ部）、210DポリエステルオックスPUコーティング耐水圧 450mmミニマム（スカート部）、シールドルーフ／75Dシリコンポリエステルリップストップ・遮光ピグメントPUコーティング耐水圧1,500mmミニマム、インナールーム／20Dポリエステルタフタリップストップ（ルーフ部、ウォール部）、40DナイロンタフタリップストップPUコーティング耐水圧1,800mmミニマム（ボトム部）、フレーム／A6061、［グランドシート］本体／210DポリエステルオックスPUコーティング耐水圧 1800mmミニマム",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0126A0201"
+   },
+   "curated_reason": "Snow Peak Tortue Pro. 2026 (FES-770): shelter FOOTPRINT for scale reference — footprint 360x580cm derived from prior Tortue Pro TP-770R (2026 page lists packed size only). 2-room. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "shell",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2900
+     ],
+     [
+      1800,
+      1400
+     ],
+     [
+      1800,
+      -1400
+     ],
+     [
+      0,
+      -2900
+     ],
+     [
+      -1800,
+      -1400
+     ],
+     [
+      -1800,
+      1400
+     ]
+    ]
+   },
+   "capacity": 4,
+   "peak_h_mm": 2050
+  },
+  {
+   "sku": "SD-480",
+   "handle": null,
+   "title_en": "Alpha Breeze",
+   "title_jp": "",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 2700,
+    "d": 4500,
+    "h": 1860
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "Snow Peak Alpha Breeze (SD-480): shelter FOOTPRINT for scale reference — official 設営 270x450cm (awning extended); inner 258x278. SKU SD-480-IV-US. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1350,
+      -2250
+     ],
+     [
+      1350,
+      -2250
+     ],
+     [
+      1350,
+      520
+     ],
+     [
+      900,
+      2250
+     ],
+     [
+      -900,
+      2250
+     ],
+     [
+      -1350,
+      520
+     ]
+    ]
+   },
+   "capacity": 5,
+   "peak_h_mm": 1860
+  },
+  {
+   "sku": "SD-506",
+   "handle": null,
+   "title_en": "Dock Dome Pro.6",
+   "title_jp": "",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 3250,
+    "d": 4900,
+    "h": 1800
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "Snow Peak Dock Dome Pro.6 (SD-506): shelter FOOTPRINT for scale reference — official JP 設営 325x490cm (canopy incl.); inner 300x300. Hexagonal dome approximated. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1625,
+      -2450
+     ],
+     [
+      1625,
+      -2450
+     ],
+     [
+      1625,
+      550
+     ],
+     [
+      900,
+      2450
+     ],
+     [
+      -900,
+      2450
+     ],
+     [
+      -1625,
+      550
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 1800
+  },
+  {
+   "sku": "SDE-001RH",
+   "handle": null,
+   "title_en": "Amenity Dome M",
+   "title_jp": "アメニティドームM",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 2800,
+    "d": 5050,
+    "h": 1500
+   },
+   "packed_mm": null,
+   "weight_g": 8000,
+   "material": "フライシート／75Dポリエステルタフタ・PUコーティング耐水圧1,800mmミニマム・撥水加工・UVカット加工、インナーテント／68Dポリエステルタフタ（ウォール部）、210Dポリエステルオックス・PUコーティング耐水圧1,800mmミニマム（ボトム部）、フレーム／A7001、A6061（Φ12.8mm、Φ12mm、Φ11.8mm）",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0118A0266"
+   },
+   "curated_reason": "Snow Peak Amenity Dome M (SDE-001RH): shelter FOOTPRINT for scale reference — official 設営 505x280cm (canopy incl.); inner 265x265. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1400,
+      -2525
+     ],
+     [
+      1400,
+      -2525
+     ],
+     [
+      1400,
+      125
+     ],
+     [
+      650,
+      2525
+     ],
+     [
+      -650,
+      2525
+     ],
+     [
+      -1400,
+      125
+     ]
+    ]
+   },
+   "capacity": 5,
+   "peak_h_mm": 1500
+  },
+  {
+   "sku": "SDE-002RH",
+   "handle": null,
+   "title_en": "Amenity Dome S",
+   "title_jp": "アメニティドームＳ",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 2300,
+    "d": 3550,
+    "h": 1200
+   },
+   "packed_mm": null,
+   "weight_g": 5000,
+   "material": "フライシート／75Dポリエステルタフタ・PUコーティング耐水圧1,800mmミニマム・撥水加工・UVカット加工、インナーテント／ 68Dポリエステルタフタ（ウォール部）、210Dポリエステルオックス・PUコーティング耐水圧1,800mmミニマム（ボトム部）、フレーム／A7001、A6061（Φ9.3mm、Φ8.5mm）",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0118A0270"
+   },
+   "curated_reason": "Snow Peak Amenity Dome S (SDE-002RH): shelter FOOTPRINT for scale reference — official 設営 355x230cm (canopy incl.); inner 220x150. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1150,
+      -1775
+     ],
+     [
+      1150,
+      -1775
+     ],
+     [
+      1150,
+      425
+     ],
+     [
+      500,
+      1775
+     ],
+     [
+      -500,
+      1775
+     ],
+     [
+      -1150,
+      425
+     ]
+    ]
+   },
+   "capacity": 3,
+   "peak_h_mm": 1200
+  },
+  {
+   "sku": "SDE-003RD",
+   "handle": null,
+   "title_en": "Amenity Dome L",
+   "title_jp": "アメニティドームL",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 3100,
+    "d": 5400,
+    "h": 1650
+   },
+   "packed_mm": null,
+   "weight_g": 9800,
+   "material": "フライシート／75Dポリエステルタフタ・PUコーティング耐水圧1,800mmミニマム・撥水加工・UVカット加工、インナーテント／68Dポリエステルタフタ（ウォール部）、210Dポリエステルオックス・PUコーティング耐水圧1,800mmミニマム（ボトム部）、フレーム／A7001、A6061（Φ13mm、Φ14.5mm）",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0501"
+   },
+   "curated_reason": "Snow Peak Amenity Dome L (SDE-003RD): shelter FOOTPRINT for scale reference — official 設営 540x310cm (canopy incl.); inner 300x300. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1550,
+      -2700
+     ],
+     [
+      1550,
+      -2700
+     ],
+     [
+      1550,
+      300
+     ],
+     [
+      700,
+      2700
+     ],
+     [
+      -700,
+      2700
+     ],
+     [
+      -1550,
+      300
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 1650
+  },
+  {
+   "sku": "SDE-080",
+   "handle": null,
+   "title_en": "Vault",
+   "title_jp": "",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 3000,
+    "d": 5300,
+    "h": 1500
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "Snow Peak Vault (SDE-080): shelter FOOTPRINT for scale reference — official fly 設営 300x530cm (canopy incl.); inner 285x220. Kamaboko body approximated. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1500,
+      -2650
+     ],
+     [
+      1500,
+      -2650
+     ],
+     [
+      1500,
+      200
+     ],
+     [
+      800,
+      2650
+     ],
+     [
+      -800,
+      2650
+     ],
+     [
+      -1500,
+      200
+     ]
+    ]
+   },
+   "capacity": 4,
+   "peak_h_mm": 1500
+  },
+  {
+   "sku": "SDE-260",
+   "handle": null,
+   "title_en": "Land Nest Dome M",
+   "title_jp": "ランドネストドーム M",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 2800,
+    "d": 4500,
+    "h": 1700
+   },
+   "packed_mm": null,
+   "weight_g": 8700,
+   "material": "テント本体／75Dポリエステルタフタ・PUコーティング耐水圧1,800mmミニマム・撥水加工・UVカット加工、インナーテント／68Dポリエステルタフタ（ウォール部）、210Dポリエステルオックス・PUコーティング耐水圧1,800mmミニマム（ボトム部）、フレーム／A6061（Φ13mm）",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0123A0517"
+   },
+   "curated_reason": "Snow Peak Land Nest Dome M (SDE-260): shelter FOOTPRINT for scale reference — official fly 設営 280x450cm (canopy incl.); inner 265x265. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1400,
+      -2250
+     ],
+     [
+      1400,
+      -2250
+     ],
+     [
+      1400,
+      400
+     ],
+     [
+      700,
+      2250
+     ],
+     [
+      -700,
+      2250
+     ],
+     [
+      -1400,
+      400
+     ]
+    ]
+   },
+   "capacity": 4,
+   "peak_h_mm": 1700
+  },
+  {
+   "sku": "SSD-702",
+   "handle": null,
+   "title_en": "Fal Pro.air 2",
+   "title_jp": "ファル Pro.air 2",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 1430,
+    "d": 2450,
+    "h": 1100
+   },
+   "packed_mm": null,
+   "weight_g": 710,
+   "material": "フライシート／20Dシリコンポリエステルミニリップストップ・PUコーティング耐水圧1,500mmミニマム、インナーテント／20Dポリエステルミニリップストップ（ウォール部）、30Dナイロンリップストップ・PUコーティング耐水圧1,500mmミニマム（ボトム部）、フレーム／A7001（Φ9mm）",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0117A0500"
+   },
+   "curated_reason": "Snow Peak Fal Pro.air 2 (SSD-702): shelter FOOTPRINT for scale reference — official 外寸 143x245cm (vestibule incl.); inner 128x205. 2-pole cross dome. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -715,
+      -1225
+     ],
+     [
+      715,
+      -1225
+     ],
+     [
+      715,
+      825
+     ],
+     [
+      150,
+      1225
+     ],
+     [
+      -150,
+      1225
+     ],
+     [
+      -715,
+      825
+     ]
+    ]
+   },
+   "capacity": 2,
+   "peak_h_mm": 1100
+  },
+  {
+   "sku": "SSD-703",
+   "handle": null,
+   "title_en": "Fal Pro.air 3",
+   "title_jp": "ファル Pro.air 3",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 1620,
+    "d": 2750,
+    "h": 1130
+   },
+   "packed_mm": null,
+   "weight_g": 920,
+   "material": "フライシート／20Dシリコンポリエステルミニリップストップ・PUコーティング耐水圧1,500mmミニマム、インナーテント／20Dポリエステルミニリップストップ（ウォール部）、30Dナイロンリップストップ・PUコーティング耐水圧1,500mmミニマム（ボトム部）、フレーム／A7001（Φ9mm）",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0117A0501"
+   },
+   "curated_reason": "Snow Peak Fal Pro.air 3 (SSD-703): shelter FOOTPRINT for scale reference — official JP 外寸 162x275cm; vestibule at BOTH ends; inner ~145x205. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      300,
+      1375
+     ],
+     [
+      810,
+      1025
+     ],
+     [
+      810,
+      -1025
+     ],
+     [
+      300,
+      -1375
+     ],
+     [
+      -300,
+      -1375
+     ],
+     [
+      -810,
+      -1025
+     ],
+     [
+      -810,
+      1025
+     ],
+     [
+      -300,
+      1375
+     ]
+    ]
+   },
+   "capacity": 3,
+   "peak_h_mm": 1130
+  },
+  {
+   "sku": "SSD-730",
+   "handle": null,
+   "title_en": "Lago Pro.air 1",
+   "title_jp": "",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 1200,
+    "d": 2649,
+    "h": 1050
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "Snow Peak Lago Pro.air 1 (SSD-730): shelter FOOTPRINT for scale reference — body ~225x120cm tapered pentagon; guyed stake span 305x220cm. Solo shelter. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -600,
+      -1125
+     ],
+     [
+      600,
+      -1125
+     ],
+     [
+      300,
+      900
+     ],
+     [
+      -300,
+      900
+     ],
+     [
+      0,
+      1524
+     ]
+    ]
+   },
+   "capacity": 1,
+   "peak_h_mm": 1050,
+   "guyed_mm": {
+    "w": 2195,
+    "d": 3048
+   }
+  },
+  {
+   "sku": "STP-381",
+   "handle": null,
+   "title_en": "Light Tarp Penta",
+   "title_jp": "ライトタープ ペンタ シールド [1人用]",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 3200,
+    "d": 4000,
+    "h": 1500
+   },
+   "packed_mm": null,
+   "weight_g": 790,
+   "material": "75Dポリエステルタフタ・遮光ピグメントPUコーティング耐水圧1,800mmミニマム・撥水加工・UVカット加工",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0115A0305"
+   },
+   "curated_reason": "Snow Peak Light Tarp Penta (STP-381): shelter FOOTPRINT for scale reference — fabric ~400x320cm single-pole pentagon; setup ~= fabric span. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2000
+     ],
+     [
+      1600,
+      600
+     ],
+     [
+      1000,
+      -2000
+     ],
+     [
+      -1000,
+      -2000
+     ],
+     [
+      -1600,
+      600
+     ]
+    ]
+   },
+   "capacity": 2,
+   "peak_h_mm": 1500
+  },
+  {
+   "sku": "TP-260",
+   "handle": null,
+   "title_en": "HD Tarp Shield Hexa Evo Pro",
+   "title_jp": "",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 9200,
+    "d": 11600,
+    "h": 2770
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "Snow Peak HD Tarp Shield Hexa Evo Pro (TP-260): shelter FOOTPRINT for scale reference — fabric shade 1160x920cm (large). US TP-250R. Guys extend beyond ridge ends. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      5800
+     ],
+     [
+      4600,
+      2600
+     ],
+     [
+      4600,
+      -2600
+     ],
+     [
+      0,
+      -5800
+     ],
+     [
+      -4600,
+      -2600
+     ],
+     [
+      -4600,
+      2600
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 2770
+  },
+  {
+   "sku": "TP-430",
+   "handle": null,
+   "title_en": "TAKIBI Tarp Octa",
+   "title_jp": "TAKIBIタープ オクタ",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 4500,
+    "d": 5100,
+    "h": 2740
+   },
+   "packed_mm": null,
+   "weight_g": 8900,
+   "material": "タープ本体／210Dポリエステルオックス・PUコーティング耐水圧1,800mmミニマム・撥水加工・UVカット加工、インナールーフ／ポリエステル・コットン混紡",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0118A0534"
+   },
+   "curated_reason": "Snow Peak TAKIBI Tarp Octa (TP-430): shelter FOOTPRINT for scale reference — fire-resistant. fabric 510x450cm stretched octagon on 2 centre poles. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      1400,
+      2550
+     ],
+     [
+      2250,
+      1200
+     ],
+     [
+      2250,
+      -1200
+     ],
+     [
+      1400,
+      -2550
+     ],
+     [
+      -1400,
+      -2550
+     ],
+     [
+      -2250,
+      -1200
+     ],
+     [
+      -2250,
+      1200
+     ],
+     [
+      -1400,
+      2550
+     ]
+    ]
+   },
+   "capacity": 8,
+   "peak_h_mm": 2740
+  },
+  {
+   "sku": "TP-440",
+   "handle": null,
+   "title_en": "TAKIBI Tarp Hexa M",
+   "title_jp": "",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 4200,
+    "d": 4750,
+    "h": 2380
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "Snow Peak TAKIBI Tarp Hexa M (TP-440): shelter FOOTPRINT for scale reference — fire-resistant. fabric shade 475x420cm (= HD Hexa M); guyed ~690x1120cm est. SKU TP-440S-US. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2375
+     ],
+     [
+      2100,
+      1100
+     ],
+     [
+      2100,
+      -1100
+     ],
+     [
+      0,
+      -2375
+     ],
+     [
+      -2100,
+      -1100
+     ],
+     [
+      -2100,
+      1100
+     ]
+    ]
+   },
+   "capacity": 4,
+   "peak_h_mm": 2380,
+   "guyed_mm": {
+    "w": 6900,
+    "d": 11200
+   }
+  },
+  {
+   "sku": "TP-660",
+   "handle": null,
+   "title_en": "Living Shell Long Pro.",
+   "title_jp": "リビングシェルロング Pro. [4-6人用]",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 4150,
+    "d": 5300,
+    "h": 2200
+   },
+   "packed_mm": {
+    "w": 80.0,
+    "d": 28.0,
+    "h": 30.0
+   },
+   "weight_g": 18600,
+   "material": "シェルター本体／150Dポリエステルオックス・遮光ピグメントPUコーティング耐水圧3,000mmミニマム・撥水加工・UVカット加工（ルーフ部）、150Dポリエステルオックス・PUコーティング耐水圧1,800mmミニマム・撥水加工・UVカット加工（ウォール部）、210Dポリエステルオックス・PUコーティング耐水圧450mmミニマム（スカート部）、フレーム／A6061(Φ16mm、Φ19mm)",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0114A0472"
+   },
+   "curated_reason": "Snow Peak Living Shell Long Pro. (TP-660): shelter FOOTPRINT for scale reference — official 設営 530x415cm. Curved shell, approximated as elongated hexagon. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "shell",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2650
+     ],
+     [
+      2075,
+      1000
+     ],
+     [
+      2075,
+      -1000
+     ],
+     [
+      0,
+      -2650
+     ],
+     [
+      -2075,
+      -1000
+     ],
+     [
+      -2075,
+      1000
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 2200
+  },
+  {
+   "sku": "TP-815",
+   "handle": null,
+   "title_en": "Land Station M Pro.air",
+   "title_jp": "ランドステーションM Pro.air",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 4600,
+    "d": 7300,
+    "h": 2100
+   },
+   "packed_mm": null,
+   "weight_g": 6700,
+   "material": "本体／75Dシリコンポリエステルリップストップ・遮光ピグメントPUコーティング耐水圧1,500mmミニマム",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0123A0867"
+   },
+   "curated_reason": "Snow Peak Land Station M Pro.air (TP-815): shelter FOOTPRINT for scale reference — official 設営 730x460cm. Irregular elongated hexagon (変則ヘキサ) shell. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "shell",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      3650
+     ],
+     [
+      2300,
+      1200
+     ],
+     [
+      2300,
+      -1200
+     ],
+     [
+      0,
+      -3650
+     ],
+     [
+      -2300,
+      -1200
+     ],
+     [
+      -2300,
+      1200
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 2100
+  },
+  {
+   "sku": "TP-820",
+   "handle": null,
+   "title_en": "Land Station L",
+   "title_jp": "ランドステーションL [6-8人用]",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 5100,
+    "d": 8850,
+    "h": 2100
+   },
+   "packed_mm": null,
+   "weight_g": 8200,
+   "material": "150Dポリエステルオックス・遮光ピグメントPUコーティング耐水圧3,000ｍｍミニマム・撥水加工・UVカット加工（ルーフ部）、150Dポリエステルオックス・PUコーティング耐水圧1,800ｍｍミニマム・撥水加工・UVカット加工（ウォール部）",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0115A0441"
+   },
+   "curated_reason": "Snow Peak Land Station L (TP-820): shelter FOOTPRINT for scale reference — official 設営 885x510cm. Irregular elongated hexagon shell. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "shell",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      4425
+     ],
+     [
+      2550,
+      1400
+     ],
+     [
+      2550,
+      -1400
+     ],
+     [
+      0,
+      -4425
+     ],
+     [
+      -2550,
+      -1400
+     ],
+     [
+      -2550,
+      1400
+     ]
+    ]
+   },
+   "capacity": 8,
+   "peak_h_mm": 2100
+  },
+  {
+   "sku": "TP-841",
+   "handle": null,
+   "title_en": "HD Tarp Shield Recta M",
+   "title_jp": "",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 4150,
+    "d": 3400,
+    "h": 2380
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "Snow Peak HD Tarp Shield Recta M (TP-841): shelter FOOTPRINT for scale reference — fabric panel 415x340cm. Guyed span not officially published for M. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -2075,
+      -1700
+     ],
+     [
+      2075,
+      -1700
+     ],
+     [
+      2075,
+      1700
+     ],
+     [
+      -2075,
+      1700
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 2380
+  },
+  {
+   "sku": "TP-842",
+   "handle": null,
+   "title_en": "HD Tarp Shield Recta L",
+   "title_jp": "",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 5490,
+    "d": 4270,
+    "h": 2770
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "Snow Peak HD Tarp Shield Recta L (TP-842): shelter FOOTPRINT for scale reference — fabric panel 549x427cm; guyed setup 1120x890cm. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -2745,
+      -2135
+     ],
+     [
+      2745,
+      -2135
+     ],
+     [
+      2745,
+      2135
+     ],
+     [
+      -2745,
+      2135
+     ]
+    ]
+   },
+   "capacity": 8,
+   "peak_h_mm": 2770,
+   "guyed_mm": {
+    "w": 11200,
+    "d": 8900
+   }
+  },
+  {
+   "sku": "TP-851",
+   "handle": null,
+   "title_en": "Amenity Tarp Hexa L",
+   "title_jp": "",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 5000,
+    "d": 5700,
+    "h": 2800
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "Snow Peak Amenity Tarp Hexa L (TP-851): shelter FOOTPRINT for scale reference — fabric shade 570x500cm; guyed setup 780x1220cm. Same outline as HD Hexa L. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2850
+     ],
+     [
+      2500,
+      1300
+     ],
+     [
+      2500,
+      -1300
+     ],
+     [
+      0,
+      -2850
+     ],
+     [
+      -2500,
+      -1300
+     ],
+     [
+      -2500,
+      1300
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 2800,
+   "guyed_mm": {
+    "w": 7800,
+    "d": 12200
+   }
+  },
+  {
+   "sku": "TP-861",
+   "handle": null,
+   "title_en": "HD Tarp Shield Hexa M",
+   "title_jp": "",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 4200,
+    "d": 4750,
+    "h": 2380
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "Snow Peak HD Tarp Shield Hexa M (TP-861): shelter FOOTPRINT for scale reference — fabric shade 475x420cm; guyed setup 690x1120cm (10m ridge ropes). 'S' in TP-861S = Set. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2375
+     ],
+     [
+      2100,
+      1100
+     ],
+     [
+      2100,
+      -1100
+     ],
+     [
+      0,
+      -2375
+     ],
+     [
+      -2100,
+      -1100
+     ],
+     [
+      -2100,
+      1100
+     ]
+    ]
+   },
+   "capacity": 4,
+   "peak_h_mm": 2380,
+   "guyed_mm": {
+    "w": 6900,
+    "d": 11200
+   }
+  },
+  {
+   "sku": "TP-862",
+   "handle": null,
+   "title_en": "HD Tarp Shield Hexa L",
+   "title_jp": "",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 5000,
+    "d": 5700,
+    "h": 2380
+   },
+   "packed_mm": null,
+   "weight_g": null,
+   "material": "",
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": null
+   },
+   "curated_reason": "Snow Peak HD Tarp Shield Hexa L (TP-862): shelter FOOTPRINT for scale reference — fabric shade 570x500cm; guyed setup 780x1220cm. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2850
+     ],
+     [
+      2500,
+      1300
+     ],
+     [
+      2500,
+      -1300
+     ],
+     [
+      0,
+      -2850
+     ],
+     [
+      -2500,
+      -1300
+     ],
+     [
+      -2500,
+      1300
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 2380,
+   "guyed_mm": {
+    "w": 7800,
+    "d": 12200
    }
   },
   {

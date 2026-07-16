@@ -100,7 +100,7 @@ const swatchOf = sku => COLORS[sku]?.color_hex || "#8a929c";
 //
 // Modelling the hooked ones as free nodes that happen to be adjacent is what kept the
 // corner from turning: adjacency has no handedness, and a corner is nothing but handedness.
-const state = { nodes: [], sel: null, nextId: 1 };
+const state = { nodes: [], sel: null, nextId: 1, shelterLock: true };
 
 const byId = id => state.nodes.find(n => n.id === id);
 const sel = () => byId(state.sel);
@@ -1027,8 +1027,13 @@ function drawFootprint(g, n) {
     label: p.title_en || n.sku,
     sub: size,
   });
-  built.body.userData.node = n;
-  nodeMeshes.push(built.body);
+  // Locked = a backdrop: only the CURRENTLY SELECTED footprint stays pickable (so you can still
+  // drag the one you're placing), every other one is click-through so it can't steal a click meant
+  // for the furniture standing on it. Unlocked = all footprints pick normally. Either way it draws.
+  if (!state.shelterLock || n.id === state.sel) {
+    built.body.userData.node = n;
+    nodeMeshes.push(built.body);
+  }
   g.add(built.group);
 }
 
@@ -2102,9 +2107,42 @@ function paintPalette() {
   const shel = $("shelters");
   if (shel) {
     shel.innerHTML = "";
+    // Lock toggle. Locked = the footprints are a backdrop: only the SELECTED one is draggable, the
+    // rest are click-through so a big translucent tarp can't steal a click meant for the furniture
+    // on top of it. Unlocked = every footprint picks normally.
+    shel.append(chip(state.shelterLock ? "🔒 layer locked" : "🔓 layer editable", state.shelterLock,
+      state.shelterLock ? "footprints are click-through — only the selected one drags. Click to unlock all."
+                        : "every footprint is selectable and draggable. Click to lock the layer.",
+      () => { state.shelterLock = !state.shelterLock; render(); }));
+    // The catalog: setup-size footprints (vestibule/canopy included -- NOT the inner mat).
     for (const p of BY_ROLE.shelter)
       shel.append(partRow(p, () => addNode(p.sku), false,
-        `${p.sku} — ${p.shelter_type || "shelter"} footprint, laid flat as a size reference. Drag it under the layout.`));
+        `${p.sku} — ${p.shelter_type || "shelter"} footprint (setup size, vestibule/canopy included), laid flat as a size reference.`));
+    // Already placed: a list that selects OR deletes even while the layer is locked.
+    const placed = state.nodes.filter(n => n.kind === "footprint");
+    if (placed.length) {
+      const hdr = document.createElement("div");
+      hdr.className = "subhead"; hdr.textContent = `placed · ${placed.length}`;
+      shel.append(hdr);
+      for (const n of placed) {
+        const row = document.createElement("div");
+        row.className = "part" + (n.id === state.sel ? " on" : "");
+        const sw = document.createElement("span");
+        sw.className = "sw";
+        sw.style.background = "#" + (SHELTER_FILL[PARTS[n.sku].shelter_type] || 0x8a8f97).toString(16).padStart(6, "0");
+        const nm = document.createElement("span");
+        nm.className = "nm";
+        nm.textContent = PARTS[n.sku].title_en || n.sku;
+        nm.title = "select this footprint (works even when the layer is locked)";
+        nm.onclick = () => { state.sel = n.id; render(); };
+        const del = document.createElement("span");
+        del.className = "del"; del.textContent = "×";
+        del.title = "remove this footprint";
+        del.onclick = (e) => { e.stopPropagation(); removeNode(n); };
+        row.append(sw, nm, del);
+        shel.append(row);
+      }
+    }
   }
 
   const n = sel();

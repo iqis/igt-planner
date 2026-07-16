@@ -7,7 +7,6 @@
   "Every entry needs a `reason`. If a reason cannot be written, the part stays",
   "unresolved -- an honest gap beats a confident guess."
  ],
-
  "_add": {
   "XCK-128-01": {
    "role": "rail_joint",
@@ -27,173 +26,1453 @@
   "LV-077GY": {
    "role": "seating",
    "title_en": "Folding Chair (Gray)",
-   "assembled_mm": {"w": 566, "d": 594, "h": 838},
+   "assembled_mm": {
+    "w": 566,
+    "d": 594,
+    "h": 838
+   },
    "seat_h_mm": 457,
-   "price": {"us": 14995, "jp": null, "uk": null},
+   "price": {
+    "us": 14995,
+    "jp": null,
+    "uk": null
+   },
    "frame_hex": "0x232528",
    "fabric_hex": "0x8c8279",
    "chair": "folding",
    "fabric_type": "canvas",
    "image": "https://www.snowpeak.com/cdn/shop/products/folding_chair_gy_lv-077gy_hero_01.jpg?v=1587494927&width=1000",
-   "url": {"us": "https://www.snowpeak.com/products/gray-folding-chair", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/gray-folding-chair",
+    "jp": null
+   },
    "reason": "First NON-IGT prop: the Snow Peak Folding Chair (director's chair). A free-standing piece placed AROUND the layout -- it does not connect to the IGT grid, occupies no slot, joins no assembly. role 'seating' -> a 'prop' node: draggable, rotatable, billed, nothing else. 566x594x838mm, 457mm seat; BLACK aluminium X-frame + taupe polyester-canvas seat/back/armrests. Modelled from the LV-077GY photo."
   },
   "LV-077RD": {
    "role": "seating",
    "title_en": "Folding Chair (Red)",
-   "assembled_mm": {"w": 566, "d": 594, "h": 838},
+   "assembled_mm": {
+    "w": 566,
+    "d": 594,
+    "h": 838
+   },
    "seat_h_mm": 457,
-   "price": {"us": 14995, "jp": null, "uk": null},
+   "price": {
+    "us": 14995,
+    "jp": null,
+    "uk": null
+   },
    "frame_hex": "0xbfc3c7",
    "fabric_hex": "0x962436",
    "chair": "folding",
    "fabric_type": "canvas",
    "image": "https://www.snowpeak.com/cdn/shop/products/folding_chair_rd_lv-077rd_hero_01.jpg?width=1000",
-   "url": {"us": "https://www.snowpeak.com/products/red-folding-camp-chair", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/red-folding-camp-chair",
+    "jp": null
+   },
    "reason": "Red variant of the Folding Chair. Same director's-chair frame and dimensions as LV-077GY, but a SILVER bare-aluminium frame (the gray/mesh ones are black-coated) and a deep-crimson canvas (0x962436, sampled from the LV-077RD photo)."
   },
   "LV-077M-BK": {
    "role": "seating",
    "title_en": "Mesh Folding Chair",
-   "assembled_mm": {"w": 566, "d": 594, "h": 838},
+   "assembled_mm": {
+    "w": 566,
+    "d": 594,
+    "h": 838
+   },
    "seat_h_mm": 457,
-   "price": {"us": 15995, "jp": null, "uk": null},
+   "price": {
+    "us": 15995,
+    "jp": null,
+    "uk": null
+   },
    "frame_hex": "0x232528",
    "fabric_hex": "0x2b2d31",
    "chair": "folding",
    "fabric_type": "mesh",
    "image": "https://www.snowpeak.com/cdn/shop/products/mesh_folding_chair_lv-077m-bk_hero_01.jpg?width=1000",
-   "url": {"us": "https://www.snowpeak.com/products/mesh-folding-chair", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/mesh-folding-chair",
+    "jp": null
+   },
    "reason": "Mesh variant: the same folding director's-chair frame (black), but the seat/back/armrests are a SEE-THROUGH black polyester MESH -- modelled as a dark fabric with a perforated alphaMap (tex/chair_mesh.png). Same 566x594x838 / 457mm seat as LV-077."
   },
   "LV-091": {
    "role": "seating",
    "title_en": "Low Beach Chair",
-   "assembled_mm": {"w": 650, "d": 580, "h": 860},
+   "assembled_mm": {
+    "w": 650,
+    "d": 580,
+    "h": 860
+   },
    "seat_h_mm": 300,
-   "price": {"us": 14995, "jp": null, "uk": null},
+   "price": {
+    "us": 14995,
+    "jp": null,
+    "uk": null
+   },
    "frame_hex": "0xbfc3c7",
    "fabric_hex": "0xc6b487",
    "wood_hex": "0xd8bd86",
    "chair": "lowbeach",
    "fabric_type": "canvas",
    "image": "https://www.snowpeak.com/cdn/shop/products/1_b0cf14da-57c9-4de7-bece-bea067bfe504.jpg?width=1000",
-   "url": {"us": "https://www.snowpeak.com/products/low-beach-chair", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/low-beach-chair",
+    "jp": null
+   },
    "reason": "Low Beach Chair (LV-091KH): a low, reclined beach chair -- SILVER aluminium tube frame, khaki canvas sling (seat + high reclined back, 0xc6b487 sampled from the photo), two STRAIGHT laminated-bamboo armrests. Low 300mm seat, 650x580x860. A prop like the folding chair; chair type 'lowbeach'."
   },
   "LV-093": {
    "role": "seating",
    "title_en": "Luxury Low Beach Chair",
-   "assembled_mm": {"w": 600, "d": 600, "h": 640},
+   "assembled_mm": {
+    "w": 600,
+    "d": 600,
+    "h": 640
+   },
    "seat_h_mm": 260,
-   "price": {"us": 24995, "jp": null, "uk": null},
+   "price": {
+    "us": 24995,
+    "jp": null,
+    "uk": null
+   },
    "frame_hex": "0x232528",
    "fabric_hex": "0x6e5b54",
    "wood_hex": "0xd8bd86",
    "chair": "lowbeach",
    "fabric_type": "canvas",
    "image": "https://www.snowpeak.com/cdn/shop/products/lv-093gy_low_chair_luxe_gr_hero_01.jpg?width=1000",
-   "url": {"us": "https://www.snowpeak.com/products/gray-low-beach-chair-short", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/gray-low-beach-chair-short",
+    "jp": null
+   },
    "reason": "Luxury Low Beach Chair (LV-093GY): same low-beach form as LV-091 but a LOWER back (owner's note), a BLACK-coated frame (not silver), and a gray-taupe canvas (0x6e5b54 sampled). Reuses the lowbeach builder -- the lower back falls out of the smaller h (640 vs 860). Wood armrests. Dims ~600x600x640 / 260mm seat are estimated off the photo (Snow Peak publishes no clean US spec)."
   },
   "SET-200": {
    "role": "seating",
    "title_en": "Campfield Futon (Sofa)",
-   "assembled_mm": {"w": 1494, "d": 749, "h": 650},
+   "assembled_mm": {
+    "w": 1494,
+    "d": 749,
+    "h": 650
+   },
    "seat_h_mm": 320,
-   "price": {"us": 59995, "jp": null, "uk": null},
+   "price": {
+    "us": 59995,
+    "jp": null,
+    "uk": null
+   },
    "frame_hex": "0xbfc3c7",
    "fabric_hex": "0xa08d80",
    "wood_hex": "0xcbb083",
    "chair": "sofa",
    "fabric_type": "canvas",
    "image": "https://www.snowpeak.com/cdn/shop/products/campfield_futon_starter_set_set-220_hero_01_d82f0177-1b87-4de1-ba76-72547f21b7ab.jpg?width=900",
-   "url": {"us": "https://www.snowpeak.com/products/racksotto-multi-starter-set-ar", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/racksotto-multi-starter-set-ar",
+    "jp": null
+   },
    "reason": "Campfield Futon (SET-200) in its BASIC SOFA form only (owner: the set reconfigures many ways -- bed / chairs / shelves -- but we model just the sofa). A low two-seat loveseat: silver aluminium X-frame base, two taupe seat + two reclined back cushions (0xa08d80 sampled), natural-wood armrests on the ends. chair type 'sofa'; ~1494x749x650. A prop like the chairs."
   },
   "TM-096OR": {
    "role": "seating",
    "title_en": "Lounge Cushion (Orange)",
-   "assembled_mm": {"w": 495, "d": 495, "h": 50},
+   "assembled_mm": {
+    "w": 495,
+    "d": 495,
+    "h": 50
+   },
    "seat_h_mm": 50,
-   "price": {"us": 4995, "jp": null, "uk": null},
+   "price": {
+    "us": 4995,
+    "jp": null,
+    "uk": null
+   },
    "fabric_hex": "0xcf6a20",
    "chair": "cushion",
    "fabric_type": "canvas",
    "image": "https://www.snowpeak.com/cdn/shop/products/TM-096OR_hero01.jpg?width=800",
-   "url": {"us": "https://www.snowpeak.com/products/lounge-cushion", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/lounge-cushion",
+    "jp": null
+   },
    "reason": "Lounge Cushion (TM-096OR): a ROUND cotton-canvas floor cushion, modelled in its FOLDED half-circle seating form (fold the round pad in half -> a half-disc of doubled thickness), as the product photos show. Brick-orange. Open pad ~495mm diameter x 50mm; folded ~495x247x100. chair type 'cushion'; a floor prop, no frame."
   },
   "TM-096GR": {
    "role": "seating",
    "title_en": "Lounge Cushion (Olive)",
-   "assembled_mm": {"w": 495, "d": 495, "h": 50},
+   "assembled_mm": {
+    "w": 495,
+    "d": 495,
+    "h": 50
+   },
    "seat_h_mm": 50,
-   "price": {"us": 4995, "jp": null, "uk": null},
+   "price": {
+    "us": 4995,
+    "jp": null,
+    "uk": null
+   },
    "fabric_hex": "0x76752f",
    "chair": "cushion",
    "fabric_type": "canvas",
    "image": "https://www.snowpeak.com/cdn/shop/products/TM-096GR_hero01.jpg?width=800",
-   "url": {"us": "https://www.snowpeak.com/products/lounge-cushion", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/lounge-cushion",
+    "jp": null
+   },
    "reason": "Lounge Cushion (TM-096GR): the olive-green variant of TM-096OR. Same round-folded-to-half-circle floor cushion; olive canvas."
   },
   "LV-071GY": {
-   "role": "seating", "title_en": "Folding Bench (Gray)",
-   "assembled_mm": {"w": 1095, "d": 330, "h": 358}, "seat_h_mm": 358,
-   "price": {"us": 17995, "jp": null, "uk": null},
-   "frame_hex": "0x232528", "fabric_hex": "0x8c8279", "chair": "bench", "fabric_type": "canvas",
+   "role": "seating",
+   "title_en": "Folding Bench (Gray)",
+   "assembled_mm": {
+    "w": 1095,
+    "d": 330,
+    "h": 358
+   },
+   "seat_h_mm": 358,
+   "price": {
+    "us": 17995,
+    "jp": null,
+    "uk": null
+   },
+   "frame_hex": "0x232528",
+   "fabric_hex": "0x8c8279",
+   "chair": "bench",
+   "fabric_type": "canvas",
    "image": "https://www.snowpeak.com/cdn/shop/products/folding_bench_gy_lv-071gy_hero_01.jpg?width=1000",
-   "url": {"us": "https://www.snowpeak.com/products/folding-gray-bench", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/folding-gray-bench",
+    "jp": null
+   },
    "reason": "Folding Bench (LV-071GY): the folding chair's bench sibling -- BACKLESS, armless, a long taupe canvas sling on two black end X-frames tied by a lengthwise stretcher. 1095x330x358 (seat height, no back). chair type 'bench'."
   },
   "LV-071RD": {
-   "role": "seating", "title_en": "Folding Bench (Red)",
-   "assembled_mm": {"w": 1095, "d": 330, "h": 358}, "seat_h_mm": 358,
-   "price": {"us": 17995, "jp": null, "uk": null},
-   "frame_hex": "0xbfc3c7", "fabric_hex": "0x962436", "chair": "bench", "fabric_type": "canvas",
+   "role": "seating",
+   "title_en": "Folding Bench (Red)",
+   "assembled_mm": {
+    "w": 1095,
+    "d": 330,
+    "h": 358
+   },
+   "seat_h_mm": 358,
+   "price": {
+    "us": 17995,
+    "jp": null,
+    "uk": null
+   },
+   "frame_hex": "0xbfc3c7",
+   "fabric_hex": "0x962436",
+   "chair": "bench",
+   "fabric_type": "canvas",
    "image": "https://www.snowpeak.com/cdn/shop/products/folding_bench_rd_lv-071rd_hero_01.jpg?width=1000",
-   "url": {"us": "https://www.snowpeak.com/products/folding-red-bench", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/folding-red-bench",
+    "jp": null
+   },
    "reason": "Folding Bench (LV-071RD): red variant -- SILVER frame + crimson canvas, matching the red folding chair (LV-077RD). Now discontinued but still built per owner. Same bench form as LV-071GY."
   },
   "LV-071M-BK": {
-   "role": "seating", "title_en": "Mesh Folding Bench",
-   "assembled_mm": {"w": 1095, "d": 330, "h": 358}, "seat_h_mm": 358,
-   "price": {"us": 18995, "jp": null, "uk": null},
-   "frame_hex": "0x232528", "fabric_hex": "0x2b2d31", "chair": "bench", "fabric_type": "mesh",
+   "role": "seating",
+   "title_en": "Mesh Folding Bench",
+   "assembled_mm": {
+    "w": 1095,
+    "d": 330,
+    "h": 358
+   },
+   "seat_h_mm": 358,
+   "price": {
+    "us": 18995,
+    "jp": null,
+    "uk": null
+   },
+   "frame_hex": "0x232528",
+   "fabric_hex": "0x2b2d31",
+   "chair": "bench",
+   "fabric_type": "mesh",
    "image": "https://www.snowpeak.com/cdn/shop/products/mesh_folding_bench_lv-071m-bk_hero_01.jpg?width=1000",
-   "url": {"us": "https://www.snowpeak.com/products/mesh-folding-bench", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/mesh-folding-bench",
+    "jp": null
+   },
    "reason": "Mesh Folding Bench (LV-071M-BK): black frame + see-through black mesh sling (perforated alphaMap), the bench version of the mesh folding chair. Same bench form."
   },
   "LV-066TR": {
-   "role": "seating", "title_en": "Bamboo Folding Bench Long",
-   "assembled_mm": {"w": 1095, "d": 330, "h": 394}, "seat_h_mm": 394,
-   "price": {"us": 15995, "jp": null, "uk": null},
-   "frame_hex": "0xcfd3d7", "wood_hex": "0xcaa96b", "chair": "shelf", "fabric_type": "wood",
+   "role": "seating",
+   "title_en": "Bamboo Folding Bench Long",
+   "assembled_mm": {
+    "w": 1095,
+    "d": 330,
+    "h": 394
+   },
+   "seat_h_mm": 394,
+   "price": {
+    "us": 15995,
+    "jp": null,
+    "uk": null
+   },
+   "frame_hex": "0xcfd3d7",
+   "wood_hex": "0xcaa96b",
+   "chair": "shelf",
+   "fabric_type": "wood",
    "image": "https://www.snowpeak.com/cdn/shop/products/long_folding_shelf_bamboo_lv-066tr_hero_01.jpg?width=1000",
-   "url": {"us": "https://www.snowpeak.com/products/long-folding-shelf-bamboo-lv-066tr", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/long-folding-shelf-bamboo-lv-066tr",
+    "jp": null
+   },
    "reason": "Bamboo Folding Bench / Shelf Long (LV-066TR): a rigid laminated-bamboo top on folding stainless end X-frames -- a multi-use narrow table / bench / storage shelf. 1095x330x394. chair type 'shelf'; the bamboo top wears the real bamboo grain."
   },
   "LV-065TR": {
-   "role": "seating", "title_en": "Bamboo Folding Bench",
-   "assembled_mm": {"w": 590, "d": 300, "h": 340}, "seat_h_mm": 340,
-   "price": {"us": 12995, "jp": null, "uk": null},
-   "frame_hex": "0xcfd3d7", "wood_hex": "0xcaa96b", "chair": "shelf", "fabric_type": "wood",
+   "role": "seating",
+   "title_en": "Bamboo Folding Bench",
+   "assembled_mm": {
+    "w": 590,
+    "d": 300,
+    "h": 340
+   },
+   "seat_h_mm": 340,
+   "price": {
+    "us": 12995,
+    "jp": null,
+    "uk": null
+   },
+   "frame_hex": "0xcfd3d7",
+   "wood_hex": "0xcaa96b",
+   "chair": "shelf",
+   "fabric_type": "wood",
    "image": null,
-   "url": {"us": "https://www.snowpeak.com/collections/bamboo", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/collections/bamboo",
+    "jp": null
+   },
    "reason": "Bamboo Folding Bench / Shelf, regular (LV-065TR): the shorter sibling of LV-066TR, same bamboo-top-on-folding-X-legs form. Reuses the shelf builder. Dims ~590x300x340 are ESTIMATED (no clean US spec found) -- shorter than the Long."
   },
   "LV-085": {
-   "role": "seating", "title_en": "Take! Bamboo Chair",
-   "assembled_mm": {"w": 549, "d": 630, "h": 749}, "seat_h_mm": 330,
-   "price": {"us": 21995, "jp": null, "uk": null},
-   "frame_hex": "0xcfd3d7", "fabric_hex": "0xefe6d0", "wood_hex": "0xd8bd86",
-   "chair": "take", "fabric_type": "canvas",
+   "role": "seating",
+   "title_en": "Take! Bamboo Chair",
+   "assembled_mm": {
+    "w": 549,
+    "d": 630,
+    "h": 749
+   },
+   "seat_h_mm": 330,
+   "price": {
+    "us": 21995,
+    "jp": null,
+    "uk": null
+   },
+   "frame_hex": "0xcfd3d7",
+   "fabric_hex": "0xefe6d0",
+   "wood_hex": "0xd8bd86",
+   "chair": "take",
+   "fabric_type": "canvas",
    "image": "https://www.snowpeak.com/cdn/shop/files/take1_v1.jpg?width=1000",
-   "url": {"us": "https://www.snowpeak.com/products/take-bamboo-chair-short-lv-085", "jp": null},
+   "url": {
+    "us": "https://www.snowpeak.com/products/take-bamboo-chair-short-lv-085",
+    "jp": null
+   },
    "reason": "Take! Bamboo Chair (LV-085): the signature Snow Peak chair -- natural BAMBOO X-legs, a slim aluminium seat frame + back posts, a draped cream cotton-canvas seat & back. The hard one (curves approximated with straight tubes). 549x630x749, ~330 seat. chair type 'take'."
+  },
+  "SDE-002RH": {
+   "role": "shelter",
+   "title_en": "Amenity Dome S",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1150,
+      -1775
+     ],
+     [
+      1150,
+      -1775
+     ],
+     [
+      1150,
+      425
+     ],
+     [
+      500,
+      1775
+     ],
+     [
+      -500,
+      1775
+     ],
+     [
+      -1150,
+      425
+     ]
+    ]
+   },
+   "capacity": 3,
+   "peak_h_mm": 1200,
+   "assembled_mm": {
+    "w": 2300,
+    "d": 3550,
+    "h": 1200
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Amenity Dome S (SDE-002RH): shelter FOOTPRINT for scale reference — official 設営 355x230cm (canopy incl.); inner 220x150. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "SDE-001RH": {
+   "role": "shelter",
+   "title_en": "Amenity Dome M",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1400,
+      -2525
+     ],
+     [
+      1400,
+      -2525
+     ],
+     [
+      1400,
+      125
+     ],
+     [
+      650,
+      2525
+     ],
+     [
+      -650,
+      2525
+     ],
+     [
+      -1400,
+      125
+     ]
+    ]
+   },
+   "capacity": 5,
+   "peak_h_mm": 1500,
+   "assembled_mm": {
+    "w": 2800,
+    "d": 5050,
+    "h": 1500
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Amenity Dome M (SDE-001RH): shelter FOOTPRINT for scale reference — official 設営 505x280cm (canopy incl.); inner 265x265. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "SDE-003RD": {
+   "role": "shelter",
+   "title_en": "Amenity Dome L",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1550,
+      -2700
+     ],
+     [
+      1550,
+      -2700
+     ],
+     [
+      1550,
+      300
+     ],
+     [
+      700,
+      2700
+     ],
+     [
+      -700,
+      2700
+     ],
+     [
+      -1550,
+      300
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 1650,
+   "assembled_mm": {
+    "w": 3100,
+    "d": 5400,
+    "h": 1650
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Amenity Dome L (SDE-003RD): shelter FOOTPRINT for scale reference — official 設営 540x310cm (canopy incl.); inner 300x300. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "SDE-260": {
+   "role": "shelter",
+   "title_en": "Land Nest Dome M",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1400,
+      -2250
+     ],
+     [
+      1400,
+      -2250
+     ],
+     [
+      1400,
+      400
+     ],
+     [
+      700,
+      2250
+     ],
+     [
+      -700,
+      2250
+     ],
+     [
+      -1400,
+      400
+     ]
+    ]
+   },
+   "capacity": 4,
+   "peak_h_mm": 1700,
+   "assembled_mm": {
+    "w": 2800,
+    "d": 4500,
+    "h": 1700
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Land Nest Dome M (SDE-260): shelter FOOTPRINT for scale reference — official fly 設営 280x450cm (canopy incl.); inner 265x265. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "SD-480": {
+   "role": "shelter",
+   "title_en": "Alpha Breeze",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1350,
+      -2250
+     ],
+     [
+      1350,
+      -2250
+     ],
+     [
+      1350,
+      520
+     ],
+     [
+      900,
+      2250
+     ],
+     [
+      -900,
+      2250
+     ],
+     [
+      -1350,
+      520
+     ]
+    ]
+   },
+   "capacity": 5,
+   "peak_h_mm": 1860,
+   "assembled_mm": {
+    "w": 2700,
+    "d": 4500,
+    "h": 1860
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Alpha Breeze (SD-480): shelter FOOTPRINT for scale reference — official 設営 270x450cm (awning extended); inner 258x278. SKU SD-480-IV-US. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "SDE-080": {
+   "role": "shelter",
+   "title_en": "Vault",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1500,
+      -2650
+     ],
+     [
+      1500,
+      -2650
+     ],
+     [
+      1500,
+      200
+     ],
+     [
+      800,
+      2650
+     ],
+     [
+      -800,
+      2650
+     ],
+     [
+      -1500,
+      200
+     ]
+    ]
+   },
+   "capacity": 4,
+   "peak_h_mm": 1500,
+   "assembled_mm": {
+    "w": 3000,
+    "d": 5300,
+    "h": 1500
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Vault (SDE-080): shelter FOOTPRINT for scale reference — official fly 設営 300x530cm (canopy incl.); inner 285x220. Kamaboko body approximated. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "SSD-702": {
+   "role": "shelter",
+   "title_en": "Fal Pro.air 2",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -715,
+      -1225
+     ],
+     [
+      715,
+      -1225
+     ],
+     [
+      715,
+      825
+     ],
+     [
+      150,
+      1225
+     ],
+     [
+      -150,
+      1225
+     ],
+     [
+      -715,
+      825
+     ]
+    ]
+   },
+   "capacity": 2,
+   "peak_h_mm": 1100,
+   "assembled_mm": {
+    "w": 1430,
+    "d": 2450,
+    "h": 1100
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Fal Pro.air 2 (SSD-702): shelter FOOTPRINT for scale reference — official 外寸 143x245cm (vestibule incl.); inner 128x205. 2-pole cross dome. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "SSD-703": {
+   "role": "shelter",
+   "title_en": "Fal Pro.air 3",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      300,
+      1375
+     ],
+     [
+      810,
+      1025
+     ],
+     [
+      810,
+      -1025
+     ],
+     [
+      300,
+      -1375
+     ],
+     [
+      -300,
+      -1375
+     ],
+     [
+      -810,
+      -1025
+     ],
+     [
+      -810,
+      1025
+     ],
+     [
+      -300,
+      1375
+     ]
+    ]
+   },
+   "capacity": 3,
+   "peak_h_mm": 1130,
+   "assembled_mm": {
+    "w": 1620,
+    "d": 2750,
+    "h": 1130
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Fal Pro.air 3 (SSD-703): shelter FOOTPRINT for scale reference — official JP 外寸 162x275cm; vestibule at BOTH ends; inner ~145x205. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "SD-506": {
+   "role": "shelter",
+   "title_en": "Dock Dome Pro.6",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -1625,
+      -2450
+     ],
+     [
+      1625,
+      -2450
+     ],
+     [
+      1625,
+      550
+     ],
+     [
+      900,
+      2450
+     ],
+     [
+      -900,
+      2450
+     ],
+     [
+      -1625,
+      550
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 1800,
+   "assembled_mm": {
+    "w": 3250,
+    "d": 4900,
+    "h": 1800
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Dock Dome Pro.6 (SD-506): shelter FOOTPRINT for scale reference — official JP 設営 325x490cm (canopy incl.); inner 300x300. Hexagonal dome approximated. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "SSD-730": {
+   "role": "shelter",
+   "title_en": "Lago Pro.air 1",
+   "shelter_type": "tent",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -600,
+      -1125
+     ],
+     [
+      600,
+      -1125
+     ],
+     [
+      300,
+      900
+     ],
+     [
+      -300,
+      900
+     ],
+     [
+      0,
+      1524
+     ]
+    ]
+   },
+   "capacity": 1,
+   "peak_h_mm": 1050,
+   "assembled_mm": {
+    "w": 1200,
+    "d": 2649,
+    "h": 1050
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Lago Pro.air 1 (SSD-730): shelter FOOTPRINT for scale reference — body ~225x120cm tapered pentagon; guyed stake span 305x220cm. Solo shelter. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "guyed_mm": {
+    "w": 2195,
+    "d": 3048
+   }
+  },
+  "TP-815": {
+   "role": "shelter",
+   "title_en": "Land Station M Pro.air",
+   "shelter_type": "shell",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      3650
+     ],
+     [
+      2300,
+      1200
+     ],
+     [
+      2300,
+      -1200
+     ],
+     [
+      0,
+      -3650
+     ],
+     [
+      -2300,
+      -1200
+     ],
+     [
+      -2300,
+      1200
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 2100,
+   "assembled_mm": {
+    "w": 4600,
+    "d": 7300,
+    "h": 2100
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Land Station M Pro.air (TP-815): shelter FOOTPRINT for scale reference — official 設営 730x460cm. Irregular elongated hexagon (変則ヘキサ) shell. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "TP-820": {
+   "role": "shelter",
+   "title_en": "Land Station L",
+   "shelter_type": "shell",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      4425
+     ],
+     [
+      2550,
+      1400
+     ],
+     [
+      2550,
+      -1400
+     ],
+     [
+      0,
+      -4425
+     ],
+     [
+      -2550,
+      -1400
+     ],
+     [
+      -2550,
+      1400
+     ]
+    ]
+   },
+   "capacity": 8,
+   "peak_h_mm": 2100,
+   "assembled_mm": {
+    "w": 5100,
+    "d": 8850,
+    "h": 2100
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Land Station L (TP-820): shelter FOOTPRINT for scale reference — official 設営 885x510cm. Irregular elongated hexagon shell. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "TP-660": {
+   "role": "shelter",
+   "title_en": "Living Shell Long Pro.",
+   "shelter_type": "shell",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2650
+     ],
+     [
+      2075,
+      1000
+     ],
+     [
+      2075,
+      -1000
+     ],
+     [
+      0,
+      -2650
+     ],
+     [
+      -2075,
+      -1000
+     ],
+     [
+      -2075,
+      1000
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 2200,
+   "assembled_mm": {
+    "w": 4150,
+    "d": 5300,
+    "h": 2200
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Living Shell Long Pro. (TP-660): shelter FOOTPRINT for scale reference — official 設営 530x415cm. Curved shell, approximated as elongated hexagon. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "FES-770": {
+   "role": "shelter",
+   "title_en": "Tortue Pro. 2026",
+   "shelter_type": "shell",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2900
+     ],
+     [
+      1800,
+      1400
+     ],
+     [
+      1800,
+      -1400
+     ],
+     [
+      0,
+      -2900
+     ],
+     [
+      -1800,
+      -1400
+     ],
+     [
+      -1800,
+      1400
+     ]
+    ]
+   },
+   "capacity": 4,
+   "peak_h_mm": 2050,
+   "assembled_mm": {
+    "w": 3600,
+    "d": 5800,
+    "h": 2050
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Tortue Pro. 2026 (FES-770): shelter FOOTPRINT for scale reference — footprint 360x580cm derived from prior Tortue Pro TP-770R (2026 page lists packed size only). 2-room. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "TP-861": {
+   "role": "shelter",
+   "title_en": "HD Tarp Shield Hexa M",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2375
+     ],
+     [
+      2100,
+      1100
+     ],
+     [
+      2100,
+      -1100
+     ],
+     [
+      0,
+      -2375
+     ],
+     [
+      -2100,
+      -1100
+     ],
+     [
+      -2100,
+      1100
+     ]
+    ]
+   },
+   "capacity": 4,
+   "peak_h_mm": 2380,
+   "assembled_mm": {
+    "w": 4200,
+    "d": 4750,
+    "h": 2380
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak HD Tarp Shield Hexa M (TP-861): shelter FOOTPRINT for scale reference — fabric shade 475x420cm; guyed setup 690x1120cm (10m ridge ropes). 'S' in TP-861S = Set. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "guyed_mm": {
+    "w": 6900,
+    "d": 11200
+   }
+  },
+  "TP-862": {
+   "role": "shelter",
+   "title_en": "HD Tarp Shield Hexa L",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2850
+     ],
+     [
+      2500,
+      1300
+     ],
+     [
+      2500,
+      -1300
+     ],
+     [
+      0,
+      -2850
+     ],
+     [
+      -2500,
+      -1300
+     ],
+     [
+      -2500,
+      1300
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 2380,
+   "assembled_mm": {
+    "w": 5000,
+    "d": 5700,
+    "h": 2380
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak HD Tarp Shield Hexa L (TP-862): shelter FOOTPRINT for scale reference — fabric shade 570x500cm; guyed setup 780x1220cm. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "guyed_mm": {
+    "w": 7800,
+    "d": 12200
+   }
+  },
+  "TP-260": {
+   "role": "shelter",
+   "title_en": "HD Tarp Shield Hexa Evo Pro",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      5800
+     ],
+     [
+      4600,
+      2600
+     ],
+     [
+      4600,
+      -2600
+     ],
+     [
+      0,
+      -5800
+     ],
+     [
+      -4600,
+      -2600
+     ],
+     [
+      -4600,
+      2600
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 2770,
+   "assembled_mm": {
+    "w": 9200,
+    "d": 11600,
+    "h": 2770
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak HD Tarp Shield Hexa Evo Pro (TP-260): shelter FOOTPRINT for scale reference — fabric shade 1160x920cm (large). US TP-250R. Guys extend beyond ridge ends. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "TP-851": {
+   "role": "shelter",
+   "title_en": "Amenity Tarp Hexa L",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2850
+     ],
+     [
+      2500,
+      1300
+     ],
+     [
+      2500,
+      -1300
+     ],
+     [
+      0,
+      -2850
+     ],
+     [
+      -2500,
+      -1300
+     ],
+     [
+      -2500,
+      1300
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 2800,
+   "assembled_mm": {
+    "w": 5000,
+    "d": 5700,
+    "h": 2800
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Amenity Tarp Hexa L (TP-851): shelter FOOTPRINT for scale reference — fabric shade 570x500cm; guyed setup 780x1220cm. Same outline as HD Hexa L. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "guyed_mm": {
+    "w": 7800,
+    "d": 12200
+   }
+  },
+  "TP-841": {
+   "role": "shelter",
+   "title_en": "HD Tarp Shield Recta M",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -2075,
+      -1700
+     ],
+     [
+      2075,
+      -1700
+     ],
+     [
+      2075,
+      1700
+     ],
+     [
+      -2075,
+      1700
+     ]
+    ]
+   },
+   "capacity": 6,
+   "peak_h_mm": 2380,
+   "assembled_mm": {
+    "w": 4150,
+    "d": 3400,
+    "h": 2380
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak HD Tarp Shield Recta M (TP-841): shelter FOOTPRINT for scale reference — fabric panel 415x340cm. Guyed span not officially published for M. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "TP-842": {
+   "role": "shelter",
+   "title_en": "HD Tarp Shield Recta L",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      -2745,
+      -2135
+     ],
+     [
+      2745,
+      -2135
+     ],
+     [
+      2745,
+      2135
+     ],
+     [
+      -2745,
+      2135
+     ]
+    ]
+   },
+   "capacity": 8,
+   "peak_h_mm": 2770,
+   "assembled_mm": {
+    "w": 5490,
+    "d": 4270,
+    "h": 2770
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak HD Tarp Shield Recta L (TP-842): shelter FOOTPRINT for scale reference — fabric panel 549x427cm; guyed setup 1120x890cm. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "guyed_mm": {
+    "w": 11200,
+    "d": 8900
+   }
+  },
+  "STP-381": {
+   "role": "shelter",
+   "title_en": "Light Tarp Penta",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2000
+     ],
+     [
+      1600,
+      600
+     ],
+     [
+      1000,
+      -2000
+     ],
+     [
+      -1000,
+      -2000
+     ],
+     [
+      -1600,
+      600
+     ]
+    ]
+   },
+   "capacity": 2,
+   "peak_h_mm": 1500,
+   "assembled_mm": {
+    "w": 3200,
+    "d": 4000,
+    "h": 1500
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak Light Tarp Penta (STP-381): shelter FOOTPRINT for scale reference — fabric ~400x320cm single-pole pentagon; setup ~= fabric span. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+  },
+  "TP-440": {
+   "role": "shelter",
+   "title_en": "TAKIBI Tarp Hexa M",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      0,
+      2375
+     ],
+     [
+      2100,
+      1100
+     ],
+     [
+      2100,
+      -1100
+     ],
+     [
+      0,
+      -2375
+     ],
+     [
+      -2100,
+      -1100
+     ],
+     [
+      -2100,
+      1100
+     ]
+    ]
+   },
+   "capacity": 4,
+   "peak_h_mm": 2380,
+   "assembled_mm": {
+    "w": 4200,
+    "d": 4750,
+    "h": 2380
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak TAKIBI Tarp Hexa M (TP-440): shelter FOOTPRINT for scale reference — fire-resistant. fabric shade 475x420cm (= HD Hexa M); guyed ~690x1120cm est. SKU TP-440S-US. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "guyed_mm": {
+    "w": 6900,
+    "d": 11200
+   }
+  },
+  "TP-430": {
+   "role": "shelter",
+   "title_en": "TAKIBI Tarp Octa",
+   "shelter_type": "tarp",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      1400,
+      2550
+     ],
+     [
+      2250,
+      1200
+     ],
+     [
+      2250,
+      -1200
+     ],
+     [
+      1400,
+      -2550
+     ],
+     [
+      -1400,
+      -2550
+     ],
+     [
+      -2250,
+      -1200
+     ],
+     [
+      -2250,
+      1200
+     ],
+     [
+      -1400,
+      2550
+     ]
+    ]
+   },
+   "capacity": 8,
+   "peak_h_mm": 2740,
+   "assembled_mm": {
+    "w": 4500,
+    "d": 5100,
+    "h": 2740
+   },
+   "price": {
+    "us": null,
+    "jp": null,
+    "uk": null
+   },
+   "reason": "Snow Peak TAKIBI Tarp Octa (TP-430): shelter FOOTPRINT for scale reference — fire-resistant. fabric 510x450cm stretched octagon on 2 centre poles. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
   }
  },
-
  "GF-051": {
   "excluded": true,
   "reason": "Takibi Garden Table (ガーデン焚火テーブル L). Excluded from the layout system: it is fixed garden furniture, assembled in place and not meant to be carried or moved, so it does not belong in a planner for a portable kit. The IGT/Layout System is defined by being packable and re-configurable on site; this is not. It stays in the catalog, flagged, because it is a real product and its connection to IGT is real -- just out of scope."
@@ -211,7 +1490,6 @@
   "role": "excluded",
   "reason": "Garden Unit Table Wood Insert -- the top for GF-015, which is fixed garden furniture. Excluded with its table. (It had been pulled into make_textures as a flat board via FLAT_EXTRA; that is removed too -- it is not an IGT slot insert.)"
  },
-
  "BG-031": {
   "role": "storage",
   "span": null,
@@ -228,14 +1506,21 @@
  },
  "UG-472": {
   "span": 2,
-  "assembled_mm": {"w": 360, "d": 250, "h": 220},
+  "assembled_mm": {
+   "w": 360,
+   "d": 250,
+   "h": 220
+  },
   "along_rail_mm": 250,
   "reason": "Waterproof Unit Gear Bag 220. THIS is a real slot insert (with UG-471) -- a bag that drops into ONE unit slot. Its dimensions were missing because the JP source has a typo: '（H）220×（W）360×（W）250mm' labels the third axis （W） instead of （D）, and the parser could not read two widths. It is 360 (rail span) x 250 (along-rail = 1 unit) x 220 tall -- the SAME 1-unit footprint as UG-471, just deeper (the '220' is the height code, not a unit count). Span stays 2 (one unit). Owner confirmed UG-471/UG-472 are the units that actually embed."
  },
-
  "CK-220": {
   "span": 4,
-  "assembled_mm": {"w": 510, "d": 354, "h": 372},
+  "assembled_mm": {
+   "w": 510,
+   "d": 354,
+   "h": 372
+  },
   "one_per_frame": true,
   "tiers": 2,
   "mounts_over": "rails",
@@ -254,7 +1539,6 @@
   "mounts": "GS-1000",
   "reason": "IGT LI Stove Joint Frame (IGT剛炎ジョイントフレーム). Owner: it is 1.5 units (span 3) and its ONLY use is with the GS-1000 (剛炎) stove -- it is the frame that drops that specific burner into the grid. This resolves the one part the catalog had left UNRESOLVED: its along-rail dimension is 362mm = 2.90 half-units, which sits between 1 and 1.5 units and could not be called from millimetres alone. The unit label decides it, as it always does: 1.5U. Its 362mm being 14mm under 375 is the same rim-clearance slack the other cooktops show."
  },
-
  "CK-020": {
   "attach": "hook_on",
   "mounts": "CK-025",
@@ -262,7 +1546,9 @@
  },
  "CK-025": {
   "mounted_by": "CK-020",
-  "contains": ["CK-026"],
+  "contains": [
+   "CK-026"
+  ],
   "reason": "Stainless Box Half Unit. Its default home is a half-unit slot in the frame (attach slot_in, 125x360 = one half-unit x the rail span). But it has a second home: hung off the frame's END by the CK-020 Box Hanger, out of the grid entirely. Two ways to carry the same box, and the planner should not pretend the slot is the only one. It COMES WITH its lid: the JP set contents are リッドトレー、コンテナ (lid tray + container), and the lid tray is CK-026 -- so CK-025 contains CK-026, which is also sold on its own."
  },
  "CK-026": {
@@ -271,64 +1557,66 @@
  },
  "DB-005": {
   "attach": "edge_clamp",
-  "attaches_to": ["bamboo_table_top", "any flat tabletop of similar thickness"],
+  "attaches_to": [
+   "bamboo_table_top",
+   "any flat tabletop of similar thickness"
+  ],
   "reason": "Garbage Frame (ガビングフレーム) -- a spring-wire frame that CLAMPS OVER a flat tabletop EDGE and holds a bin bag open below it. JP a001 shows it gripping the edge of a bamboo top, bag hanging. Owner: it clamps ANYWHERE along a bamboo tabletop edge (or any table of similar thickness), but NOT on an IGT frame -- the frame's edge is rail and modules, not a flat board, so there is nothing to clamp and it would foul the unit. A free-position edge clamp, not a grid part. Owner flagged it as non-core and skippable; recorded here for completeness, not built into the planner."
  },
-
  "CK-175": {
   "role": "frame_hook",
   "weight_g": 90,
   "reason": "IGTコネクションフック -- what joins two frames END TO END. A frame's end already has the HOLES (measured on CK-149: x = +/-406.5, z = +/-143.9); CK-175 supplies the other half by turning the neighbouring end into a HOOK. It is JP-only, has no manual, and exactly ONE real photograph in its gallery -- which happens to be of exactly this: two frames butted end to end, black end pieces face to face, two knurled thumbscrews spanning the joint, and TWO PAIRS OF LEGS bunched at it (so the frames do not share legs; each keeps its own four). The JP spec table says セット内容 本体×2 and 45g(本体一つあたり) -- a pair, 45g EACH -- so one set makes one joint (one hook per hole) and the SET weighs 90g. The scraper took the 45 as the item weight, which is what the page literally says and is not what it means."
  },
-
  "CK-218": {
   "attach": "hook_on",
-  "assembled_mm": {"w": 990.0, "d": 465.0, "h": 25.0},
+  "assembled_mm": {
+   "w": 990.0,
+   "d": 465.0,
+   "h": 25.0
+  },
   "reason": "ATTACH: the copy never says how the angle extensions attach, and their plan view shows the hooks only if you look for them on the SLANTED edge -- which the detector could not, because it tested for protrusion past the BOUNDING BOX. Two sources settle it. LV-381's manual, in English: 'it is possible to connect this product with a Bamboo IGT Table Regular / Long, Bamboo Left/Right Angle Extension, Bamboo Left / Right Corner Extension (CK-117TR, CK-218, CK-219, CK-118TR, CK-119TR)'. And the owner pointed at the hooks in the top view and at the close-up (JP a009): the same stainless wire hook, let into a slot in the board's edge, arching out and bending straight down. DEPTH: Snow Peak publishes 990x496, but that aspect (1.996) contradicts its own photograph (2.13) by 7% -- on BOTH mirror products, from two independent shots, while CK-117TR and CK-119TR agree with theirs to 0.6% and 0.3%. The hook spacing settles which number is wrong: it must match the frame's end holes (287.8mm), and it is 288-292mm on every other bamboo board. At the published scale CK-218's hooks come out 304mm apart -- a 5% outlier that would not enter the holes. At 990x465 they come out 289mm, the scale is isotropic (1.3866 vs 1.3881 mm/px), and the published WIDTH is reproduced to 0.4%. So 990 is real and 496 is not the bounding box; what Snow Peak means by it, I do not know, and am not going to invent. This matters because the ANGLE is measured in this frame: at the published scale the leg reads 61.2deg (turn 57.6), and at the true one 59.7deg (TURN 60.0)."
  },
  "CK-219": {
   "attach": "hook_on",
-  "assembled_mm": {"w": 990.0, "d": 465.0, "h": 25.0},
+  "assembled_mm": {
+   "w": 990.0,
+   "d": 465.0,
+   "h": 25.0
+  },
   "reason": "Mirror of CK-218; same evidence and the same 6.4% aspect discrepancy in its own photograph, independently shot. Measured turn: 60.6deg."
  },
-
  "GS-450R": {
   "span": 2,
   "reason": "Along-rail 270mm against a 250mm unit. The extra 20mm is the rim resting on the rails, the way any drop-in cooktop overlaps its cutout -- the burner body drops through one unit. Snow Peak's own copy says only 'compatible with the Iron Grill Table System' and never states a count.",
   "confidence": "high"
  },
-
  "GS-230": {
   "span": 4,
   "reason": "Along-rail 563mm against two units (500mm), same rim logic as GS-450R. Corroborated by the product copy: 'Pair the Double Burner Stove with the IGT 4 Unit Standing Set and the Double Bamboo Insert' -- the double insert takes 2 units, so the stove takes the remaining 2.",
   "confidence": "high"
  },
-
  "S-029HA": {
   "role": "accessory",
   "system": "takibi",
   "reason": "Not an IGT part. It is a Takibi Fire & Grill accessory that the US storefront files under `cookers`. Its 'half-unit size' copy refers to the Takibi grill, not an IGT unit -- measured along-rail is 206mm against a 125mm half unit, which the fit cross-check flagged at +81mm.",
   "confidence": "high"
  },
-
  "S-029HD": {
   "role": "accessory",
   "system": "takibi",
   "reason": "Same as S-029HA. Its own description says 'Use the Grill Plate Half Deep Depth within the Takibi Fire & Grill'.",
   "confidence": "high"
  },
-
  "GS-1000": {
   "role": "accessory",
   "reason": "Round stove (JP size is written as a diameter, φ350x420). It does not sit in the grid on its own -- it mounts via the GP-040 joint frame, which is the part that occupies units.",
   "confidence": "high"
  },
-
  "CK-090": {
   "role": "standalone",
   "reason": "Not an extension piece — it is a table in its own right. The copy: 'The Extension IGT is a two-unit expandable Iron Grill Table... does not require any connection tools or extension pieces... two laminated bamboo tabletops and an aluminum alloy stand.' JP size gives it away too: 1348×498×400(h)mm at 11kg, with its own legs. It stands at 400mm — the Layout System datum — so it joins the system as a node, not as a part bolted to a frame.",
   "confidence": "high"
  },
-
  "_GP-040_note": "GP-040 is resolved above (span 3, 1.5U, GS-1000-only). It was UNRESOLVED for weeks -- 362x377mm is neither 250 nor 375 cleanly, and no published number decides it -- until the owner supplied the unit label. The label always wins over millimetres; this was the last part waiting on one."
 }
