@@ -1705,8 +1705,13 @@ export function takibiGroup(w, d, h, { steel = 0x9aa0a8, depth = TAKIBI_DEPTH, b
     const rot = (k * Math.PI) / 2;
     const side = new THREE.Group();
     side.rotation.y = rot;
+    // Lean the plate INWARD: its local -Y must run base -> apex, i.e. down by `depth` and in by
+    // `half`, from z = +half to z = 0. Rotating about X by +tilt sends local (0,-1,0) to
+    // (0, -cos tilt, -sin tilt) -- exactly that. (It was -tilt, which sends the apex to z = +2*half:
+    // the plates splayed OUTWARD to a mouth 455 wide instead of closing to a point, while the edge
+    // tubes -- drawn straight to the apex -- closed correctly. The owner caught the contradiction.)
     const plate = new THREE.Mesh(plateGeo, shell);
-    plate.rotation.x = -tilt;
+    plate.rotation.x = tilt;
     plate.position.set(0, h * MM, half * MM);
     side.add(plate);
     if (!body) body = plate;                   // the caller tags ONE mesh; the first plate is it
