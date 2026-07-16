@@ -1993,6 +1993,8 @@ function paintSlotMenu() {
 const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
 let dragNode = null, dragMod = null, dragSlide = null, longPress = null, dragHooked = false;
+let dragGroup = null;    // [{node, ox, oz}] when a whole multi-selection is being moved together
+let marquee = null;      // {x0, y0} while a rubber-band select is being dragged on empty ground
 const dragOff = new THREE.Vector3();
 
 const toPtr = e => {
@@ -2062,21 +2064,37 @@ canvas.addEventListener("pointerdown", e => {
   }
 
   const nd = ray.intersectObjects(nodeMeshes, false)[0];
-  if (!nd) {                             // pressed empty space -> deselect (and drop its handles)
-    if (state.sel != null || state.selSet.size) { selectOnly(null); render(); }
+  // Pressed empty ground. Don't decide yet: this is either a click (deselect) or the start of a
+  // rubber band. pointerup tells them apart by how far it travelled.
+  if (!nd) {
+    const r = canvas.getBoundingClientRect();
+    marquee = { x0: e.clientX - r.left, y0: e.clientY - r.top, add: e.shiftKey || e.ctrlKey || e.metaKey };
+    controls.enabled = false;
     return;
   }
   const n = nd.object.userData.node;
   // Shift / Ctrl / Cmd toggles this object in the multi-selection (and never starts a drag).
   if (e.shiftKey || e.ctrlKey || e.metaKey) { toggleInSel(n.id); render(); return; }
-  selectOnly(n.id);
+  // Pressing something ALREADY in a multi-selection keeps the selection and moves the whole set --
+  // PowerPoint's rule, and the one you expect. Pressing anything else resets to just that object.
+  const inMulti = state.selSet.size > 1 && state.selSet.has(n.id);
+  if (!inMulti) selectOnly(n.id);
   // Any node can be dragged -- a FREE one moves, a hooked one DETACHES on the first move and floats
   // free until dropped onto a legal edge again. (Rail-hosted nodes are caught above and slide along
   // their rail instead of detaching.)
   dragNode = n;
-  dragHooked = n.host != null;
+  dragHooked = !inMulti && n.host != null;   // a group drag never detaches -- it's a move, not a re-hook
   const at = hitPlane(0);
-  if (at) dragOff.set(n.x - at.x / MM, 0, n.z - at.z / MM);
+  if (at) {
+    dragOff.set(n.x - at.x / MM, 0, n.z - at.z / MM);
+    // Everything FREE in the selection travels along, each keeping its own offset from the pointer.
+    // Hooked nodes are left out on purpose: they're resolved from their host's edge, so they follow
+    // it for free -- and if their host isn't coming, they can't come either.
+    dragGroup = inMulti
+      ? selectedIds().map(byId).filter(m => m && m.host == null)
+          .map(m => ({ node: m, ox: m.x - at.x / MM, oz: m.z - at.z / MM }))
+      : null;
+  }
   controls.enabled = false;
   // A sliding extension (also a hosted node) is handled up top -- it is grabbed before the
   // edge check so its rail handle cannot swallow the grab.
@@ -2084,6 +2102,18 @@ canvas.addEventListener("pointerdown", e => {
 });
 
 canvas.addEventListener("pointermove", e => {
+  // Sweeping a rubber band -- just draw it; nothing is selected until you let go.
+  if (marquee) {
+    const r = canvas.getBoundingClientRect();
+    marquee.x1 = e.clientX - r.left; marquee.y1 = e.clientY - r.top;
+    const box = $("marquee");
+    box.style.left = `${Math.min(marquee.x0, marquee.x1)}px`;
+    box.style.top = `${Math.min(marquee.y0, marquee.y1)}px`;
+    box.style.width = `${Math.abs(marquee.x1 - marquee.x0)}px`;
+    box.style.height = `${Math.abs(marquee.y1 - marquee.y0)}px`;
+    box.hidden = false;
+    return;
+  }
   toPtr(e);
   ray.setFromCamera(ptr, camera);
 
@@ -2160,6 +2190,17 @@ canvas.addEventListener("pointermove", e => {
 
   const at = hitPlane(0);
   if (!at) return;
+  // A whole multi-selection moves as one: every free member keeps its own offset from the pointer, so
+  // their spacing is preserved. No detach, no edge snapping -- this is a MOVE of an arrangement you
+  // already made, not an attempt to re-hook one part of it.
+  if (dragGroup) {
+    for (const m of dragGroup) {
+      m.node.x = Math.round((at.x / MM + m.ox) / SNAP) * SNAP;
+      m.node.z = Math.round((at.z / MM + m.oz) / SNAP) * SNAP;
+    }
+    render();
+    return;
+  }
   const nx = Math.round((at.x / MM + dragOff.x) / SNAP) * SNAP;
   const nz = Math.round((at.z / MM + dragOff.z) / SNAP) * SNAP;
   // First real move of a hooked node cuts it loose -- from here on it's a free-floating part.
@@ -2178,6 +2219,32 @@ canvas.addEventListener("pointermove", e => {
 
 addEventListener("pointerup", () => {
   clearTimeout(longPress);
+  // A rubber band closes here. Swept more than a few pixels -> take everything whose object sits
+  // inside it; barely moved -> it was a click on empty ground, which means deselect.
+  if (marquee) {
+    const swept = marquee.x1 != null
+      && Math.hypot(marquee.x1 - marquee.x0, marquee.y1 - marquee.y0) > 6;
+    if (swept) {
+      const lo = { x: Math.min(marquee.x0, marquee.x1), y: Math.min(marquee.y0, marquee.y1) };
+      const hi = { x: Math.max(marquee.x0, marquee.x1), y: Math.max(marquee.y0, marquee.y1) };
+      // An object is IN if its own centre projects inside the band. Its bounding box would sweep up
+      // half the layout every time you brushed past a frame.
+      const hit = state.nodes.filter(n => {
+        const s = toScreen({ x: n.x, y: selTop(n) / 2, z: n.z });
+        return !s.behind && s.x >= lo.x && s.x <= hi.x && s.y >= lo.y && s.y <= hi.y;
+      });
+      if (!marquee.add) state.selSet = new Set();     // plain sweep replaces, shift-sweep adds
+      for (const n of hit) state.selSet.add(n.id);
+      state.sel = [...state.selSet].pop() ?? null;
+    } else if (state.sel != null || state.selSet.size) {
+      selectOnly(null);
+    }
+    marquee = null;
+    $("marquee").hidden = true;
+    controls.enabled = true;
+    render();
+    return;
+  }
   const wasDragging = dragNode || dragMod || dragSlide;
   // Dropped a free/detached part on a legal edge -> hook it back on (an occupied edge = insert).
   if (dragNode && dragNode.host == null && dropHint) {
@@ -2185,7 +2252,7 @@ addEventListener("pointerup", () => {
     else hookNode(dragNode, dropHint.host, dropHint.key);
   }
   dropHint = null;
-  dragNode = dragMod = dragSlide = null; dragHooked = false; controls.enabled = true;
+  dragNode = dragMod = dragSlide = dragGroup = null; dragHooked = false; controls.enabled = true;
   if (wasDragging) { render(); commitHistory(); }   // resolve the new hook, snapshot once
 });
 

@@ -229,6 +229,17 @@ h2 {
 #stage { position: relative; min-width: 0; }
 #canvas { width: 100%; height: 100%; display: block; }
 
+/* The rubber band. Drawn over the canvas while you sweep empty ground. */
+#marquee[hidden] { display: none; }
+#marquee {
+  position: absolute;
+  border: 1px solid var(--accent);
+  background: rgba(216, 129, 63, .12);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 5;
+}
+
 /* Dimensions read-out, top-left of the viewport: the layout's overall extent, and the selected
    object's size. A design tool should always tell you how big the thing is. */
 #dimhud[hidden] { display: none; }
