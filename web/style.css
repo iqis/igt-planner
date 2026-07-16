@@ -228,6 +228,31 @@ h2 {
   color: var(--faint);
 }
 
+/* Preset-view toolbar, bottom-right of the viewport. */
+#viewbar {
+  position: absolute;
+  right: .7rem; bottom: .7rem;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 3px 12px var(--shadow);
+  z-index: 4;
+}
+#viewbar button {
+  font: .64rem ui-monospace, monospace;
+  text-transform: uppercase; letter-spacing: .04em;
+  color: var(--dim);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: .28rem .45rem;
+  cursor: pointer;
+}
+#viewbar button:hover { background: var(--raise); color: var(--ink); }
+
 /* Fixed layout, or a long part name ("IGT Standing Height 830mm Leg Set") shoves
    the price column clean out of the panel. */
 #bomtable { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .72rem; }

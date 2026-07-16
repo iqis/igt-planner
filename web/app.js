@@ -2184,17 +2184,71 @@ function duplicateNode(n) {
   render();
 }
 
-/** Frame the selection: swing the orbit target onto the object and pull the camera to a distance
- *  that suits its size, keeping the current viewing direction. */
+// ---- Camera navigation: smooth moves, preset angles, fit-to-scene --------------------------------
+let camTween = null;
+/** Ease the camera to a new position + target over `ms`, instead of cutting. */
+function flyTo(pos, target, ms = 440) {
+  camTween = { fromP: camera.position.clone(), toP: pos.clone(),
+    fromT: controls.target.clone(), toT: target.clone(), t0: performance.now(), ms };
+}
+function stepCamTween() {
+  if (!camTween) return;
+  const k = Math.min(1, (performance.now() - camTween.t0) / camTween.ms);
+  const e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;   // easeInOutQuad
+  camera.position.lerpVectors(camTween.fromP, camTween.toP, e);
+  controls.target.lerpVectors(camTween.fromT, camTween.toT, e);
+  if (k >= 1) camTween = null;
+}
+
+/** The whole layout's extent, in scene metres: a centre and a radius that encloses everything. */
+function sceneBounds() {
+  if (!state.nodes.length) return { center: new THREE.Vector3(0, 0.2, 0), radius: 0.8 };
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity, hi = 0;
+  for (const n of state.nodes) {
+    const a = aabb(n);
+    x0 = Math.min(x0, a.x0); x1 = Math.max(x1, a.x1);
+    z0 = Math.min(z0, a.z0); z1 = Math.max(z1, a.z1);
+    hi = Math.max(hi, selTop(n));
+  }
+  const center = new THREE.Vector3((x0 + x1) / 2 * MM, hi / 2 * MM, (z0 + z1) / 2 * MM);
+  const radius = Math.max(0.5, Math.hypot((x1 - x0) * MM, (z1 - z0) * MM, hi * MM) / 2);
+  return { center, radius };
+}
+/** Distance at which a sphere of `radius` fills the frame, with a little margin. */
+const fitDist = radius => radius / Math.sin(camera.fov * Math.PI / 180 / 2) * 1.15;
+
+const VIEW_DIRS = {
+  top: new THREE.Vector3(0.0001, 1, 0.0001),
+  front: new THREE.Vector3(0, 0.001, 1),
+  side: new THREE.Vector3(1, 0.001, 0.0001),
+  iso: new THREE.Vector3(1, 0.8, 1),
+};
+/** Snap to a named angle, framing the whole scene from that direction. */
+function setView(name) {
+  if (name === "fit") return fitAll();
+  const { center, radius } = sceneBounds();
+  const dir = VIEW_DIRS[name] || VIEW_DIRS.iso;
+  flyTo(center.clone().addScaledVector(dir.clone().normalize(), fitDist(radius)), center);
+}
+/** Keep the current angle, just re-frame everything. */
+function fitAll() {
+  const { center, radius } = sceneBounds();
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  flyTo(center.clone().addScaledVector(dir, fitDist(radius)), center);
+}
+
+/** Frame the selection: swing the orbit target onto the object and pull to a distance that suits
+ *  its size, keeping the current viewing direction -- as a smooth move. */
 function focusSelection(n) {
   const f = footprint(n), h = selTop(n);
   const c = new THREE.Vector3(n.x * MM, h / 2 * MM, n.z * MM);
   const dist = Math.max(0.6, Math.max(f.w, f.d, h) * MM * 1.9);
   const dir = camera.position.clone().sub(controls.target).normalize();
-  controls.target.copy(c);
-  camera.position.copy(c).addScaledVector(dir, dist);
-  controls.update();
+  flyTo(c.clone().addScaledVector(dir, dist), c);
 }
+
+for (const b of document.querySelectorAll("#viewbar button"))
+  b.onclick = () => setView(b.dataset.view);
 
 function setLeg(n, sku) {
   const root = n.kind === "ext" ? rootOf(n) : n;
@@ -2813,7 +2867,11 @@ addEventListener("keydown", e => {
   if ((e.ctrlKey || e.metaKey) && k === "d") { e.preventDefault(); if (n) duplicateNode(n); return; }
   if (k === "delete" || k === "backspace") { e.preventDefault(); if (n) removeNode(n); return; }
   if (k === "r" && !e.ctrlKey && !e.metaKey) { if (n && !n.host) rotateNode(n); return; }
-  if (k === "f") { if (n) focusSelection(n); return; }   // frame the selection (added with the toolbar)
+  if (k === "f") { n ? focusSelection(n) : fitAll(); return; }   // frame the selection, or fit all
+  if (k === "1") { setView("top"); return; }
+  if (k === "2") { setView("front"); return; }
+  if (k === "3") { setView("side"); return; }
+  if (k === "0") { setView("iso"); return; }
 });
 $("undo").onclick = undo;
 $("redo").onclick = redo;
@@ -2858,6 +2916,7 @@ addEventListener("resize", resize);
 
 (function loop() {
   requestAnimationFrame(loop);
+  stepCamTween();
   controls.update();
   followHover();
   followSelTools();
