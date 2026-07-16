@@ -7,7 +7,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop,
          foldingChairGroup, lowBeachChairGroup, campfieldSofaGroup,
          loungeCushionGroup, foldingBenchGroup, bambooShelfGroup,
-         takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup } from "./parts3d.js";
+         takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -1059,7 +1059,7 @@ function drawSlideExt(g, n) {
 // Free-standing things placed around the layout. Keyed by the part's own builder name -- `chair` for
 // the seating, `prop` for anything that stands on the ground but isn't one (the fire pit). A hearth
 // with `chair: "takibi"` would be a lie; the taxonomy is worth one extra key.
-const PROP_BUILDERS = { folding: foldingChairGroup, lowbeach: lowBeachChairGroup, sofa: campfieldSofaGroup, cushion: loungeCushionGroup, bench: foldingBenchGroup, shelf: bambooShelfGroup, take: takeChairGroup, takibi: takibiGroup };
+const PROP_BUILDERS = { folding: foldingChairGroup, lowbeach: lowBeachChairGroup, sofa: campfieldSofaGroup, cushion: loungeCushionGroup, bench: foldingBenchGroup, shelf: bambooShelfGroup, take: takeChairGroup, takibi: takibiGroup, gs1000: gs1000Group };
 
 /** A free-standing prop (a chair): built at floor level (y = 0), tagged for selection + drag like
  *  a table but never connected to the IGT grid -- no hooks, no bay, no legs. */
@@ -1081,6 +1081,9 @@ function drawProp(g, n) {
     // -- the bridge, what's on it, the coal bed, the ground plate -- and a real setup mixes them.
     depth: p.bowl_depth_mm || undefined,
     bridge: !!n.bridge, surface: n.surface || null, coalBed: !!n.coal, basePlate: !!n.base,
+    // The GS-1000's canister. OFF by default, because it is 専用容器 -- bought separately, and not in
+    // the stove's 1,800g. The stove is what you own; the can is what you happened to bring.
+    canister: !!n.canister,
   });
   built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
   g.add(built.group);

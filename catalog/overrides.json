@@ -1744,8 +1744,9 @@
   "confidence": "high"
  },
  "GS-1000": {
-  "role": "accessory",
-  "reason": "Round stove (JP size is written as a diameter, φ350x420). It does not sit in the grid on its own -- it mounts via the GP-040 joint frame, which is the part that occupies units.",
+  "role": "hearth",
+  "prop": "gs1000",
+  "reason": "Round stove, phi-350 x h420 (settled from its own manual's 仕様 table -- see below). It does not sit in the IGT grid on its own: it mounts via the GP-040 joint frame, and GP-040 is the part that occupies units. ROLE CHANGED accessory -> hearth 2026-07-16, and 'hearth' here means what it means in connections.interfaces -- THE THING THAT STANDS IN A FIRE RING -- not 'a fire pit'. That is exactly what this is: the owner's 定番 is a Takibi L in the Jikaro's spread 600 opening and a GS-1000 in the compact 365 one, and phi-350 < 365 says the opening is cut for it. The role is what carries that: kindOf -> prop (it is placed and dragged, never hooked into the grid), BY_ROLE.hearth puts it in the Fire palette, and partsForRole('hearth') offers it at the ring's aperture -- where fitsOpening then measures it. Nothing about the GP-040 route changes; the two are independent.",
   "confidence": "high"
  },
  "CK-090": {

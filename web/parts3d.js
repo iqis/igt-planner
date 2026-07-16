@@ -1773,3 +1773,156 @@ export function takibiGroup(w, d, h, { steel = 0x9aa0a8, depth = TAKIBI_DEPTH, b
   }
   return { group: g, body };
 }
+
+// ---------------------------------------------------------------- GS-1000  ギガパワー LIストーブ 剛炎
+//
+// The one stove that STANDS IN a fire ring instead of sitting in a bay. Its whole size comes off its
+// own spec table -- data/manuals/GS-1000.pdf p1, 仕様 -- which is a scan with no text layer, so the
+// page was rendered and read rather than parsed:
+//
+//     外形寸法   使用時 φ350×h420mm     収納時 φ240×H205mm
+//     重量      1,800g                 使用鍋径 φ31cm以下
+//
+// Three numbers pin this model, and the good part is that they AGREE with each other:
+//   * the FEET reach φ350 -- 使用時 is the widest thing on the stove, and that is the legs;
+//   * the BODY is φ240 -- fold the legs in and the wind screen is what is left over: 収納時;
+//   * the GOTOKU reach ~φ300 -- they must carry a φ310 pot and nothing wider.
+// φ350 > φ300 > φ240 falls straight out of the published spec; nothing here is chosen. The HEIGHTS
+// inside that envelope are read off the manual's 各部の名称 drawing and are NOT published -- they are
+// the assumed part of this part, and understanding.json says so.
+//
+// "LI" is LIQUID INJECTION, and it is why the thing looks like this: the canister mounts UPSIDE DOWN
+// beneath the burner (「容器を逆さまにして容器底部の淵(凸)を容器取付け溝(2箇所)にはめ込み」), hanging
+// inside the cage the four legs make. But the canister is NOT part of the product -- it is 専用容器,
+// bought separately (GP-250S / GP-500S / GP-500BL), and the 1,800g does not include it. So it is a
+// TOGGLE, exactly like the Takibi's bridge and coal bed, not something the stove is drawn wearing.
+// Its size is unmeasured -- no OD can is in the catalog -- so it is proportioned off the drawing
+// against the known φ240 body, and it is the least trustworthy thing in here.
+export const GS1000 = { span: 350, body: 240, gotoku: 300, h: 420 };
+
+export function gs1000Group(w = GS1000.span, d = GS1000.span, h = GS1000.h, { canister = false } = {}) {
+  const g = new THREE.Group();
+  const steel = 0x9aa0a8, alu = 0xb4b9bf, dark = 0x30343a, brass = 0x9c6b3a, foot = 0x71767d;
+  const shell = metal(steel, 0.8, 0.36), bright = metal(alu, 0.88, 0.28);
+  const punch = metalE(0x0e0f12, 0.2, 0.8);        // a hole, punched dark -- frameGroup's trick
+
+  // 使用時 φ350 is an OUTER ENVELOPE, so it is the OUTSIDE of the rubber foot that lands on it, not
+  // the foot's centre. Putting the toe at 175 pushed a 13mm-radius foot out to 188 and built a 376mm
+  // stove -- 26mm over the one number that is published, and invisible to the eye. Measure the build.
+  const footR = 13, R = w / 2, toeR = R - footR;   // 175 published; toes at 162 so the feet reach it
+  const bodyR = GS1000.body / 2;                   // 120 -- PUBLISHED, via 収納時 φ240.
+  const gotokuR = GS1000.gotoku / 2;               // 150 -- from 使用鍋径 φ31cm以下.
+  // h = 420 is the OVERALL height, and it is the GOTOKU that reach it: they are what a pot sits on,
+  // and the wind screen stands below them shielding the flame. So the teeth top out AT h and every
+  // other height hangs down from there. Sitting the arms on top of the rim instead put the teeth at
+  // 427 -- 7mm outside the one number on this part that is published.
+  // Everything from here down is read off the manual's 各部の名称 drawing and is NOT published.
+  const teethTop = h, armTop = h - 10, rimY = h - 12;
+  const bowlH = 86, floorY = rimY - bowlH;
+  const hubR = 52, hubY = floorY - 38;
+
+  const tube = (a, b, r, mat) => {
+    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 10), mat);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m); return m;
+  };
+
+  // ---- the wind screen: an open bowl, φ240, ported all round. The drawing shows two rows of ovals.
+  const wall = new THREE.Mesh(
+    new THREE.CylinderGeometry(bodyR * MM, (bodyR - 6) * MM, bowlH * MM, 40, 1, true),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(steel), metalness: 0.8, roughness: 0.36,
+                                     side: THREE.DoubleSide }),
+  );
+  wall.position.y = (floorY + bowlH / 2) * MM;
+  g.add(wall);
+  const body = wall;
+  // The rolled top rim -- a TORUS, because `cyl` makes a capped cylinder and a capped cylinder here
+  // is a LID: it sealed the bowl over with a solid disc and the burner head vanished behind it. A
+  // rolled edge is a ring, and a ring is the one thing a cylinder cannot be.
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(bodyR * MM, 3.5 * MM, 8, 48), bright);
+  rim.rotation.x = Math.PI / 2; rim.position.y = (rimY - 3.5) * MM;
+  g.add(rim);
+  cyl(g, bodyR - 6, bodyR - 6, 4, 40, metal(dark, 0.5, 0.5), 0, floorY + 2, 0);   // the bowl floor
+  // The ports. A punched dark disc only READS as a hole while it stays flush and small: at r=7,
+  // 8 long and 16-per-row these stood 4mm proud and covered half the band, so the wind screen came
+  // out a ring of black studs with slivers of steel between -- the wall looked unlit, and it was
+  // just buried. Small, barely proud, and with gaps is what makes a hole a hole.
+  // Orientation, the part that is easy to get backwards: a cylinder's axis is local +y, so after
+  // rotation.z = PI/2 it is local X that stands up in the world -- scale THAT to make the oval tall.
+  // Scaling local z (the intuitive guess) lays it on its side, which is what the drawing does not show.
+  for (let row = 0; row < 2; row++) {
+    const hy = floorY + 26 + row * 32;
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + (row ? Math.PI / 14 : 0);
+      const o = new THREE.Mesh(new THREE.CylinderGeometry(5 * MM, 5 * MM, 5 * MM, 10), punch);
+      o.scale.set(1.8, 1, 1);                       // a TALL oval port -- local x is the vertical one
+      o.rotation.z = Math.PI / 2; o.rotation.y = -a;
+      o.position.set(Math.cos(a) * bodyR * MM, hy * MM, Math.sin(a) * bodyR * MM);
+      g.add(o);
+    }
+  }
+
+  // ---- the burner head: a ported disc on a brass centre, down on the bowl floor
+  cyl(g, 74, 74, 12, 32, metal(0x4c5259, 0.5, 0.55), 0, floorY + 10, 0);
+  cyl(g, 30, 30, 8, 24, metal(brass, 0.75, 0.4), 0, floorY + 17, 0);
+  for (let i = 0; i < 18; i++) {
+    const a = (i / 18) * Math.PI * 2;
+    cyl(g, 3, 3, 6, 8, punch, Math.cos(a) * 55, floorY + 16, Math.sin(a) * 55);
+  }
+
+  // ---- 回転式ゴトク: four arms out to φ300, serrated on top. They ROTATE to meet the pot, so they
+  // sit at 45deg to the legs -- which is also the only way they read as separate at this size.
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    box(g, gotokuR - 40, 5, 16, 1, bright,
+        Math.cos(a) * (gotokuR + 40) / 2, armTop - 2.5, Math.sin(a) * (gotokuR + 40) / 2, -a);
+    for (let t = 0; t < 4; t++) {                   // the teeth a pot settles down between
+      const rr = 70 + t * 22;
+      box(g, 5, 7, 14, 0.5, bright, Math.cos(a) * rr, teethTop - 3.5, Math.sin(a) * rr, -a);
+    }
+  }
+
+  // ---- under-body: the cone down off the bowl, then the hub the legs and the spindle hang from
+  cyl(g, bodyR - 8, hubR + 8, floorY - hubY, 28, shell, 0, (floorY + hubY) / 2, 0);
+  cyl(g, hubR, hubR, 22, 20, metal(dark, 0.6, 0.45), 0, hubY - 4, 0);
+  cyl(g, 7, 7, 34, 10, bright, 0, hubY - 24, 0);                        // スピンドル, down the middle
+
+  // ---- the four legs. 脚A x2 and 脚B x2 -- named apart because they fold opposite ways, but the
+  // same tube. An upper leg off the hub, a lower one telescoping inside it with the row of holes the
+  // 脚長さ調節ボタン drops into, and a rubber foot on the ground.
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2;
+    const cs = Math.cos(a), sn = Math.sin(a);
+    const top = [cs * hubR, hubY, sn * hubR];
+    const knee = [cs * (hubR + (toeR - hubR) * 0.46), hubY * 0.54, sn * (hubR + (toeR - hubR) * 0.46)];
+    const toe = [cs * toeR, 28, sn * toeR];
+    tube(top, knee, 8, shell);                       // upper: the fat section, off the hub bracket
+    tube(knee, toe, 6.5, bright);                    // lower: slides inside it
+    box(g, 26, 20, 12, 2, shell, cs * (hubR + 16), hubY + 6, sn * (hubR + 16), -a);   // hub bracket
+    for (let k = 0; k < 6; k++) {                    // 脚長さ調節 holes, up the lower leg
+      const t = 0.16 + k * 0.13;
+      cyl(g, 2.2, 2.2, 16, 8, punch,
+          knee[0] + (toe[0] - knee[0]) * t, knee[1] + (toe[1] - knee[1]) * t,
+          knee[2] + (toe[2] - knee[2]) * t, Math.PI / 2);
+    }
+    cyl(g, 11, footR, 30, 14, metal(foot, 0.25, 0.75), cs * toeR, 15, sn * toeR);   // the rubber foot,
+                                                          // sat ON the ground: centre 15 = half of 30
+  }
+
+  // ---- 器具栓 (火力調整ツマミ) -- the flame knob, out on its stalk where a hand reaches it
+  tube([0, hubY - 10, 0], [0, hubY - 10, hubR + 54], 5, bright);
+  cyl(g, 13, 13, 20, 16, metal(0x1c1f24, 0.4, 0.6), 0, hubY - 10, hubR + 66, Math.PI / 2);
+
+  // ---- 専用容器, INVERTED: not part of the stove, so only when asked for. Proportioned off the
+  // drawing against the known φ240 body -- the one thing in here with no number behind it.
+  if (canister) {
+    const canR = 54, canH = 112, canTop = hubY - 30;
+    cyl(g, canR, canR, canH, 24, metal(0xc8ccd0, 0.7, 0.4), 0, canTop - canH / 2, 0);
+    cyl(g, canR - 8, canR, 14, 24, metal(0xc8ccd0, 0.7, 0.4), 0, canTop - canH - 6, 0);  // the domed BASE, now down
+    cyl(g, 18, 18, 12, 16, metal(dark, 0.5, 0.5), 0, canTop + 5, 0);                     // the valve, now up
+  }
+
+  return { group: g, body };
+}

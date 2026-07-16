@@ -567,9 +567,13 @@ def main():
                 rec["attach_evidence"] = ov.get("reason")
             # Relationship fields, curated with evidence. `mounts` = what this carries;
             # `mounted_by` = what carries this; `attaches_to` = the surfaces it will go on.
+            # `prop` names the 3D builder for a free-standing part (PROP_BUILDERS in app.js). An
+            # `_add` part declares it through ADD_HANDLED; an EXISTING part needs it listed here, or
+            # the key is dropped in silence and the part draws as whatever its kind defaults to.
             for rel in ("mounts", "mounted_by", "attaches_to", "needs_legs",
                         "one_per_frame", "tiers", "has_surface", "mounts_over",
-                        "holds_units", "inner_dims", "along_rail_mm", "contains", "is_lid_of"):
+                        "holds_units", "inner_dims", "along_rail_mm", "contains", "is_lid_of",
+                        "prop"):
                 if rel in ov:
                     rec[rel] = ov[rel]
             # CK-220's assembled size is derived (only the packed size is published), so say

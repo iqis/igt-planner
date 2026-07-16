@@ -739,51 +739,6 @@
    }
   },
   {
-   "sku": "GS-1000",
-   "handle": "gigapower-li-stove",
-   "title_en": "GigaPower LI Stove",
-   "title_jp": "ギガパワーLIストーブ剛炎 [最大出力8500kcal]",
-   "barcode": "",
-   "role": "accessory",
-   "collections": [
-    "iron-grill-table",
-    "cookers"
-   ],
-   "assembled_mm": {
-    "w": 350.0,
-    "d": 350.0,
-    "h": 420.0
-   },
-   "packed_mm": {
-    "w": 240.0,
-    "d": 240.0,
-    "h": 205.0
-   },
-   "weight_g": 1800,
-   "material": "ステンレス、ブラス",
-   "price": {
-    "us": 41995,
-    "jp": 51480,
-    "uk": null
-   },
-   "available": {
-    "us": true
-   },
-   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/gs-1000_hero_01.jpg?v=1641509876",
-   "images_jp": [],
-   "manuals": [],
-   "url": {
-    "us": "https://www.snowpeak.com/products/gigapower-li-stove",
-    "jp": "https://ec.snowpeak.co.jp/item/SNP0107A0036"
-   },
-   "span": null,
-   "span_source": null,
-   "span_evidence": null,
-   "attach": "slot_in",
-   "curated_reason": "Round stove (JP size is written as a diameter, φ350x420). It does not sit in the grid on its own -- it mounts via the GP-040 joint frame, which is the part that occupies units.",
-   "manual": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h20/h56/8804190257182/GS-1000_manual.pdf"
-  },
-  {
    "sku": "S-029HA",
    "handle": "grill-stainless-half-pro-s-029ha",
    "title_en": "Stainless Half Grill Pro",
@@ -2278,6 +2233,52 @@
     "any flat tabletop of similar thickness"
    ],
    "curated_reason": "Garbage Frame (ガビングフレーム) -- a spring-wire frame that CLAMPS OVER a flat tabletop EDGE and holds a bin bag open below it. JP a001 shows it gripping the edge of a bamboo top, bag hanging. Owner: it clamps ANYWHERE along a bamboo tabletop edge (or any table of similar thickness), but NOT on an IGT frame -- the frame's edge is rail and modules, not a flat board, so there is nothing to clamp and it would foul the unit. A free-position edge clamp, not a grid part. Owner flagged it as non-core and skippable; recorded here for completeness, not built into the planner."
+  },
+  {
+   "sku": "GS-1000",
+   "handle": "gigapower-li-stove",
+   "title_en": "GigaPower LI Stove",
+   "title_jp": "ギガパワーLIストーブ剛炎 [最大出力8500kcal]",
+   "barcode": "",
+   "role": "hearth",
+   "collections": [
+    "iron-grill-table",
+    "cookers"
+   ],
+   "assembled_mm": {
+    "w": 350.0,
+    "d": 350.0,
+    "h": 420.0
+   },
+   "packed_mm": {
+    "w": 240.0,
+    "d": 240.0,
+    "h": 205.0
+   },
+   "weight_g": 1800,
+   "material": "ステンレス、ブラス",
+   "price": {
+    "us": 41995,
+    "jp": 51480,
+    "uk": null
+   },
+   "available": {
+    "us": true
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/gs-1000_hero_01.jpg?v=1641509876",
+   "images_jp": [],
+   "manuals": [],
+   "url": {
+    "us": "https://www.snowpeak.com/products/gigapower-li-stove",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0107A0036"
+   },
+   "span": null,
+   "span_source": null,
+   "span_evidence": null,
+   "attach": "slot_in",
+   "prop": "gs1000",
+   "curated_reason": "Round stove, phi-350 x h420 (settled from its own manual's 仕様 table -- see below). It does not sit in the IGT grid on its own: it mounts via the GP-040 joint frame, and GP-040 is the part that occupies units. ROLE CHANGED accessory -> hearth 2026-07-16, and 'hearth' here means what it means in connections.interfaces -- THE THING THAT STANDS IN A FIRE RING -- not 'a fire pit'. That is exactly what this is: the owner's 定番 is a Takibi L in the Jikaro's spread 600 opening and a GS-1000 in the compact 365 one, and phi-350 < 365 says the opening is cut for it. The role is what carries that: kindOf -> prop (it is placed and dragged, never hooked into the grid), BY_ROLE.hearth puts it in the Fire palette, and partsForRole('hearth') offers it at the ring's aperture -- where fitsOpening then measures it. Nothing about the GP-040 route changes; the two are independent.",
+   "manual": "https://snowpeak-ec.s3.amazonaws.com/sys-master/AmazonS3Images/h20/h56/8804190257182/GS-1000_manual.pdf"
   },
   {
    "sku": "ST-032RS",
