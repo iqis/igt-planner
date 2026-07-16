@@ -1411,14 +1411,25 @@ const partsForRole = role =>
   PARTS[role] ? [PARTS[role]]                          // a specific sku, e.g. LV-381 (the knob peer)
     : role === "sliding_extension" ? SLIDE_IN
     : role === "frame" ? BY_ROLE.frame
+    : role === "slot_module" ? BY_ROLE.slot_module
+    : role === "hanger" ? BY_ROLE.hang_rack
     : HOOKABLE.filter(p => p.role === role);            // extension_table / corner
 
-const scaleFits = (guest, port) => guest.scale !== "table" || port.scale === "table";
+// Every part that attaches via ANY of the given interfaces -- the raw candidate list for a menu,
+// read from connections.guests (legalOn then narrows the edge set with canAttach; the slot menu
+// narrows by span/compat). One source of truth for "what attaches".
+const guestsFor = ifaces => Object.entries(CONN.guests || {})
+  .filter(([, g]) => ifaces.has(g.via)).flatMap(([role]) => partsForRole(role)).filter(Boolean);
+const SLOT_IFACES = new Set(["slot", "hanging"]);
+
 const adapterList = () => Object.values(CONN.adapters || {}).filter(a => a.from);
+// Interface match, directly or bridged by an adapter. SCALE is NOT a gate here: a table-scale
+// guest (a frame) MAY still join a board-scale port (a rail joint / a board's bracket) -- it just
+// has to stand on its OWN legs there, because that port can't bear it. That's a warning, not a
+// block (see boardScalePort + paintWarnings).
 const canAttach = (guest, ports) => ports.some(port =>
-  (guest.via === port.iface && scaleFits(guest, port))                            // direct match
-  || adapterList().some(a => a.from === port.iface && (a.to || []).includes(guest.via)
-      && scaleFits(guest, { scale: a.scale })));                                  // via an adapter (its output scale)
+  guest.via === port.iface
+  || adapterList().some(a => a.from === port.iface && (a.to || []).includes(guest.via)));
 
 function legalOn(e) {
   const ports = portsAt(e);
@@ -1428,6 +1439,13 @@ function legalOn(e) {
     if (canAttach(guest, ports)) for (const p of partsForRole(role)) out.add(p);
   }
   return [...out].filter(Boolean);
+}
+
+// The ET port a hosted node occupies is BOARD-scale -- a rail joint's output, or a board's own
+// bracket -- neither of which can bear a frame. A frame there must keep its own four legs.
+function boardScalePort(n) {
+  const h = byId(n.host);
+  return !!h && (!!n.rail || h.kind === "ext");
 }
 
 function paintMenu() {
@@ -1482,7 +1500,7 @@ function paintSlotMenu() {
   head.textContent = `${free / 2}u free here — a unit accessory that fits`;
   menu.append(head);
 
-  const list = [...BY_ROLE.slot_module, ...BY_ROLE.hang_rack];
+  const list = guestsFor(SLOT_IFACES);   // slot modules + hanging racks, from connections.guests
   let offered = 0;
   for (const p of list) {
     if (spanOf(p) > free) continue;                                      // wider than the run
@@ -2263,6 +2281,20 @@ function paintWarnings() {
     if (n.kind !== "frame") continue;
     const used = occupancy(n).filter(Boolean).length;
     if (used === slotsOf(n)) add(`${PARTS[n.sku].title_en}: full, ${used}/${slotsOf(n)} half-slots.`, "warn info");
+  }
+
+  // A frame joined at a BOARD-scale port (a rail joint, or a board's bracket) can't lean on that
+  // joint for support -- it stands on its own four legs. Fine by default; a warning if the user has
+  // dropped a pair (shared joint), because then it has nothing to hold it up.
+  for (const n of state.nodes) {
+    if (n.kind !== "frame" || !n.host || !boardScalePort(n)) continue;
+    const where = n.rail ? "a rail joint" : "a board's bracket";
+    if (n.sharedJoint)
+      add(`${PARTS[n.sku].title_en} joins via ${where}, which can't bear a frame — give it back its `
+        + `four legs (drop the shared joint) or it has nothing to stand on.`);
+    else
+      add(`${PARTS[n.sku].title_en} joins via ${where}; that joint isn't load-bearing, so it keeps `
+        + `its own four legs.`, "warn info");
   }
 
   // What the MANUALS say about a pairing, made to speak. A module against its host frame,

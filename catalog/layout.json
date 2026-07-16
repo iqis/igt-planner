@@ -178,7 +178,7 @@
    "currently encode the same rules by hand; migrating them to read THIS is the plan. Passed through",
    "untouched by build_catalog (it only special-cases tables/joints/corners/ecosystems)."
   ],
-  "_model": "A guest attaches to a host PORT when: their interface matches AND scale is OK (a table-scale guest needs a table-scale port; a board-scale guest fits either), OR an ADAPTER bridges the port's interface to the guest's. Everything is INFERRED from this -- no hard-coded pairings. Interface keys are unified; `label` is the human name.",
+  "_model": "A guest attaches to a host PORT when their interface matches (directly OR via an ADAPTER that bridges the port's interface to the guest's). SCALE (table | board) does NOT gate the connection -- it decides SUPPORT: a table-scale guest (a frame) MAY join a board-scale port (a rail joint's output, a board's bracket), but that port can't bear it, so the frame stands on its OWN legs there (a warning if the user drops a pair). All INFERRED from this -- no hard-coded pairings. Interface keys are unified; `label` is the human name.",
   "interfaces": {
    "ext_table": {"label": "IGT Extension Table (ET)", "symmetric": false, "scaled": true, "host_side": "holes in the end piece", "guest_side": "wire hooks drop in ~16.5mm", "desc": "the IGT frame hook interface -- an extension table / corner / another frame joins here."},
    "side_rail": {"label": "IGT Side Rail", "symmetric": false, "host_side": "the long rail", "guest_side": "brackets grip / a rail joint hangs", "desc": "slide or hang along a continuous long rail."},
