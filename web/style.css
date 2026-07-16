@@ -273,6 +273,56 @@ h2 {
   line-height: 1.35;
 }
 
+/* The selected object's floating action toolbar -- a pill of buttons that tracks the object in
+   the viewport, so acting on a selection never means a trip to a side panel. */
+#seltools[hidden], #replacemenu[hidden] { display: none; }
+#seltools {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  box-shadow: 0 4px 16px var(--shadow);
+  z-index: 6;
+}
+#seltools button {
+  display: grid;
+  place-items: center;
+  width: 28px; height: 28px;
+  font: 14px/1 ui-monospace, monospace;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+#seltools button:hover { background: var(--raise); }
+#seltools button.danger:hover { background: var(--warn-bg); color: var(--warn-ink); }
+#seltools .sep { width: 1px; background: var(--line); margin: 4px 1px; }
+
+#replacemenu {
+  position: absolute;
+  width: 220px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: .35rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 8px 26px var(--shadow);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+#replacemenu .mhead {
+  font-size: .62rem; letter-spacing: .04em; color: var(--faint);
+  padding: .1rem .1rem .3rem;
+}
+
 /* A menu row carries only a swatch, a name and a span. Passing over it opens this card
    beside the menu with the thumbnail and the numbers that would not fit -- name, sku,
    assembled size, price. */

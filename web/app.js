@@ -1273,6 +1273,28 @@ function drawSlotHandles() {
   }
 }
 
+// The top of a selected object, in mm -- where its bounding box ends and the action toolbar floats.
+function selTop(n) {
+  return n.kind === "prop" ? (PARTS[n.sku].assembled_mm?.h || 800)
+    : n.kind === "footprint" ? 30
+    : topOf(n) + 8;
+}
+
+// A clean CAD-style selection outline: a tight oriented box hugging the selected object. Added to
+// the object's OWN group (already positioned + rotated), so it stays tight at any camera angle, and
+// drawn depth-test-off so it reads as a selection highlight that's always visible.
+const SEL_COLOR = 0xf0a463;
+function addSelBox(g, n) {
+  const f = footprint(n), h = selTop(n), pad = 18;
+  const box = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry((f.w + pad) * MM, (h + pad) * MM, (f.d + pad) * MM)),
+    new THREE.LineBasicMaterial({ color: SEL_COLOR, transparent: true, opacity: 0.85, depthTest: false }),
+  );
+  box.position.y = h / 2 * MM;
+  box.renderOrder = 9;
+  g.add(box);
+}
+
 function rebuild() {
   build.clear();
   nodeMeshes.length = 0;
@@ -1285,6 +1307,7 @@ function rebuild() {
     g.position.set(n.x * MM, 0, n.z * MM);
     g.rotation.y = -n.rot;
     (n.kind === "frame" ? drawFrame : n.kind === "prop" ? drawProp : n.kind === "footprint" ? drawFootprint : drawTable)(g, n);
+    if (n.id === state.sel) addSelBox(g, n);   // CAD-style outline around the selected object
     build.add(g);
   }
 
@@ -1343,6 +1366,8 @@ let hover = null;      // {node, local, dir, mid, len} -- the edge under the poi
 
 const btn = $("edgebtn");
 const menu = $("edgemenu");
+const selTools = $("seltools");
+const replaceMenu = $("replacemenu");
 
 /** Project a point in the layout onto the canvas, in CSS pixels. */
 function toScreen(mm) {
@@ -1396,7 +1421,94 @@ function openMenu() {
 }
 
 btn.onclick = openMenu;
-addEventListener("keydown", e => { if (e.key === "Escape") { setHover(null); hideModMenu(); } });
+
+// ---- The selected object's floating action toolbar --------------------------------------------
+// Delete / duplicate / replace / rotate, right at the object, so acting on a selection never means
+// crossing the screen to a side panel. It tracks the object as the camera orbits (followSelTools).
+function toolBtn(glyph, title, cls, onClick) {
+  const b = document.createElement("button");
+  b.textContent = glyph; b.title = title; if (cls) b.className = cls;
+  b.onclick = ev => { ev.stopPropagation(); onClick(); };
+  return b;
+}
+
+function paintSelTools() {
+  const n = sel();
+  replaceMenu.hidden = true;   // any repaint (selection change, action) closes a stale replace popup
+  if (!n) { selTools.hidden = true; return; }
+  selTools.innerHTML = "";
+  if (!n.host) {
+    selTools.append(toolBtn("⟲", "rotate 90°  (R)", "", () => rotateNode(n)));
+    selTools.append(toolBtn("⧉", "duplicate  (Ctrl+D)", "", () => duplicateNode(n)));
+  }
+  if (replaceOptions(n).length > 1) selTools.append(toolBtn("⇄", "replace with a similar part", "", () => openReplaceMenu(n)));
+  const sep = document.createElement("span"); sep.className = "sep"; selTools.append(sep);
+  selTools.append(toolBtn("✕", "delete  (Del)", "danger", () => removeNode(n)));
+  selTools.hidden = false;
+  followSelTools();
+}
+
+function followSelTools() {
+  const n = sel();
+  if (!n || selTools.hidden) return;
+  const s = toScreen({ x: n.x, y: selTop(n), z: n.z });
+  selTools.style.visibility = s.behind ? "hidden" : "visible";
+  if (s.behind) { replaceMenu.hidden = true; return; }
+  selTools.style.left = `${s.x}px`;
+  selTools.style.top = `${Math.max(30, s.y - 14)}px`;
+  if (!replaceMenu.hidden) {
+    replaceMenu.style.left = `${Math.min(s.x + 12, canvas.clientWidth - 232)}px`;
+    replaceMenu.style.top = `${Math.min(s.y + 8, canvas.clientHeight - 272)}px`;
+  }
+}
+
+// What a node can be swapped for, keeping its place: same kind, same slot. A hooked board offers
+// whatever else is legal on its host edge; a free node offers its role's family.
+function replaceOptions(n) {
+  if (n.kind === "frame") return BY_ROLE.frame;
+  if (n.kind === "prop") return BY_ROLE.seating;
+  if (n.kind === "footprint") return BY_ROLE.shelter;
+  if (n.kind === "ext") {
+    const host = byId(n.host);
+    if (!host) return [];
+    return legalOn({ ...hostEdge(host, n.edge), node: host, key: n.edge });
+  }
+  return [...BY_ROLE.layout_table, ...BY_ROLE.standalone];
+}
+
+function openReplaceMenu(n) {
+  replaceMenu.innerHTML = "";
+  const head = document.createElement("div");
+  head.className = "mhead";
+  head.textContent = `replace ${PARTS[n.sku].title_en} with:`;
+  replaceMenu.append(head);
+  for (const p of replaceOptions(n)) {
+    if (p.sku === n.sku) continue;
+    const row = document.createElement("div");
+    row.className = "part";
+    row.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span><span class="nm">${p.title_en}</span>`;
+    row.onclick = () => { replaceMenu.hidden = true; replaceNode(n, p.sku); };
+    wirePreview(row, p);
+    replaceMenu.append(row);
+  }
+  replaceMenu.hidden = false;
+  followSelTools();
+}
+
+// Swap the part in place -- keep position / host / edge / rotation / leg, re-seed the config the new
+// part needs, and drop any placed module that no longer fits.
+function replaceNode(n, sku) {
+  n.sku = sku;
+  if (sku === JIKARO) { n.config = "long_in"; n.bridge = n.bridge || false; }
+  else if (expDef(sku)) n.config = expDef(sku).default;
+  else if (PARTS[sku].chair === "cushion") n.config = "round";
+  else { delete n.config; delete n.bridge; }
+  if (n.kind === "frame" && !n.leg) n.leg = "CK-114";
+  if (n.placements?.length) pruneModules(n);
+  render();
+}
+
+addEventListener("keydown", e => { if (e.key === "Escape") { setHover(null); hideModMenu(); replaceMenu.hidden = true; } });
 
 // The action menu for a placed module -- reached by right-click or a left long-press, so a
 // removal is a considered second click, not a twitchy one. Positioned at the pointer.
@@ -2007,6 +2119,43 @@ function rotateNode(n) {
   render();
 }
 
+/** Clone a free-standing node AND everything hooked to it, a short step away. Ids are remapped and
+ *  host links rewired so the copy is a self-contained assembly; only the root is offset -- hooked
+ *  boards re-resolve from their (cloned) host's edge. A hooked board has no position of its own, so
+ *  it can't be the duplicate root. */
+function duplicateNode(n) {
+  if (n.host) return;
+  const sub = new Set([n.id]);
+  for (let i = 0; i < 16; i++)
+    for (const m of state.nodes) if (m.host != null && sub.has(m.host)) sub.add(m.id);
+  const idMap = new Map(), clones = [];
+  for (const m of state.nodes) if (sub.has(m.id)) {
+    const c = JSON.parse(JSON.stringify(m));
+    c.id = state.nextId++;
+    idMap.set(m.id, c.id);
+    clones.push([m, c]);
+  }
+  for (const [m, c] of clones) {
+    if (c.host != null) c.host = idMap.get(c.host) ?? c.host;
+    if (m.id === n.id) { c.x = n.x + 180; c.z = n.z + 180; }   // offset the root; children follow the host edge
+  }
+  state.nodes.push(...clones.map(([, c]) => c));
+  state.sel = idMap.get(n.id);
+  render();
+}
+
+/** Frame the selection: swing the orbit target onto the object and pull the camera to a distance
+ *  that suits its size, keeping the current viewing direction. */
+function focusSelection(n) {
+  const f = footprint(n), h = selTop(n);
+  const c = new THREE.Vector3(n.x * MM, h / 2 * MM, n.z * MM);
+  const dist = Math.max(0.6, Math.max(f.w, f.d, h) * MM * 1.9);
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  controls.target.copy(c);
+  camera.position.copy(c).addScaledVector(dir, dist);
+  controls.update();
+}
+
 function setLeg(n, sku) {
   const root = n.kind === "ext" ? rootOf(n) : n;
   if (!root || root.kind === "table") return;
@@ -2490,7 +2639,7 @@ function paintWarnings() {
   }
 }
 
-function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); }
+function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); }
 // ---------------------------------------------------------------- undo / redo
 // Snapshots of the layout (nodes only -- selection is transient, not worth an undo step). Every
 // committed render pushes one; a drag pushes only its final state (see pointerup). Ctrl/Cmd-Z
@@ -2530,8 +2679,15 @@ function paintUndo() {
 }
 addEventListener("keydown", e => {
   const k = (e.key || "").toLowerCase();
-  if ((e.ctrlKey || e.metaKey) && k === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); }
-  else if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); redo(); }
+  if ((e.ctrlKey || e.metaKey) && k === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); redo(); return; }
+  // Single-key actions on the selection -- but never while typing in the search box.
+  if (/^(input|textarea|select)$/i.test(e.target?.tagName || "")) return;
+  const n = sel();
+  if ((e.ctrlKey || e.metaKey) && k === "d") { e.preventDefault(); if (n) duplicateNode(n); return; }
+  if (k === "delete" || k === "backspace") { e.preventDefault(); if (n) removeNode(n); return; }
+  if (k === "r" && !e.ctrlKey && !e.metaKey) { if (n && !n.host) rotateNode(n); return; }
+  if (k === "f") { if (n) focusSelection(n); return; }   // frame the selection (added with the toolbar)
 });
 $("undo").onclick = undo;
 $("redo").onclick = redo;
@@ -2578,6 +2734,7 @@ addEventListener("resize", resize);
   requestAnimationFrame(loop);
   controls.update();
   followHover();
+  followSelTools();
   renderer.render(scene, camera);
 })();
 
