@@ -392,8 +392,11 @@ function hostEdge(n, key, guest = "ext") {
       const faceDist = (half + e) / Math.SQRT2 - HOLE_INSET;
       return { anchor: { x: normal.x * faceDist, z: normal.z * faceDist }, normal, len: Math.SQRT2 * (half - e) };
     }
-    // The hook engages the same 16.5mm depth in from the edge as it does on a frame -- the SAME
-    // wire hook. Anchoring on the outer FACE instead leaves the board's edge hanging 12mm clear.
+    // NOTE (owner correction): the Jikaro joins via its built-in side KNOBS (ツマミ, in its material
+    // spec), NOT the frame's wire hook -- this is the `knob` interface (symmetric, no CK-175), the
+    // SAME joint its four segments use between themselves. The 16.5mm inset below is a leftover
+    // placeholder from the old wire-hook assumption; the real knob offset is unmeasured. See
+    // layout.connections. (It only shifts the guest ~16mm, so behaviour is unaffected for now.)
     const r = half - HOLE_INSET;
     return { anchor: { x: normal.x * r, z: normal.z * r }, normal, len: c.edge_mm };
   }

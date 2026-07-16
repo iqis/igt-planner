@@ -293,6 +293,171 @@
     "note": "IGT Slim. SIX removable half-unit teak panels = a 3-unit frame; any panel lifts out for a stovetop or workspace. 940x403 body."
    }
   },
+  "connections": {
+   "_comment": [
+    "The connection model, made explicit. FIVE interface mechanisms; the HOSTS that expose them",
+    "(ports); the GUESTS that attach via them; the ADAPTERS that convert one interface to another.",
+    "This is the authoritative taxonomy -- the app's legalOn / edgeKeysOf / hostEdge / slot machinery",
+    "currently encode the same rules by hand; migrating them to read THIS is the plan. Passed through",
+    "untouched by build_catalog (it only special-cases tables/joints/corners/ecosystems)."
+   ],
+   "interfaces": {
+    "end_hook": {
+     "symmetric": false,
+     "host_side": "holes in the black end piece",
+     "guest_side": "wire hooks drop in 16.5mm",
+     "desc": "the IGT frame's hook interface. Asymmetric: host has holes, guest has hooks."
+    },
+    "side_rail": {
+     "symmetric": false,
+     "host_side": "the frame's long rail",
+     "guest_side": "brackets grip / a rail joint hangs",
+     "desc": "slide or hang along a continuous long rail."
+    },
+    "slot": {
+     "symmetric": false,
+     "host_side": "unit cells (250mm pitch)",
+     "guest_side": "the module's footprint",
+     "desc": "a module drops INTO a unit, flush at the datum."
+    },
+    "hang": {
+     "symmetric": false,
+     "host_side": "the rails",
+     "guest_side": "hooks over the rail",
+     "desc": "a rack hooks OVER the rails and hangs below; still consumes units."
+    },
+    "knob": {
+     "symmetric": true,
+     "members": [
+      "ST-050",
+      "LV-381"
+     ],
+     "desc": "built-in aluminium knobs (ツマミ, in both parts' material spec) on the top's side lock two pieces together directly -- no separate hook. SYMMETRIC: port to port, no host/guest. This is the SAME joint the Jikaro's four trapezoid segments use between themselves, so the Jikaro's outer edges ARE that port -- 'the Jikaro as one whole' is our abstraction over four knob-joined segments. Only the heat-resistant fire-table system (Jikaro + Connection Table) has it; the IGT frame system uses end_hook + CK-175 instead."
+    }
+   },
+   "hosts": {
+    "frame": [
+     {
+      "iface": "end_hook",
+      "at": "end",
+      "n": 2
+     },
+     {
+      "iface": "side_rail",
+      "at": "rail",
+      "n": 2
+     },
+     {
+      "iface": "hang",
+      "at": "rail"
+     },
+     {
+      "iface": "slot",
+      "at": "bay",
+      "n": "units"
+     }
+    ],
+    "ST-050": [
+     {
+      "iface": "knob",
+      "at": "edge",
+      "n": "8 spread / 4 compact"
+     },
+     {
+      "iface": "end_hook",
+      "at": "edge",
+      "guest": "table extension"
+     },
+     {
+      "iface": "hang",
+      "at": "edge",
+      "guest": "hanging accessory"
+     },
+     {
+      "iface": "slot",
+      "at": "opening",
+      "via": "bridge",
+      "guest": "slot accessory"
+     }
+    ],
+    "LV-381": [
+     {
+      "iface": "end_hook",
+      "at": "end",
+      "n": 2
+     },
+     {
+      "iface": "end_hook",
+      "at": "side",
+      "n": 2
+     },
+     {
+      "iface": "knob",
+      "at": "edge",
+      "guest": "Jikaro"
+     }
+    ],
+    "CK-090": [
+     {
+      "iface": "slot",
+      "at": "bay",
+      "n": 2,
+      "when": "expanded"
+     }
+    ],
+    "CK-080R": [
+     {
+      "iface": "slot",
+      "at": "bay",
+      "n": 3
+     }
+    ],
+    "CK-180": [
+     {
+      "iface": "slot",
+      "at": "bay",
+      "n": 3
+     }
+    ]
+   },
+   "guests": {
+    "extension_table": "end_hook",
+    "corner": "end_hook",
+    "frame": "end_hook",
+    "sliding_extension": "side_rail",
+    "slot_module": "slot",
+    "hanger": "hang"
+   },
+   "adapters": {
+    "XCK-128": {
+     "role": "rail joint",
+     "from": "side_rail",
+     "to": [
+      "end_hook",
+      "hang"
+     ],
+     "desc": "clips into the long rail so a hook-on board or a hanging accessory can attach where there is only a rail."
+    },
+    "CK-175": {
+     "role": "connection hook",
+     "adds": "end_hook",
+     "on": "frame end",
+     "desc": "gives a frame end a HOOK so two frames join end to end -- the frame system's stand-in for the knob it does not have."
+    },
+    "ST-051": {
+     "role": "1-unit bridge",
+     "adapts": "knob-opening -> slot",
+     "on": "ST-050 compact",
+     "units": 1
+    },
+    "CPL-JT2U": {
+     "role": "2-unit bridge",
+     "adapts": "knob-opening -> slot",
+     "on": "ST-050 spread",
+     "units": 2
+    }
+   }
+  },
   "ecosystems": {
    "tta": {
     "name": "Table Top Architect",
