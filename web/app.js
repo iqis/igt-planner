@@ -390,7 +390,10 @@ const FRAME_HOOK = "CK-175";
  */
 function hostEdge(n, key, guest = "ext") {
   const f = footprint(n);
-  if (n.kind === "frame") {
+  // A frame and a self-contained IGT (Entry / Slim) share one edge geometry: ends at +/-w/2 with
+  // holes a board hooks into, long rails at +/-d/2. The self-IGT stands at the datum, so a board
+  // on it inherits the datum the same way a frame's board does.
+  if (n.kind === "frame" || selfIgt(n.sku)) {
     // A BOARD's wire hooks drop INTO the holes, 16.5mm in from the end face, so the board
     // ends up resting 4mm onto the end piece. A FRAME does not: with CK-175 the two end
     // pieces butt FACE TO FACE and the fitting spans them. Two guests, two anchors, one
@@ -463,12 +466,23 @@ const JIKARO_EDGES = {
 };
 
 const EDGE_KEYS = { frame: ["end+x", "end-x", "rail+z", "rail-z"], ext: ["bracket"], table: [] };
+// A self-contained IGT (Entry / Slim) IS a fixed-body 3-unit frame: holes at the ends, rails on the
+// long sides. It offers whichever of those its connections.hosts entry declares -- so it connects
+// like a frame, driven by the same data, without being kind "frame".
+function selfIgtEdges(n) {
+  const ports = CONN.hosts[n.sku] || [];
+  const keys = [];
+  if (ports.some(p => p.at === "end"))  keys.push("end+x", "end-x");
+  if (ports.some(p => p.at === "rail")) keys.push("rail+z", "rail-z");
+  return keys;
+}
 const edgeKeysOf = n => isJikaro(n) ? Object.keys(JIKARO_EDGES).filter(k =>
     !JIKARO_EDGES[k].chamfer || n.config === "long_in")   // chamfers only in the spread form
   : isConnTable(n) ? ["end+x", "end-x", "side+z", "side-z"]   // Connection Table: ends AND long sides
   : isSlide(PARTS[n.sku]) ? []                    // a sliding extension is a leaf -- nothing
                                                   // hooks onto it, and its phantom bracket
                                                   // edge was intercepting the click to drag it
+  : selfIgt(n.sku) ? selfIgtEdges(n)              // Entry / Slim IGT: frame-like ends (+ rails)
   : EDGE_KEYS[n.kind] || [];
 
 /** Every edge of this node that an extension could still hook onto.
@@ -1464,9 +1478,16 @@ const EDGE_IFACES = new Set(["ext_table", "side_rail", "knob"]);   // the edge m
 function portsAt(e) {
   const host = e.node;
   const ports = (CONN.hosts[host.sku] || CONN.hosts[PARTS[host.sku]?.role] || []).filter(p => p.iface !== "slot");
-  if (host.kind === "frame") return ports.filter(p => (e.rail ? p.at === "rail" : p.at === "end"));
+  // A frame and a self-IGT split their edges by position: an end carries the ET port, a long rail
+  // carries the side_rail / hanging ports. Every other host (a board's bracket, LV-381, ST-050) has
+  // one port per edge, so it needs no split.
+  if (host.kind === "frame" || selfIgt(host.sku)) return ports.filter(p => (e.rail ? p.at === "rail" : p.at === "end"));
   return ports;
 }
+
+// A hanging rack hooks OVER rails -- so it can go on anything that declares a `hanging` port
+// (a frame, and now the Entry IGT), not just a literal frame.
+const hostsHanging = n => (CONN.hosts[n.sku] || CONN.hosts[PARTS[n.sku]?.role] || []).some(p => p.iface === "hanging");
 
 const partsForRole = role =>
   PARTS[role] ? [PARTS[role]]                          // a specific sku, e.g. LV-381 (the knob peer)
@@ -1568,8 +1589,8 @@ function paintSlotMenu() {
   let offered = 0;
   for (const p of list) {
     if (spanOf(p) > free) continue;                                      // wider than the run
-    if (isHangRack(p) && n.kind !== "frame") continue;                   // a rack needs frame rails to hook over
-    if (isHangRack(p) && hasHangRack(n)) continue;                        // one rack per frame
+    if (isHangRack(p) && !hostsHanging(n)) continue;                     // a rack needs rails to hook over
+    if (isHangRack(p) && hasHangRack(n)) continue;                        // one rack per host
     const c = compat(p.sku, n.sku);
     if (c.level === "blocked") continue;
 
@@ -2238,10 +2259,11 @@ function paintPalette() {
   }
 
   const mods = $("modules"); mods.innerHTML = "";
-  // Any node with a bay hosts slot modules (frame, bridged Jikaro, opened Extension IGT);
-  // hanging racks still need real frame rails to hook over, so they stay frame-only.
+  // Any node with a bay hosts slot modules (frame, bridged Jikaro, opened Extension IGT); a hanging
+  // rack hooks over RAILS, so it goes on any host that declares a `hanging` port (a frame or the
+  // Entry IGT), not just a literal frame.
   const host = n && hasBay(n) ? n : null;
-  const frame = host?.kind === "frame" ? host : null;
+  const railHost = host && hostsHanging(host) ? host : null;
   for (const p of BY_ROLE.slot_module) {
     const c = host ? compat(p.sku, host.sku) : { level: "ok" };
     const dead = !host || firstFit(host, p.span) < 0 || c.level === "blocked";
@@ -2256,11 +2278,11 @@ function paintPalette() {
   // One per frame -- their side frames collide otherwise (both manuals say so). So they are
   // dead if the frame already has one, or if 2U will not fit.
   for (const p of BY_ROLE.hang_rack) {
-    const dead = !frame || hasHangRack(frame) || firstFit(frame, p.span) < 0;
+    const dead = !railHost || hasHangRack(railHost) || firstFit(railHost, p.span) < 0;
     mods.append(partRow(p, () => placeModule(p.sku), dead,
-      dead && frame && hasHangRack(frame)
-        ? `${p.sku} — one hanging rack per frame; the side frames would collide.`
-        : `${p.sku} — hangs a ${p.tiers === 2 ? "two-tier" : "one-tier"} rack under 2U of the frame.`));
+      dead && railHost && hasHangRack(railHost)
+        ? `${p.sku} — one hanging rack per host; the side frames would collide.`
+        : `${p.sku} — hangs a ${p.tiers === 2 ? "two-tier" : "one-tier"} rack under 2U of the rails.`));
   }
 
   $("selname").textContent = n ? PARTS[n.sku].title_en : "nothing selected";

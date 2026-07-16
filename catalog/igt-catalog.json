@@ -430,16 +430,62 @@
     ],
     "CK-080R": [
      {
+      "iface": "ext_table",
+      "scale": "table",
+      "at": "end",
+      "n": 2
+     },
+     {
+      "iface": "side_rail",
+      "at": "rail",
+      "n": 2
+     },
+     {
+      "iface": "hanging",
+      "at": "rail"
+     },
+     {
       "iface": "slot",
       "at": "bay",
-      "n": 3
+      "n": 3,
+      "note": "Entry IGT is a 3-unit frame: holes at both ends (ET), rails on both long sides (sliding extension + hanging), and the bay when the custom top lifts out. Owner-confirmed 2026-07-15."
+     }
+    ],
+    "CK-080R-EC": [
+     {
+      "iface": "ext_table",
+      "scale": "table",
+      "at": "end",
+      "n": 2
+     },
+     {
+      "iface": "side_rail",
+      "at": "rail",
+      "n": 2
+     },
+     {
+      "iface": "hanging",
+      "at": "rail"
+     },
+     {
+      "iface": "slot",
+      "at": "bay",
+      "n": 3,
+      "note": "Entry IGT (black) -- same connecting frame as CK-080R."
      }
     ],
     "CK-180": [
      {
+      "iface": "ext_table",
+      "scale": "table",
+      "at": "end",
+      "n": 2
+     },
+     {
       "iface": "slot",
       "at": "bay",
-      "n": 3
+      "n": 3,
+      "note": "IGT Slim: ends connect (owner: 'connection hook 就行了'); its 408mm reads as the 400 datum. Whether the long sides carry rails is UNCONFIRMED, so no side_rail/hanging yet."
      }
     ]
    },
