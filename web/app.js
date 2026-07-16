@@ -2639,7 +2639,49 @@ function paintWarnings() {
   }
 }
 
-function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); }
+// The scene outliner: placed objects as a tree, nested by host-guest -- a hooked board sits under
+// its host, a module under the frame whose bay it fills. Click a row to select (and get the object's
+// toolbar in the viewport); the × removes it (and its children / the module).
+const KIND_GLYPH = { frame: "▤", ext: "↳", prop: "◗", footprint: "▢", table: "▦" };
+
+function treeRow(n, depth, { module = false, pl = null } = {}) {
+  const row = document.createElement("div");
+  const p = PARTS[(module ? pl.sku : n.sku)];
+  row.className = "tree-row" + (!module && n.id === state.sel ? " on" : "") + (module ? " module" : "");
+  row.style.paddingLeft = `${0.35 + depth * 0.85}rem`;
+  const glyph = module ? "·" : n.host != null ? "↳" : (KIND_GLYPH[n.kind] || "▤");
+  row.innerHTML = `<span class="tw">${glyph}</span>`
+    + `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
+    + `<span class="nm" title="${p.title_en}">${p.title_en}</span>`;
+  row.onclick = () => { state.sel = n.id; render(); };   // a module row selects its host frame
+  const del = document.createElement("span");
+  del.className = "del"; del.textContent = "×";
+  del.title = module ? "remove this module" : "remove this object (and anything on it)";
+  del.onclick = e => { e.stopPropagation(); module ? removePlacement(n, pl) : removeNode(n); };
+  row.append(del);
+  return row;
+}
+
+function appendTree(host, n, depth) {
+  host.append(treeRow(n, depth));
+  for (const pl of n.placements || []) host.append(treeRow(n, depth + 1, { module: true, pl }));
+  for (const c of state.nodes.filter(m => m.host === n.id)) appendTree(host, c, depth + 1);
+}
+
+function paintOutliner() {
+  const host = $("scene"); if (!host) return;
+  host.innerHTML = "";
+  const roots = state.nodes.filter(n => n.host == null);
+  if (!roots.length) {
+    const e = document.createElement("div");
+    e.className = "tree-empty"; e.textContent = "nothing placed yet";
+    host.append(e);
+    return;
+  }
+  for (const n of roots) appendTree(host, n, 0);
+}
+
+function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); }
 // ---------------------------------------------------------------- undo / redo
 // Snapshots of the layout (nodes only -- selection is transient, not worth an undo step). Every
 // committed render pushes one; a drag pushes only its final state (see pointerup). Ctrl/Cmd-Z

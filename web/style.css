@@ -164,6 +164,30 @@ h2 {
 .part .del:hover { color: #e5484d; background: rgba(229, 72, 77, .12); }
 .subhead { font-size: .62rem; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); margin: .55rem 0 .15rem; }
 
+/* The scene outliner: the placed objects as a tree, nested by what hooks onto what. Click a row to
+   select it in the 3D view (and get its floating toolbar); the × removes it and its children. */
+#scene { display: flex; flex-direction: column; gap: 1px; margin-bottom: .3rem; }
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .28rem .35rem;
+  font-size: .7rem;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.tree-row:hover { background: var(--raise); }
+.tree-row.on { border-color: var(--accent); background: var(--sel-bg); }
+.tree-row .tw { color: var(--faint); flex: none; width: 1em; text-align: center; }
+.tree-row .sw { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.tree-row .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-row.module .nm { color: var(--dim); }
+.tree-row .del { color: var(--faint); font-size: .82rem; line-height: 1; flex: none; padding: 0 .25rem; border-radius: 3px; opacity: 0; }
+.tree-row:hover .del { opacity: 1; }
+.tree-row .del:hover { color: var(--bad); background: var(--warn-bg); }
+.tree-empty { font-size: .68rem; color: var(--faint); padding: .3rem .1rem; }
+
 #stage { position: relative; min-width: 0; }
 #canvas { width: 100%; height: 100%; display: block; }
 
