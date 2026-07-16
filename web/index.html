@@ -28,7 +28,8 @@
 
 <main>
   <aside id="palette">
-    <input id="palsearch" class="search" type="search" placeholder="search name or part #" autocomplete="off">
+    <input id="palsearch" class="search" type="search" placeholder="search name, part # or category" autocomplete="off">
+    <div id="searchcount" class="searchcount" hidden></div>
     <div class="chips" id="undobar">
       <button id="undo" class="chip" title="undo — Ctrl+Z" disabled>↶ undo</button>
       <button id="redo" class="chip" title="redo — Ctrl+Shift+Z" disabled>↷ redo</button>
@@ -48,20 +49,29 @@
       <div id="actions" class="chips"></div>
     </section>
 
-    <section>
-      <h2>Add a table</h2>
-      <div id="add" class="chips"></div>
-      <div id="tables" class="parts"></div>
+    <section class="cat">
+      <h2 class="cathead"><span class="caret">▾</span>Frames</h2>
+      <div class="catbody"><div id="add" class="chips"></div></div>
     </section>
 
-    <section>
-      <h2>Around the table</h2>
-      <div id="seating" class="parts"></div>
+    <section class="cat">
+      <h2 class="cathead"><span class="caret">▾</span>Extensions &amp; corners</h2>
+      <div class="catbody"><div id="extensions" class="parts"></div></div>
     </section>
 
-    <section>
-      <h2>Shelter footprints <span class="hint">size reference — laid on the ground</span></h2>
-      <div id="shelters" class="parts"></div>
+    <section class="cat">
+      <h2 class="cathead"><span class="caret">▾</span>Tables</h2>
+      <div class="catbody"><div id="tables" class="parts"></div></div>
+    </section>
+
+    <section class="cat">
+      <h2 class="cathead"><span class="caret">▾</span>Around the table <span class="hint">chairs &amp; benches</span></h2>
+      <div class="catbody"><div id="seating" class="parts"></div></div>
+    </section>
+
+    <section class="cat">
+      <h2 class="cathead"><span class="caret">▾</span>Shelter footprints <span class="hint">size reference on the ground</span></h2>
+      <div class="catbody"><div id="shelters" class="parts"></div></div>
     </section>
   </aside>
 

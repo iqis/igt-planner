@@ -108,6 +108,17 @@ h2 {
 }
 .hint { text-transform: none; letter-spacing: 0; color: var(--faint); }
 
+/* Collapsible library categories. Click a header to fold it; during a search every body is forced
+   open (see .searching) so matches are never hidden behind a collapsed section. */
+.cathead { cursor: pointer; user-select: none; display: flex; align-items: baseline; gap: .35rem; }
+.cathead:hover { color: var(--ink); }
+.caret { font-size: .6rem; color: var(--faint); transition: transform .12s; }
+.cat.collapsed .caret { transform: rotate(-90deg); display: inline-block; }
+.cat.collapsed .catbody { display: none; }
+#palette.searching .catbody { display: block; }
+#palette.searching .cat.empty { display: none; }   /* hide categories with no match while searching */
+.searchcount { font-size: .64rem; color: var(--faint); margin: -.3rem 0 .5rem; }
+
 /* Find a part by name or number -- used in both the planner palette and the bench list. */
 .search {
   width: 100%;

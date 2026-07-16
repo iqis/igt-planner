@@ -2233,6 +2233,16 @@ function chip(label, on, title, fn, dead = false) {
   return c;
 }
 
+// Search matches SKU, name, AND a few category words -- so "burner", "corner", "chair", "tarp"
+// find their parts even when the exact word isn't in the title.
+const CAT_WORDS = {
+  frame: "frame", extension_table: "extension board", corner: "corner angle extension",
+  leg: "leg height", slot_module: "module burner stove tray box grill accessory", hanger: "hanging rack shelf",
+  layout_table: "table", standalone: "table igt", seating: "chair bench seat stool furniture",
+  shelter: "tent tarp shelter shell footprint",
+};
+const searchKey = p => `${p.sku} ${p.title_en || ""} ${CAT_WORDS[p.role] || p.role || ""}`.toLowerCase();
+
 function partRow(p, fn, dead, why) {
   const el = document.createElement("div");
   el.className = "part" + (dead ? " dead" : "");
@@ -2241,7 +2251,7 @@ function partRow(p, fn, dead, why) {
     + `<span class="nm">${p.title_en}</span>`
     + `<span class="sp">${s ? s / 2 + "u" : ""}</span>`;
   el.title = why || `${p.sku} — ${p.title_en}`;
-  el.dataset.search = `${p.sku} ${p.title_en || ""}`.toLowerCase();   // palette search key
+  el.dataset.search = searchKey(p);
   if (!dead) el.onclick = () => fn(p);
   return el;
 }
@@ -2250,24 +2260,28 @@ function paintPalette() {
   const add = $("add"); add.innerHTML = "";
   for (const p of BY_ROLE.frame) {
     const c = chip(`${p.units}u${p.collapsible ? " ⤢" : ""}`, false, p.title_en, () => addNode(p.sku));
-    c.dataset.search = `${p.sku} ${p.title_en}`.toLowerCase();
+    c.dataset.search = searchKey(p);
     add.append(c);
   }
 
-  const tab = $("tables"); tab.innerHTML = "";
+  // Extensions & corners: the hook-on boards. Live only when there's an open edge to take them.
+  const ext = $("extensions"); ext.innerHTML = "";
   const open = anyOpenEdge();
   for (const p of HOOKABLE)
-    tab.append(partRow(p, () => addNode(p.sku), !open,
+    ext.append(partRow(p, () => addNode(p.sku), !open,
       open ? `${p.sku} — hooks onto an edge. Hover an edge in the scene to choose which.`
            : `${p.sku} — hooks onto a frame or another extension. Put a frame down first.`));
   // Two different gaps, and they deserve two different sentences. One part has no copy
   // saying how it attaches; the other says it hooks on but has no plan view, so WHICH
   // edge carries the hooks was never measured. Both are unplaceable, for opposite reasons.
   for (const p of BY_ROLE.unsourced)
-    tab.append(partRow(p, null, true, p.attach === "hook_on"
+    ext.append(partRow(p, null, true, p.attach === "hook_on"
       ? `${p.sku} — the copy says it hooks on, but its gallery has no plan view, so which `
         + `edge carries the hooks is unmeasured. The planner will not guess.`
       : `${p.sku} — Snow Peak never documents how this attaches. The planner will not guess.`));
+
+  // Tables: the free-standing surfaces (layout tables + all-in-one IGTs like the Entry).
+  const tab = $("tables"); tab.innerHTML = "";
   for (const p of [...BY_ROLE.layout_table, ...BY_ROLE.standalone])
     tab.append(partRow(p, () => addNode(p.sku), false));
 
@@ -2439,15 +2453,35 @@ function paintPalette() {
   filterPalette();       // re-apply the current search over the freshly painted rows
 }
 
-// Find a part by name or number: hide the palette rows and chips that don't match. Runs after
-// every repaint so the filter survives re-renders; an empty query shows everything.
+// Find a part by name, number or category: hide the rows that don't match, show a hit count, and
+// while searching force every category open and drop the ones with no match, so the list becomes
+// just the results. Runs after every repaint so the filter survives re-renders.
 function filterPalette() {
   const q = ($("palsearch").value || "").trim().toLowerCase();
-  for (const id of ["add", "tables", "seating", "legs", "modules"])
-    for (const el of $(id).children)
-      el.style.display = (!q || (el.dataset.search || "").includes(q)) ? "" : "none";
+  $("palette").classList.toggle("searching", !!q);
+  let shown = 0;
+  for (const id of ["add", "extensions", "tables", "seating", "shelters", "legs", "modules"]) {
+    const host = $(id); if (!host) continue;
+    for (const el of host.children) {
+      const searchable = el.dataset.search != null;
+      const match = !q || (searchable && el.dataset.search.includes(q));
+      el.style.display = match ? "" : "none";
+      if (q && match && searchable) shown++;
+    }
+  }
+  for (const cat of document.querySelectorAll("#palette .cat")) {
+    const hit = [...cat.querySelectorAll("[data-search]")].some(el => el.style.display !== "none");
+    cat.classList.toggle("empty", !!q && !hit);
+  }
+  const cnt = $("searchcount");
+  cnt.hidden = !q;
+  if (q) cnt.textContent = `${shown} match${shown === 1 ? "" : "es"}`;
 }
 $("palsearch").addEventListener("input", filterPalette);
+
+// Collapse / expand a library category by clicking its header.
+for (const h of document.querySelectorAll(".cathead"))
+  h.addEventListener("click", () => h.closest(".cat").classList.toggle("collapsed"));
 
 function paintSlots() {
   const bar = $("slotbar"); bar.innerHTML = "";
