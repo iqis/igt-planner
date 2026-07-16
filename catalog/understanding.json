@@ -155,7 +155,7 @@
  "CK-080R": {
   "what": "Entry IGT: an all-in-one starter IGT (833x440x400) that is really a 3-UNIT IGT FRAME in a fixed body. Aluminium frame on TWO built-in folding TUBE legs; its bamboo top LIFTS OUT (2x one-unit + 2x half-unit pieces, custom, no SKU) so standard IGT units drop into the frame -- which is what makes it an IGT. Fixed height; the legs fold, they don't come off.",
   "model": "entryIgtGroup builds the aluminium frame ring + two folding tube legs; the removable bamboo top is drawn by igtWoodTop, one tile per FREE half-unit across the 3-unit run, so a dropped module simply takes a tile's place. Modules render via the shared drawModules.",
-  "fits": "Standalone unit with its own legs (no separate leg SKU). It IS a 3-unit frame: select it and the module palette + slot [+] handles light up; drop a burner/tray and the bamboo there lifts out. ~41mm end margins round the 750mm 3-unit run.",
+  "fits": "Standalone unit with its own legs (no separate leg SKU). It IS a 3-unit frame: select it and the module palette + slot [+] handles light up; drop a burner/tray and the bamboo there lifts out. ~41mm end margins round the 750mm 3-unit run. CONNECTS like a frame (owner-confirmed 2026-07-15): holes at BOTH ends take an IGT extension (ext_table, a board hooks in and inherits the 400 datum), and BOTH long sides carry rails -- a sliding extension tiles along them, a hanging rack hooks over. hosts entry gives ext_table@end + side_rail@rail + hanging@rail + slot@bay. CK-080R-EC (black) is identical.",
   "confidence": "medium",
   "derived": [
    "aluminium frame + bamboo top + two folding tube legs (photo 04977 / frame-only 04978)",
@@ -186,7 +186,7 @@
  "CK-180": {
   "what": "IGT Slim: the slim, light IGT (940x403x408) that is a 3-UNIT IGT FRAME -- NO long-side rails, two dark teak end caps and thin support rods, on TWO built-in folding THIN-WIRE legs. Its top is SIX removable half-unit teak panels; any panel lifts out for a stovetop or workspace. Fixed height; the wire legs fold.",
   "model": "slimIgtGroup builds the dark end caps + support rods + two folding wire legs; the SIX removable teak panels are drawn by igtWoodTop (one tile per free half-unit across the 3-unit run, ACROSS the width -- an earlier version wrongly ran seven slats lengthwise). Modules render via drawModules.",
-  "fits": "Standalone 3-unit frame with its own legs. No long-side rail, so external IGT accessories can't hook its long sides the way they do on a real frame -- but its OWN top lifts out per half-unit for units. Select it and the module palette + slot handles light up.",
+  "fits": "Standalone 3-unit frame with its own legs. No long-side rail, so external IGT accessories can't hook its long sides the way they do on a real frame -- but its OWN top lifts out per half-unit for units. Select it and the module palette + slot handles light up. Its ENDS do connect, though (owner: 'connection hook 就行了'; 408mm reads as the 400 datum) -- hosts entry gives ext_table@end only. Whether the long sides actually carry rails is UNCONFIRMED, so no side_rail/hanging yet; if they do, add those ports and it lights up automatically.",
   "confidence": "medium",
   "derived": [
    "no long-side rail; dark teak end caps; thin black wire folding legs (hero photo)",
