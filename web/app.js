@@ -304,7 +304,9 @@ const bracketAnchor = sku => mean(TEXTURES[sku]?.legs_mm || [[0, 0]]);
  *  which turns its end piece into a hook -- so what mates is the end FACE, and the two
  *  frames butt. Same placement rule either way; only the half differs. */
 function hookGeometry(n) {
-  if (n.kind === "frame") {
+  if (n.kind === "frame" || isConnTable(n)) {
+    // A frame butts its -x end face to face; the Connection Table butts its short end the same
+    // way, so it lines up edge to edge with the Jikaro at the datum.
     const f = footprint(n);
     return { normal: { x: -1, z: 0 }, anchor: { x: -f.w / 2, z: 0 } };
   }
@@ -1392,6 +1394,9 @@ function legalOn(e) {
   // Any other edge (a board's brackets, the Jikaro): hook-on boards only.
   if (e.node.kind === "frame" && !e.rail) return [...HOOKABLE, ...BY_ROLE.frame];
   if (e.rail) return [...HOOKABLE, ...SLIDE_IN];
+  // A Jikaro edge also takes the Connection Table (LV-381), butted on to extend the fire-safe
+  // surface -- the two are documented to join. (Spec: LV-381 connects_to ST-050 and vice versa.)
+  if (isJikaro(e.node) && PARTS[CONN_TABLE]) return [...HOOKABLE, PARTS[CONN_TABLE]];
   return HOOKABLE;
 }
 
