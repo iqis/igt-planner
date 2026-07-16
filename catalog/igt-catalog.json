@@ -476,16 +476,10 @@
     ],
     "CK-180": [
      {
-      "iface": "ext_table",
-      "scale": "table",
-      "at": "end",
-      "n": 2
-     },
-     {
       "iface": "slot",
       "at": "bay",
       "n": 3,
-      "note": "IGT Slim: ends connect (owner: 'connection hook 就行了'); its 408mm reads as the 400 datum. Whether the long sides carry rails is UNCONFIRMED, so no side_rail/hanging yet."
+      "note": "IGT Slim: SLOT ONLY. Owner-confirmed 2026-07-15 it has NO end holes and NO side rails -- it does not connect to anything; its only host role is the 3-unit bay when a teak panel lifts out. (The earlier 'connection hook 就行了' was about the 408~400 height tolerance, not an end-connection.)"
      }
     ]
    },
