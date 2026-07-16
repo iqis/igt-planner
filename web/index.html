@@ -39,6 +39,14 @@
          height / module / action controls for it are never buried under the table list. -->
     <section class="selbox" id="selbox" hidden>
       <h2>Selected <span class="hint" id="selname">nothing selected</span></h2>
+      <div id="transform" hidden>
+        <h3>Position</h3>
+        <div class="xform">
+          <label>X <input id="posx" type="number" step="10" inputmode="numeric"><span>mm</span></label>
+          <label>Z <input id="posz" type="number" step="10" inputmode="numeric"><span>mm</span></label>
+          <span class="rot" id="rotread">0°</span>
+        </div>
+      </div>
       <h3>Legs — sets the height</h3>
       <div id="legs" class="chips"></div>
 

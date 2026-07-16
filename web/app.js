@@ -2842,7 +2842,26 @@ function paintDimHud() {
   hud.hidden = !overall && !selLine;
 }
 
-function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); }
+// Numeric placement for the selected free object -- a hooked board has no position of its own.
+function paintTransform() {
+  const box = $("transform"); if (!box) return;
+  const n = sel();
+  if (!n || n.host != null) { box.hidden = true; return; }
+  box.hidden = false;
+  const px = $("posx"), pz = $("posz");
+  if (document.activeElement !== px) px.value = Math.round(n.x);
+  if (document.activeElement !== pz) pz.value = Math.round(n.z);
+  $("rotread").textContent = `${Math.round(norm(n.rot) * 180 / Math.PI)}°`;
+}
+const bindPos = (id, axis) => $(id).addEventListener("input", () => {
+  const n = sel(); if (!n || n.host != null) return;
+  n[axis] = Number($(id).value) || 0;
+  render();
+});
+bindPos("posx", "x");
+bindPos("posz", "z");
+
+function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); }
 // ---------------------------------------------------------------- undo / redo
 // Snapshots of the layout (nodes only -- selection is transient, not worth an undo step). Every
 // committed render pushes one; a drag pushes only its final state (see pointerup). Ctrl/Cmd-Z

@@ -465,3 +465,18 @@ h3 {
 }
 .selbox { border-top: 1px solid var(--line); padding-top: .8rem; }
 #selname { text-transform: none; letter-spacing: 0; color: var(--accent); }
+
+/* Numeric placement of the selected free object. */
+#transform[hidden] { display: none; }
+.xform { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.xform label { display: flex; align-items: center; gap: .3rem; font-size: .68rem; color: var(--dim); }
+.xform input {
+  width: 3.6rem;
+  font: .7rem ui-monospace, monospace;
+  color: var(--ink); background: var(--raise);
+  border: 1px solid var(--line); border-radius: 3px;
+  padding: .2rem .3rem;
+}
+.xform input:focus { outline: none; border-color: var(--accent); }
+.xform span { color: var(--faint); }
+.xform .rot { margin-left: auto; color: var(--dim); }
