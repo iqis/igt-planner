@@ -2708,6 +2708,20 @@ $("palsearch").addEventListener("input", filterPalette);
 for (const h of document.querySelectorAll(".cathead"))
   h.addEventListener("click", () => h.closest(".cat").classList.toggle("collapsed"));
 
+// Fold either side panel away to a thin strip so the viewport gets the room. The renderer has to be
+// told the canvas changed width -- after the grid transition, or it measures the old one.
+const mainEl = document.querySelector("main");
+for (const b of document.querySelectorAll(".panel-toggle")) {
+  b.onclick = () => {
+    const side = b.dataset.panel;                       // "left" | "right"
+    const on = b.closest("aside").classList.toggle("collapsed");
+    mainEl.classList.toggle(`${side}-collapsed`, on);
+    b.textContent = (side === "left") === !on ? "‹" : "›";
+    b.title = `${on ? "expand" : "collapse"} the ${side === "left" ? "parts" : "build"} panel`;
+    setTimeout(resize, 170);
+  };
+}
+
 function paintSlots() {
   const bar = $("slotbar"); bar.innerHTML = "";
   const n = sel();

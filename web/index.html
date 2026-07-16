@@ -28,6 +28,7 @@
 
 <main>
   <aside id="palette">
+    <button class="panel-toggle" data-panel="left" title="collapse the parts panel">‹</button>
     <input id="palsearch" class="search" type="search" placeholder="search name, part # or category" autocomplete="off">
     <div id="searchcount" class="searchcount" hidden></div>
     <div class="chips" id="undobar">
@@ -118,6 +119,7 @@
   </div>
 
   <aside id="bom">
+    <button class="panel-toggle" data-panel="right" title="collapse the build panel">›</button>
     <section>
       <h2>Scene <span class="hint">click to select · nesting = what hooks onto what</span></h2>
       <div id="scene"></div>

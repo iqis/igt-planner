@@ -89,14 +89,40 @@ main {
   grid-template-columns: 250px 1fr 330px;
   min-height: 0;
 }
+/* Either side panel folds away to a thin strip, so the viewport can have the room. */
+main.left-collapsed  { grid-template-columns: 22px 1fr 330px; }
+main.right-collapsed { grid-template-columns: 250px 1fr 22px; }
+main.left-collapsed.right-collapsed { grid-template-columns: 22px 1fr 22px; }
 
 aside {
   overflow-y: auto;
   padding: .8rem;
   background: var(--panel);
+  position: relative;
 }
-#palette { border-right: 1px solid var(--line); }
-#bom { border-left: 1px solid var(--line); }
+/* The extra inner padding keeps the panel's content clear of its collapse toggle. */
+#palette { border-right: 1px solid var(--line); padding-right: 1.7rem; }
+#bom { border-left: 1px solid var(--line); padding-left: 1.7rem; }
+aside.collapsed { overflow: hidden; padding: 0; }
+aside.collapsed > *:not(.panel-toggle) { display: none; }
+
+.panel-toggle {
+  position: absolute;
+  top: .45rem;
+  width: 16px; height: 26px;
+  display: grid; place-items: center;
+  font: .7rem ui-monospace, monospace;
+  color: var(--faint);
+  background: var(--raise);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  cursor: pointer;
+  z-index: 3;
+}
+.panel-toggle:hover { color: var(--ink); border-color: var(--accent); }
+#palette .panel-toggle { right: .35rem; }
+#bom .panel-toggle { left: .35rem; }
+aside.collapsed .panel-toggle { left: 50%; transform: translateX(-50%); right: auto; }
 
 section { margin-bottom: 1.1rem; }
 h2 {
