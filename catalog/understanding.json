@@ -1,196 +1,321 @@
 {
-  "_comment": [
-    "MY per-part understanding, in plain language, for the user to check and correct.",
-    "",
-    "The bench SYNTHESISES a baseline for every part from its role, title and dimensions",
-    "(see ROLE_DEF / ROLE_MODEL in part.js). This file is the hand-written layer on top:",
-    "where I have looked hard at a part, I write what it is, how I model it, how it fits,",
-    "and -- kept honest and separate -- what is DERIVED (read off a manual/photo/dimension),",
-    "what is ASSUMED (my inference, could be wrong), and what is UNKNOWN.",
-    "",
-    "Only parts I have actually studied need an entry. A missing entry is not an error;",
-    "it means the bench is showing the role-based baseline and I have not reviewed it yet.",
-    "Give feedback against any line and I will move it between derived/assumed/unknown or fix it.",
-    "Fields: what, model, fits, confidence(high|medium|low), derived[], assumed[], unknown[]."
+ "_comment": [
+  "MY per-part understanding, in plain language, for the user to check and correct.",
+  "",
+  "The bench SYNTHESISES a baseline for every part from its role, title and dimensions",
+  "(see ROLE_DEF / ROLE_MODEL in part.js). This file is the hand-written layer on top:",
+  "where I have looked hard at a part, I write what it is, how I model it, how it fits,",
+  "and -- kept honest and separate -- what is DERIVED (read off a manual/photo/dimension),",
+  "what is ASSUMED (my inference, could be wrong), and what is UNKNOWN.",
+  "",
+  "Only parts I have actually studied need an entry. A missing entry is not an error;",
+  "it means the bench is showing the role-based baseline and I have not reviewed it yet.",
+  "Give feedback against any line and I will move it between derived/assumed/unknown or fix it.",
+  "Fields: what, model, fits, confidence(high|medium|low), derived[], assumed[], unknown[]."
+ ],
+ "ST-050": {
+  "what": "The Jikaro Fire Ring Table: an octagonal table (1120mm across, 400mm tall) with an open centre for a fire pit or ring, standing on eight wire legs. RECONFIGURABLE: the four trapezoid segments go together two ways -- spread (long edge in: 1120 across, 600 opening) or compact (short edge in: 885 across, 365 opening). The open centre only becomes usable IGT space with an OPTIONAL bridge (2-Unit CPL-JT2U over the 600 opening, or 1-Unit ST-051 over the 365).",
+  "model": "jikaroGroup -- one octagon ring (outer/opening/edge driven by the chosen config, extruded flat) on eight U-hairpin legs. Each hairpin runs ALONG one of the trapezoid's two 285mm slant edges (inner hole corner out to the outer flat corner) -- two per segment, eight in all -- dropping to a foot bar with a shallow centre notch. When a bridge is on, jikaroBridge lays two stainless brackets across the opening with the slide-in bars dividing it into 1 or 2 IGT units.",
+  "fits": "Standalone. It does not hook to the frame rail; Snow Peak groups it with the layout tables by height (400mm datum). Its OWN centre, bridged, hosts IGT unit accessories (1U compact / 2U spread). A Bamboo IGT Table can also hook to one outer 365mm edge (a011).",
+  "confidence": "medium",
+  "derived": [
+   "octagon outline and the central opening are traced off the top-view photograph",
+   "overall 1120mm and height 400mm are from the catalogue",
+   "two assembly configs (long-edge-in 1120/600, short-edge-in 885/365) reconstructed from the two plan photos a007/a008 at their two scales, cross-checked against the segment invariant and the spec table",
+   "eight U-hairpin legs running ALONG the trapezoid slant (short) edges, two per segment -- from the disassembled photo a009 AND the user's explicit correction; the pair marks D,E land on the OUTER end of the +x pair of slants, repeated to all eight by the octagon's four-fold symmetry",
+   "the bridge is a real optional accessory (ST-051 1U / CPL-JT2U 2U); opening size decides which fits (600->2U, 365->1U), confirmed against the IGT W=250n+96 formula",
+   "it joins via BUILT-IN SIDE KNOBS (ツマミ, in the material spec), NOT the frame's wire hook -- the `knob` interface, symmetric, no CK-175. This is the SAME joint its four trapezoid segments use, so its outer edges are the same port (owner correction; earlier this was wrongly modelled as the wire hook). Only the Jikaro + Connection Table (LV-381) have it. See layout.connections."
   ],
-
-  "ST-050": {
-    "what": "The Jikaro Fire Ring Table: an octagonal table (1120mm across, 400mm tall) with an open centre for a fire pit or ring, standing on eight wire legs. RECONFIGURABLE: the four trapezoid segments go together two ways -- spread (long edge in: 1120 across, 600 opening) or compact (short edge in: 885 across, 365 opening). The open centre only becomes usable IGT space with an OPTIONAL bridge (2-Unit CPL-JT2U over the 600 opening, or 1-Unit ST-051 over the 365).",
-    "model": "jikaroGroup -- one octagon ring (outer/opening/edge driven by the chosen config, extruded flat) on eight U-hairpin legs. Each hairpin runs ALONG one of the trapezoid's two 285mm slant edges (inner hole corner out to the outer flat corner) -- two per segment, eight in all -- dropping to a foot bar with a shallow centre notch. When a bridge is on, jikaroBridge lays two stainless brackets across the opening with the slide-in bars dividing it into 1 or 2 IGT units.",
-    "fits": "Standalone. It does not hook to the frame rail; Snow Peak groups it with the layout tables by height (400mm datum). Its OWN centre, bridged, hosts IGT unit accessories (1U compact / 2U spread). A Bamboo IGT Table can also hook to one outer 365mm edge (a011).",
-    "confidence": "medium",
-    "derived": ["octagon outline and the central opening are traced off the top-view photograph", "overall 1120mm and height 400mm are from the catalogue", "two assembly configs (long-edge-in 1120/600, short-edge-in 885/365) reconstructed from the two plan photos a007/a008 at their two scales, cross-checked against the segment invariant and the spec table", "eight U-hairpin legs running ALONG the trapezoid slant (short) edges, two per segment -- from the disassembled photo a009 AND the user's explicit correction; the pair marks D,E land on the OUTER end of the +x pair of slants, repeated to all eight by the octagon's four-fold symmetry", "the bridge is a real optional accessory (ST-051 1U / CPL-JT2U 2U); opening size decides which fits (600->2U, 365->1U), confirmed against the IGT W=250n+96 formula", "it joins via BUILT-IN SIDE KNOBS (ツマミ, in the material spec), NOT the frame's wire hook -- the `knob` interface, symmetric, no CK-175. This is the SAME joint its four trapezoid segments use, so its outer edges are the same port (owner correction; earlier this was wrongly modelled as the wire hook). Only the Jikaro + Connection Table (LV-381) have it. See layout.connections."],
-    "assumed": ["opening 600mm and slant-edge 365mm outer / 285mm slant / 260mm depth (ring proportions from the photo + the trapezoid math)", "the two wires sit at 16% and 95% along each slant, dropping vertically (D,E fix the outer end; the inner-wire spot and the foot notch are eyeballed off a009)", "the bridge is modelled schematically (2 brackets + N bars); exact bracket profile from the CPL-JT2U spec (635x115 bracket, 360x47 bars)"],
-    "unknown": ["exact wire spacing along the slant and how vertical vs splayed the drop is -- two noisy outer marks don't pin the inner wire", "the official Snow Peak SKU of the 2-Unit bridge (a SEPPOUSAI festival limited; CPL-JT2U is the after-market equivalent)"]
-  },
-
-  "CK-153TR": {
-    "what": "Renewed Bamboo IGT Sliding Extension (short): a small bamboo board (423x220) that grips the frame's long rail and cantilevers outward, adding a shelf beside the table.",
-    "model": "slideExtGroup -- a bamboo slab with two under-brackets that clip over the rail; the board top carries the real grain/logo texture (from the alt_02 top-view photo).",
-    "fits": "Clips onto the frame's LONG side (the rail), not the short end. Slides freely along the rail (the planner snaps it in 25mm steps). Two CK-153TR end to end span the same length as a Three Unit Frame (846mm).",
-    "confidence": "medium",
-    "derived": ["dimensions 423x220x33 from the catalogue", "top texture is the real alt_02 orthographic top view", "mounts on the long rail (manual/photo)"],
-    "assumed": ["bracket shape and the 220mm cantilever reach", "25mm slide snap is a planner convenience, not a real detent"],
-    "unknown": ["how far two of them must overlap/space to avoid fouling each other on the same rail"]
-  },
-
-  "CK-154TR": {
-    "what": "Renewed Bamboo IGT Sliding Extension Long: the longer sibling of CK-153TR (548x220), same idea -- a bamboo board that grips the rail and reaches out.",
-    "model": "slideExtGroup, same builder as CK-153TR, longer board.",
-    "fits": "Clips onto the frame's LONG rail and slides. Two CK-154TR end to end span the same length as a Four Unit Frame (1096mm).",
-    "confidence": "medium",
-    "derived": ["dimensions 548x220x33 from the catalogue", "two of them = Four Unit Frame length (1096mm)"],
-    "assumed": ["bracket shape and cantilever reach, shared with CK-153TR"],
-    "unknown": ["overlap/spacing rule when several share one rail"]
-  },
-
-  "CK-117TR": {
-    "what": "Renewed Bamboo IGT Table Long: a full-length (1096mm) bamboo tabletop that hooks onto a frame end and runs the length out -- the four-unit extension surface.",
-    "model": "tableGroup -- a flat bamboo slab, with the plan-view photo laid under it in the same frame so the hook and bracket positions can be checked against the board.",
-    "fits": "Hooks onto the frame's SHORT end (its hooks drop into the black end pieces) and carries straight on for four units. Takes its host frame's leg SKU.",
-    "confidence": "medium",
-    "derived": ["1096mm = four units (250*4+96) from the dimension", "hooks on the short end, from the frame-fittings plan view"],
-    "assumed": ["exact hook mm positions where not yet measured off a photo"],
-    "unknown": []
-  },
-
-  "CK-116TR": {
-    "what": "Renewed Bamboo IGT Table Regular: the 846mm (three-unit) bamboo tabletop; same as CK-117TR one size down.",
-    "model": "tableGroup -- flat bamboo slab with the plan view underlaid.",
-    "fits": "Hooks onto the frame's short end and carries on for three units.",
-    "confidence": "medium",
-    "derived": ["846mm = three units (250*3+96)"],
-    "assumed": ["exact hook positions where unmeasured"],
-    "unknown": []
-  },
-
-  "CK-119TR": {
-    "what": "Bamboo Right Corner Extension: a 496mm square bamboo board that turns the run 90 degrees at a corner (the LEFT-hand version is CK-118TR).",
-    "model": "tableGroup -- a square flat slab. The corner turn is what makes it special: its hook edge and bracket edge are PERPENDICULAR, so the layout changes direction through it.",
-    "fits": "Hooks on one edge, offers brackets on an adjacent (not opposite) edge, so the run leaves at 90 degrees. Left/right decides which way it turns.",
-    "confidence": "medium",
-    "derived": ["496mm square from the catalogue", "corner (perpendicular hook vs bracket edge) from the role and the plan view"],
-    "assumed": ["which physical edge is hook vs bracket for R vs L, where not yet measured"],
-    "unknown": []
-  },
-
-  "CK-150": {
-    "what": "IGT Four Unit Frame: the rigid four-unit (1096mm) leg frame -- the backbone a run is built on. Silver corner plates carry the leg sockets; black end pieces carry the holes an extension's hooks drop into.",
-    "model": "frameGroup -- the frame cross-section swept to length, with the hook-holes along the ends and sockets at the corners.",
-    "fits": "The central node: takes legs at the corners, extensions hook onto its short ends, sliding boards clip on its long rails, and frames join frame-to-frame via the rail joint (XCK-128).",
-    "confidence": "medium",
-    "derived": ["1096mm = four units", "hook-holes on the ends and leg sockets at corners, from the underside plan view"],
-    "assumed": ["exact cross-section profile where read off a single photo"],
-    "unknown": []
-  },
-
-  "CK-149": {
-    "what": "IGT Three Unit Frame: the 846mm rigid frame; CK-150 one size down.",
-    "model": "frameGroup, three-unit length.",
-    "fits": "Same as CK-150: legs at corners, extensions on the ends, boards on the rails, joins to other frames.",
-    "confidence": "medium",
-    "derived": ["846mm = three units"],
-    "assumed": ["cross-section profile detail"],
-    "unknown": []
-  },
-
-  "CK-904": {
-    "what": "Collapsible IGT 4 Unit Frame: the folding version of the four-unit frame -- rails that collapse for packing rather than a rigid weld.",
-    "model": "frameGroup with collapsible=true, four-unit length.",
-    "fits": "Same role as CK-150 (legs, extensions, rails, frame joints) but folds flat; pairs with the collapsible rails (CK-904-1).",
-    "confidence": "medium",
-    "derived": ["1096mm = four units", "collapsible, from the title and the separate rails part"],
-    "assumed": ["how the fold changes the rail cross-section vs the rigid frame"],
-    "unknown": []
-  },
-
-  "CK-080R": {
-    "what": "Entry IGT: an all-in-one starter IGT (833x440x400) that is really a 3-UNIT IGT FRAME in a fixed body. Aluminium frame on TWO built-in folding TUBE legs; its bamboo top LIFTS OUT (2x one-unit + 2x half-unit pieces, custom, no SKU) so standard IGT units drop into the frame -- which is what makes it an IGT. Fixed height; the legs fold, they don't come off.",
-    "model": "entryIgtGroup builds the aluminium frame ring + two folding tube legs; the removable bamboo top is drawn by igtWoodTop, one tile per FREE half-unit across the 3-unit run, so a dropped module simply takes a tile's place. Modules render via the shared drawModules.",
-    "fits": "Standalone unit with its own legs (no separate leg SKU). It IS a 3-unit frame: select it and the module palette + slot [+] handles light up; drop a burner/tray and the bamboo there lifts out. ~41mm end margins round the 750mm 3-unit run.",
-    "confidence": "medium",
-    "derived": ["aluminium frame + bamboo top + two folding tube legs (photo 04977 / frame-only 04978)", "833x440x400 from the catalogue", "3 units, removable tops = 2x one-unit + 2x half-unit bamboo, and 'IGTユニットサイズの製品がテーブルフレーム内に組み込めます' (units fit inside the frame) -- from CK-080R's manual set-contents"],
-    "assumed": ["the top is tiled per half-unit for the model (the real pieces are 2 full + 2 half); leg splay ~18mm out / 34mm inset, eyeballed"],
-    "unknown": ["the exact folding-leg bend and hinge detail", "how the units seat (rail ledge vs the frame lip) -- modelled resting in the frame"]
-  },
-
-  "CK-080R-EC": {
-    "what": "Entry IGT in Black: the CK-080R in a black finish. Same all-in-one 3-unit IGT frame with a removable bamboo top, on two built-in folding tube legs.",
-    "model": "entryIgtGroup + igtWoodTop (shared with CK-080R).",
-    "fits": "Standalone 3-unit frame with its own folding legs; a black-finish variant of CK-080R. Same removable-top hosting.",
-    "confidence": "medium",
-    "derived": ["same part as CK-080R, black finish; 833x440x400; 3 units"],
-    "assumed": ["modelled identically to CK-080R (finish colour aside)"],
-    "unknown": []
-  },
-
-  "CK-180": {
-    "what": "IGT Slim: the slim, light IGT (940x403x408) that is a 3-UNIT IGT FRAME -- NO long-side rails, two dark teak end caps and thin support rods, on TWO built-in folding THIN-WIRE legs. Its top is SIX removable half-unit teak panels; any panel lifts out for a stovetop or workspace. Fixed height; the wire legs fold.",
-    "model": "slimIgtGroup builds the dark end caps + support rods + two folding wire legs; the SIX removable teak panels are drawn by igtWoodTop (one tile per free half-unit across the 3-unit run, ACROSS the width -- an earlier version wrongly ran seven slats lengthwise). Modules render via drawModules.",
-    "fits": "Standalone 3-unit frame with its own legs. No long-side rail, so external IGT accessories can't hook its long sides the way they do on a real frame -- but its OWN top lifts out per half-unit for units. Select it and the module palette + slot handles light up.",
-    "confidence": "medium",
-    "derived": ["no long-side rail; dark teak end caps; thin black wire folding legs (hero photo)", "940x403x408 from the catalogue", "a 3-unit frame with SIX removable half-unit teak panels, any of which lifts out for a stovetop/workspace (Snow Peak product copy)"],
-    "assumed": ["wire-leg splay ~44mm out, eyeballed off the hero", "how the units seat given there is no long rail -- modelled resting between the end supports"],
-    "unknown": ["the exact wire-leg shape and how the short ends carry the panels"]
-  },
-
-  "CK-090": {
-    "what": "Extension IGT: a self-contained table of TWO laminated-bamboo tops on one aluminium stand, on built-in folding tube legs. RECONFIGURABLE by sliding: closed it is a plain ~3-unit table (840x498); slid fully open (1348x498) the two tops part to expose a central 2-Unit IGT bay (500x360) between them. The catalogue title carries a 'Risk of tipping over' warning -- the open span is cantilevered.",
-    "model": "extIgtGroup -- an aluminium frame ring + two bamboo tops (one each side of the centre), fixed folding tube legs at the ends. When expanded, two silver rails bridge the gap to frame the 2-Unit bay; when collapsed the tops meet and there is no bay. footprint and bay follow the chosen config (layout.expandables.CK-090).",
-    "fits": "Standalone unit with its own legs (no separate leg SKU). Expanded, its centre bay hosts IGT unit accessories -- the point of the part. Stands at the 400mm datum, so it joins the layout as a node.",
-    "confidence": "medium",
-    "derived": ["two bamboo tops on an aluminium stand with folding legs (hero 04977 + alt 06)", "max 1348x498 / min 840x498 and the central (2ユニット=W)500x360 bay -- straight from the manual set-contents", "the 508mm the tops travel = exactly the 2-Unit (500mm) opening; 840~=3 units, 1348~=5 units by W=250n+96"],
-    "assumed": ["two-panel split with the bay dead-centre; leg splay reused from the entry IGT, eyeballed", "the collapsed form is a usable flat table (vs merely a carry state)"],
-    "unknown": ["the exact slide/stand mechanism and how the tops lock at each end of travel", "whether intermediate opening widths are usable or only the two detents"]
-  },
-
-  "ST-051": {
-    "what": "Jikaro Table 1 Unit Bridge: the OPTIONAL stainless bridge that lays across the compact (short-edge-in, 365mm opening) Jikaro to turn its fire hole into ONE IGT unit-slot. Official Snow Peak SKU, now rare.",
-    "model": "jikaroBridge (units=1) -- two brackets over the opening + one slide-in bar. NOT a placeable node: like the connection hook and rail joint it cannot stand alone, so it is a toggle on a Jikaro (ST-050) and shows up in that Jikaro's parts list. See layout.bridges.",
-    "fits": "Only on a Jikaro in the compact/'square' config (365mm opening). Provides 1 IGT unit for a burner or tray in the table's centre.",
-    "confidence": "low",
-    "derived": ["a real optional 1-Unit bridge for the Jikaro (Amazon/JP listings, SKU ST-051 -- sits next to ST-050)", "1 IGT unit, matched to the 365mm compact opening"],
-    "assumed": ["modelled schematically (2 brackets + 1 bar) by analogy to the 2-Unit CPL-JT2U spec; no published dimensions for the 1-Unit"],
-    "unknown": ["its exact dimensions and bracket profile", "current availability (discontinued/limited)"]
-  },
-
-  "CPL-JT2U": {
-    "what": "Jikaro Top 2 Unit Bridge: the OPTIONAL stainless bridge that lays across the spread (long-edge-in, 600mm opening) Jikaro to turn its fire hole into a 2-Unit IGT bay. The official version is a SEPPOUSAI (Snow Peak Festival) 2023 Autumn limited edition; CPL-JT2U is the after-market equivalent.",
-    "model": "jikaroBridge (units=2) -- two brackets over the opening + two slide-in bars at the unit divisions. NOT a placeable node: a toggle on a Jikaro (ST-050), reflected in its parts list. See layout.bridges.",
-    "fits": "Only on a Jikaro in the spread config (600mm opening). Provides 2 IGT units (or a 1/2-unit appliance) in the table's centre.",
-    "confidence": "medium",
-    "derived": ["a real optional 2-Unit bridge (BIGTENT CPL-JT2U; official = festival limited)", "2 IGT units, matched to the 600mm spread opening", "stainless, 2 main brackets 635x115mm + 2 bridge bars 360x47mm, ~1.9kg, 20kg load, brackets rest over the opening and the bars slide into their grooves (product spec)"],
-    "assumed": ["modelled schematically -- bracket length = opening + rim overlap; bars at the unit centres"],
-    "unknown": ["the official Snow Peak festival SKU code"]
-  },
-
-  "GS-450R-US": {
-    "what": "Flat Burner: a low, flat single-burner stove sized to drop into two IGT units (270x410), sitting flush in the frame like a tabletop.",
-    "model": "moduleGroup (a slot module) with a real top texture cropped from the burner's own top-view photo.",
-    "fits": "Drops into the frame as a 2-unit slot module -- its rim rests on the rails, the body hangs below.",
-    "confidence": "medium",
-    "derived": ["270x410 = 2 units wide", "top texture from the a016 top-view photo"],
-    "assumed": ["how deep the body hangs below the rail line"],
-    "unknown": []
-  },
-
-  "XCK-128-01": {
-    "what": "Multi Function Table Rail Joint (2-piece set): the little joint that ties one frame's long rail to the next, so two frames read as one continuous run.",
-    "model": "plateGroup -- a small connecting plate; it is hardware, not a surface.",
-    "fits": "Joins frame long-rail to frame long-rail. It is why frames line up side by side; without it they are just two tables near each other.",
-    "confidence": "medium",
-    "derived": ["joins the long rails, from the manual"],
-    "assumed": ["exact plate geometry (modelled as a generic plate)"],
-    "unknown": ["dimensions -- the catalogue gives none"]
-  },
-
-  "GF-010": {
-    "what": "Garden Unit Table Wood Insert: a wood insert for the Garden Unit Table. Currently EXCLUDED from the planner.",
-    "model": "not modelled (excluded).",
-    "fits": "Excluded -- it belongs to the Garden Unit Table ecosystem, which the planner does not cover yet.",
-    "confidence": "high",
-    "derived": ["excluded, by decision"],
-    "assumed": [],
-    "unknown": []
-  }
+  "assumed": [
+   "opening 600mm and slant-edge 365mm outer / 285mm slant / 260mm depth (ring proportions from the photo + the trapezoid math)",
+   "the two wires sit at 16% and 95% along each slant, dropping vertically (D,E fix the outer end; the inner-wire spot and the foot notch are eyeballed off a009)",
+   "the bridge is modelled schematically (2 brackets + N bars); exact bracket profile from the CPL-JT2U spec (635x115 bracket, 360x47 bars)"
+  ],
+  "unknown": [
+   "exact wire spacing along the slant and how vertical vs splayed the drop is -- two noisy outer marks don't pin the inner wire",
+   "the official Snow Peak SKU of the 2-Unit bridge (a SEPPOUSAI festival limited; CPL-JT2U is the after-market equivalent)"
+  ]
+ },
+ "CK-153TR": {
+  "what": "Renewed Bamboo IGT Sliding Extension (short): a small bamboo board (423x220) that grips the frame's long rail and cantilevers outward, adding a shelf beside the table.",
+  "model": "slideExtGroup -- a bamboo slab with two under-brackets that clip over the rail; the board top carries the real grain/logo texture (from the alt_02 top-view photo).",
+  "fits": "Clips onto the frame's LONG side (the rail), not the short end. Slides freely along the rail (the planner snaps it in 25mm steps). Two CK-153TR end to end span the same length as a Three Unit Frame (846mm).",
+  "confidence": "medium",
+  "derived": [
+   "dimensions 423x220x33 from the catalogue",
+   "top texture is the real alt_02 orthographic top view",
+   "mounts on the long rail (manual/photo)"
+  ],
+  "assumed": [
+   "bracket shape and the 220mm cantilever reach",
+   "25mm slide snap is a planner convenience, not a real detent"
+  ],
+  "unknown": [
+   "how far two of them must overlap/space to avoid fouling each other on the same rail"
+  ]
+ },
+ "CK-154TR": {
+  "what": "Renewed Bamboo IGT Sliding Extension Long: the longer sibling of CK-153TR (548x220), same idea -- a bamboo board that grips the rail and reaches out.",
+  "model": "slideExtGroup, same builder as CK-153TR, longer board.",
+  "fits": "Clips onto the frame's LONG rail and slides. Two CK-154TR end to end span the same length as a Four Unit Frame (1096mm).",
+  "confidence": "medium",
+  "derived": [
+   "dimensions 548x220x33 from the catalogue",
+   "two of them = Four Unit Frame length (1096mm)"
+  ],
+  "assumed": [
+   "bracket shape and cantilever reach, shared with CK-153TR"
+  ],
+  "unknown": [
+   "overlap/spacing rule when several share one rail"
+  ]
+ },
+ "CK-117TR": {
+  "what": "Renewed Bamboo IGT Table Long: a full-length (1096mm) bamboo tabletop that hooks onto a frame end and runs the length out -- the four-unit extension surface.",
+  "model": "tableGroup -- a flat bamboo slab, with the plan-view photo laid under it in the same frame so the hook and bracket positions can be checked against the board.",
+  "fits": "Hooks onto the frame's SHORT end (its hooks drop into the black end pieces) and carries straight on for four units. Takes its host frame's leg SKU.",
+  "confidence": "medium",
+  "derived": [
+   "1096mm = four units (250*4+96) from the dimension",
+   "hooks on the short end, from the frame-fittings plan view"
+  ],
+  "assumed": [
+   "exact hook mm positions where not yet measured off a photo"
+  ],
+  "unknown": []
+ },
+ "CK-116TR": {
+  "what": "Renewed Bamboo IGT Table Regular: the 846mm (three-unit) bamboo tabletop; same as CK-117TR one size down.",
+  "model": "tableGroup -- flat bamboo slab with the plan view underlaid.",
+  "fits": "Hooks onto the frame's short end and carries on for three units.",
+  "confidence": "medium",
+  "derived": [
+   "846mm = three units (250*3+96)"
+  ],
+  "assumed": [
+   "exact hook positions where unmeasured"
+  ],
+  "unknown": []
+ },
+ "CK-119TR": {
+  "what": "Bamboo Right Corner Extension: a 496mm square bamboo board that turns the run 90 degrees at a corner (the LEFT-hand version is CK-118TR).",
+  "model": "tableGroup -- a square flat slab. The corner turn is what makes it special: its hook edge and bracket edge are PERPENDICULAR, so the layout changes direction through it.",
+  "fits": "Hooks on one edge, offers brackets on an adjacent (not opposite) edge, so the run leaves at 90 degrees. Left/right decides which way it turns.",
+  "confidence": "medium",
+  "derived": [
+   "496mm square from the catalogue",
+   "corner (perpendicular hook vs bracket edge) from the role and the plan view"
+  ],
+  "assumed": [
+   "which physical edge is hook vs bracket for R vs L, where not yet measured"
+  ],
+  "unknown": []
+ },
+ "CK-150": {
+  "what": "IGT Four Unit Frame: the rigid four-unit (1096mm) leg frame -- the backbone a run is built on. Silver corner plates carry the leg sockets; black end pieces carry the holes an extension's hooks drop into.",
+  "model": "frameGroup -- the frame cross-section swept to length, with the hook-holes along the ends and sockets at the corners.",
+  "fits": "The central node: takes legs at the corners, extensions hook onto its short ends, sliding boards clip on its long rails, and frames join frame-to-frame via the rail joint (XCK-128).",
+  "confidence": "medium",
+  "derived": [
+   "1096mm = four units",
+   "hook-holes on the ends and leg sockets at corners, from the underside plan view"
+  ],
+  "assumed": [
+   "exact cross-section profile where read off a single photo"
+  ],
+  "unknown": []
+ },
+ "CK-149": {
+  "what": "IGT Three Unit Frame: the 846mm rigid frame; CK-150 one size down.",
+  "model": "frameGroup, three-unit length.",
+  "fits": "Same as CK-150: legs at corners, extensions on the ends, boards on the rails, joins to other frames.",
+  "confidence": "medium",
+  "derived": [
+   "846mm = three units"
+  ],
+  "assumed": [
+   "cross-section profile detail"
+  ],
+  "unknown": []
+ },
+ "CK-904": {
+  "what": "Collapsible IGT 4 Unit Frame: the folding version of the four-unit frame -- rails that collapse for packing rather than a rigid weld.",
+  "model": "frameGroup with collapsible=true, four-unit length.",
+  "fits": "Same role as CK-150 (legs, extensions, rails, frame joints) but folds flat; pairs with the collapsible rails (CK-904-1).",
+  "confidence": "medium",
+  "derived": [
+   "1096mm = four units",
+   "collapsible, from the title and the separate rails part"
+  ],
+  "assumed": [
+   "how the fold changes the rail cross-section vs the rigid frame"
+  ],
+  "unknown": []
+ },
+ "CK-080R": {
+  "what": "Entry IGT: an all-in-one starter IGT (833x440x400) that is really a 3-UNIT IGT FRAME in a fixed body. Aluminium frame on TWO built-in folding TUBE legs; its bamboo top LIFTS OUT (2x one-unit + 2x half-unit pieces, custom, no SKU) so standard IGT units drop into the frame -- which is what makes it an IGT. Fixed height; the legs fold, they don't come off.",
+  "model": "entryIgtGroup builds the aluminium frame ring + two folding tube legs; the removable bamboo top is drawn by igtWoodTop, one tile per FREE half-unit across the 3-unit run, so a dropped module simply takes a tile's place. Modules render via the shared drawModules.",
+  "fits": "Standalone unit with its own legs (no separate leg SKU). It IS a 3-unit frame: select it and the module palette + slot [+] handles light up; drop a burner/tray and the bamboo there lifts out. ~41mm end margins round the 750mm 3-unit run.",
+  "confidence": "medium",
+  "derived": [
+   "aluminium frame + bamboo top + two folding tube legs (photo 04977 / frame-only 04978)",
+   "833x440x400 from the catalogue",
+   "3 units, removable tops = 2x one-unit + 2x half-unit bamboo, and 'IGTユニットサイズの製品がテーブルフレーム内に組み込めます' (units fit inside the frame) -- from CK-080R's manual set-contents"
+  ],
+  "assumed": [
+   "the top is tiled per half-unit for the model (the real pieces are 2 full + 2 half); leg splay ~18mm out / 34mm inset, eyeballed"
+  ],
+  "unknown": [
+   "the exact folding-leg bend and hinge detail",
+   "how the units seat (rail ledge vs the frame lip) -- modelled resting in the frame"
+  ]
+ },
+ "CK-080R-EC": {
+  "what": "Entry IGT in Black: the CK-080R in a black finish. Same all-in-one 3-unit IGT frame with a removable bamboo top, on two built-in folding tube legs.",
+  "model": "entryIgtGroup + igtWoodTop (shared with CK-080R).",
+  "fits": "Standalone 3-unit frame with its own folding legs; a black-finish variant of CK-080R. Same removable-top hosting.",
+  "confidence": "medium",
+  "derived": [
+   "same part as CK-080R, black finish; 833x440x400; 3 units"
+  ],
+  "assumed": [
+   "modelled identically to CK-080R (finish colour aside)"
+  ],
+  "unknown": []
+ },
+ "CK-180": {
+  "what": "IGT Slim: the slim, light IGT (940x403x408) that is a 3-UNIT IGT FRAME -- NO long-side rails, two dark teak end caps and thin support rods, on TWO built-in folding THIN-WIRE legs. Its top is SIX removable half-unit teak panels; any panel lifts out for a stovetop or workspace. Fixed height; the wire legs fold.",
+  "model": "slimIgtGroup builds the dark end caps + support rods + two folding wire legs; the SIX removable teak panels are drawn by igtWoodTop (one tile per free half-unit across the 3-unit run, ACROSS the width -- an earlier version wrongly ran seven slats lengthwise). Modules render via drawModules.",
+  "fits": "Standalone 3-unit frame with its own legs. No long-side rail, so external IGT accessories can't hook its long sides the way they do on a real frame -- but its OWN top lifts out per half-unit for units. Select it and the module palette + slot handles light up.",
+  "confidence": "medium",
+  "derived": [
+   "no long-side rail; dark teak end caps; thin black wire folding legs (hero photo)",
+   "940x403x408 from the catalogue",
+   "a 3-unit frame with SIX removable half-unit teak panels, any of which lifts out for a stovetop/workspace (Snow Peak product copy)"
+  ],
+  "assumed": [
+   "wire-leg splay ~44mm out, eyeballed off the hero",
+   "how the units seat given there is no long rail -- modelled resting between the end supports"
+  ],
+  "unknown": [
+   "the exact wire-leg shape and how the short ends carry the panels"
+  ]
+ },
+ "CK-090": {
+  "what": "Extension IGT: a self-contained table of TWO laminated-bamboo tops on one aluminium stand, on built-in folding tube legs. RECONFIGURABLE by sliding: closed it is a plain ~3-unit table (840x498); slid fully open (1348x498) the two tops part to expose a central 2-Unit IGT bay (500x360) between them. The catalogue title carries a 'Risk of tipping over' warning -- the open span is cantilevered.",
+  "model": "extIgtGroup -- an aluminium frame ring + two bamboo tops (one each side of the centre), fixed folding tube legs at the ends. When expanded, two silver rails bridge the gap to frame the 2-Unit bay; when collapsed the tops meet and there is no bay. footprint and bay follow the chosen config (layout.expandables.CK-090).",
+  "fits": "Standalone unit with its own legs (no separate leg SKU). Expanded, its centre bay hosts IGT unit accessories -- the point of the part. Stands at the 400mm datum, so it joins the layout as a node.",
+  "confidence": "medium",
+  "derived": [
+   "two bamboo tops on an aluminium stand with folding legs (hero 04977 + alt 06)",
+   "max 1348x498 / min 840x498 and the central (2ユニット=W)500x360 bay -- straight from the manual set-contents",
+   "the 508mm the tops travel = exactly the 2-Unit (500mm) opening; 840~=3 units, 1348~=5 units by W=250n+96"
+  ],
+  "assumed": [
+   "two-panel split with the bay dead-centre; leg splay reused from the entry IGT, eyeballed",
+   "the collapsed form is a usable flat table (vs merely a carry state)"
+  ],
+  "unknown": [
+   "the exact slide/stand mechanism and how the tops lock at each end of travel",
+   "whether intermediate opening widths are usable or only the two detents"
+  ]
+ },
+ "ST-051": {
+  "what": "Jikaro Table 1 Unit Bridge: the OPTIONAL stainless bridge that lays across the compact (short-edge-in, 365mm opening) Jikaro to turn its fire hole into ONE IGT unit-slot. Official Snow Peak SKU, now rare.",
+  "model": "jikaroBridge (units=1) -- two brackets over the opening + one slide-in bar. NOT a placeable node: like the connection hook and rail joint it cannot stand alone, so it is a toggle on a Jikaro (ST-050) and shows up in that Jikaro's parts list. See layout.bridges.",
+  "fits": "Only on a Jikaro in the compact/'square' config (365mm opening). Provides 1 IGT unit for a burner or tray in the table's centre.",
+  "confidence": "low",
+  "derived": [
+   "a real optional 1-Unit bridge for the Jikaro (Amazon/JP listings, SKU ST-051 -- sits next to ST-050)",
+   "1 IGT unit, matched to the 365mm compact opening"
+  ],
+  "assumed": [
+   "modelled schematically (2 brackets + 1 bar) by analogy to the 2-Unit CPL-JT2U spec; no published dimensions for the 1-Unit"
+  ],
+  "unknown": [
+   "its exact dimensions and bracket profile",
+   "current availability (discontinued/limited)"
+  ]
+ },
+ "CPL-JT2U": {
+  "what": "Jikaro Top 2 Unit Bridge: the OPTIONAL stainless bridge that lays across the spread (long-edge-in, 600mm opening) Jikaro to turn its fire hole into a 2-Unit IGT bay. The official version is a SEPPOUSAI (Snow Peak Festival) 2023 Autumn limited edition; CPL-JT2U is the after-market equivalent.",
+  "model": "jikaroBridge (units=2) -- two brackets over the opening + two slide-in bars at the unit divisions. NOT a placeable node: a toggle on a Jikaro (ST-050), reflected in its parts list. See layout.bridges.",
+  "fits": "Only on a Jikaro in the spread config (600mm opening). Provides 2 IGT units (or a 1/2-unit appliance) in the table's centre.",
+  "confidence": "medium",
+  "derived": [
+   "a real optional 2-Unit bridge (BIGTENT CPL-JT2U; official = festival limited)",
+   "2 IGT units, matched to the 600mm spread opening",
+   "stainless, 2 main brackets 635x115mm + 2 bridge bars 360x47mm, ~1.9kg, 20kg load, brackets rest over the opening and the bars slide into their grooves (product spec)"
+  ],
+  "assumed": [
+   "modelled schematically -- bracket length = opening + rim overlap; bars at the unit centres"
+  ],
+  "unknown": [
+   "the official Snow Peak festival SKU code"
+  ]
+ },
+ "GS-450R-US": {
+  "what": "Flat Burner: a low, flat single-burner stove sized to drop into two IGT units (270x410), sitting flush in the frame like a tabletop.",
+  "model": "moduleGroup (a slot module) with a real top texture cropped from the burner's own top-view photo.",
+  "fits": "Drops into the frame as a 2-unit slot module -- its rim rests on the rails, the body hangs below.",
+  "confidence": "medium",
+  "derived": [
+   "270x410 = 2 units wide",
+   "top texture from the a016 top-view photo"
+  ],
+  "assumed": [
+   "how deep the body hangs below the rail line"
+  ],
+  "unknown": []
+ },
+ "XCK-128-01": {
+  "what": "Multi Function Table Rail Joint (2-piece set): the little joint that ties one frame's long rail to the next, so two frames read as one continuous run.",
+  "model": "plateGroup -- a small connecting plate; it is hardware, not a surface.",
+  "fits": "Joins frame long-rail to frame long-rail. It is why frames line up side by side; without it they are just two tables near each other.",
+  "confidence": "medium",
+  "derived": [
+   "joins the long rails, from the manual"
+  ],
+  "assumed": [
+   "exact plate geometry (modelled as a generic plate)"
+  ],
+  "unknown": [
+   "dimensions -- the catalogue gives none"
+  ]
+ },
+ "GF-010": {
+  "what": "Garden Unit Table Wood Insert: a wood insert for the Garden Unit Table. Currently EXCLUDED from the planner.",
+  "model": "not modelled (excluded).",
+  "fits": "Excluded -- it belongs to the Garden Unit Table ecosystem, which the planner does not cover yet.",
+  "confidence": "high",
+  "derived": [
+   "excluded, by decision"
+  ],
+  "assumed": [],
+  "unknown": []
+ },
+ "_shelters": [
+  "SHELTER FOOTPRINTS (role 'shelter', kind 'footprint'): 23 curated tents/shells/tarps whose",
+  "TRUE ground outline is laid flat as a SCALE REFERENCE -- so you can see if a layout fits under",
+  "a tarp or inside a tent. Not IGT parts; not in the BOM; connect to nothing. Each carries a",
+  "geometry {kind:'polygon', vertices} traced to correct PROPORTION + side-count from the setup",
+  "diagram, plus capacity / peak_h_mm / guyed_mm. Added via overrides._add; per-item provenance is",
+  "in each entry's `reason`.",
+  "",
+  "WHAT THE OUTLINE IS (derived, honest): the SETUP footprint -- 設営サイズ / installation size,",
+  "vestibule & canopy INCLUDED -- NOT the inner mat / groundsheet (インナー), which is smaller and",
+  "was deliberately not used. For TARPS the vertices are the fabric SHADE outline (what covers the",
+  "ground); the much larger guyed stake span (10m ridge ropes) is kept separately in guyed_mm, not",
+  "drawn yet. Tents with a vestibule are modelled as a constant-width body + tapering front canopy",
+  "(an elongated hexagon), confirmed against the Amenity Dome plan diagram. Curved shells (Living",
+  "Shell, Tortue) and the Land Station 変則ヘキサ are elongated hexagons.",
+  "",
+  "CAVEATS: dims are cm->mm x10 from JP 設営 spec text (ec.snowpeak JS-rendered, so some came one",
+  "hop via the JP official Rakuten store / reuse-shop / naturum, cross-checked vs US ft-in). Lowest",
+  "confidence: Tortue 2026 (FES-770, footprint from prior TP-770R); Recta M & Takibi guyed spans",
+  "unpublished. SKU corrections folded in: Alpha Breeze=SD-480 (not TP-450); Land Station M/L=",
+  "TP-815/TP-820 (not TP-880/882); Takibi Octa=TP-430, Takibi Hexa M=TP-440S (not TP-810/830);",
+  "TP-861S is Hexa M ('S'=Set not Small), TP-862=Hexa L, Evo Pro=TP-260/TP-250R. NOT Snow Peak",
+  "products (dropped): 'Minimalists' (closest: Lago 1) and 'Takibi Tarp Wing' (tent-Mark DESIGNS)."
+ ]
 }
