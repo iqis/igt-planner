@@ -1493,6 +1493,114 @@
     "jp": "https://ec.snowpeak.co.jp/item/SNP0104A0116"
    },
    "reason": "グリルプレート黒皮鉄板 -- THE 鉄板, and the part that closes the OPEN question CK-160's note left ('the griddle plate's exact SKU is unconfirmed... GR-055-INT and S-029HD are in the catalog but neither is verified'). It is neither: it is GR-006, 500x330x35, 3.6kg, 2.5mm black steel. Snow Peak cross-lists it in BOTH directions -- GR-006's 関連アイテム are 焚火台グリルブリッジL and リフトアップBBQ BOX; CK-160's are GR-006 and S-029HA. Its 500 is not approximately the CK-160's 500, it IS the 500 -- the two-IGT-unit number, and the reason the owner's 'CK-160 and Takibi L share surfaces' holds. FULL size: it replaces BOTH nets, not one. JP-only, so price.us is null (absent from the US Takibi collection), not zero."
+  },
+  "ST-032RS": {
+   "role": "hearth",
+   "title_en": "Takibi Fire & Grill L",
+   "assembled_mm": {
+    "w": 455.0,
+    "d": 455.0,
+    "h": 315.0
+   },
+   "weight_g": 5500,
+   "bowl_depth_mm": 200,
+   "prop": "takibi",
+   "price": {
+    "us": 23995,
+    "jp": 21120,
+    "uk": null
+   },
+   "url": {
+    "us": "https://www.snowpeak.com/products/pack-and-carry-l-fire-place-st-032",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0120A0737"
+   },
+   "reason": "焚火台L (US 'Pack & Carry L Fireplace'). First NON-IGT, NON-SEATING prop: the fire pit. It stands on the ground beside the layout like a chair -- no rail, no slot, no bay -- so role 'hearth' -> a prop node: draggable, rotatable, billed. It is in the catalog for a BILL reason, not scenery: its cooking surfaces ARE the CK-160's (owner, and Snow Peak's own cross-listing). 455x455x315 and 5.5kg from the ST-032RS manual スペック. bowl_depth_mm 200 is NOT published -- measured off two on-white elevations and cross-checked twice (see takibiGroup). Four triangular plates to a POINT: a true inverted pyramid, not a box, not a truncated one."
+  },
+  "ST-032BP": {
+   "role": "takibi_option",
+   "title_en": "Fireplace Base Plate L",
+   "assembled_mm": {
+    "w": 450.0,
+    "d": 450.0,
+    "h": 9.0
+   },
+   "weight_g": 1900,
+   "price": {
+    "us": 3795,
+    "jp": 3960,
+    "uk": null
+   },
+   "url": {
+    "us": "https://www.snowpeak.com/products/fireplace-base-plate-l-st-032bp",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0104A0263"
+   },
+   "reason": "ベースプレートL: the ash/heat plate that lies on the GROUND under the Takibi L. 450x450x9, black-painted steel, 1.9kg -- all published. Not a node: its position is not a choice, it IS the Takibi's footprint, so like the Jikaro's bridge it is a TOGGLE on its host and its SKU rides that host's bill. role 'takibi_option' is picked up by no palette."
+  },
+  "ST-032GBR": {
+   "role": "takibi_option",
+   "title_en": "Fireplace Grill Bridge L",
+   "assembled_mm": {
+    "w": 445.0,
+    "d": 440.0,
+    "h": 175.0
+   },
+   "packed_mm": {
+    "w": 445.0,
+    "d": 440.0,
+    "h": 28.0
+   },
+   "weight_g": 1600,
+   "price": {
+    "us": 6495,
+    "jp": 7392,
+    "uk": null
+   },
+   "url": {
+    "us": "https://www.snowpeak.com/products/fireplace-grill-bridge-l-st-032gb",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0116A0645"
+   },
+   "reason": "焚火台グリルブリッジL: two flat stainless rails on four folding notched straps that hook over the Takibi L's rim, carrying the cooking surface. NOT a placeable node -- and that is not our call, it is a safety instruction in its own manual, under 警告: 「本製品は焚火台Lにセットした場合にのみ安定する構造です。単品で自立させてものを置くと転倒事故の原因になります」. A part that tips over if you set it down has no position. Same standing as ST-051/CPL-JT2U on the Jikaro: a toggle on its host, billed, never its own node. 445x440x175 / 収納 ...x28 / 1.6kg published."
+  },
+  "ST-032MAR": {
+   "role": "takibi_surface",
+   "title_en": "Grill Net Pro. L (stainless)",
+   "assembled_mm": {
+    "w": 484.0,
+    "d": 352.0,
+    "h": 19.0
+   },
+   "weight_g": 1600,
+   "surface": "net",
+   "price": {
+    "us": 5995,
+    "jp": 9240,
+    "uk": null
+   },
+   "url": {
+    "us": "https://www.snowpeak.com/products/fireplace-grill-l-st-032ma",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0122A0736"
+   },
+   "reason": "焼アミPro.L, 484x352x19 -- the full-size net, and a part that ties this branch to the IGT bill: Snow Peak's own compatibility copy names ST-032GBR / ST-032R / CK-160 in one breath. 484 is deliberately BIGGER than the Takibi's own 455 rim: it is sized to land ON the bridge's rails, not to drop inside the bowl. ST-032MAR is the 2023 renewal of ST-032MA (iron+chrome/Japan -> stainless/China), same size. role 'takibi_surface' is picked up by no palette: it is a config of the bridge."
+  },
+  "ST-032S": {
+   "role": "takibi_option",
+   "title_en": "Fireplace Coal Bed L (Charcoal Bed Pro. L)",
+   "assembled_mm": {
+    "w": 310.0,
+    "d": 310.0,
+    "h": 20.0
+   },
+   "weight_g": 3900,
+   "price": {
+    "us": 5995,
+    "jp": 6600,
+    "uk": null
+   },
+   "url": {
+    "us": "https://www.snowpeak.com/products/fireplace-coal-bed-l-st-032s",
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0104A0268"
+   },
+   "reason": "炭床Pro.L: a 310x310x20 cast-iron GRATE (a slotted slab with a raised logo boss and four little feet), 3.9kg -- published. It has no legs and no position of its own: it WEDGES into the bowl's taper wherever the square section is 310, which at bowl_depth 200 is 64mm below the rim -- and the JP a001 shows it exactly there. That is its whole purpose (raise the burn floor, burn less charcoal). A toggle on the Takibi, billed, never a node."
   }
  },
  "GF-051": {

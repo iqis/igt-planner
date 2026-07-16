@@ -1535,3 +1535,236 @@ function roundRect(cx, x, y, w, h, r) {
   cx.arcTo(x, y, x + w, y, r);
   cx.closePath();
 }
+
+// ===========================================================================================
+// The Takibi Fire & Grill L, and what hangs on it. Not IGT -- a fire pit that stands on the
+// ground beside the layout, the way the chairs do. It is in this file for a BILL reason, not a
+// scenery one: its cooking surfaces are the CK-160's cooking surfaces (owner, and Snow Peak's own
+// cross-listing both ways), so the net and the 鉄板 here and the ones bbqBoxGroup draws are the
+// same objects and are drawn in the same language on purpose.
+// ===========================================================================================
+
+// How deep the bowl is: rim down to the apex. Snow Peak publishes W455 x D455 x H315 and says
+// NOTHING about the taper, so this is MEASURED off the two on-white elevations in the JP gallery
+// (SNP0120A0737, a002 and a003). Method, because a number off a photo is worth what its method is
+// worth: both images show the near AND far rim tubes, both are the same known 455, and they come out
+// different widths in pixels -- which gives the image scale at each depth and the camera's tilt. The
+// apex sits halfway between them; solve for its drop.  a002 -> 203mm.  a003 -> 196mm.  200 is the
+// middle and +/- 10 is the honest precision.
+//
+// It then survives two cross-checks it was NOT fitted to:
+//   1. At 200 the bowl's square section is 310 exactly 64mm below the rim -- and 炭床Pro.L (ST-032S)
+//      is a 310x310 casting that wedges into that section. Its own photo shows it sitting there,
+//      high in the bowl, about a third down.
+//   2. The legs are riveted at the plate vertex (a002, zoomed: two tubes crossing through a boss).
+//      That forces where their feet land (see footRun), and at depth 200 it puts the bottom bends at
+//      x = +/-131mm in a003's view. Measured there: -124, +141.
+// A number that predicts two things it was not told about is a measurement. It is still not a
+// published spec, and if Snow Peak ever prints one, that wins.
+const TAKIBI_DEPTH = 200;
+
+// How far the grill bridge's rails clear the rim. THIS IS THE SOFT ONE, and the only soft number
+// here. ST-032GBR's legs carry a three-notch ladder and the manual says so (「3段階の高さ調整で、
+// 火加減をコントロール」), but Snow Peak publishes only the 175 overall -- the three stage heights are
+// nowhere. So ONE height is drawn, scaled off the middle notch, and the planner offers NO stage
+// config: three settings we cannot place are worse than one we can see.
+const BRIDGE_RISE = 90;
+
+/** A cooking surface laid on the bridge's rails at `y`. These are the SAME objects bbqBoxGroup lays
+ *  on the CK-160's lift frame -- that is the literal finding, so they are drawn the same way. Each
+ *  at its own published size:
+ *    net     ST-032MAR  焼アミPro.L         484 x 352 x 19   stainless
+ *    plate   GR-006     グリルプレート黒皮鉄板  500 x 330 x 35   2.5mm black steel
+ *    halves  S-029HA x2 焼アミハーフ Pro.     339 x 206 x 18   two side by side */
+function surfaceInto(g, kind, y) {
+  const netMat = metal(0xd0d4d9, 0.92, 0.24), plateMat = metal(0x33373d, 0.42, 0.55);
+  const net = (nw, nd, cx) => {
+    const rim = 6, pitch = 22;
+    for (const sz of [-1, 1]) box(g, nw, 4, rim, 1, netMat, cx, y - 2, sz * (nd / 2 - rim / 2));
+    for (const sx of [-1, 1]) box(g, rim, 4, nd, 1, netMat, cx + sx * (nw / 2 - rim / 2), y - 2, 0);
+    const iw = nw - 2 * rim, id = nd - 2 * rim;
+    const nx = Math.round(iw / pitch), nz = Math.round(id / pitch);
+    for (let j = 1; j < nx; j++) box(g, 2, 2, id, 0, netMat, cx - iw / 2 + (j * iw) / nx, y - 1.5, 0);
+    for (let j = 1; j < nz; j++) box(g, iw, 2, 2, 0, netMat, cx, y - 3.5, -id / 2 + (j * id) / nz);
+  };
+  if (kind === "net") return net(484, 352, 0);
+  if (kind === "halves") { net(339, 206, -106); net(339, 206, 106); return; }
+  if (kind === "plate") {
+    box(g, 500, 8, 330, 1.5, plateMat, 0, y - 4, 0);
+    for (const sz of [-1, 1]) box(g, 500, 27, 4, 1, plateMat, 0, y + 9.5, sz * 163);
+    for (const sx of [-1, 1]) box(g, 4, 27, 330, 1, plateMat, sx * 248, y + 9.5, 0);
+  }
+}
+
+/** 炭床Pro.L (ST-032S), dropped into a group at `y`. A 310x310x20 cast-iron GRATE, not a tray: its
+ *  photo is a dense field of parallel slots interrupted by a raised rectangular boss with the logo
+ *  on it, and four little feet underneath (the JP copy says so -- 裏には4個の小さな脚 -- which is why
+ *  it doubles as a trivet). It reads DARK: clear-coated cast iron, not the stainless of the bowl. */
+function coalBedInto(g, bed, y) {
+  const iron = metal(0x3a3632, 0.3, 0.68);
+  const barW = 7, gap = 6, pitch = barW + gap;
+  const n = Math.floor((bed - 24) / pitch);
+  for (const sx of [-1, 1]) box(g, 12, 20, bed, 1, iron, sx * (bed / 2 - 6), y - 10, 0);
+  for (const sz of [-1, 1]) box(g, bed, 20, 12, 1, iron, 0, y - 10, sz * (bed / 2 - 6));
+  for (let i = 0; i < n; i++)                       // the slot field
+    box(g, barW, 14, bed - 24, 0.5, iron, -((n - 1) * pitch) / 2 + i * pitch, y - 7, 0);
+  box(g, 132, 16, 82, 1, iron, 0, y - 6, 0);        // the raised logo boss, mid-plate
+  for (const sx of [-1, 1]) for (const sz of [-1, 1])   // the four feet, under it
+    box(g, 14, 10, 14, 1, iron, sx * (bed / 2 - 26), y - 25, sz * (bed / 2 - 26));
+}
+
+/** 焚火台グリルブリッジL (ST-032GBR): two flat stainless RAILS on four folding straps whose inward
+ *  lugs hook over the Takibi L's rim. Its manual is unusually blunt about what it is, under 警告:
+ *  「本製品は焚火台Lにセットした場合にのみ安定する構造です。単品で自立させてものを置くと転倒事故の
+ *  原因になりますので、必ず焚火台Lにセットした状態でご使用ください」-- only stable ON the Takibi L.
+ *  That is why the planner never places it: a part that tips over if you set it down is not a part
+ *  with a position.
+ *
+ *  445 x 440 x 175 packing to x28 -- so 175 is the legs DOWN and 28 is them folded. The straps carry
+ *  a three-notch ladder and it is drawn, because you can see it; WHICH notch is engaged is not
+ *  offered, because the three heights are not published (see BRIDGE_RISE).
+ *
+ *  Rails at y = 0 -- its working top is where the food goes -- body hanging to -h. */
+export function grillBridgeGroup(w, d, h, { color = 0xb9bec4, surface = null } = {}) {
+  const g = new THREE.Group();
+  const mat = metal(color, 0.85, 0.32);
+  const railH = 26, railT = 9, strapW = 20, strapT = 3;
+  const legLen = h - railH;
+
+  // The two rails. They run the 445 and sit at the 440's edges: that is the span the surfaces are
+  // cut to -- 484 and 500 both OVERHANG this frame, which is how they bear on it.
+  let body = null;
+  for (const sz of [-1, 1]) {
+    const r = box(g, w, railH, railT, 1.5, mat, 0, -railH / 2, sz * (d / 2 - railT / 2));
+    if (!body) body = r;
+  }
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const x = sx * (w / 2 - strapW / 2), z = sz * (d / 2 - railT / 2);
+    box(g, strapW, legLen, strapT, 1, mat, x, -railH - legLen / 2, z);
+    box(g, strapW * 0.6, strapT, d * 0.34, 1, mat, x, -railH - 14, z - sz * d * 0.19);
+    for (let i = 0; i < 3; i++)                  // the ladder: three lugs, the rim sits on one
+      box(g, 9, 4, strapT + 3, 0.8, mat, x - sx * (strapW / 2 - 4), -railH - 46 - i * 26, z);
+  }
+  if (surface) surfaceInto(g, surface, 2);
+  return { group: g, body };
+}
+
+/** Takibi Fire & Grill L (ST-032RS; JP 焚火台L, US "Pack & Carry L Fireplace"): four stainless
+ *  TRIANGLES on a folding tube X. It is a true inverted PYRAMID -- the plates run to a point. Not a
+ *  box, and not a truncated pyramid: the manual's セット内容 line drawing, the studio shot and the
+ *  elevations all show the same four triangles converging on one vertex.
+ *
+ *    本体      four identical triangular plates. Each plate's BASE is one whole side of the 455 rim;
+ *              each plate's APEX is the bowl's single bottom vertex.
+ *    ヒンジ     adjacent plates are hinged along their slant edges -- which is why the four collapse
+ *              to a 32mm pack, and why the slant edges are drawn TWICE below: each plate carries its
+ *              own tube and the two lie side by side at the seam.
+ *    縁        a rolled tube around each plate's WHOLE perimeter. What reads as "the rim" is four of
+ *              those tube bases meeting.
+ *    穴        five holes per plate in a line under the rim: the primary air. Counted (5) and scaled
+ *              (~50mm pitch) off two elevations that agree; the diameter is the weakest of the three
+ *              and is drawn at 8, not claimed.
+ *    脚        two tube loops crossing at the apex and splaying to the ground.
+ *
+ *  All three published numbers get used and none get invented: 455 is the rim square, 315 is
+ *  rim-to-ground, and the bowl is TAKIBI_DEPTH deep -- so the apex lands at 315-200 = 115 above the
+ *  ground and the legs make up the rest.
+ *
+ *  Feet at y = 0, rim at y = h -- built the way a prop is built, because a fire pit stands on the
+ *  ground and does not hang from a rail. `d` is unused: the rim is square and `w` says so. */
+export function takibiGroup(w, d, h, { steel = 0x9aa0a8, depth = TAKIBI_DEPTH, bridge = false,
+                                       surface = null, coalBed = false, basePlate = false } = {}) {
+  const g = new THREE.Group();
+  const half = w / 2;                          // 227.5 -- the rim square's half side
+  const slant = Math.hypot(depth, half);       // 303 -- base to apex, DOWN the plate
+  const tilt = Math.atan2(half, depth);        // the plate's lean off vertical
+  const apexY = h - depth;                     // 115
+  const plateT = 1.6, tubeR = 5;
+
+  const shell = metal(steel, 0.72, 0.38);      // the plates: brushed, not mirror
+  const tubeMat = metal(0xb6bcc2, 0.88, 0.28); // the rolled edge tube: brighter than the plate
+  const punch = metalE(0x0e0f12, 0.2, 0.8);    // a hole, punched dark -- frameGroup's trick
+
+  const tube = (a, b, r, mat) => {
+    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), mat);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m); return m;
+  };
+
+  // ONE plate geometry, four plates -- this file's whole point. Built in its own plane with the base
+  // on the x-axis and the apex hanging at -slant, then leaned and swung into place.
+  const s = new THREE.Shape();
+  s.moveTo(-half * MM, 0); s.lineTo(half * MM, 0); s.lineTo(0, -slant * MM); s.closePath();
+  const plateGeo = new THREE.ExtrudeGeometry(s, { depth: plateT * MM, bevelEnabled: false });
+  plateGeo.translate(0, 0, -plateT * MM / 2);
+
+  let body = null;
+  for (let k = 0; k < 4; k++) {
+    const rot = (k * Math.PI) / 2;
+    const side = new THREE.Group();
+    side.rotation.y = rot;
+    const plate = new THREE.Mesh(plateGeo, shell);
+    plate.rotation.x = -tilt;
+    plate.position.set(0, h * MM, half * MM);
+    side.add(plate);
+    if (!body) body = plate;                   // the caller tags ONE mesh; the first plate is it
+
+    // Five air holes, in a line parallel to the base. `t` walks down the plate, so the line follows
+    // the lean instead of floating off it.
+    const t = 34 / slant, hy = h - depth * t, hz = half * (1 - t);
+    for (let i = -2; i <= 2; i++) {
+      const hole = new THREE.Mesh(new THREE.CylinderGeometry(4 * MM, 4 * MM, (plateT + 1) * MM, 10), punch);
+      hole.rotation.x = Math.PI / 2 - tilt;    // stand the hole normal to the leaning plate
+      hole.position.set(i * 50 * MM, hy * MM, hz * MM);
+      side.add(hole);
+    }
+    g.add(side);
+
+    // This plate's rolled edge: base, then both slant edges down to the apex. Every plate draws its
+    // own, so the seams come out double -- which is what the hinge photo shows.
+    const c = Math.cos(rot), sn = Math.sin(rot);
+    const at = (x, y, z) => [x * c + z * sn, y, -x * sn + z * c];
+    const A = at(-half, h, half), B = at(half, h, half), P = [0, apexY, 0];
+    tube(A, B, tubeR, tubeMat);
+    tube(A, P, tubeR, tubeMat);
+    tube(B, P, tubeR, tubeMat);
+  }
+
+  // The legs. Two loops, each a flat-bottomed U in a vertical plane through one DIAGONAL of the rim
+  // -- the only arrangement that gives all three things the photos show at once: a tube end at each
+  // rim corner, the two loops crossing at the apex, four bends on the ground.
+  //
+  // footRun is DERIVED, not eyeballed. The limbs are straight and riveted at the apex (a002's apex is
+  // a boss with both tubes through it), so a limb is the line from a rim corner through the apex,
+  // extended to the floor -- and where it lands is forced. Nothing here is chosen: if TAKIBI_DEPTH is
+  // ever corrected, the feet move with it, correctly.
+  const u0 = half * Math.SQRT2;
+  const footRun = (u0 * (h - depth)) / depth;
+  const legMat = metal(0xc2c7cc, 0.86, 0.3);
+  for (const sd of [1, -1]) {
+    const ux = sd / Math.SQRT2, uz = 1 / Math.SQRT2;   // the two diagonals
+    const C1 = [u0 * ux, h, u0 * uz], C2 = [-u0 * ux, h, -u0 * uz];
+    const K1 = [-footRun * ux, 0, -footRun * uz], K2 = [footRun * ux, 0, footRun * uz];
+    tube(C1, K1, 4.5, legMat);   // down from one corner, through the apex, out to the far foot
+    tube(K1, K2, 4.5, legMat);   // the flat bottom of the U -- the foot itself
+    tube(K2, C2, 4.5, legMat);   // and back up to the opposite corner
+  }
+
+  // 炭床Pro.L: a 310x310 casting that wedges where the taper is 310. Its height is not a placement
+  // choice, it is a consequence -- solve the taper for 310.
+  if (coalBed) {
+    const bed = 310, drop = depth * (1 - bed / w);
+    coalBedInto(g, bed, h - drop);
+  }
+  // ベースプレートL: 450x450x9 of black steel, flat on the floor under all of it.
+  if (basePlate) box(g, 450, 9, 450, 2, metal(0x2a2c2f, 0.35, 0.65), 0, 4.5, 0);
+  // グリルブリッジL + whatever is laid on it.
+  if (bridge) {
+    const b = grillBridgeGroup(445, 440, 175, { surface });
+    b.group.position.y = (h + BRIDGE_RISE) * MM;
+    g.add(b.group);
+  }
+  return { group: g, body };
+}

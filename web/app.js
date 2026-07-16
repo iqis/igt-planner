@@ -7,7 +7,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop,
          foldingChairGroup, lowBeachChairGroup, campfieldSofaGroup,
          loungeCushionGroup, foldingBenchGroup, bambooShelfGroup,
-         takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS } from "./parts3d.js";
+         takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -1015,7 +1015,10 @@ function drawSlideExt(g, n) {
 }
 
 // Prop geometry by `chair` type. A prop's builder takes (w, d, h, opts) and returns { group }.
-const PROP_BUILDERS = { folding: foldingChairGroup, lowbeach: lowBeachChairGroup, sofa: campfieldSofaGroup, cushion: loungeCushionGroup, bench: foldingBenchGroup, shelf: bambooShelfGroup, take: takeChairGroup };
+// Free-standing things placed around the layout. Keyed by the part's own builder name -- `chair` for
+// the seating, `prop` for anything that stands on the ground but isn't one (the fire pit). A hearth
+// with `chair: "takibi"` would be a lie; the taxonomy is worth one extra key.
+const PROP_BUILDERS = { folding: foldingChairGroup, lowbeach: lowBeachChairGroup, sofa: campfieldSofaGroup, cushion: loungeCushionGroup, bench: foldingBenchGroup, shelf: bambooShelfGroup, take: takeChairGroup, takibi: takibiGroup };
 
 /** A free-standing prop (a chair): built at floor level (y = 0), tagged for selection + drag like
  *  a table but never connected to the IGT grid -- no hooks, no bay, no legs. */
@@ -1023,7 +1026,7 @@ function drawProp(g, n) {
   const p = PARTS[n.sku];
   const a = p.assembled_mm || { w: 500, d: 500, h: 800 };
   const mesh = p.fabric_type === "mesh";
-  const build = PROP_BUILDERS[p.chair] || foldingChairGroup;
+  const build = PROP_BUILDERS[p.prop || p.chair] || foldingChairGroup;
   const built = build(a.w, a.d, a.h, {
     frame: Number(p.frame_hex) || 0x232528,
     fabric: Number(p.fabric_hex) || 0x8c8279,
@@ -1033,6 +1036,10 @@ function drawProp(g, n) {
     meshAlpha: mesh ? chairTex("mesh", MESH_ALPHA, 6, false) : null,
     woodTex: p.chair === "shelf" ? woodGrain("shelfwood", 3, 1) : null,   // bamboo grain on the shelf top
     folded: n.config === "folded",                                        // lounge cushion: round vs folded
+    // The Takibi's four options. Not one enum: they are four independent decisions on one fire pit
+    // -- the bridge, what's on it, the coal bed, the ground plate -- and a real setup mixes them.
+    depth: p.bowl_depth_mm || undefined,
+    bridge: !!n.bridge, surface: n.surface || null, coalBed: !!n.coal, basePlate: !!n.base,
   });
   built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
   g.add(built.group);
@@ -1499,6 +1506,7 @@ function toolBtn(glyph, title, cls, onClick) {
 const legAdjustable = n => !!n && (n.kind === "frame" || n.kind === "ext");
 const hasActions = n => !!n && (isJikaro(n) || isExpandable(n)
   || (n.kind === "prop" && PARTS[n.sku].chair === "cushion")
+  || PARTS[n.sku].prop === "takibi"          // the fire pit's bridge / surface / coal bed / base plate
   || (n.kind === "ext" && n.host && !isSlide(PARTS[n.sku]))
   || (n.kind === "frame" && n.host));
 
@@ -1545,6 +1553,29 @@ function fillActions(box, n) {
       ["round", "◯ round", "the open round pad"],
       ["folded", "◗ folded", "folded in half to a half-circle (doubled thickness) for seating"]])
       box.append(chip(label, cur === key, hint, () => { n.config = key; render(); }));
+  }
+  // The Takibi's options. NOT one enum: four independent decisions on one fire pit -- the bridge,
+  // what's on it, the coal bed, the ground plate -- and a real setup mixes them. None of them is
+  // ever a node: the bridge's own manual forbids standing it alone, the coal bed has no legs (it
+  // wedges in the taper), and the base plate's position IS the Takibi's footprint.
+  if (PARTS[n.sku].prop === "takibi") {
+    box.append(chip(n.bridge ? "bridge ✓ ST-032GBR" : "+ grill bridge", !!n.bridge,
+      "ST-032GBR hooks over the rim and carries the cooking surface. Its manual: only stable ON the "
+      + "Takibi L — so it's a setting here, never its own thing on the ground.",
+      () => { n.bridge = !n.bridge; if (!n.bridge) delete n.surface; render(); }));
+    if (n.bridge) for (const [key, label, sku, hint] of [
+      [null, "— bare", null, "the bridge with nothing on it"],
+      ["net", "▦ 焼アミ Pro.L", "ST-032MAR", "484×352 stainless net — the same net the CK-160 takes"],
+      ["halves", "▤▤ two half nets", "S-029HA", "339×206 half nets ×2 — also cross-listed on the CK-160"],
+      ["plate", "▬ 鉄板", "GR-006", "500×330 black-steel griddle — its 500 IS the CK-160's 500"]])
+      box.append(chip(label, (n.surface || null) === key, sku ? `${sku} — ${hint}` : hint,
+        () => { n.surface = key; render(); }));
+    box.append(chip(n.coal ? "coal bed ✓ ST-032S" : "+ coal bed", !!n.coal,
+      "炭床Pro.L — a 310×310 casting that wedges 64mm down the taper and raises the burn floor",
+      () => { n.coal = !n.coal; render(); }));
+    box.append(chip(n.base ? "base plate ✓ ST-032BP" : "+ base plate", !!n.base,
+      "ベースプレートL — 450×450×9 of black steel on the ground, catching ash and keeping the heat off the grass",
+      () => { n.base = !n.base; render(); }));
   }
   // Height adjuster: a hooked board sits flush with its host, or drops ONE rung of the ladder
   // (830->660->400->300) via a CK-151. One step per adjuster -- lower still means chaining.
@@ -1638,7 +1669,7 @@ function followSelTools() {
 // whatever else is legal on its host edge; a free node offers its role's family.
 function replaceOptions(n) {
   if (n.kind === "frame") return BY_ROLE.frame;
-  if (n.kind === "prop") return BY_ROLE.seating;
+  if (n.kind === "prop") return BY_ROLE[PARTS[n.sku].role] || BY_ROLE.seating;
   if (n.kind === "footprint") return BY_ROLE.shelter;
   if (n.kind === "ext") {
     const host = byId(n.host);
@@ -2234,7 +2265,7 @@ const HOOKS_ON = new Set(["extension_table", "corner"]);
 // A sliding extension is a hooked node too (it hangs off a host edge, is not dragged), so it
 // is kind "ext" -- but a rail-only one, offered on long edges and drawn as a cantilever.
 const kindOf = p => (p.role === "frame" ? "frame"
-  : p.role === "seating" ? "prop"                 // a free-standing chair -- placed, not connected
+  : p.role === "seating" || p.role === "hearth" ? "prop"   // a chair, or the fire pit: placed, not connected
   : p.role === "shelter" ? "footprint"            // a tent/tarp ground outline -- a scale reference
   : (HOOKS_ON.has(p.role) || isSlide(p)) ? "ext" : "table");
 
@@ -2661,6 +2692,17 @@ function paintPalette() {
   for (const p of BY_ROLE.seating)
     seat.append(partRow(p, () => addNode(p.sku), false));
 
+  // The fire pit. Its OWN section, not appended to seating -- a Takibi in the chair list is exactly
+  // the taxonomy slippage this catalog keeps having to undo.
+  const hearth = $("hearth");
+  if (hearth) {
+    hearth.innerHTML = "";
+    for (const p of BY_ROLE.hearth)
+      hearth.append(partRow(p, () => addNode(p.sku), false,
+        `${p.sku} — stands on the ground beside the layout. Its bridge, cooking surface, coal bed and `
+        + `base plate are options ON it (select it), and each is a real part on the bill.`));
+  }
+
   // Shelter footprints (tents / shells / tarps) -- a ground outline dropped as a scale reference.
   const shel = $("shelters");
   if (shel) {
@@ -2813,6 +2855,17 @@ function bomLines() {
     if (n.kind === "frame") {
       const rails = PARTS[n.sku].requires_rails;
       if (rails && PARTS[rails]) lines.push({ sku: rails, req: true });
+    }
+    // The Takibi's options are real parts on a real bill, though none is ever a node: the bridge
+    // can't stand alone (its manual forbids it), the coal bed and base plate have no position that
+    // isn't the Takibi's, and a cooking surface only exists on the bridge.
+    if (PARTS[n.sku].prop === "takibi") {
+      if (n.bridge) lines.push({ sku: "ST-032GBR", req: true });
+      if (n.bridge && n.surface)
+        for (const sku of ({ net: ["ST-032MAR"], plate: ["GR-006"], halves: ["S-029HA", "S-029HA"] }[n.surface] || []))
+          if (PARTS[sku]) lines.push({ sku, req: true });
+      if (n.coal) lines.push({ sku: "ST-032S", req: true });
+      if (n.base) lines.push({ sku: "ST-032BP", req: true });
     }
     // The optional Jikaro bridge is a real SKU on the table's bill, though never its own node.
     if (isJikaro(n) && n.bridge) {
@@ -3232,6 +3285,7 @@ BY_ROLE = {
   layout_table: by("layout_table").filter(p => p.assembled_mm),
   standalone: by("standalone").filter(p => p.assembled_mm),
   seating: by("seating").filter(p => p.assembled_mm),
+  hearth: by("hearth").filter(p => p.assembled_mm),
   shelter: by("shelter").filter(p => p.geometry)
     .sort((a, b) => (a.shelter_type || "").localeCompare(b.shelter_type || "") || a.title_en.localeCompare(b.title_en)),
   unsourced: inScope.filter(p => hookRoles(p) && !HOOKABLE.includes(p)),
