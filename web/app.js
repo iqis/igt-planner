@@ -7,7 +7,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop,
          foldingChairGroup, lowBeachChairGroup, campfieldSofaGroup,
          loungeCushionGroup, foldingBenchGroup, bambooShelfGroup,
-         takeChairGroup } from "./parts3d.js";
+         takeChairGroup, shelterFootprint } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -146,6 +146,7 @@ const selfIgt = sku => (LAYOUT.self_igt || {})[sku];
 
 function footprintOf(sku, kind, node) {
   const p = PARTS[sku];
+  if (kind === "footprint") { const b = shelterBBox(shelterVerts(p.geometry)); return { w: b.w, d: b.d }; }
   if (kind === "frame") return { w: 250 * p.units + overhead(), d: p.assembled_mm?.d ?? 496 };
   if (sku === JIKARO && node) {
     const c = jikaroCfg(node);
@@ -159,6 +160,43 @@ function footprintOf(sku, kind, node) {
   return { w: a?.w ?? 496, d: a?.d ?? 496 };
 }
 const footprint = n => footprintOf(n.sku, n.kind, n);
+
+// ---- Shelter footprints ---------------------------------------------------------------
+// A tent / shell / tarp laid on the ground as a SCALE REFERENCE. Its `geometry` is either an
+// explicit {kind:"polygon", vertices:[[x,y],...]} or a named primitive we expand here -- so the
+// catalog can say "hexagon 5700x4200 waist 1800" instead of listing six points. All mm, centred;
+// +y = front (door / ridge), which drawFootprint maps to scene +z.
+const SHELTER_FILL = { tent: 0x5b8dd6, shell: 0x57b894, tarp: 0xd6a24e };
+function shelterVerts(g) {
+  if (!g) return [[-500, -500], [500, -500], [500, 500], [-500, 500]];
+  switch (g.kind) {
+    case "polygon": return g.vertices;
+    case "rectangle": { const w = g.w / 2, d = g.d / 2; return [[-w, -d], [w, -d], [w, d], [-w, d]]; }
+    case "hexagon": {  // elongated hexagon: two tips on the long (front-back) axis, a waist band across
+      const L = g.length / 2, W = g.width / 2, waist = (g.waist ?? g.length * 0.3) / 2;
+      return [[0, L], [W, waist], [W, -waist], [0, -L], [-W, -waist], [-W, waist]];
+    }
+    case "pentagon": {  // a "house": rectangle back + triangular front peak
+      const w = g.width / 2, d = g.length / 2, apex = g.apex ?? g.length * 0.34;
+      return [[-w, -d], [w, -d], [w, d - apex], [0, d], [-w, d - apex]];
+    }
+    case "octagon": {   // rectangle with the four corners cut
+      const w = g.width / 2, d = g.length / 2, c = g.chamfer ?? Math.min(g.width, g.length) * 0.29;
+      return [[-w + c, -d], [w - c, -d], [w, -d + c], [w, d - c], [w - c, d], [-w + c, d], [-w, d - c], [-w, -d + c]];
+    }
+    case "oval": {
+      const w = g.w / 2, d = g.d / 2, N = 44, out = [];
+      for (let i = 0; i < N; i++) { const t = i / N * Math.PI * 2; out.push([Math.cos(t) * w, Math.sin(t) * d]); }
+      return out;
+    }
+    default: { const w = (g.w || 1000) / 2, d = (g.d || 1000) / 2; return [[-w, -d], [w, -d], [w, d], [-w, d]]; }
+  }
+}
+function shelterBBox(verts) {
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of verts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  return { w: x1 - x0, d: y1 - y0 };
+}
 
 /** Top surface height.
  *
@@ -211,7 +249,7 @@ function aabb(n) {
 function neighbours(n) {
   const a = aabb(n);
   return state.nodes.filter(m => {
-    if (m === n) return false;
+    if (m === n || m.kind === "footprint" || n.kind === "footprint") return false;   // a ground reference never "connects"
     const b = aabb(m);
     const gapX = Math.max(a.x0 - b.x1, b.x0 - a.x1);
     const gapZ = Math.max(a.z0 - b.z1, b.z0 - a.z1);
@@ -224,9 +262,9 @@ function neighbours(n) {
 function steps() {
   const out = [];
   for (const n of state.nodes) {
-    if (n.kind === "prop") continue;                 // a free-standing prop (chair) is not a table
+    if (n.kind === "prop" || n.kind === "footprint") continue;   // free-standing -- not a table
     for (const m of neighbours(n))
-      if (m.kind !== "prop" && n.id < m.id && Math.abs(topOf(n) - topOf(m)) > 5) out.push([n, m]);
+      if (m.kind !== "prop" && m.kind !== "footprint" && n.id < m.id && Math.abs(topOf(n) - topOf(m)) > 5) out.push([n, m]);
   }
   return out;
 }
@@ -976,6 +1014,24 @@ function drawProp(g, n) {
   g.add(built.group);
 }
 
+/** A shelter footprint (tent / shell / tarp): its ground outline laid flat as a scale reference.
+ *  Not a solid object -- a translucent membrane + bright outline + billboard label, tagged for
+ *  drag / rotate / delete like any node but never connected to anything. */
+function drawFootprint(g, n) {
+  const p = PARTS[n.sku];
+  const verts = shelterVerts(p.geometry);
+  const b = shelterBBox(verts);
+  const size = `${(b.w / 1000).toFixed(2)} × ${(b.d / 1000).toFixed(2)} m`;
+  const built = shelterFootprint(verts, {
+    fill: SHELTER_FILL[p.shelter_type] || 0x8a8f97,
+    label: p.title_en || n.sku,
+    sub: size,
+  });
+  built.body.userData.node = n;
+  nodeMeshes.push(built.body);
+  g.add(built.group);
+}
+
 /** The Connection Table (LV-381): a black heat-resistant stainless top on black X-frame folding
  *  legs. Reuses the bamboo-shelf builder in black (a top + X-legs + stretcher), at its top height
  *  -- so its surface lines up at the datum with any IGT extension hooked to its edges. */
@@ -1209,7 +1265,7 @@ function rebuild() {
     const g = new THREE.Group();
     g.position.set(n.x * MM, 0, n.z * MM);
     g.rotation.y = -n.rot;
-    (n.kind === "frame" ? drawFrame : n.kind === "prop" ? drawProp : drawTable)(g, n);
+    (n.kind === "frame" ? drawFrame : n.kind === "prop" ? drawProp : n.kind === "footprint" ? drawFootprint : drawTable)(g, n);
     build.add(g);
   }
 
@@ -1797,6 +1853,7 @@ const HOOKS_ON = new Set(["extension_table", "corner"]);
 // is kind "ext" -- but a rail-only one, offered on long edges and drawn as a cantilever.
 const kindOf = p => (p.role === "frame" ? "frame"
   : p.role === "seating" ? "prop"                 // a free-standing chair -- placed, not connected
+  : p.role === "shelter" ? "footprint"            // a tent/tarp ground outline -- a scale reference
   : (HOOKS_ON.has(p.role) || isSlide(p)) ? "ext" : "table");
 
 // A leg SET is two legs -- "Each purchase includes two legs", and the JP spec agrees
@@ -1834,6 +1891,21 @@ function addNode(sku) {
     // A lounge cushion defaults to its round (open) form; it can be folded to a half-circle.
     ...(p.chair === "cushion" ? { config: "round" } : {}),
   };
+  // A shelter footprint is a big ground reference: drop it CENTRED on whatever is already there
+  // (so it frames the layout), or at the origin if the canvas is empty. Then drag / rotate it.
+  if (kind === "footprint") {
+    const others = state.nodes.filter(m => m.kind !== "footprint");
+    if (others.length) {
+      const xs = others.flatMap(m => { const a = aabb(m); return [a.x0, a.x1]; });
+      const zs = others.flatMap(m => { const a = aabb(m); return [a.z0, a.z1]; });
+      n.x = (Math.min(...xs) + Math.max(...xs)) / 2;
+      n.z = (Math.min(...zs) + Math.max(...zs)) / 2;
+    }
+    state.nodes.unshift(n);   // render first, under everything -- it is the floor plan
+    state.sel = n.id;
+    render();
+    return;
+  }
   // A prop (chair) is free-standing: drop it IN FRONT of the layout (+z) rather than butt it
   // against a table edge, and stagger repeats sideways so they don't stack. Then just drag it.
   if (kind === "prop") {
@@ -2026,6 +2098,15 @@ function paintPalette() {
   for (const p of BY_ROLE.seating)
     seat.append(partRow(p, () => addNode(p.sku), false));
 
+  // Shelter footprints (tents / shells / tarps) -- a ground outline dropped as a scale reference.
+  const shel = $("shelters");
+  if (shel) {
+    shel.innerHTML = "";
+    for (const p of BY_ROLE.shelter)
+      shel.append(partRow(p, () => addNode(p.sku), false,
+        `${p.sku} — ${p.shelter_type || "shelter"} footprint, laid flat as a size reference. Drag it under the layout.`));
+  }
+
   const n = sel();
   const hooked = n?.kind === "ext";
   // Legs set the height only for a frame or a hooked extension. A self-contained IGT (Entry, Slim,
@@ -2107,10 +2188,12 @@ function paintPalette() {
       () => { n.sharedJoint = true; render(); }));
   }
   if (n) {
-    if (!n.host) acts.append(chip("⟲ turn 90°", false, "rotate this table", () => rotateNode(n)));
+    if (!n.host) acts.append(chip("⟲ turn 90°", false,
+      n.kind === "footprint" ? "rotate this footprint" : "rotate this table", () => rotateNode(n)));
     acts.append(chip("× remove", false,
-      n.kind === "ext" ? "remove this board and anything hooked to it"
-                       : "remove this table and everything hooked to it", () => removeNode(n)));
+      n.kind === "footprint" ? "remove this footprint"
+        : n.kind === "ext" ? "remove this board and anything hooked to it"
+                           : "remove this table and everything hooked to it", () => removeNode(n)));
   }
 
   const mods = $("modules"); mods.innerHTML = "";
@@ -2168,6 +2251,7 @@ function paintSlots() {
 function bomLines() {
   const lines = [];
   for (const n of state.nodes) {
+    if (n.kind === "footprint") continue;   // a shelter is a size reference, not part of the IGT bill
     lines.push({ sku: n.sku, node: n });
     // A set is two legs. A frame stands on four -- unless it shares a CK-175 joint, in which
     // case the continuation drops the pair at the joined end and stands on two.
@@ -2482,6 +2566,8 @@ BY_ROLE = {
   layout_table: by("layout_table").filter(p => p.assembled_mm),
   standalone: by("standalone").filter(p => p.assembled_mm),
   seating: by("seating").filter(p => p.assembled_mm),
+  shelter: by("shelter").filter(p => p.geometry)
+    .sort((a, b) => (a.shelter_type || "").localeCompare(b.shelter_type || "") || a.title_en.localeCompare(b.title_en)),
   unsourced: inScope.filter(p => hookRoles(p) && !HOOKABLE.includes(p)),
 };
 

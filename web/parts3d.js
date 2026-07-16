@@ -1041,3 +1041,68 @@ export function gridPlateGroup(w, d, h, color) {
   }
   return { group: g, body: slab };
 }
+
+/** A SHELTER FOOTPRINT: a tent / shell / tarp's ground outline, laid FLAT on the floor as a
+ *  scale reference -- so you can see whether a layout fits under a given tarp or inside a tent.
+ *  Not a solid object; a translucent fill + a bright outline + a billboard label. `verts` is the
+ *  polygon in MILLIMETRES, centred, polygon +y = front (maps to scene +z). Returns the fill as the
+ *  pick body (drag/rotate/delete like any node); the outline and label ride along, untagged. */
+export function shelterFootprint(verts, { fill = 0x5b8dd6, label = "", sub = "" } = {}) {
+  const g = new THREE.Group();
+
+  // Fill: a translucent membrane at floor level. MeshBasic (unlit -- it is a diagram, not a
+  // surface), double-sided, depthWrite off so furniture standing on it always draws over it.
+  const shape = new THREE.Shape();
+  verts.forEach(([x, y], i) => (i ? shape.lineTo(x * MM, -y * MM) : shape.moveTo(x * MM, -y * MM)));
+  const fillMesh = new THREE.Mesh(
+    new THREE.ShapeGeometry(shape),
+    new THREE.MeshBasicMaterial({ color: fill, transparent: true, opacity: 0.12,
+      side: THREE.DoubleSide, depthWrite: false }),
+  );
+  fillMesh.rotation.x = -Math.PI / 2;   // XY shape -> XZ ground; the -y above lands +y at +z
+  fillMesh.position.y = 0.002;
+  g.add(fillMesh);
+
+  // Outline: the actual polygon edge, a bright closed loop a hair above the fill.
+  const loop = verts.map(([x, y]) => new THREE.Vector3(x * MM, 0.004, y * MM));
+  loop.push(loop[0].clone());
+  const line = new THREE.LineLoop(
+    new THREE.BufferGeometry().setFromPoints(loop),
+    new THREE.LineBasicMaterial({ color: fill, transparent: true, opacity: 0.85 }),
+  );
+  g.add(line);
+
+  // Label: a billboard so it reads from any angle. Name on top, size below, on a dark chip.
+  if (label) {
+    const cv = document.createElement("canvas");
+    cv.width = 512; cv.height = 160;
+    const cx = cv.getContext("2d");
+    cx.fillStyle = "rgba(18,20,24,0.82)";
+    roundRect(cx, 6, 6, 500, 148, 22); cx.fill();
+    cx.fillStyle = "#" + fill.toString(16).padStart(6, "0");
+    cx.fillRect(6, 6, 12, 148);
+    cx.textAlign = "center"; cx.textBaseline = "middle";
+    cx.fillStyle = "#f2f4f7"; cx.font = "600 52px system-ui, sans-serif";
+    cx.fillText(label, 262, sub ? 62 : 82);
+    if (sub) { cx.fillStyle = "#aab2bd"; cx.font = "400 38px system-ui, sans-serif"; cx.fillText(sub, 262, 112); }
+    const tex = new THREE.CanvasTexture(cv);
+    tex.anisotropy = 4;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+    sprite.scale.set(0.44, 0.1375, 1);
+    sprite.position.set(0, 0.09, 0);
+    sprite.renderOrder = 10;
+    g.add(sprite);
+  }
+
+  return { group: g, body: fillMesh };
+}
+
+function roundRect(cx, x, y, w, h, r) {
+  cx.beginPath();
+  cx.moveTo(x + r, y);
+  cx.arcTo(x + w, y, x + w, y + h, r);
+  cx.arcTo(x + w, y + h, x, y + h, r);
+  cx.arcTo(x, y + h, x, y, r);
+  cx.arcTo(x, y, x + w, y, r);
+  cx.closePath();
+}
