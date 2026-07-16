@@ -243,8 +243,9 @@ h2 {
   color: var(--faint);
 }
 
-/* Preset-view toolbar, bottom-right of the viewport. */
-#viewbar {
+/* Preset-view toolbar, bottom-right of the viewport. (Named #viewnav, NOT #viewbar -- the part
+   bench has its own #viewbar and shares this stylesheet.) */
+#viewnav {
   position: absolute;
   right: .7rem; bottom: .7rem;
   display: flex;
@@ -256,7 +257,7 @@ h2 {
   box-shadow: 0 3px 12px var(--shadow);
   z-index: 4;
 }
-#viewbar button {
+#viewnav button {
   font: .64rem ui-monospace, monospace;
   text-transform: uppercase; letter-spacing: .04em;
   color: var(--dim);
@@ -266,7 +267,7 @@ h2 {
   padding: .28rem .45rem;
   cursor: pointer;
 }
-#viewbar button:hover { background: var(--raise); color: var(--ink); }
+#viewnav button:hover { background: var(--raise); color: var(--ink); }
 
 /* Fixed layout, or a long part name ("IGT Standing Height 830mm Leg Set") shoves
    the price column clean out of the panel. */

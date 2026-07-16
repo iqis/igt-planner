@@ -100,10 +100,19 @@ const swatchOf = sku => COLORS[sku]?.color_hex || "#8a929c";
 //
 // Modelling the hooked ones as free nodes that happen to be adjacent is what kept the
 // corner from turning: adjacency has no handedness, and a corner is nothing but handedness.
-const state = { nodes: [], sel: null, nextId: 1, shelterLock: true };
+const state = { nodes: [], sel: null, nextId: 1, shelterLock: true, selSet: new Set() };
 
 const byId = id => state.nodes.find(n => n.id === id);
 const sel = () => byId(state.sel);
+// The selection can hold more than one node (shift-click). `state.sel` is the PRIMARY -- it drives
+// the inspector, toolbar and numeric fields; `state.selSet` is the whole set. selectedIds() is it as
+// an array. A plain click selects one; shift toggles membership.
+function selectOnly(id) { state.sel = id; state.selSet = new Set(id == null ? [] : [id]); }
+function toggleInSel(id) {
+  if (state.selSet.has(id)) { state.selSet.delete(id); if (state.sel === id) state.sel = [...state.selSet].pop() ?? null; }
+  else { state.selSet.add(id); state.sel = id; }
+}
+const selectedIds = () => state.selSet.size ? [...state.selSet] : (state.sel != null ? [state.sel] : []);
 
 // Rotate a vector in the ground plane. three's `rotation.y = -r` maps a local vector at
 // angle a to world angle a + r, so this and the mesh always agree about which way is out.
@@ -2247,7 +2256,7 @@ function focusSelection(n) {
   flyTo(c.clone().addScaledVector(dir, dist), c);
 }
 
-for (const b of document.querySelectorAll("#viewbar button"))
+for (const b of document.querySelectorAll("#viewnav button"))
   b.onclick = () => setView(b.dataset.view);
 
 function setLeg(n, sku) {
