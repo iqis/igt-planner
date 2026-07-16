@@ -58,7 +58,31 @@ DIM_RE = re.compile(
 
 def to_mm(s):
     return float(s.replace(",", ""))
-WEIGHT_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(kg|g)\b", re.I)
+# The thousands COMMA is not optional here -- it is the whole bug. `\d+` cannot cross the comma in
+# "1,800g", so `search` simply began matching AFTER it and returned 800: a silent 2.25x error, and
+# on GP-040 ("1,020g" -> 20g) a 51x one. Six in-catalog parts were wrong, and every BOM weight total
+# that included one was wrong with them -- nothing in the UI could have shown it, because 800g is a
+# perfectly plausible weight for a stove. `to_mm`/`parse_dims` have stripped commas since they were
+# written; this sibling never got the same treatment.
+# Match the GROUPED form first: alternation is ordered, and the plain branch would otherwise win on
+# "1,800" and take just the "1".
+WEIGHT_RE = re.compile(r"(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(kg|g)\b", re.I)
+
+# "φ350×420mm" / "φ25.4×320mm" / "φ200×28(h)mm" / "φ350×h420mm" -- a DIAMETER and a length. The
+# optional h before the second number is the manual's style; the web store omits it. Note BOTH phi
+# codepoints occur in the wild: U+03C6 lowercase and U+03A6 uppercase (SSD-702 uses the latter).
+_N = r"\d{1,4}(?:,\d{3})?(?:\.\d+)?"
+ROUND_RE = re.compile(rf"[φΦϕ]\s*({_N})\s*[×x]\s*[Hh]?\s*({_N})\s*(?:\([Hh]\)\s*)?(cm|mm)?", re.I)
+# A round box is only read when the segment describes exactly ONE round thing. Two guards, both
+# learned by breaking it:
+#   * SSD-702's pack size is "Φ17×33(h)cm、フレームケース／11×50(h)cm" -- CENTIMETRES, and TWO bags.
+#     Unit-blind, that became a 17mm tent bag: a tenfold error with nothing on screen to show it.
+#   * FK-329/FK-343 are SETS: "【CK-149】846×496×30(h) 【CK-112】（×2）：φ25×410". The phi belongs to
+#     a LEG buried inside, not to the set, and matching it stamped a 25x25x410 box on a whole kit.
+# Both had been honest `null`s before -- a silent no turned into a confident wrong number, which is
+# the one trade this project never makes. Counting multiplication signs is crude, but it says
+# exactly the right thing: one `×` means one box, and anything else is a list I should not read.
+MULT_RE = re.compile(r"[×x]", re.I)
 
 
 def fetch(url, tries=3):
@@ -128,22 +152,36 @@ def parse_dims(size_text):
                 return {"w": got["W"], "d": got["D"], "h": got["H"]}
 
         m = DIM_RE.search(t)
-        if not m:
-            return None
-        # Otherwise the JP convention is W x D x H(h).
-        return {"w": to_mm(m.group(1)), "d": to_mm(m.group(2)), "h": to_mm(m.group(3))}
+        if m:
+            # Otherwise the JP convention is W x D x H(h).
+            return {"w": to_mm(m.group(1)), "d": to_mm(m.group(2)), "h": to_mm(m.group(3))}
+
+        # A ROUND part publishes a DIAMETER, not a box: "φ350×420mm" is 350 across and 420 tall,
+        # and "φ25×410mm" is a leg tube. That is TWO numbers, so DIM_RE never matched and the part
+        # came through with no size at all -- silently, which is how the GS-1000 reached the planner
+        # dimensionless and un-placeable. A circle's bounding box is phi x phi, and the bounding box
+        # IS the footprint a layout planner needs. Tried only after DIM_RE, so a real 3-number box
+        # always wins.
+        if len(MULT_RE.findall(t)) != 1:
+            return None          # a list of boxes, not one round part -- see MULT_RE
+        r = ROUND_RE.search(t)
+        if r:
+            k = 10 if (r.group(3) or "").lower() == "cm" else 1
+            dia = to_mm(r.group(1)) * k
+            return {"w": dia, "d": dia, "h": to_mm(r.group(2)) * k}
+        return None
 
     return first_box(head), first_box(tail)
 
 
 def parse_weight(w_text):
-    """Return grams. '3.5kg' -> 3500, '250g' -> 250."""
+    """Return grams. '3.5kg' -> 3500, '250g' -> 250, '1,800g' -> 1800."""
     if not w_text:
         return None
     m = WEIGHT_RE.search(w_text)
     if not m:
         return None
-    val = float(m.group(1))
+    val = to_mm(m.group(1))   # not millimetres -- just the one place that strips the comma
     return round(val * 1000) if m.group(2).lower() == "kg" else round(val)
 
 

@@ -397,7 +397,8 @@
       "at": "opening",
       "note": "The fire ring's reason to exist. Gated by FIT, not by a list: only a pit that measures inside the opening is offered, which is the whole of 'the big ring takes the Takibi'. A Takibi Fire & Grill L is 455mm square -- into the spread form's 600, never the compact form's 365.",
       "correction": "MINE, caught the same hour I wrote it. I first noted here that the compact 365 takes the GS-1000 by bridging the opening into a 1-Unit bay for GP-040 to drop into. That is false twice over and I wrote it without checking. GP-040 is span 3 = 1.5 UNITS = 375mm; a bridged compact opening is 1 Unit = 250mm, so GP-040 does not go there at all. The owner's two statements are two INDEPENDENT routes, not one chain: (a) the GS-1000 stands in the compact ring's opening DIRECTLY -- it is round and the JP spec is written as a diameter, so if phi-350 is right it clears 365 by 7.5mm a side, exactly as the Takibi L clears 600; (b) the GS-1000 ALSO mounts in an ordinary IGT bay via GP-040, the 1.5U joint frame -- which needs a real 2u/3u/4u frame and is already modelled as a slot_module. Route (b) has nothing to do with this port.",
-      "unresolved": "GS-1000 in the compact 365 opening is OWNER-ATTESTED but NOT wired: its assembled_mm is null. The catalog records the JP spec as 'phi-350x420' in prose and the pipeline REFUSED to structure it -- phi-350 reads as a clean diameter, but 420 as a height does not sit with an 800g stove, so one of the two numbers is being misread. fitsOpening needs w/d, so until a diameter is verified the part is simply not offered here. That is a silent no, and it is the right no: 350 is a number I would be inventing to make the owner's sentence come out true."
+      "resolved_dims": "SETTLED from the GS-1000 manual's own spec table (data/manuals/GS-1000.pdf p1, 仕様): 外形寸法 使用時 phi-350 x h420mm, 収納時 phi-240 x H205mm, 重量 1,800g. So phi-350 IS the diameter and 420 IS the height -- and 350 < 365 confirms the owner: the compact ring's opening is cut for this stove, exactly as the spread's 600 is cut for a 455 Takibi. My earlier doubt ('420 does not sit with an 800g stove') was right that a number was misread, but wrong about WHICH: the stove is 1,800g, and the catalog's 800g was a PARSER bug (the thousands comma -- see scripts/fetch_jp_specs.py WEIGHT_RE). The manual was a scan with no text layer; rendering the page and reading it settled in one pass what prose had left ambiguous for weeks.",
+      "unresolved": "GS-1000 is STILL not wired into this port, for a different reason now: it has no MODEL. Its role is `accessory`, so kindOf sends it to `table` and it would draw as a tabletop; it needs a prop kind and a builder (tripod legs with length-adjust buttons, wind screen, rotating gotoku, the canister slung under on a hose -- all of it drawn in the manual's 各部の名称 diagram, which is a good source). Only then does `guests[\"GS-1000\"] = {via: \"hearth\"}` earn its place. The measurement blocker is gone; the geometry one is not."
      }
     ],
     "LV-381": [
@@ -748,9 +749,17 @@
     "iron-grill-table",
     "cookers"
    ],
-   "assembled_mm": null,
-   "packed_mm": null,
-   "weight_g": 800,
+   "assembled_mm": {
+    "w": 350.0,
+    "d": 350.0,
+    "h": 420.0
+   },
+   "packed_mm": {
+    "w": 240.0,
+    "d": 240.0,
+    "h": 205.0
+   },
+   "weight_g": 1800,
    "material": "ステンレス、ブラス",
    "price": {
     "us": 41995,
@@ -1457,7 +1466,11 @@
     "iron-grill-table",
     "surfaces"
    ],
-   "assembled_mm": null,
+   "assembled_mm": {
+    "w": 200.0,
+    "d": 200.0,
+    "h": 28.0
+   },
    "packed_mm": null,
    "weight_g": 370,
    "material": "ステンレス、シリコンゴム",
@@ -1505,7 +1518,11 @@
     "iron-grill-table",
     "surfaces"
    ],
-   "assembled_mm": null,
+   "assembled_mm": {
+    "w": 67.0,
+    "d": 67.0,
+    "h": 110.0
+   },
    "packed_mm": null,
    "weight_g": 160,
    "material": "本体/ステンレス、ブラケット/ポリプロピレン",
@@ -2308,7 +2325,11 @@
    "collections": [
     "iron-grill-table"
    ],
-   "assembled_mm": null,
+   "assembled_mm": {
+    "w": 25.4,
+    "d": 25.4,
+    "h": 320.0
+   },
    "packed_mm": null,
    "weight_g": 220,
    "material": "ステンレス、アルミニウム合金、樹脂",
@@ -2632,7 +2653,11 @@
     "iron-grill-table",
     "legs"
    ],
-   "assembled_mm": null,
+   "assembled_mm": {
+    "w": 25.0,
+    "d": 25.0,
+    "h": 310.0
+   },
    "packed_mm": null,
    "weight_g": 220,
    "material": "ステンレス、樹脂",
@@ -2664,7 +2689,11 @@
     "iron-grill-table",
     "legs"
    ],
-   "assembled_mm": null,
+   "assembled_mm": {
+    "w": 25.0,
+    "d": 25.0,
+    "h": 410.0
+   },
    "packed_mm": null,
    "weight_g": 250,
    "material": "ステンレス、樹脂",
@@ -2696,7 +2725,11 @@
     "iron-grill-table",
     "legs"
    ],
-   "assembled_mm": null,
+   "assembled_mm": {
+    "w": 25.0,
+    "d": 25.0,
+    "h": 670.0
+   },
    "packed_mm": null,
    "weight_g": 370,
    "material": "ステンレス、樹脂",
@@ -2728,7 +2761,11 @@
     "iron-grill-table",
     "legs"
    ],
-   "assembled_mm": null,
+   "assembled_mm": {
+    "w": 25.0,
+    "d": 25.0,
+    "h": 840.0
+   },
    "packed_mm": null,
    "weight_g": 450,
    "material": "ステンレス、樹脂",
@@ -4525,7 +4562,7 @@
     "h": 1100
    },
    "packed_mm": null,
-   "weight_g": 710,
+   "weight_g": 1710,
    "material": "フライシート／20Dシリコンポリエステルミニリップストップ・PUコーティング耐水圧1,500mmミニマム、インナーテント／20Dポリエステルミニリップストップ（ウォール部）、30Dナイロンリップストップ・PUコーティング耐水圧1,500mmミニマム（ボトム部）、フレーム／A7001（Φ9mm）",
    "price": {
     "us": null,
@@ -4587,7 +4624,7 @@
     "h": 1130
    },
    "packed_mm": null,
-   "weight_g": 920,
+   "weight_g": 1920,
    "material": "フライシート／20Dシリコンポリエステルミニリップストップ・PUコーティング耐水圧1,500mmミニマム、インナーテント／20Dポリエステルミニリップストップ（ウォール部）、30Dナイロンリップストップ・PUコーティング耐水圧1,500mmミニマム（ボトム部）、フレーム／A7001（Φ9mm）",
    "price": {
     "us": null,
@@ -5942,7 +5979,7 @@
     "h": 33.0
    },
    "packed_mm": null,
-   "weight_g": 20,
+   "weight_g": 1020,
    "material": "ステンレス",
    "price": {
     "us": 6995,
@@ -6413,7 +6450,7 @@
     "h": 270.0
    },
    "packed_mm": null,
-   "weight_g": 430,
+   "weight_g": 1430,
    "material": "表生地／600Dポリエステル（TPU加工）、裏生地／600Dポリエステル、中芯／ベルポーレン",
    "price": {
     "us": 15116,
@@ -6458,7 +6495,7 @@
     "h": 270.0
    },
    "packed_mm": null,
-   "weight_g": 580,
+   "weight_g": 2580,
    "material": "表生地／600Dポリエステル（TPU加工）、裏生地／600Dポリエステル、中芯／ベルポーレン",
    "price": {
     "us": 22746,
