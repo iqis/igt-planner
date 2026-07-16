@@ -407,7 +407,7 @@ h2 {
 #seltools .sep { width: 1px; background: var(--line); margin: 4px 1px; }
 #seltools .count { font-size: .66rem; color: var(--dim); padding: 0 .5rem; align-self: center; white-space: nowrap; }
 
-#replacemenu {
+#replacemenu, #toolpop {
   position: absolute;
   width: 220px;
   max-height: 260px;
@@ -422,10 +422,13 @@ h2 {
   flex-direction: column;
   gap: .2rem;
 }
-#replacemenu .mhead {
+#toolpop[hidden] { display: none; }
+#toolpop { width: 232px; }
+#replacemenu .mhead, #toolpop .mhead {
   font-size: .62rem; letter-spacing: .04em; color: var(--faint);
-  padding: .1rem .1rem .3rem;
+  padding: .1rem .1rem .3rem; line-height: 1.35;
 }
+#seltools button.wide { width: auto; padding: 0 .4rem; font-size: .68rem; }
 
 /* A menu row carries only a swatch, a name and a span. Passing over it opens this card
    beside the menu with the thumbnail and the numbers that would not fit -- name, sku,

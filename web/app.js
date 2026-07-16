@@ -1428,6 +1428,7 @@ const btn = $("edgebtn");
 const menu = $("edgemenu");
 const selTools = $("seltools");
 const replaceMenu = $("replacemenu");
+const toolPop = $("toolpop");
 
 /** Project a point in the layout onto the canvas, in CSS pixels. */
 function toScreen(mm) {
@@ -1492,9 +1493,104 @@ function toolBtn(glyph, title, cls, onClick) {
   return b;
 }
 
+// ---- The selected object's OWN controls, in the viewport ----------------------------------------
+// Leg height and part options used to sit in the left panel, which meant leaving the object to change
+// it. They open from the object's own toolbar now; the panel keeps only the browsing lists.
+const legAdjustable = n => !!n && (n.kind === "frame" || n.kind === "ext");
+const hasActions = n => !!n && (isJikaro(n) || isExpandable(n)
+  || (n.kind === "prop" && PARTS[n.sku].chair === "cushion")
+  || (n.kind === "ext" && n.host && !isSlide(PARTS[n.sku]))
+  || (n.kind === "frame" && n.host));
+
+/** Leg-height options. A frame sets its own; a hooked board is flush with its host, so this sets the
+ *  whole run's. Self-contained IGTs and the Jikaro have fixed legs -- they get no height button. */
+function fillLegs(box, n) {
+  for (const p of BY_ROLE.leg)
+    box.append(chip(`${p.height_mm}mm`, n.leg === p.sku,
+      n.kind === "ext" ? "an extension is flush with what it hooks to — it takes the same legs, so "
+        + "this sets them for the whole run" : p.title_en,
+      () => setLeg(n, p.sku)));
+}
+
+/** Everything this particular part can be configured into. */
+function fillActions(box, n) {
+  if (isJikaro(n)) {
+    // The Jikaro is four trapezoids, and which way round they go is the whole table:
+    // 1120mm with a 600mm fire hole, or 885mm with a 365mm one. Not a finish option.
+    for (const [key, c] of Object.entries(LAYOUT.tables[JIKARO].configs))
+      box.append(chip(c.name, n.config === key,
+        `${c.outer_mm}mm across, ${c.opening_mm}mm fire opening, four ${c.edge_mm}mm edges to hook to`,
+        () => { n.config = key; pruneModules(n); render(); }));
+    // The optional bridge across the fire opening -> an IGT bay. Units + SKU follow the assembly.
+    const jc = jikaroCfg(n);
+    box.append(chip(
+      n.bridge ? `bridge ✓ ${jc.bridge_units}U · ${jc.bridge_sku}` : `+ bridge (${jc.bridge_units}U)`,
+      !!n.bridge,
+      n.bridge ? `${jc.bridge_units}-Unit bridge (${jc.bridge_sku}) across the ${jc.opening_mm}mm opening — click to remove`
+               : `lay the optional ${jc.bridge_units}-Unit bridge (${jc.bridge_sku}) across the ${jc.opening_mm}mm opening to make an IGT bay`,
+      () => { n.bridge = !n.bridge; pruneModules(n); render(); }));
+  }
+  // Expandable table (CK-090): slide the two tops together or apart. Open exposes the IGT bay.
+  if (isExpandable(n)) {
+    const e = expDef(n.sku), cur = n.config || e.default;
+    for (const [key, c] of Object.entries(e.configs))
+      box.append(chip(c.bay_units ? `${c.name} · ${c.bay_units}U bay` : c.name, cur === key,
+        `${c.w_mm}×${c.d_mm}mm` + (c.bay_units ? ` — opens a ${c.bay_units}-Unit bay` : ` — closed, no bay`),
+        () => { n.config = key; pruneModules(n); render(); }));
+  }
+  // Lounge cushion: round (open) or folded to a half-circle -- a form toggle like the Jikaro's.
+  if (n.kind === "prop" && PARTS[n.sku].chair === "cushion") {
+    const cur = n.config || "round";
+    for (const [key, label, hint] of [
+      ["round", "◯ round", "the open round pad"],
+      ["folded", "◗ folded", "folded in half to a half-circle (doubled thickness) for seating"]])
+      box.append(chip(label, cur === key, hint, () => { n.config = key; render(); }));
+  }
+  // Height adjuster: a hooked board sits flush with its host, or drops ONE rung of the ladder
+  // (830->660->400->300) via a CK-151. One step per adjuster -- lower still means chaining.
+  if (n.kind === "ext" && n.host && !isSlide(PARTS[n.sku])) {
+    const hostLeg = hostLegOf(byId(n.host));
+    const room = Math.min(1, stepRoom(hostLeg));
+    for (let s = 0; s <= room; s++) {
+      const leg = legAtStep(hostLeg, s);
+      box.append(chip(s === 0 ? `⇥ ${legMm(hostLeg)}mm` : `↓ ${legMm(leg)}mm +adj`, (n.step || 0) === s,
+        s === 0 ? "flush — the same height as what it hooks to"
+                : `one step down (${legMm(hostLeg)}→${legMm(leg)}mm) with an IGT Height Adjuster (CK-151)`,
+        () => setStep(n, s)));
+    }
+  }
+  // A frame joined to another with a CK-175 can keep its own four legs (what the one connection
+  // photo shows) OR share the joint and drop the pair at the joined end. The user chooses.
+  if (n.kind === "frame" && n.host) {
+    box.append(chip("4 legs", !n.sharedJoint,
+      "keep its own four legs — both frames legged at the joint (the connection photo)",
+      () => { n.sharedJoint = false; render(); }));
+    box.append(chip("2 legs · shared joint", !!n.sharedJoint,
+      "drop the two legs at the joined end and share the host's",
+      () => { n.sharedJoint = true; render(); }));
+  }
+}
+
+/** Open the object's leg-height or options popover, at its toolbar. */
+function openToolPop(which, n) {
+  toolPop.innerHTML = "";
+  const head = document.createElement("div");
+  head.className = "mhead";
+  head.textContent = which === "legs" ? "leg height — sets the standing height"
+                                      : `${PARTS[n.sku].title_en} — options`;
+  toolPop.append(head);
+  const box = document.createElement("div");
+  box.className = "chips";
+  (which === "legs" ? fillLegs : fillActions)(box, n);
+  toolPop.append(box);
+  toolPop.hidden = false;
+  followSelTools();
+}
+
 function paintSelTools() {
   const n = sel();
-  replaceMenu.hidden = true;   // any repaint (selection change, action) closes a stale replace popup
+  replaceMenu.hidden = true;   // any repaint (selection change, action) closes a stale popup
+  toolPop.hidden = true;
   if (!n) { selTools.hidden = true; return; }
   selTools.innerHTML = "";
   // A multi-selection gets a compact toolbar: a count, duplicate-all (the free ones), delete-all.
@@ -1506,6 +1602,11 @@ function paintSelTools() {
     const sep0 = document.createElement("span"); sep0.className = "sep"; selTools.append(sep0);
     selTools.append(toolBtn("✕", "delete all  (Del)", "danger", () => removeNode(n)));
   } else {
+    // This part's OWN controls, at the part: height, then whatever it can be configured into.
+    if (legAdjustable(n) && PARTS[n.leg])
+      selTools.append(toolBtn(`${PARTS[n.leg].height_mm}`, "leg height — sets the standing height", "wide",
+        () => openToolPop("legs", n)));
+    if (hasActions(n)) selTools.append(toolBtn("⚙", `${PARTS[n.sku].title_en} — options`, "", () => openToolPop("actions", n)));
     if (!n.host) {
       selTools.append(toolBtn("⟲", "rotate 90°  (R)", "", () => rotateNode(n)));
       selTools.append(toolBtn("⧉", "duplicate  (Ctrl+D)", "", () => duplicateNode(n)));
@@ -1523,12 +1624,13 @@ function followSelTools() {
   if (!n || selTools.hidden) return;
   const s = toScreen({ x: n.x, y: selTop(n), z: n.z });
   selTools.style.visibility = s.behind ? "hidden" : "visible";
-  if (s.behind) { replaceMenu.hidden = true; return; }
+  if (s.behind) { replaceMenu.hidden = true; toolPop.hidden = true; return; }
   selTools.style.left = `${s.x}px`;
   selTools.style.top = `${Math.max(30, s.y - 14)}px`;
-  if (!replaceMenu.hidden) {
-    replaceMenu.style.left = `${Math.min(s.x + 12, canvas.clientWidth - 232)}px`;
-    replaceMenu.style.top = `${Math.min(s.y + 8, canvas.clientHeight - 272)}px`;
+  for (const pop of [replaceMenu, toolPop]) {
+    if (pop.hidden) continue;
+    pop.style.left = `${Math.min(s.x + 12, canvas.clientWidth - 244)}px`;
+    pop.style.top = `${Math.min(s.y + 8, canvas.clientHeight - 272)}px`;
   }
 }
 
@@ -1578,7 +1680,9 @@ function replaceNode(n, sku) {
   render();
 }
 
-addEventListener("keydown", e => { if (e.key === "Escape") { setHover(null); hideModMenu(); replaceMenu.hidden = true; } });
+addEventListener("keydown", e => {
+  if (e.key === "Escape") { setHover(null); hideModMenu(); replaceMenu.hidden = true; toolPop.hidden = true; }
+});
 
 // The action menu for a placed module -- reached by right-click or a left long-press, so a
 // removal is a considered second click, not a twitchy one. Positioned at the pointer.
@@ -2558,93 +2662,6 @@ function paintPalette() {
   }
 
   const n = sel();
-  const hooked = n?.kind === "ext";
-  // Legs set the height only for a frame or a hooked extension. A self-contained IGT (Entry, Slim,
-  // Extension IGT) and the Jikaro carry their OWN fixed-height built-in legs, so the length options
-  // don't apply -- grey them out rather than let a dead click imply they do something.
-  const legFixed = !!n && n.kind !== "frame" && n.kind !== "ext";
-  const legs = $("legs"); legs.innerHTML = "";
-  for (const p of BY_ROLE.leg) {
-    const c = chip(`${p.height_mm}mm`, n?.leg === p.sku,
-      legFixed ? `${PARTS[n.sku].title_en} has fixed built-in legs — its height isn't adjustable`
-        : hooked ? `an extension is flush with what it hooks to — it takes the same legs, `
-             + `so this sets them for the whole run` : p.title_en,
-      () => { if (n) setLeg(n, p.sku); },
-      legFixed);
-    c.dataset.search = `${p.sku} ${p.title_en}`.toLowerCase();
-    legs.append(c);
-  }
-
-  const acts = $("actions"); acts.innerHTML = "";
-  if (n && isJikaro(n)) {
-    // The Jikaro is four trapezoids, and which way round they go is the whole table:
-    // 1120mm with a 600mm fire hole, or 885mm with a 365mm one. Not a finish option.
-    const cfgs = LAYOUT.tables[JIKARO].configs;
-    for (const [key, c] of Object.entries(cfgs))
-      acts.append(chip(c.name, n.config === key,
-        `${c.outer_mm}mm across, ${c.opening_mm}mm fire opening, four ${c.edge_mm}mm edges to hook to`,
-        () => { n.config = key; pruneModules(n); render(); }));
-    // The optional bridge across the fire opening -> an IGT bay. The unit count and the SKU
-    // follow the assembly (600 opening -> 2U/CPL-JT2U, 365 -> 1U/ST-051).
-    const jc = jikaroCfg(n);
-    acts.append(chip(
-      n.bridge ? `bridge ✓ ${jc.bridge_units}U · ${jc.bridge_sku}` : `+ bridge (${jc.bridge_units}U)`,
-      !!n.bridge,
-      n.bridge ? `${jc.bridge_units}-Unit bridge (${jc.bridge_sku}) across the ${jc.opening_mm}mm opening — click to remove`
-               : `lay the optional ${jc.bridge_units}-Unit bridge (${jc.bridge_sku}) across the ${jc.opening_mm}mm opening to make an IGT bay`,
-      () => { n.bridge = !n.bridge; pruneModules(n); render(); }));
-  }
-  // Expandable table (CK-090): slide the two tops together or apart. Open exposes the IGT bay.
-  if (n && isExpandable(n)) {
-    const e = expDef(n.sku), cur = n.config || e.default;
-    for (const [key, c] of Object.entries(e.configs))
-      acts.append(chip(
-        c.bay_units ? `${c.name} · ${c.bay_units}U bay` : c.name,
-        cur === key,
-        `${c.w_mm}×${c.d_mm}mm` + (c.bay_units ? ` — opens a ${c.bay_units}-Unit bay` : ` — closed, no bay`),
-        () => { n.config = key; pruneModules(n); render(); }));
-  }
-  // Lounge cushion: round (open) or folded to a half-circle -- a form toggle like the Jikaro's.
-  if (n && n.kind === "prop" && PARTS[n.sku].chair === "cushion") {
-    const cur = n.config || "round";
-    for (const [key, label, hint] of [
-      ["round", "◯ round", "the open round pad"],
-      ["folded", "◗ folded", "folded in half to a half-circle (doubled thickness) for seating"]])
-      acts.append(chip(label, cur === key, hint, () => { n.config = key; render(); }));
-  }
-  // Height adjuster: a hooked board sits flush with its host, or drops ONE rung of the ladder
-  // (830->660->400->300) via a CK-151. One step per adjuster -- lower still means chaining.
-  if (n && n.kind === "ext" && n.host && !isSlide(PARTS[n.sku])) {
-    const hostLeg = hostLegOf(byId(n.host));
-    const room = Math.min(1, stepRoom(hostLeg));
-    for (let s = 0; s <= room; s++) {
-      const leg = legAtStep(hostLeg, s);
-      acts.append(chip(
-        s === 0 ? `⇥ ${legMm(hostLeg)}mm` : `↓ ${legMm(leg)}mm +adj`,
-        (n.step || 0) === s,
-        s === 0 ? "flush — the same height as what it hooks to"
-                : `one step down (${legMm(hostLeg)}→${legMm(leg)}mm) with an IGT Height Adjuster (CK-151)`,
-        () => setStep(n, s)));
-    }
-  }
-  // A frame joined to another with a CK-175 can keep its own four legs (what the one connection
-  // photo shows) OR share the joint and drop the pair at the joined end. The user chooses.
-  if (n && n.kind === "frame" && n.host) {
-    acts.append(chip("4 legs", !n.sharedJoint,
-      "keep its own four legs — both frames legged at the joint (the connection photo)",
-      () => { n.sharedJoint = false; render(); }));
-    acts.append(chip("2 legs · shared joint", !!n.sharedJoint,
-      "drop the two legs at the joined end and share the host's",
-      () => { n.sharedJoint = true; render(); }));
-  }
-  if (n) {
-    if (!n.host) acts.append(chip("⟲ turn 90°", false,
-      n.kind === "footprint" ? "rotate this footprint" : "rotate this table", () => rotateNode(n)));
-    acts.append(chip("× remove", false,
-      n.kind === "footprint" ? "remove this footprint"
-        : n.kind === "ext" ? "remove this board and anything hooked to it"
-                           : "remove this table and everything hooked to it", () => removeNode(n)));
-  }
 
   const mods = $("modules"); mods.innerHTML = "";
   // Any node with a bay hosts slot modules (frame, bridged Jikaro, opened Extension IGT); a hanging
