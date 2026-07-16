@@ -971,8 +971,19 @@ function drawProp(g, n) {
   g.add(built.group);
 }
 
+/** The Connection Table (LV-381): a black heat-resistant stainless top on black X-frame folding
+ *  legs. Reuses the bamboo-shelf builder in black (a top + X-legs + stretcher), at its top height
+ *  -- so its surface lines up at the datum with any IGT extension hooked to its edges. */
+function drawConnTable(g, n) {
+  const f = footprint(n), tp = topOf(n);
+  const built = bambooShelfGroup(f.w, f.d, tp, { frame: 0x2a2c30, wood: 0x1c1e22 });
+  built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
+  g.add(built.group);
+}
+
 function drawTable(g, n) {
   if (isJikaro(n)) return drawJikaro(g, n);
+  if (isConnTable(n)) return drawConnTable(g, n);
   if (isSlide(n.sku ? PARTS[n.sku] : null)) return drawSlideExt(g, n);
 
   // The self-contained IGTs with their own fixed folding legs are built part by part
