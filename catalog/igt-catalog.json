@@ -301,44 +301,52 @@
     "currently encode the same rules by hand; migrating them to read THIS is the plan. Passed through",
     "untouched by build_catalog (it only special-cases tables/joints/corners/ecosystems)."
    ],
+   "_model": "A guest attaches to a host PORT when: their interface matches AND scale is OK (a table-scale guest needs a table-scale port; a board-scale guest fits either), OR an ADAPTER bridges the port's interface to the guest's. Everything is INFERRED from this -- no hard-coded pairings. Interface keys are unified; `label` is the human name.",
    "interfaces": {
-    "end_hook": {
+    "ext_table": {
+     "label": "IGT Extension Table (ET)",
      "symmetric": false,
-     "host_side": "holes in the black end piece",
-     "guest_side": "wire hooks drop in 16.5mm",
-     "desc": "the IGT frame's hook interface. Asymmetric: host has holes, guest has hooks."
+     "scaled": true,
+     "host_side": "holes in the end piece",
+     "guest_side": "wire hooks drop in ~16.5mm",
+     "desc": "the IGT frame hook interface -- an extension table / corner / another frame joins here."
     },
     "side_rail": {
+     "label": "IGT Side Rail",
      "symmetric": false,
-     "host_side": "the frame's long rail",
+     "host_side": "the long rail",
      "guest_side": "brackets grip / a rail joint hangs",
      "desc": "slide or hang along a continuous long rail."
     },
     "slot": {
+     "label": "IGT Slot",
      "symmetric": false,
-     "host_side": "unit cells (250mm pitch)",
-     "guest_side": "the module's footprint",
+     "host_side": "unit cells (250mm)",
+     "guest_side": "the module footprint",
      "desc": "a module drops INTO a unit, flush at the datum."
     },
-    "hang": {
+    "hanging": {
+     "label": "IGT Hanging Accessory",
      "symmetric": false,
      "host_side": "the rails",
      "guest_side": "hooks over the rail",
      "desc": "a rack hooks OVER the rails and hangs below; still consumes units."
     },
     "knob": {
+     "label": "Knob (ツマミ)",
      "symmetric": true,
      "members": [
       "ST-050",
       "LV-381"
      ],
-     "desc": "built-in aluminium knobs (ツマミ, in both parts' material spec) on the top's side lock two pieces together directly -- no separate hook. SYMMETRIC: port to port, no host/guest. This is the SAME joint the Jikaro's four trapezoid segments use between themselves, so the Jikaro's outer edges ARE that port -- 'the Jikaro as one whole' is our abstraction over four knob-joined segments. Only the heat-resistant fire-table system (Jikaro + Connection Table) has it; the IGT frame system uses end_hook + CK-175 instead."
+     "desc": "built-in aluminium knobs on the top's side lock two pieces DIRECTLY -- symmetric, no host/guest, no CK-175. The SAME joint the Jikaro's four segments use between themselves, so its outer edges ARE that port; 'the Jikaro as one whole' is our abstraction over four knob-joined segments. Only the heat-resistant fire-table system (Jikaro + Connection Table) has it."
     }
    },
    "hosts": {
     "frame": [
      {
-      "iface": "end_hook",
+      "iface": "ext_table",
+      "scale": "table",
       "at": "end",
       "n": 2
      },
@@ -348,7 +356,7 @@
       "n": 2
      },
      {
-      "iface": "hang",
+      "iface": "hanging",
       "at": "rail"
      },
      {
@@ -364,37 +372,44 @@
       "n": "8 spread / 4 compact"
      },
      {
-      "iface": "end_hook",
-      "at": "edge",
-      "guest": "table extension"
+      "iface": "ext_table",
+      "scale": "table",
+      "at": "edge"
      },
      {
-      "iface": "hang",
-      "at": "edge",
-      "guest": "hanging accessory"
+      "iface": "hanging",
+      "at": "edge"
      },
      {
       "iface": "slot",
       "at": "opening",
-      "via": "bridge",
-      "guest": "slot accessory"
+      "via": "bridge"
      }
     ],
     "LV-381": [
      {
-      "iface": "end_hook",
+      "iface": "ext_table",
+      "scale": "table",
       "at": "end",
       "n": 2
      },
      {
-      "iface": "end_hook",
+      "iface": "ext_table",
+      "scale": "table",
       "at": "side",
       "n": 2
      },
      {
       "iface": "knob",
-      "at": "edge",
-      "guest": "Jikaro"
+      "at": "edge"
+     }
+    ],
+    "extension_table": [
+     {
+      "iface": "ext_table",
+      "scale": "board",
+      "at": "bracket",
+      "note": "a board's own bracket is a BOARD-scale ET port for the NEXT board -- boards chain, a frame won't join here"
      }
     ],
     "CK-090": [
@@ -421,38 +436,58 @@
     ]
    },
    "guests": {
-    "extension_table": "end_hook",
-    "corner": "end_hook",
-    "frame": "end_hook",
-    "sliding_extension": "side_rail",
-    "slot_module": "slot",
-    "hanger": "hang"
+    "extension_table": {
+     "via": "ext_table",
+     "scale": "board"
+    },
+    "corner": {
+     "via": "ext_table",
+     "scale": "board"
+    },
+    "frame": {
+     "via": "ext_table",
+     "scale": "table"
+    },
+    "sliding_extension": {
+     "via": "side_rail"
+    },
+    "slot_module": {
+     "via": "slot"
+    },
+    "hanger": {
+     "via": "hanging"
+    },
+    "LV-381": {
+     "via": "knob"
+    }
    },
    "adapters": {
     "XCK-128": {
      "role": "rail joint",
      "from": "side_rail",
      "to": [
-      "end_hook",
-      "hang"
+      "ext_table",
+      "hanging"
      ],
-     "desc": "clips into the long rail so a hook-on board or a hanging accessory can attach where there is only a rail."
+     "scale": "board",
+     "desc": "clips into the long rail so an ET board or a hanging accessory can attach where there is only a rail. The ET port it creates is BOARD-scale -- a joint holds a board, not a frame."
     },
     "CK-175": {
      "role": "connection hook",
-     "adds": "end_hook",
-     "on": "frame end",
-     "desc": "gives a frame end a HOOK so two frames join end to end -- the frame system's stand-in for the knob it does not have."
+     "enables": "ext_table table<->table",
+     "desc": "gives a frame end a hook so two table-scale ET ports (two frames, or a frame and a Jikaro) can join -- the frame system's stand-in for the knob."
     },
     "ST-051": {
      "role": "1-unit bridge",
-     "adapts": "knob-opening -> slot",
+     "from": "knob",
+     "to": "slot",
      "on": "ST-050 compact",
      "units": 1
     },
     "CPL-JT2U": {
      "role": "2-unit bridge",
-     "adapts": "knob-opening -> slot",
+     "from": "knob",
+     "to": "slot",
      "on": "ST-050 spread",
      "units": 2
     }

@@ -38,7 +38,7 @@ const TO_USD = { us: c => c / 100, jp: y => y / 157, uk: p => (p / 100) * 1.27 }
 
 const $ = id => document.getElementById(id);
 
-let CAT, GRID, LAYOUT, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAMES, HOOKABLE, SLIDE_IN, SECTION;
+let CAT, GRID, LAYOUT, CONN, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAMES, HOOKABLE, SLIDE_IN, SECTION;
 const texLoader = new THREE.TextureLoader();
 const texCache = {};
 const textureOf = (sku, key = "file") => {
@@ -1391,16 +1391,43 @@ function wirePreview(row, p) {
  *  Could a frame hook onto a board's brackets? CK-175 does give it a hook, and the brackets
  *  do receive hooks. But nothing says so, and a frame hanging off a bamboo board held up by
  *  that board's two legs is not a thing I am going to invent. Not offered. */
+// What can attach to an edge is now INFERRED from layout.connections, not hard-coded: a guest joins
+// a host PORT when their interface matches (and scale fits -- a table-scale guest needs a
+// table-scale port), OR an ADAPTER bridges the port's interface to the guest's. So "a frame joins a
+// Jikaro" (both table-scale ET ports) and "an extension board joins a frame's rail" (side_rail -> ET
+// via the rail joint XCK-128, which also -> hanging) both fall out of the data. See layout.connections.
+const EDGE_IFACES = new Set(["ext_table", "side_rail", "knob"]);   // the edge menu; slot + hanging are placed via the slot menu
+
+/** The interface ports a resolved edge exposes, read from connections.hosts (a frame splits its
+ *  end from its rail; a Jikaro / Connection Table / a board's bracket expose all their edge ports). */
+function portsAt(e) {
+  const host = e.node;
+  const ports = (CONN.hosts[host.sku] || CONN.hosts[PARTS[host.sku]?.role] || []).filter(p => p.iface !== "slot");
+  if (host.kind === "frame") return ports.filter(p => (e.rail ? p.at === "rail" : p.at === "end"));
+  return ports;
+}
+
+const partsForRole = role =>
+  PARTS[role] ? [PARTS[role]]                          // a specific sku, e.g. LV-381 (the knob peer)
+    : role === "sliding_extension" ? SLIDE_IN
+    : role === "frame" ? BY_ROLE.frame
+    : HOOKABLE.filter(p => p.role === role);            // extension_table / corner
+
+const scaleFits = (guest, port) => guest.scale !== "table" || port.scale === "table";
+const adapterList = () => Object.values(CONN.adapters || {}).filter(a => a.from);
+const canAttach = (guest, ports) => ports.some(port =>
+  (guest.via === port.iface && scaleFits(guest, port))                            // direct match
+  || adapterList().some(a => a.from === port.iface && (a.to || []).includes(guest.via)
+      && scaleFits(guest, { scale: a.scale })));                                  // via an adapter (its output scale)
+
 function legalOn(e) {
-  // A frame's END: a hook-on board, or another frame (CK-175). A frame's long RAIL: hook-on
-  // boards (via a rail joint) AND the sliding extensions (which grip the rail themselves).
-  // Any other edge (a board's brackets, the Jikaro): hook-on boards only.
-  if (e.node.kind === "frame" && !e.rail) return [...HOOKABLE, ...BY_ROLE.frame];
-  if (e.rail) return [...HOOKABLE, ...SLIDE_IN];
-  // A Jikaro edge also takes the Connection Table (LV-381), butted on to extend the fire-safe
-  // surface -- the two are documented to join. (Spec: LV-381 connects_to ST-050 and vice versa.)
-  if (isJikaro(e.node) && PARTS[CONN_TABLE]) return [...HOOKABLE, PARTS[CONN_TABLE]];
-  return HOOKABLE;
+  const ports = portsAt(e);
+  const out = new Set();
+  for (const [role, guest] of Object.entries(CONN.guests || {})) {
+    if (!EDGE_IFACES.has(guest.via)) continue;         // hangers / modules go through the slot menu
+    if (canAttach(guest, ports)) for (const p of partsForRole(role)) out.add(p);
+  }
+  return [...out].filter(Boolean);
 }
 
 function paintMenu() {
@@ -2385,6 +2412,7 @@ FRAMES = (await (await fetch("../catalog/frame_fittings.json")).json()).frames;
 SECTION = FRAMES["CK-149"].section;
 GRID = CAT.grid;
 LAYOUT = CAT.layout;
+CONN = CAT.layout.connections || { interfaces: {}, hosts: {}, guests: {}, adapters: {} };
 HALF = GRID.half_unit_mm;
 PARTS = Object.fromEntries(CAT.parts.map(p => [p.sku, p]));
 
@@ -2430,7 +2458,7 @@ $("datum").textContent = `${LAYOUT.datum_height_mm}mm`;
 // A way in from the console. Being able to put the camera straight overhead is how you
 // check a silhouette; orbiting by hand and squinting is how you convince yourself.
 window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
-  openEdges, hookNormal, bracketNormal, turnOf, hostEdge, aabb,
+  openEdges, hookNormal, bracketNormal, turnOf, hostEdge, aabb, legalOn, portsAt, CONN,
   top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); } };
 
 resize();
