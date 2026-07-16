@@ -716,10 +716,25 @@ const slotX = (n, i) => -runOf(n) / 2 + i * HALF;
 function railW(p) {
   return p.along_rail_mm || (p.span ? p.span * HALF : (p.assembled_mm?.w ?? HALF));
 }
+/** Which of a module's two plan dimensions runs ACROSS the rails.
+ *
+ *  The catalog's w/d axes are not consistent between families -- the 1-unit trays put the along-rail
+ *  dimension in `w`, the half-units put it in `d` -- so this has to work it out. The rule: whichever
+ *  dimension is CLOSER to the rail span the part occupies is the along-rail one; the other is the
+ *  depth.
+ *
+ *  It used to demand |w - railW| < 1, i.e. an EXACT match, and fell back to "then w must be the
+ *  depth". That broke on any part that overhangs its slot by even a millimetre. GS-450R-US is 270
+ *  along a 250 rail span (its own fit_delta_mm says 20) and 410 deep -- so the exact test failed, w
+ *  was taken as the depth, and the flat burner was drawn 270 x 270 instead of 270 x 410. It carries
+ *  its real top as a PHOTO, so a wrong depth doesn't just mis-size it, it squashes the picture --
+ *  which is exactly what the owner spotted. Nearest-wins gets it right without needing every part to
+ *  declare along_rail_mm. */
 function depthOf(p) {
   const a = p.assembled_mm;
   if (!a) return MODULE_SEAT;
-  return Math.abs(a.w - railW(p)) < 1 ? a.d : a.w;
+  const r = railW(p);
+  return Math.abs(a.w - r) <= Math.abs(a.d - r) ? a.d : a.w;
 }
 const spanOf = p => p.span;
 
