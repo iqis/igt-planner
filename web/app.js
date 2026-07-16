@@ -1692,6 +1692,15 @@ const modmenu = $("modmenu");
 // Takibi Fire & Grill L). The choice rides on the PLACEMENT, not the part: two BBQs in a layout can
 // be set up differently.
 const MODULE_CONFIGS = {
+  // GS-230's cover is its windscreen: clamped down it's a lid lying flat (~15mm proud of the frame,
+  // owner), stood up it's the screen behind the burners. One or the other, never both.
+  "GS-230": {
+    default: "cooking",
+    options: {
+      cooking: ["◳ windscreen up", "the cover stood up behind the burners, wings swung forward — cooking"],
+      closed:  ["▬ cover on", "the cover clamped flat over the stove — sits ~15mm proud; off, it's flush"],
+    },
+  },
   "CK-160": {
     default: "nets",
     options: {

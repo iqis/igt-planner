@@ -45,7 +45,8 @@ export function flatBoardGeo(role, t, w, d, thickMM) {
 export const BURNERS = {
   "GS-355":  { plate: true, knobs: 1 },
   "GS-450R": { heads: 1, knobs: 1 },
-  "GS-230":  { heads: 2, knobs: 2, windscreen: true },
+  // Its own builder -- an appliance, not a box. Kept here so burnerOf still says "yes, a burner".
+  "GS-230":  { gs230: true, heads: 2, knobs: 2 },
   "GP-040":  { heads: 1, knobs: 1, mounts: "GS-1000" },
   "GS-1000": { heads: 1, knobs: 1 },
   // CK-160 was here as { bbq: true } -- "a grate half and a griddle half". Its MANUAL says
@@ -144,14 +145,144 @@ export function trayGroup(w, d, h, color = 0xb9bec4) {
 }
 
 // A wire mesh tray: mostly air. A faint ghost box carries picking; the wires are the read.
-export function meshTrayGroup(w, d, h, color) {
+/** The mesh trays (CK-225 / CK-226 / CK-250 / CK-251). Snow Peak's own manual names them:
+ *  アイアングリルテーブル専用の水切りカゴ -- a dish-DRAINING BASKET made for the IGT. That is what the
+ *  photographs show and it settles the shape: a stainless WIRE basket, mostly air, that drops
+ *  through the rails and hangs by its top. All four used to leave here as one ghost box wearing a
+ *  square 26mm grid, which is three wrong claims -- wrong pitch, wrong weave, wrong part count.
+ *
+ *  The 1-unit manual publishes 容量(内寸) -- the CAVITY -- beside the outside size, and that one
+ *  extra number is most of the part:
+ *
+ *      CK-225 deep      245 x 356 x 127      cavity 227 x 316 x 121
+ *      CK-250 shallow   245 x 356 x  42      cavity 227 x 316 x  36
+ *
+ *  - The cavity is the SAME 227 x 316 in both. Deep and shallow are ONE basket at two wall heights,
+ *    not two designs, so they are one builder and h is the only thing that moves.
+ *  - 356 - 316 = 40, i.e. 20mm a side ACROSS the rails. That is not slop, it is the SEAT: the body
+ *    (316) drops through the rails' 317mm clear opening and the rim's 20mm overhang lands on the
+ *    22.5mm inner lip -- both numbers measured in railProfile, off a different drawing, years apart.
+ *    A published cavity and a measured rail section agreeing to the millimetre is why the rim is
+ *    drawn standing OFF the wall: the standoff is the part's whole mounting.
+ *  - 245 - 227 = 18, i.e. 9mm a side ALONG the rail -- no rail there, just rim proud of wall.
+ *  - 127 - 121 = 6, and the 6mm is the UNDER-FLOOR RIBS: the mat sits on them and their undersides
+ *    are the bottom of the envelope. The lift is not a gap, it is a part.
+ *
+ *  The half units are not that part scaled down, and this is what the placeholder hid. CK-226 /
+ *  CK-251 are "ステンレス、ポリプロピレン" where CK-225 / CK-250 are plain "ステンレス", and the
+ *  polypropylene is in every photograph: a BLACK PANEL capping each 120mm end, logo printed on it,
+ *  a bossed hole through it. The CK-226 manual's IGT figure says what they are for -- the tray drops
+ *  in and the two panels come down ON THE RAILS. They are the half unit's seat the way the wire rim
+ *  is the 1-unit's. (The hole takes the TTA 300mm shaft; the two PP brackets in the box are TTA-only
+ *  fixings and are not modelled -- this planner draws IGT.)
+ *
+ *  Both are mats of U-HAIRPINS -- one wire per U: over the rim, down a wall, round into the floor,
+ *  across, up the far wall, back over the rim. But the two are laid at RIGHT ANGLES to each other,
+ *  and that is the difference you actually see:
+ *
+ *      1-unit     U's span the 356 (across the rails), spaced along the 245: 16 at 13.6mm, measured
+ *                 off the orthographic top view. The two long walls get 13 verticals at 26.3mm.
+ *      half unit  U's span its narrow 120, spaced along the 356: ~27, a much finer basket (650g
+ *                 against 1100g), with horizontal courses up the long walls.
+ *
+ *  Neither is a square grid, so neither is meshWires -- that helper's own comment guesses "3mm wire,
+ *  ~26mm pitch", and 26mm turns out to be right for the 1-unit's WALL and wrong for everything else.
+ *
+ *  `panels` = the part declares polypropylene, i.e. it is a half unit. Rim at y = 0. */
+export function meshTrayGroup(w, d, h, color, { panels = false } = {}) {
   const g = new THREE.Group();
+  const steel = metal(color, 0.9, 0.25);            // polished, not the satin the boxes wear
+  const gauge = panels ? 2.5 : 4;                   // wire, measured off the manuals' line art
+  const seat = 20, side = 9;                        // rim overhang: across the rails / along it
+  const lift = 6;                                   // floor above the envelope's bottom
+  const cw = w - 2 * side, cd = d - 2 * seat;       // the cavity in plan
+  const fy = -(h - lift);                           // the floor
+  const bend = Math.min(21, (h - lift - 14) * 0.9); // the hairpin's radius into the floor
+  const flange = Math.min(10, (h - lift) * 0.3);    // where a wire leaves the wall for the rim
+
+  // A faint ghost box, full envelope: it carries picking (dropModule tags only `body`) and nothing
+  // else. The wires are the read.
   const ghost = box(g, w, h, d, 2,
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.12 }),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
     0, -h / 2, 0);
-  const wires = meshWires(w, h, d, new THREE.Color(color));   // mm in, scales itself to metres
-  wires.position.y = (-h / 2) * MM;
-  g.add(wires);
+
+  // A bent wire, swept along its centreline. Straight sticks butted at 90 degrees read as a diagram;
+  // every wire in these photographs turns through a generous radius.
+  const wire = (pts, r = gauge / 2, closed = false) =>
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0] * MM, p[1] * MM, p[2] * MM)), closed),
+      closed ? 96 : pts.length * 6, r * MM, 6, closed), steel));
+
+  // A rounded-rectangle loop -- every corner here is a generous radius, not a mitre, and the top
+  // view shows two concentric ones: the rim and the body's own top frame.
+  const loop = (hw, hd, y, r, rad) => wire([
+    [hw, y, -hd + r], [hw, y, hd - r], [hw - r, y, hd], [-hw + r, y, hd],
+    [-hw, y, hd - r], [-hw, y, -hd + r], [-hw + r, y, -hd], [hw - r, y, -hd]], rad, true);
+
+  // One hairpin, rim to rim. `spans` is the axis its two arms straddle, `t` its station on the
+  // other. The arms leave the wall at -flange and finish OUT on the rim: that outward kick is what
+  // holds the rim off the basket, and it is the row of little peaks along every near edge.
+  const hairpin = (spans, halfA, rimA, t) => {
+    const P = (a, y) => (spans === "z" ? [t, y, a] : [a, y, t]);
+    wire([P(-rimA, 0), P(-halfA, -flange), P(-halfA, fy + bend), P(-halfA + bend, fy),
+          P(halfA - bend, fy), P(halfA, fy + bend), P(halfA, -flange), P(rimA, 0)]);
+  };
+  // A plain wall wire: over the rim, down, and stopped at the floor.
+  const post = (spans, halfA, rimA, t, s) => {
+    const P = (a, y) => (spans === "z" ? [t, y, a] : [a, y, t]);
+    wire([P(s * rimA, 0), P(s * halfA, -flange), P(s * halfA, fy + bend * 0.5), P(s * (halfA - 2), fy)]);
+  };
+
+  loop(w / 2, d / 2, 0, 22, gauge * 1.15 / 2);      // the rim -- heavier stock than the mat
+  loop(cw / 2, cd / 2, -flange, 16, gauge / 2);     // the body's top frame, inboard of it
+
+  if (!panels) {
+    // CK-225 / CK-250. The mat spans the 356 and is spaced along the 245: 16 wires at 13.6mm over
+    // 204mm, leaving the ~11mm margin to each long wall that the top view shows.
+    const pitch = 13.6, spread = cw - 23, n = Math.round(spread / pitch);
+    for (let i = 0; i <= n; i++) hairpin("z", cd / 2, d / 2, -spread / 2 + (i * spread) / n);
+
+    // The two long walls: 13 verticals at 26.3mm across the 316 cavity. Measured off the manual's
+    // line art as a dead-regular projected pitch, which then puts the 13th wire on 316.6mm -- the
+    // published cavity, arrived at from the other direction. No horizontal courses: the drawing has
+    // none and 121mm of wall does not ask for any.
+    const nw = Math.round(cd / 26.3);
+    for (let i = 0; i <= nw; i++) for (const s of [-1, 1])
+      post("y", cw / 2, w / 2, -cd / 2 + (i * cd) / nw, s);
+
+    // Four transverse ribs UNDER the mat, at the stations measured off the top view (+/-0.171 and
+    // +/-0.376 of the depth, dead symmetric). They are what the floor rides on, and their undersides
+    // are the -h the catalogue publishes.
+    for (const f of [-0.376, -0.171, 0.171, 0.376])
+      wire([[-cw / 2 + 6, fy - gauge, f * d], [cw / 2 - 6, fy - gauge, f * d]]);
+  } else {
+    // CK-226 / CK-251. The mat is turned 90 degrees: the U's span the narrow 120 and are spaced
+    // along the 356, ~27 of them -- a finer, denser weave than the 1-unit's.
+    const nu = Math.round(cd / 12.2);
+    for (let i = 0; i <= nu; i++) hairpin("x", cw / 2, w / 2, -cd / 2 + (i * cd) / nu);
+    for (const f of [-0.33, 0, 0.33])                 // long floor wires tying the mat together
+      wire([[f * cw, fy, -cd / 2 + 4], [f * cw, fy, cd / 2 - 4]]);
+
+    // Horizontal courses up each long wall -- the half unit is narrow and tall and carries them
+    // where the 1-unit carries none. Four on the deep one; the shallow has room for one.
+    const nc = Math.max(1, Math.round((h - lift) / 30));
+    for (let i = 1; i <= nc; i++) for (const s of [-1, 1])
+      wire([[s * cw / 2, fy + ((h - lift) * i) / (nc + 1), -cd / 2], [s * cw / 2, fy + ((h - lift) * i) / (nc + 1), cd / 2]]);
+    for (let i = 0; i <= 4; i++) for (const s of [-1, 1])   // the capped 102mm ends
+      post("y", cd / 2, d / 2, -cw / 2 + (i * cw) / 4, s);
+
+    // The two polypropylene end panels: THE SEAT. Flat caps over the 120mm ends, logo printed on
+    // them, a bossed hole for the TTA 300mm shaft. Their tops are the tray's top, so they land in
+    // the rails' recess and the tray hangs off them.
+    const pd = 30, pt = 7, pp = metal(0x1c1e22, 0.05, 0.65);
+    for (const sz of [-1, 1]) {
+      const pz = sz * (d / 2 - pd / 2);
+      box(g, w, pt, pd, 3, pp, 0, -pt / 2, pz);
+      cyl(g, 9, 9, pt + 2, 14, pp, 0, -pt / 2, pz);               // the raised boss
+      // the shaft hole, faked with a dark plug the way frameGroup fakes its hook holes
+      cyl(g, 5.5, 5.5, pt + 4, 12, metal(0x0e0f12, 0.2, 0.8), 0, -pt / 2, pz);
+    }
+  }
   return { group: g, body: ghost };
 }
 
@@ -208,6 +339,11 @@ export function stainlessBoxGroup(w, d, h, { color = 0xb9bec4, wall = 3 } = {}) 
 // What the BBQ's two halves can be. It SHIPS with two 焼き網 nets; a 鉄板 griddle plate is bought
 // separately and takes either net's place (owner) -- so the halves are independent. The cooking
 // surfaces are size-shared with the Takibi Fire & Grill L, so a plate bought for one fits the other.
+// How proud of the frame the GS-230 sits with its cover on. Owner, from use: "about half an inch to
+// three-quarters" -- so ~15mm, the middle of that. Remembered, not measured; with the cover OFF the
+// stove is flush, which is the rim at y = 0.
+const LID_PROUD = 15;
+
 export const BBQ_SURFACES = {
   nets:   ["net", "net"],
   mixed:  ["net", "plate"],
@@ -316,6 +452,105 @@ export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 12
   return { group: g, body };
 }
 
+/** Snow Peak GigaPower Two Burner "liquid feed" (GS-230): the big two-burner stove -- the one slot
+ *  module that is really a self-contained appliance, so it gets a builder rather than a BURNERS row.
+ *
+ *  READ THE SPEC RIGHT, or nothing fits. The manual (GS-230_manual.pdf p.16) lists W x H x D, not
+ *  W x D x H: "収納時 500x110x360 / 風防装着使用時 563x293x383 / スタンド装着時 563x514x383".
+ *  Fitting the STAND moves only the middle number, by +221mm -- legs raise a stove, they do not make
+ *  it deeper -- so the middle number is the HEIGHT. The same reading makes the packed figure a
+ *  500-wide, 110-THICK, 360-deep slab: the body with its cover clamped on. The catalogue's
+ *  assembled_mm had d and h SWAPPED, which is why d=293 came out SMALLER than the frame's own 317mm
+ *  clear span -- it could not have rested on the rails, yet the photo shows it seated. (Corrected in
+ *  overrides.json; this builder does not depend on it.)
+ *
+ *  What the photographs show (the hero front elevation; the top view of the stove dropped INTO an
+ *  IGT frame; the manual's exploded set-contents p.6 and fold-away plan p.7):
+ *    - a shallow stainless PAN -- a deck with a well sunk into it, its rim landing on the rails like
+ *      any other unit. Not a deep box: 70mm below the rim (packed 110 less its ~40mm cover).
+ *    - TWO brass-ported heads down in the well on 233mm centres -- measured against the frame's own
+ *      published geometry, and 23cm is the manual's biggest pot: the burners sit one pot apart.
+ *    - TWO wire ゴトク, one per burner (p.11 flips them 180 degrees for HIGH/LOW; this is LOW).
+ *    - TWO knobs on the FRONT face, standing proud of it -- what makes the deployed DEPTH 383
+ *      against a 360 body.
+ *    - a THREE-panel windscreen: the carry COVER stood up at the back, a wing hinged off each end
+ *      swinging forward. Folded, the wings lie inside the cover -- which is why packed width is 500
+ *      and deployed width 563: the wings swing out PAST the body.
+ *
+ *  `w` is the along-rail width -- 500, two units, which is what railW(span 4) gives and what the
+ *  in-frame photo measures. The d/h a caller derives from assembled_mm describe the DEPLOYED
+ *  envelope, not the body, so this builder does not take them. Rim at y = 0, pan hanging to -bodyH,
+ *  windscreen standing above. */
+export function gs230Group(w = 500, { seat = 360, h = 293, bodyH = 70, lid = false } = {}) {
+  const g = new THREE.Group();
+  const steel = 0x9aa0a8, dark = 0x26292e, screen = 0xb4b9bf;
+  const SPACING = 233;                       // head centres, measured in the frame
+  const wellW = 460, wellD = 264, wellY = -48;
+  const screenH = h - bodyH;                 // 223 -- what stands ABOVE the tabletop
+
+  // The housing: a shallow pan, built as a deck flange round a sunken well rather than a solid
+  // block, because the well IS what you see. Flange outer 500x360, inner 460x264.
+  const deck = metal(steel, 0.85, 0.35);
+  const endW = (w - wellW) / 2, sideD = (seat - wellD) / 2;
+  const body = box(g, w, 6, sideD, 1, deck, 0, -3, (wellD + sideD) / 2);   // front deck: the knobs
+  box(g, w, 6, sideD, 1, deck, 0, -3, -(wellD + sideD) / 2);               // back deck: the screen
+  for (const sx of [-1, 1]) box(g, endW, 6, wellD, 1, deck, sx * (wellW + endW) / 2, -3, 0);
+
+  // the pan's outer skirt, and the well's dark floor down inside it
+  const skin = metal(steel, 0.8, 0.4);
+  for (const sz of [-1, 1]) box(g, w, bodyH, 8, 1, skin, 0, -bodyH / 2, sz * (seat / 2 - 4));
+  for (const sx of [-1, 1]) box(g, 8, bodyH, seat, 1, skin, sx * (w / 2 - 4), -bodyH / 2, 0);
+  box(g, wellW, 4, wellD, 1, metal(dark, 0.4, 0.6), 0, wellY, 0);
+
+  for (const sx of [-1, 1]) {
+    const hx = sx * (SPACING / 2);
+    // the head: an 88mm ported ring round a brass centre, with its nozzle below at 6 o'clock
+    cyl(g, 44, 44, 16, 28, metal(0x4c5259, 0.5, 0.55), hx, wellY + 10, 0);
+    cyl(g, 25, 25, 10, 24, metal(0x9c6b3a, 0.75, 0.4), hx, wellY + 18, 0);
+    cyl(g, 5, 5, 22, 10, metal(0xb08a4a, 0.8, 0.35), hx, wellY - 4, 34);
+    // the ゴトク. The real one is an hourglass wire frame pinched either side of the head; four
+    // crossed bars is what that reads as at this size, and is the same shorthand burnerGroup uses.
+    for (let a = 0; a < 4; a++)
+      box(g, 118, 4, 5, 1, metal(steel, 0.9, 0.3), hx, 35, 0, (a * Math.PI) / 4);
+    for (const c of [-1, 1]) box(g, 4, 80, 4, 1, metal(steel, 0.9, 0.3), hx + c * 52, -5, 0);
+    // the knob, out under its own burner
+    cyl(g, 13, 13, 23, 16, metal(0x1c1f24, 0.4, 0.6), hx, -40, seat / 2 + 11.5, Math.PI / 2);
+  }
+
+  // COVER ON -- the third state, the one the manual never dimensions. The windscreen panel IS the
+  // carry cover: clamped down it lies flat over the stove instead of standing up behind it, so it
+  // is one or the other, never both. OWNER (2026-07-16), from use rather than from a drawing: with
+  // the lid on it stands about half to three-quarters of an inch proud of the frame; take the lid
+  // off and the stove is FLUSH -- which is the rim at y = 0 this builder already had, confirmed
+  // from the other side. LID_PROUD is the middle of that recollection, ~15mm. Said plainly: it is
+  // remembered, not measured, and it does not reconcile with the packed 110 (body 70 + cover 40),
+  // which suggests the cover nests down INTO the rim rather than sitting on it -- so 40 is the
+  // cover's depth and ~15 is only what shows.
+  if (lid) {
+    box(g, w, LID_PROUD, seat, 2, metal(screen, 0.8, 0.4), 0, LID_PROUD / 2, 0);
+    return { group: g, body };
+  }
+
+  // The windscreen, DEPLOYED. The back panel is the cover, 500 wide, standing on the back deck; each
+  // wing hinges at its end and swings forward, splayed just enough to put its free edge at
+  // x = +/-281.5 -- which is the published 563. Each wing TAPERS, tall at the hinge and falling to
+  // its free edge (the fold-away plan p.7 and the hero both show the slope), so it is extruded from
+  // an outline rather than boxed.
+  box(g, w, screenH, 3, 1, metal(screen, 0.8, 0.4), 0, screenH / 2, -(seat / 2 - 1.5));
+  const WING = 250, TIP = 130, SPLAY = Math.asin((563 / 2 - w / 2) / WING);
+  const wing = new THREE.Shape();
+  wing.moveTo(0, 0); wing.lineTo(WING * MM, 0);
+  wing.lineTo(WING * MM, TIP * MM); wing.lineTo(0, screenH * MM); wing.closePath();
+  const wingGeo = new THREE.ExtrudeGeometry(wing, { depth: 3 * MM, bevelEnabled: false });
+  for (const sx of [-1, 1]) {
+    const m = new THREE.Mesh(wingGeo, metal(screen, 0.8, 0.4));
+    m.rotation.y = -Math.PI / 2 + sx * SPLAY;      // local +x runs hinge -> free edge, splayed out
+    m.position.set(sx * (w / 2) * MM, 0, -(seat / 2) * MM);
+    g.add(m);
+  }
+  return { group: g, body };
+}
+
 /** What 3D form a slotted part takes -- burner, mesh tray, or open box/bin. ONE classifier,
  *  so the planner and the part bench never disagree about a part's shape.
  *
@@ -335,8 +570,20 @@ export function moduleGroup(p, w, d, h, color, topTex = null, cfg = null) {
   if (base === "CK-025") return stainlessBoxGroup(w, d, h, { color });
   if (base === "CK-160") return bbqBoxGroup(w, d, h, { color, surfaces: BBQ_SURFACES[cfg] || BBQ_SURFACES.nets });
   const bspec = burnerOf(p.sku);
+  // GS-230 is an appliance, and its assembled_mm describes the DEPLOYED envelope (563 over the
+  // splayed windscreen, 383 over the knobs) rather than the body -- so the d/h the caller derives
+  // cannot be used. It takes only the along-rail width, the one number that is right:
+  // railW(span 4) = 500 = the two units the in-frame photo measures. Its own stand is not built:
+  // that is for standing on the ground, and on the IGT you take it off (owner).
+  if (bspec?.gs230) return gs230Group(w, { lid: cfg === "closed" });
   if (bspec) return burnerGroup(bspec, w, d, h, topTex);
-  if (isMesh(p)) return meshTrayGroup(w, d, h, new THREE.Color(color));
+  // A mesh SLOT MODULE -- the four draining baskets. The role guard matters: isMesh is /mesh/i on
+  // the title, which also catches the Mesh Folding Chair and Bench (mesh FABRIC). app.js routes
+  // those through drawProp, but the part bench has no seating branch and would render an 838mm
+  // chair as a wire basket.
+  if (isMesh(p) && p.role === "slot_module")
+    return meshTrayGroup(w, d, h, new THREE.Color(color),
+      { panels: /ポリプロピレン|polypropylene/i.test(p.material || "") });
   if (h >= 60) return binGroup(w, d, h, { open: true, color });   // a box you put things in
   return null;                                                    // a thin tray: a slab
 }

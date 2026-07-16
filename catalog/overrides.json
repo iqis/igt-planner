@@ -1593,8 +1593,13 @@
  },
  "GS-230": {
   "span": 4,
-  "reason": "Along-rail 563mm against two units (500mm), same rim logic as GS-450R. Corroborated by the product copy: 'Pair the Double Burner Stove with the IGT 4 Unit Standing Set and the Double Bamboo Insert' -- the double insert takes 2 units, so the stove takes the remaining 2.",
-  "confidence": "high"
+  "reason": "d and h were SWAPPED. The manual (GS-230_manual.pdf p.16) lists W x H x D, not W x D x H: 収納時 500x110x360 / 風防装着使用時 563x293x383 / スタンド装着時 563x514x383. Fitting the STAND moves only the MIDDLE number, by +221mm -- legs raise a stove, they do not make it deeper -- so the middle number is the HEIGHT. The scrape took the three numbers as w,d,h and stored h=383, d=293. The proof is physical: d=293 is SMALLER than the frame's own 317mm clear span (frame_fittings.json CK-149), so the stove could not have rested on the rails -- yet the gallery photo shows it seated in an IGT frame. It is 293 TALL; 383 is the depth over the knobs; 563 is the width over the splayed windscreen wings. Body is 500 x 360 (2 units on the standard 360 seat). Packed 500x110x360 reads the same way: 500 wide, 110 THICK, 360 deep -- the body with its cover clamped on. Researched 2026-07-16 from the manual + an in-frame top view scaled against the frame's published geometry (end piece 47 vs 49.4, visible rail 66 vs 68, burner spacing 233 = the manual's 23cm max pot).",
+  "confidence": "high",
+  "assembled_mm": {
+   "w": 563.0,
+   "d": 383.0,
+   "h": 293.0
+  }
  },
  "S-029HA": {
   "role": "accessory",
