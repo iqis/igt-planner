@@ -48,7 +48,10 @@ export const BURNERS = {
   "GS-230":  { heads: 2, knobs: 2, windscreen: true },
   "GP-040":  { heads: 1, knobs: 1, mounts: "GS-1000" },
   "GS-1000": { heads: 1, knobs: 1 },
-  "CK-160":  { bbq: true },     // charcoal, split top -- a grate half and a griddle half
+  // CK-160 was here as { bbq: true } -- "a grate half and a griddle half". Its MANUAL says
+  // otherwise (セット内容: 焼き網 x2, and step 1 is "take the lid off"): there is no griddle, the
+  // dark slab in the photos is the LID resting inverted on the two nets. It has its own builder
+  // now (bbqBoxGroup) and is no longer a burner.
 };
 export const burnerOf = sku => BURNERS[sku] || BURNERS[sku.replace(/-(US|INT|EC|R)$/i, "")];
 
@@ -95,13 +98,7 @@ export function burnerGroup(spec, w, d, h, topTex = null) {
     return { group: g, body };
   }
 
-  if (spec.bbq) {
-    const lift = 34, half = (w - 16) / 2;
-    box(g, half, 6, d - 12, 2, metal(0x30343a, 0.4, 0.6), -half / 2 - 2, lift, 0);
-    for (let i = -3; i <= 3; i++)
-      box(g, half - 6, 3, 3, 1, metal(steel, 0.9, 0.3), -half / 2 - 2, lift + 5, i * (d / 9));
-    box(g, half, 8, d - 12, 2, metal(steel, 0.8, 0.4), half / 2 + 2, lift, 0);
-  } else if (spec.plate) {
+  if (spec.plate) {
     box(g, w - 8, 10, d - 8, 4, metal(dark, 0.3, 0.6), 0, 4, 0);
     for (let i = -2; i <= 2; i++)
       box(g, w - 24, 3, 5, 1, metal(0x1b1e22, 0.2, 0.7), 0, 9, i * (d / 6));
@@ -158,6 +155,143 @@ export function meshTrayGroup(w, d, h, color) {
   return { group: g, body: ghost };
 }
 
+// Where an IGT module's rim actually lands -- measured, not guessed. frame_fittings.json read the
+// rail section off the CK-149 underside plan: the clear span between the rails is 317, and the LIP
+// (the ledge a module rests on) runs |z| 158.5..182.5. A module published 360 deep reaches
+// |z| = 180 -- onto that lip. So a stainless module is a box whose WALLS drop through the 317
+// opening and whose rim turns out ~21.5mm each rail side to sit on it. That is what "an IGT unit
+// embeds FLUSH with the work surface" is, in millimetres. Both stainless boxes below are that.
+const RAIL_SPAN = 317;
+const wallSpan = d => Math.min(d, RAIL_SPAN);
+
+/** A module's two rail-side rims: flat strips from the wall out to the published depth `d`, their
+ *  top at y = 0 -- the faces that actually carry the part on the frame. */
+function railRimInto(g, w, d, mat) {
+  const wd = wallSpan(d), rim = (d - wd) / 2;
+  if (rim <= 0.5) return;
+  for (const sz of [-1, 1]) box(g, w, 1.5, rim, 0.5, mat, 0, -0.75, (sz * (wd + rim)) / 2);
+}
+
+/** Stainless Box Half Unit (CK-025): the half-unit (125 x 360) stainless box that hangs in the
+ *  frame. What the photographs show, and what they don't:
+ *
+ *    hero_01     a plain folded-sheet box: vertical walls, open top, and NO handle. The handle is
+ *                a different part -- the catalogue's CK-020 Box Hanger is what carries it.
+ *    hero_01     a column of ~5 spot welds up each vertical corner, where the folded end panel is
+ *                joined to the long one. The only mark the box has; there is no other ornament.
+ *    switch2     four boxes dropped in a frame with their lids off: they hang by an out-turned
+ *                RIM, and they butt together at a 125 pitch with no gap between neighbours.
+ *
+ *  The rim is measured (see RAIL_SPAN). Only the two RAIL-side rims are built -- whether the fold
+ *  also turns out at the two short ends is not readable (the hero has the lid over it; in switch2
+ *  the boxes butt), so it is left out, and in x the box stays the full 125, which is what makes
+ *  four of them tile a frame.
+ *
+ *  The LID is not built here. It is CK-026 -- a plate with a finger hole that flatBoardGeo already
+ *  draws from its own record. One shape, one owner. Rim at y = 0, body hanging to -h. */
+export function stainlessBoxGroup(w, d, h, { color = 0xb9bec4, wall = 3 } = {}) {
+  const wallD = wallSpan(d);
+  // It IS a bin -- four walls and a floor, open on top -- narrowed to drop through the rail opening.
+  const { group: g, body } = binGroup(w, wallD, h, { open: true, color, wall });
+  railRimInto(g, w, d, metal(color, 0.8, 0.4));
+
+  // The corner spot welds: five up each of the four vertical corners. Small proud studs -- at this
+  // scale that is what a weld nugget reads as.
+  const weld = metal(0x969ba2, 0.9, 0.3);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (let i = 0; i < 5; i++)
+    cyl(g, 1.8, 1.8, 1.2, 8, weld, sx * (w / 2 - 7), -16 - (i * (h - 32)) / 4,
+        sz * (wallD / 2), Math.PI / 2);
+
+  return { group: g, body };
+}
+
+/** Double BBQ Box (CK-160; JP リフトアップBBQ BOX, "lift-up"): a charcoal BBQ that drops into the
+ *  frame. Its manual settles what it is, and it is NOT the grate-half + griddle-half the old bbq
+ *  branch drew. There is no griddle:
+ *
+ *    本体            the stainless box, vents low in its long walls
+ *    インナートレー(炭床)  the charcoal bed: a perforated dark tray sitting INSIDE the box (step 3)
+ *    昇降フレーム       the LIFT frame, which stands up on links and carries the nets
+ *    焼き網 x2        TWO grill nets, side by side, half the top each -- this is the "Double"
+ *    フタ / スタンド x2 / ハンドル   a lid, two stands, and a crank handle
+ *
+ *  The dark slab in the gallery is the LID resting on the nets ("rest the lid on the grate to hold
+ *  in heat"), inverted so we look into it -- not a cooking surface. It is not built: step 1 is
+ *  "take the lid off", which is where cooking starts.
+ *
+ *  W605 x D360 x H175 is the STANDALONE form. The IGT form is smaller, and the manual says so:
+ *  step 6 mounts it by REMOVING the handle and the stands. What is left is the 収納 size,
+ *  W500 x D370 x H120 -- and 500 is exactly two IGT units, one per net, which is what "Double Unit
+ *  BBQ Box" has been saying all along. So the body is built at 500 x 120; the 55 that H175 has over
+ *  the packed 120 is the lift frame standing up; and `w` is deliberately unused, because the 605
+ *  measures across the splayed stands and the stands come off. D360 is real -- it is the rim, and
+ *  it lands on the rail lip like any module.
+ *
+ *  Rim at y = 0 hanging to -bodyH, and the nets RISE ABOVE it -- the exception this file's header
+ *  already names. */
+export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 120 } = {}) {
+  const wallD = wallSpan(d), wall = 2;
+  const { group: g, body } = binGroup(bodyW, wallD, bodyH, { open: true, color, wall });
+  const mat = metal(color, 0.8, 0.4);
+  railRimInto(g, bodyW, d, mat);
+
+  // The vents: a row of round holes low in each long wall. Punched dark, the way frameGroup does
+  // its hook holes.
+  const punch = metalE(0x0e0f12, 0.2, 0.8);
+  for (const sz of [-1, 1]) for (let i = 0; i < 10; i++)
+    cyl(g, 5, 5, wall + 3, 12, punch, -bodyW * 0.4 + (i * bodyW * 0.8) / 9, -bodyH + 32,
+        sz * (wallD / 2 - wall / 2), Math.PI / 2);
+
+  // インナートレー -- the charcoal bed: a shallow pan set inboard of the lift frame (step 3), its
+  // floor punched in two hole sizes so ash drops through. It reads DARK in every photo: that is the
+  // coated steel of the 材質, not the stainless of the box.
+  const trayMat = metal(0x2b2e33, 0.35, 0.62);
+  const trW = bodyW - 56, trD = wallD - 52, trY = -bodyH + 66, trH = 22;
+  box(g, trW, 2, trD, 1, trayMat, 0, trY, 0);
+  for (const sz of [-1, 1]) box(g, trW, trH, 2, 0.5, trayMat, 0, trY + trH / 2, sz * (trD / 2 - 1));
+  for (const sx of [-1, 1]) box(g, 2, trH, trD, 0.5, trayMat, sx * (trW / 2 - 1), trY + trH / 2, 0);
+  for (const r of [-1, 0, 1]) for (let i = 0; i < 11; i++)
+    cyl(g, i % 2 ? 4 : 6.5, i % 2 ? 4 : 6.5, 4, 10, punch,
+        -trW * 0.42 + (i * trW * 0.84) / 10, trY, r * trD * 0.26);
+
+  // 昇降フレーム + 焼き網 x2, drawn at the RAISED height -- which is exactly what H175 measures.
+  const lift = Math.max(h - bodyH, 0), netT = 5, barT = 12;
+  const lfW = bodyW - 14, lfD = wallD - 14, lfY = lift - netT - barT / 2;
+  for (const sz of [-1, 1]) box(g, lfW, barT, 10, 1.5, mat, 0, lfY, sz * (lfD / 2 - 5));
+  for (const sx of [-1, 1]) box(g, 10, barT, lfD, 1.5, mat, sx * (lfW / 2 - 5), lfY, 0);
+
+  // The links that stand the frame up. A crank on the front wall drives them (step 5). They are
+  // plainly a scissor between the body rim and the frame, but the exact bar layout does not read
+  // off any photo -- so this is a schematic X per end, not a claim about the linkage.
+  const linkMat = metal(0xaeb4ba, 0.9, 0.3);
+  const link = (a, b) => {
+    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(2.5 * MM, 2.5 * MM, va.distanceTo(vb) || MM, 8), linkMat);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m);
+  };
+  for (const sx of [-1, 1]) {
+    const x = sx * (lfW / 2 - 24), zs = lfD / 2 - 18, yTop = lfY - barT / 2;
+    link([x, -6, -zs], [x, yTop, zs]);
+    link([x, -6, zs], [x, yTop, -zs]);
+  }
+
+  // The two 焼き網: a woven wire grid in a thin border, one per unit. The pitch is representative --
+  // the real mesh is finer than it is worth drawing.
+  const netMat = metal(0xd0d4d9, 0.92, 0.24);
+  for (const sx of [-1, 1]) {
+    const nw = lfW / 2 - 3, nd = lfD - 8, cx = sx * (lfW / 4 + 1.5), rim = 6, pitch = 22;
+    for (const sz of [-1, 1]) box(g, nw, 4, rim, 1, netMat, cx, lift - 2, sz * (nd / 2 - rim / 2));
+    for (const s2 of [-1, 1]) box(g, rim, 4, nd, 1, netMat, cx + s2 * (nw / 2 - rim / 2), lift - 2, 0);
+    const iw = nw - 2 * rim, id = nd - 2 * rim;
+    const nx = Math.max(2, Math.round(iw / pitch)), nz = Math.max(2, Math.round(id / pitch));
+    for (let i = 1; i < nx; i++) box(g, 2, 2, id, 0, netMat, cx - iw / 2 + (i * iw) / nx, lift - 1.5, 0);
+    for (let i = 1; i < nz; i++) box(g, iw, 2, 2, 0, netMat, cx, lift - 3.5, -id / 2 + (i * id) / nz);
+  }
+  return { group: g, body };
+}
+
 /** What 3D form a slotted part takes -- burner, mesh tray, or open box/bin. ONE classifier,
  *  so the planner and the part bench never disagree about a part's shape.
  *
@@ -165,11 +299,16 @@ export function meshTrayGroup(w, d, h, color) {
  *  because an IGT unit embeds FLUSH with the work surface. That is the default and the rule:
  *  the body hangs below into the frame, the rim is level with the tabletop. The few parts
  *  that rise above it do so from their own geometry (a burner's grate and pot-supports, the
- *  BBQ's lifted split top) -- the exception, built in, not the norm.
+ *  BBQ's lift frame and its two nets) -- the exception, built in, not the norm.
  *
  *  Returns null for a part that is genuinely just a thin slab (a shallow tray); the caller
  *  draws that itself. `color` is the part's swatch, passed in so this stays state-free. */
 export function moduleGroup(p, w, d, h, color, topTex = null) {
+  // The two stainless boxes are their own shapes, not the generic bin: both hang by a measured rim,
+  // and the BBQ carries a whole charcoal fire. They go FIRST, before the generic h >= 60 bin.
+  const base = p.sku.replace(/-(US|INT|EC|R)$/i, "");
+  if (base === "CK-025") return stainlessBoxGroup(w, d, h, { color });
+  if (base === "CK-160") return bbqBoxGroup(w, d, h, { color });
   const bspec = burnerOf(p.sku);
   if (bspec) return burnerGroup(bspec, w, d, h, topTex);
   if (isMesh(p)) return meshTrayGroup(w, d, h, new THREE.Color(color));
