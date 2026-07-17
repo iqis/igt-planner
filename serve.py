@@ -51,16 +51,36 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+class Server(socketserver.ThreadingTCPServer):
+    """One request at a time was fine when the only client was the tab in front of you.
+
+    `TCPServer.serve_forever` handles requests strictly one after another -- that is what the class
+    IS, not a tuning question. It stopped being fine the moment this went on the tailnet, where a
+    phone, a laptop and a forgotten tab all ask at once, and the planner opens with four catalog
+    fetches before it draws anything. One slow client would have been the whole server.
+
+    daemon_threads so Ctrl-C actually exits instead of waiting on whoever is still connected.
+    """
+
+    daemon_threads = True
+    # Deliberately NOT allow_reuse_address: on Windows it lets a second process bind a port someone
+    # else already owns, and then the OTHER server answers your requests. That is a confusing 404 to
+    # debug -- failing loudly here is the whole point.
+    allow_reuse_address = False
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8791)
+    # On the tailnet the default bind is right: Tailscale proxies from 127.0.0.1, and this server has
+    # no auth of its own, so it should not be reachable from the LAN just because it is reachable
+    # from the tailnet.
+    ap.add_argument("--host", default="127.0.0.1",
+                    help="interface to bind (default 127.0.0.1; use '' for every interface)")
     args = ap.parse_args()
 
-    # Deliberately NOT setting allow_reuse_address: on Windows it lets a second
-    # process bind a port someone else already owns, and then the other server
-    # answers your requests. That is a confusing 404 to debug -- better to fail here.
     try:
-        with socketserver.TCPServer(("", args.port), partial(Handler, directory=str(ROOT))) as httpd:
+        with Server((args.host, args.port), partial(Handler, directory=str(ROOT))) as httpd:
             print(f"IGT planner -> http://localhost:{args.port}/web/")
             httpd.serve_forever()
     except OSError as e:
