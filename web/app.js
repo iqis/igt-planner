@@ -35,7 +35,10 @@ const TOUCH = 30;       // two tables closer than this are connected
 // side in slots one board wide (two CK-154 span a four-unit side exactly, 548x2 = 1096).
 const isSlide = p => p?.attach === "slide_in";
 
-const TO_USD = { us: c => c / 100, jp: y => y / 157, uk: p => (p / 100) * 1.27 };
+// Cents -> dollars. The JP and GBP rates lived here too, for a cross-region total the planner no
+// longer draws -- and an unused exchange rate is worse than none, because it goes stale silently and
+// then someone believes it. The part bench does its own money() for the per-part question.
+const TO_USD = { us: c => c / 100 };
 
 const $ = id => document.getElementById(id);
 
@@ -3085,12 +3088,12 @@ function bomLines() {
 
 function paintBOM() {
   const t = $("bomtable"); t.innerHTML = "";
-  const tot = { us: 0, jp: 0, uk: 0, g: 0 };
+  const tot = { us: 0, g: 0 };
 
   for (const l of bomLines()) {
     const p = PARTS[l.sku];
     if (!p) continue;
-    for (const k of ["us", "jp", "uk"]) if (p.price[k]) tot[k] += TO_USD[k](p.price[k]);
+    if (p.price.us) tot.us += TO_USD.us(p.price.us);
     tot.g += p.weight_g || 0;
 
     const tr = document.createElement("tr");
@@ -3107,17 +3110,14 @@ function paintBOM() {
     t.append(tr);
   }
 
-  const cheapest = ["us", "jp", "uk"].filter(k => tot[k] > 0).sort((a, b) => tot[a] - tot[b])[0];
+  // What a layout WEIGHS and what it COSTS -- and that is all. This used to total three regions and
+  // rank them with percentage deltas and a cheapest-wins highlight, which answers a question the
+  // planner is not asking: where to buy it is not how to lay it out, and it sat in the corner of
+  // every session being answered anyway. The part bench still prices a part in every region, which
+  // is where that question actually belongs.
   $("totals").innerHTML = `
     <div class="row"><span>weight</span><b>${(tot.g / 1000).toFixed(1)} kg</b></div>
-    ${["us", "jp", "uk"].map(k => {
-      const d = tot.us ? ((tot[k] - tot.us) / tot.us) * 100 : 0;
-      const cls = k === "us" ? "" : d < 0 ? "cheap" : "dear";
-      const pct = k === "us" ? "" : ` (${d > 0 ? "+" : ""}${d.toFixed(0)}%)`;
-      return `<div class="row ${k === cheapest ? "big" : ""}"><span>${k.toUpperCase()}</span>`
-        + `<b class="${cls}">$${tot[k].toFixed(0)}${pct}</b></div>`;
-    }).join("")}
-    <div class="note">JP/UK converted at fixed rates for orientation, not for checkout.</div>`;
+    <div class="row big"><span>US</span><b>$${tot.us.toFixed(0)}</b></div>`;
 }
 
 function paintWarnings() {

@@ -334,8 +334,6 @@ h2 {
 #totals { margin-top: .7rem; font-size: .72rem; }
 #totals .row { display: flex; justify-content: space-between; padding: .2rem 0; }
 #totals .row.big { border-top: 1px solid var(--line); margin-top: .3rem; padding-top: .4rem; }
-#totals .cheap { color: var(--ok); }
-#totals .dear { color: var(--bad); }
 #totals .note { color: var(--faint); font-size: .66rem; margin-top: .5rem; line-height: 1.45; }
 
 #warnings { margin-bottom: .6rem; }
