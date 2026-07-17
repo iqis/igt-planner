@@ -1539,6 +1539,7 @@ const legAdjustable = n => !!n && (n.kind === "frame" || n.kind === "ext");
 const hasActions = n => !!n && (isJikaro(n) || isExpandable(n)
   || (n.kind === "prop" && PARTS[n.sku].chair === "cushion")
   || PARTS[n.sku].prop === "takibi"          // the fire pit's bridge / surface / coal bed / base plate
+  || PARTS[n.sku].prop === "gs1000"          // the stove's canister
   || (n.kind === "ext" && n.host && !isSlide(PARTS[n.sku]))
   || (n.kind === "frame" && n.host));
 
@@ -1609,6 +1610,18 @@ function fillActions(box, n) {
       "ベースプレートL — 450×450×9 of black steel on the ground, catching ash and keeping the heat off the grass",
       () => { n.base = !n.base; render(); }));
   }
+  // The GS-1000's canister. drawProp has read `n.canister` since the stove landed and NOTHING ever
+  // wrote it -- the option existed only from the console, which is the same as not existing.
+  // It is a toggle for the same reason the Takibi's are: 専用容器 is bought separately (GP-250S /
+  // GP-500S / GP-500BL) and is not in the stove's 1,800g. The stove is what you own; the can is what
+  // you happened to bring. And "LI" is LIQUID INJECTION -- it hangs UPSIDE DOWN under the burner,
+  // which is why the legs make a cage instead of a tripod.
+  if (PARTS[n.sku].prop === "gs1000")
+    box.append(chip(n.canister ? "canister ✓ OD 缶" : "+ canister", !!n.canister,
+      "専用容器 (GP-250S / GP-500S / GP-500BL), mounted INVERTED under the burner — bought separately, "
+      + "not part of the stove's 1,800g. Its size has no source in the catalog: it is proportioned "
+      + "off the manual drawing, and it is the least trustworthy shape on this part.",
+      () => { n.canister = !n.canister; render(); }));
   // Height adjuster: a hooked board sits flush with its host, or drops ONE rung of the ladder
   // (830->660->400->300) via a CK-151. One step per adjuster -- lower still means chaining.
   if (n.kind === "ext" && n.host && !isSlide(PARTS[n.sku])) {
@@ -1662,6 +1675,8 @@ function paintSelTools() {
     count.className = "count"; count.textContent = `${state.selSet.size} selected`;
     selTools.append(count);
     selTools.append(toolBtn("⧉", "duplicate all  (Ctrl+D)", "", () => duplicateSelected()));
+    selTools.append(toolBtn("⧉+", "save all of it as one block", "",
+      () => { const name = prompt("name this block:", ""); if (name && name.trim()) saveBlock(name.trim()); }));
     const sep0 = document.createElement("span"); sep0.className = "sep"; selTools.append(sep0);
     selTools.append(toolBtn("✕", "delete all  (Del)", "danger", () => removeNode(n)));
   } else {
@@ -1673,6 +1688,9 @@ function paintSelTools() {
     if (!n.host) {
       selTools.append(toolBtn("⟲", "rotate 90°  (R)", "", () => rotateNode(n)));
       selTools.append(toolBtn("⧉", "duplicate  (Ctrl+D)", "", () => duplicateNode(n)));
+      // A block is a duplicate that outlives the session, so its button lives next to duplicate.
+      selTools.append(toolBtn("⧉+", "save as a block — this and everything on it, kept by name", "",
+        () => { const name = prompt("name this block:", ""); if (name && name.trim()) saveBlock(name.trim()); }));
     }
     if (replaceOptions(n).length > 1) selTools.append(toolBtn("⇄", "replace with a similar part", "", () => openReplaceMenu(n)));
     const sep = document.createElement("span"); sep.className = "sep"; selTools.append(sep);
@@ -3305,7 +3323,352 @@ const bindPos = (id, axis) => $(id).addEventListener("input", () => {
 bindPos("posx", "x");
 bindPos("posz", "z");
 
-function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); }
+function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); paintBlocks(); }
+
+// ---------------------------------------------------------------- saving a layout
+//
+// A FILE IS NOT A SNAPSHOT. `snapshot()` below stringifies the nodes verbatim, and for undo that is
+// exactly right -- it never leaves the session, so nothing it captures can drift. A saved layout
+// outlives both the session and the CATALOG, and the moment it does, every DERIVED field frozen in
+// it becomes a lie that draws.
+//
+// This is not hypothetical; it is a bug I proved in the console. `kind` comes from `kindOf(role)`.
+// The GS-1000's role changed accessory -> hearth, so a file written the day before says
+// `kind: "table"` -- and it loads, and it silently draws the stove as a one-mesh tabletop slab at
+// the right size, which is the worst kind of wrong. So the file stores INTENT and nothing else:
+//
+//   INTENT   what you chose ....... sku, which port (host + edge), where a FREE thing stands,
+//                                   the leg, the rungs, the slide, the config and the toggles
+//   DERIVED  what follows .......... kind (from role), rail (from edge), and x/z/rot of anything
+//                                   HOOKED -- place() recomputes those from its host every render
+//
+// The planner already says this about position: "HOOKED -- x/z/rot are DERIVED, never stored as
+// intent". A file has no excuse to disagree with the model it came from.
+const SAVE_V = 1;
+// Everything a node carries that is a DECISION. Anything absent from a node is simply left out.
+const INTENT = ["sku", "host", "edge", "leg", "step", "slide", "config", "sharedJoint",
+                "bridge", "surface", "coal", "base", "canister", "placements"];
+
+/** The scene as a plain object -- intent only. `sel` is not saved: a selection is not a design. */
+function serializeLayout(nodes = state.nodes) {
+  return {
+    app: "igt-planner", v: SAVE_V,
+    nodes: nodes.map(n => {
+      const o = {};
+      o.i = n.id;
+      for (const k of INTENT) if (n[k] !== undefined && n[k] !== null) o[k] = n[k];
+      // Only a FREE node's position is a decision. A hooked one is wherever its host's edge puts it.
+      if (n.host == null) { o.x = n.x; o.z = n.z; o.rot = n.rot; }
+      return o;
+    }),
+  };
+}
+
+/** Rebuild the scene from a saved object. Returns {nodes, nextId, dropped[]} without touching state,
+ *  so a caller can look before it leaps. A part that has left the catalog is DROPPED and named --
+ *  never silently, and never as a mystery box. */
+function readLayout(doc) {
+  if (!doc || doc.app !== "igt-planner") throw new Error("not an IGT layout file");
+  if (!(doc.v <= SAVE_V)) throw new Error(`layout is version ${doc.v}; this planner reads up to ${SAVE_V}`);
+  const dropped = [], keep = new Map();
+  for (const o of doc.nodes || []) {
+    if (!PARTS[o.sku]) { dropped.push(o.sku); continue; }
+    keep.set(o.i, o);
+  }
+  const nodes = [];
+  for (const o of keep.values()) {
+    const p = PARTS[o.sku];
+    const n = { id: o.i, sku: o.sku, placements: [], x: 0, z: 0, rot: 0, leg: null };
+    for (const k of INTENT) if (o[k] !== undefined) n[k] = o[k];
+    if (o.x !== undefined) { n.x = o.x; n.z = o.z; n.rot = o.rot; }
+    // DERIVED, recomputed here rather than trusted from the file -- the whole point of the format.
+    n.kind = kindOf(p);
+    n.host = keep.has(o.host) ? o.host : null;      // host dropped -> this becomes a free node
+    if (n.host == null) delete n.edge;
+    n.rail = !!(n.edge && n.edge.startsWith("rail"));
+    // A module whose SKU has gone is dropped the same way, and said out loud.
+    n.placements = (n.placements || []).filter(pl => {
+      if (PARTS[pl.sku]) return true;
+      dropped.push(pl.sku); return false;
+    });
+    nodes.push(n);
+  }
+  const nextId = Math.max(0, ...nodes.map(n => n.id)) + 1;
+  return { nodes, nextId, dropped: [...new Set(dropped)] };
+}
+
+/** Put a read layout on screen. */
+function loadLayout(doc) {
+  const { nodes, nextId, dropped } = readLayout(doc);
+  state.nodes = nodes; state.nextId = nextId;
+  selectOnly(null);
+  undoStack.length = 0; redoStack.length = 0;      // a new document has no past
+  render();
+  if (dropped.length) note(`left out ${dropped.length} part(s) no longer in the catalog: ${dropped.join(", ")}`);
+  return dropped;
+}
+
+// ---------------------------------------------------------------- where a layout lives
+//
+// STATIC-FIRST, deliberately. The owner is weighing a public deployment, and that one maybe decides
+// the shape of all of this: an endpoint POSTing layouts to the server's disk is fine on a laptop and
+// a liability the hour the URL is public -- one filesystem shared by strangers, no accounts, and a
+// write path anyone can reach. serve.py already has such an endpoint for the bench's annotations,
+// and it is exactly the thing NOT to copy here. So nothing below needs a server, and the decision
+// stays open in both directions instead of being made by accident.
+//
+//   the current scene   localStorage   survives a reload. On a public site each visitor keeps their
+//                                      own, which is right, and costs nothing to be right about.
+//   named layouts       localStorage   same.
+//   sharing             the URL        send a link and they see the design. No account, no server.
+//   archiving           a .json file   yours to drop in V:\ and commit -- the only copy git can see.
+//
+// localStorage is a CACHE and not a backup: clear the browser and it is gone. Export is what makes a
+// layout outlive this machine. The UI says that out loud rather than letting the word "save" imply
+// something it cannot do.
+const LS_SCENE = "igt.scene", LS_SAVED = "igt.saved", LS_BLOCKS = "igt.blocks";
+
+const lsGet = (k, fallback) => { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } };
+const lsPut = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+
+// A one-line word to the user, over the viewport. Small, and it goes away.
+let noteTimer = null;
+function note(msg, ms = 3200) {
+  const el = $("note");
+  el.textContent = msg;
+  el.hidden = false;
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => { el.hidden = true; }, ms);
+}
+
+// The scene, kept warm. Debounced because render() fires on every drag frame and localStorage is
+// synchronous -- writing there 60 times a second would make dragging feel like the bug.
+let autoTimer = null;
+function autosave() {
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => lsPut(LS_SCENE, serializeLayout()), 400);
+}
+
+// ---- named layouts ----------------------------------------------------------------------------
+const savedAll = () => lsGet(LS_SAVED, {});
+function saveNamed(name) {
+  const all = savedAll();
+  all[name] = { ...serializeLayout(), name, at: new Date().toISOString() };
+  if (!lsPut(LS_SAVED, all)) return note("could not save -- browser storage is full");
+  note(`saved "${name}" — in this browser only; use export to keep it`);
+  paintFiles();
+}
+function openNamed(name) {
+  const doc = savedAll()[name];
+  if (!doc) return;
+  loadLayout(doc);
+  note(`opened "${name}"`);
+}
+function deleteNamed(name) {
+  const all = savedAll(); delete all[name]; lsPut(LS_SAVED, all); paintFiles();
+}
+
+// ---- the file: the only copy that leaves this machine -------------------------------------------
+function exportFile() {
+  const doc = { ...serializeLayout(), at: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(doc, null, 1)], { type: "application/json" });
+  const a = document.createElement("a");
+  // A timestamped name, because a file called "layout.json" is a file you overwrite.
+  a.href = URL.createObjectURL(blob);
+  a.download = `igt-layout-${doc.at.slice(0, 19).replace(/[:T]/g, "-")}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  note("exported — that file is the copy git can see");
+}
+function importFile() {
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = ".json,application/json";
+  inp.onchange = async () => {
+    const f = inp.files?.[0];
+    if (!f) return;
+    try { loadLayout(JSON.parse(await f.text())); note(`opened ${f.name}`); }
+    catch (e) { note(`could not read that file: ${e.message}`, 5000); }
+  };
+  inp.click();
+}
+
+// ---- the URL: how a design reaches someone else --------------------------------------------------
+// gzip then base64url. CompressionStream is native; nothing is vendored for this.
+//
+// MEASURED, not guessed (I first wrote "roughly a fifth" here and it is 2.5x): a realistic 8-node
+// scene -- two frames joined end to end with a BBQ box and a GS-230 in them, a Jikaro with a Takibi
+// in its opening wearing bridge + griddle + coal bed, and four chairs -- is 703 bytes of JSON, 280
+// gzipped, and a 413-character link. The intent-only format is doing most of that work: there are no
+// derived fields to compress in the first place.
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const unb64u = str => Uint8Array.from(atob(str.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+const pipe = async (bytes, stream) =>
+  new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer();
+
+async function shareLink() {
+  const json = new TextEncoder().encode(JSON.stringify(serializeLayout()));
+  const gz = await pipe(json, new CompressionStream("gzip"));
+  const url = `${location.origin}${location.pathname}#d=${b64u(gz)}`;
+  // A link nobody can paste is not a share. Say the number rather than discover it later.
+  if (url.length > 8000) return note(`this layout is too big for a link (${(url.length / 1000).toFixed(1)}k) — export the file instead`, 6000);
+  try { await navigator.clipboard.writeText(url); note(`link copied (${url.length} chars) — it carries the whole design, no server involved`, 5000); }
+  catch { prompt("copy this link:", url); }
+}
+async function fromHash() {
+  const m = /[#&]d=([^&]+)/.exec(location.hash);
+  if (!m) return false;
+  try {
+    const raw = await pipe(unb64u(m[1]), new DecompressionStream("gzip"));
+    loadLayout(JSON.parse(new TextDecoder().decode(raw)));
+    note("opened from a shared link — it is yours now; save or export to keep it", 5000);
+    return true;
+  } catch (e) { note(`that link did not decode: ${e.message}`, 5000); return false; }
+}
+
+// ---- blocks: the reusable half -------------------------------------------------------------------
+// A block is a SUBTREE -- a host and everything hooked below it -- saved by name and dropped into any
+// layout. That is what "reuse" means here: not a whole scene you fork, but the cooking station you
+// already worked out, arriving intact with its modules on it.
+//
+// Almost all of it existed already: subtreeIds() knows what hangs off a node, and duplicateNode()
+// clones a subtree onto fresh ids. A block is the same operation with a FILE where the live node was.
+const blocksAll = () => lsGet(LS_BLOCKS, {});
+function saveBlock(name) {
+  const roots = selectedIds().map(byId).filter(Boolean);
+  if (!roots.length) return;
+  const ids = new Set();
+  for (const r of roots) for (const id of subtreeIds(r)) ids.add(id);
+  const nodes = state.nodes.filter(n => ids.has(n.id));
+  // A block travels: store it around its own origin, so dropping it is a translation and not a
+  // memory of where it happened to be sitting the day it was saved.
+  const free = nodes.filter(n => n.host == null);
+  const ox = free.reduce((s, n) => s + n.x, 0) / (free.length || 1);
+  const oz = free.reduce((s, n) => s + n.z, 0) / (free.length || 1);
+  const doc = serializeLayout(nodes);
+  for (const o of doc.nodes) if (o.x !== undefined) { o.x -= ox; o.z -= oz; }
+  const all = blocksAll();
+  all[name] = { ...doc, name, at: new Date().toISOString() };
+  if (!lsPut(LS_BLOCKS, all)) return note("could not save -- browser storage is full");
+  note(`block "${name}" saved — ${nodes.length} part(s)`);
+  paint();
+}
+function deleteBlock(name) { const all = blocksAll(); delete all[name]; lsPut(LS_BLOCKS, all); paint(); }
+/** Drop a saved block into the CURRENT layout: fresh ids, hosts re-pointed inside the block, placed
+ *  clear of what is already there. Nothing existing is touched. */
+function addBlock(name) {
+  const doc = blocksAll()[name];
+  if (!doc) return;
+  const { nodes, dropped } = readLayout(doc);
+  if (!nodes.length) return note(`block "${name}" has nothing left in the catalog`);
+  const remap = new Map();
+  for (const n of nodes) remap.set(n.id, state.nextId++);
+  const at = freeSpot();
+  for (const n of nodes) {
+    n.id = remap.get(n.id);
+    if (n.host != null) n.host = remap.get(n.host) ?? null;
+    if (n.host == null) { n.x += at.x; n.z += at.z; }
+    state.nodes.push(n);
+  }
+  state.selSet = new Set(nodes.filter(n => n.host == null).map(n => n.id));
+  state.sel = [...state.selSet].pop() ?? null;
+  render();
+  if (dropped.length) note(`dropped ${dropped.join(", ")} — no longer in the catalog`);
+}
+/** Somewhere the new arrival will not land inside what is already built. */
+function freeSpot() {
+  if (!state.nodes.length) return { x: 0, z: 0 };
+  let maxX = -Infinity, minZ = Infinity;
+  for (const n of state.nodes) { const f = footprint(n); maxX = Math.max(maxX, n.x + f.w / 2); minZ = Math.min(minZ, n.z); }
+  return { x: maxX + 700, z: minZ };
+}
+
+// ---------------------------------------------------------------- the layouts menu
+const fileMenu = $("filemenu");
+function paintFiles() {
+  const all = savedAll();
+  const names = Object.keys(all).sort();
+  fileMenu.innerHTML = "";
+  const row = (label, sub, fn, cls = "") => {
+    const d = document.createElement("div");
+    d.className = "frow " + cls;
+    d.innerHTML = `<span>${label}</span>` + (sub ? `<span class="fsub">${sub}</span>` : "");
+    d.onclick = () => { fileMenu.hidden = true; fn(); };
+    fileMenu.append(d);
+    return d;
+  };
+  const head = t => { const h = document.createElement("div"); h.className = "fhead"; h.textContent = t; fileMenu.append(h); };
+
+  head("this layout");
+  row("Save as…", "keeps it in this browser", () => {
+    const name = prompt("name this layout:", "");
+    if (name && name.trim()) saveNamed(name.trim());
+  });
+  row("Export a file…", "the copy that outlives this browser", exportFile);
+  row("Import a file…", "", importFile);
+  row("Start over", "", () => {
+    if (state.nodes.length && !confirm("clear the layout?")) return;
+    state.nodes = []; state.nextId = 1; selectOnly(null);
+    undoStack.length = 0; redoStack.length = 0; render();
+  });
+
+  head(names.length ? "in this browser" : "nothing saved in this browser yet");
+  for (const n of names) {
+    const at = (all[n].at || "").slice(0, 10);
+    const r = row(n, `${(all[n].nodes || []).length} parts · ${at}`, () => openNamed(n));
+    const x = document.createElement("button");
+    x.className = "fdel"; x.textContent = "×"; x.title = "forget this one";
+    x.onclick = e => { e.stopPropagation(); if (confirm(`forget "${n}"?`)) deleteNamed(n); };
+    r.append(x);
+  }
+  if (names.length) {
+    const w = document.createElement("div");
+    w.className = "fnote";
+    // Say the true thing where the word "save" is, not in a help page nobody opens.
+    w.textContent = "These live in this browser only — clearing site data deletes them. Export to keep one for real.";
+    fileMenu.append(w);
+  }
+}
+$("filebtn").onclick = e => {
+  e.stopPropagation();
+  if (!fileMenu.hidden) { fileMenu.hidden = true; return; }
+  paintFiles();
+  const r = e.currentTarget.getBoundingClientRect();
+  fileMenu.style.left = `${Math.max(8, r.right - 260)}px`;
+  fileMenu.style.top = `${r.bottom + 6}px`;
+  fileMenu.hidden = false;
+};
+$("sharebtn").onclick = shareLink;
+addEventListener("pointerdown", e => { if (!fileMenu.hidden && !fileMenu.contains(e.target)) fileMenu.hidden = true; }, true);
+
+// ---------------------------------------------------------------- the blocks shelf
+function paintBlocks() {
+  const host = $("blocks");
+  if (!host) return;
+  const all = blocksAll();
+  const names = Object.keys(all).sort();
+  host.innerHTML = "";
+  if (!names.length) {
+    const d = document.createElement("div");
+    d.className = "hint pad";
+    d.textContent = "Select a table you have set up and press ⧉ block on its toolbar. It comes back here with its modules on it.";
+    host.append(d);
+    return;
+  }
+  for (const n of names) {
+    const b = document.createElement("div");
+    b.className = "part";
+    b.dataset.search = n.toLowerCase();
+    b.innerHTML = `<span class="sw" style="background:var(--accent)"></span><span>${n}</span>`
+                + `<span class="hint">${(all[n].nodes || []).length}</span>`;
+    b.onclick = () => addBlock(n);
+    const x = document.createElement("button");
+    x.className = "fdel"; x.textContent = "×"; x.title = "forget this block";
+    x.onclick = e => { e.stopPropagation(); if (confirm(`forget block "${n}"?`)) deleteBlock(n); };
+    b.append(x);
+    host.append(b);
+  }
+}
+
 // ---------------------------------------------------------------- undo / redo
 // Snapshots of the layout (nodes only -- selection is transient, not worth an undo step). Every
 // committed render pushes one; a drag pushes only its final state (see pointerup). Ctrl/Cmd-Z
@@ -3321,6 +3684,7 @@ function commitHistory() {
   if (undoStack.length > 150) undoStack.shift();
   redoStack.length = 0;
   paintUndo();
+  autosave();      // same definition of "something changed" the undo stack uses
 }
 function restoreHistory(json) {
   const s = JSON.parse(json);
@@ -3472,8 +3836,26 @@ $("datum").textContent = `${LAYOUT.datum_height_mm}mm`;
 window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
   openEdges, hookNormal, bracketNormal, turnOf, hostEdge, aabb, legalOn, portsAt, CONN,
   findDropTarget, hookNode, detachNode, insertAt, edgeKeysOf, selectedIds,
+  serializeLayout, readLayout, loadLayout, saveNamed, openNamed, savedAll, blocksAll,
+  saveBlock, addBlock, shareLink, exportFile,
   top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); } };
 
 resize();
 initTheme();
-addNode("CK-150");
+paintFiles();
+
+// WHAT YOU SEE WHEN YOU ARRIVE, most specific first:
+//   a shared link   -- someone sent you a design; it wins over anything cached here
+//   the last scene  -- you reloaded, or the tab crashed, and nothing should have been lost
+//   a 4-unit frame  -- a blank page is not a starting point
+(async () => {
+  if (await fromHash()) return;
+  const cached = lsGet(LS_SCENE, null);
+  if (cached) {
+    try {
+      loadLayout(cached);
+      if (state.nodes.length) return;
+    } catch (e) { note(`could not restore the last scene: ${e.message}`, 5000); }
+  }
+  addNode("CK-150");
+})();

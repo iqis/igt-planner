@@ -540,3 +540,69 @@ h3 {
 .xform input:focus { outline: none; border-color: var(--accent); }
 .xform span { color: var(--faint); }
 .xform .rot { margin-left: auto; color: var(--dim); }
+
+/* ---- layouts menu, blocks, and the one-line note ------------------------------------------- */
+.filebar { display: flex; gap: 4px; margin-left: auto; }
+
+#filemenu[hidden] { display: none; }
+#filemenu {
+  position: fixed;
+  z-index: 20;
+  min-width: 260px;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px var(--shadow);
+}
+#filemenu .fhead {
+  font: .58rem ui-monospace, monospace;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--dim);
+  padding: .5rem .5rem .25rem;
+}
+#filemenu .frow {
+  display: flex; align-items: baseline; gap: .5rem;
+  padding: .38rem .5rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: .78rem;
+}
+#filemenu .frow:hover { background: var(--raise); }
+#filemenu .fsub { margin-left: auto; font-size: .64rem; color: var(--dim); }
+/* The true thing about localStorage, where the word "save" is -- not in a help page nobody opens. */
+#filemenu .fnote {
+  padding: .5rem;
+  font-size: .64rem; line-height: 1.45;
+  color: var(--dim);
+  border-top: 1px solid var(--line);
+  margin-top: .25rem;
+}
+.fdel {
+  margin-left: .3rem;
+  border: none; background: transparent;
+  color: var(--dim); cursor: pointer;
+  font-size: .8rem; line-height: 1;
+  padding: 0 .2rem;
+}
+.fdel:hover { color: var(--danger, #d2534a); }
+.hint.pad { padding: .5rem; line-height: 1.5; display: block; }
+
+#note[hidden] { display: none; }
+#note {
+  position: absolute;
+  left: 50%; top: .8rem;
+  transform: translateX(-50%);
+  z-index: 12;
+  max-width: min(70ch, 90%);
+  padding: .45rem .8rem;
+  font-size: .74rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px var(--shadow);
+}
+@media (pointer: coarse) {
+  #filemenu .frow { padding: .7rem .5rem; }
+  .filebar .chip { min-height: 44px; }
+}
