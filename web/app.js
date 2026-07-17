@@ -801,6 +801,35 @@ camera.position.set(1.6, 1.5, 2.1);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.target.set(0, 0.35, 0);
+// The scroll wheel already dollies, so the middle button is free -- and PAN is what you actually
+// reach for. Right pans too: on a canvas where the left button is spoken for, one obvious way to
+// pan beats a clever one. (Right-CLICK still opens a module's menu -- OrbitControls only pans on a
+// DRAG, and the contextmenu handler only fires when the press did not travel.)
+controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.PAN };
+// Touch: one finger turns it, two pan and pinch. These are the DEFAULTS, which is the whole point --
+// they are what a hand already expects, and the only reason they never worked is that pointerdown
+// was swallowing the first finger before OrbitControls ever saw it.
+controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+// WHO OWNS THE LEFT BUTTON, decided in one place because three things want it.
+//   * Alt held      -> PAN. The trackpad half of the world has no middle button, and OrbitControls
+//                      has no modifier map of its own, so the binding is swapped while the key is down.
+//   * band tool on  -> NOBODY. `null` is not ignored: OrbitControls' own switch falls through to
+//                      `default: state = STATE.NONE`, which is the clean way to say "not yours".
+//                      `controls.enabled = false` is the wrong tool for it twice over -- it kills
+//                      middle and right as well, and it loses a RACE, because OrbitControls has its
+//                      own pointerdown on this canvas and it runs BEFORE anything in this file.
+//   * otherwise     -> ROTATE.
+// (Free, from reading the vendored source: MOUSE.ROTATE with shift/ctrl/meta held PANS by itself.
+// So shift+drag on empty ground pans too, without anyone here arranging it.)
+let altDown = false;
+function syncLeft() {
+  controls.mouseButtons.LEFT = altDown ? THREE.MOUSE.PAN : bandTool ? null : THREE.MOUSE.ROTATE;
+}
+const setAlt = down => { altDown = down; syncLeft(); };
+addEventListener("keydown", e => { if (e.key === "Alt") setAlt(true); });
+addEventListener("keyup", e => { if (e.key === "Alt") setAlt(false); });
+// Put it back on blur, or alt-tabbing away leaves the canvas panning on left-drag forever.
+addEventListener("blur", () => setAlt(false));
 
 scene.add(new THREE.HemisphereLight(0xdfe6f0, 0x33383f, 1.5));
 const key = new THREE.DirectionalLight(0xffffff, 1.4);
@@ -2042,6 +2071,8 @@ function paintSlotMenu() {
 const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
 let dragNode = null, dragMod = null, dragSlide = null, longPress = null, dragHooked = false;
+let bandTool = false;     // the rubber-band TOOL: off by default, because empty ground is the camera's
+let emptyPress = null;   // where a press on nothing landed -- a click deselects, a drag is the camera
 let dragGroup = null;    // [{node, ox, oz}] when a whole multi-selection is being moved together
 let marquee = null;      // {x0, y0} while a rubber-band select is being dragged on empty ground
 const dragOff = new THREE.Vector3();
@@ -2057,6 +2088,14 @@ const hitPlane = y => {
 };
 
 canvas.addEventListener("pointerdown", e => {
+  // THE CAMERA OWNS EVERY BUTTON BUT THE PRIMARY ONE -- and it owns that one too while Alt is held.
+  // There was no guard here at all, and pointerdown fires for middle and right exactly the same, so
+  // one `controls.enabled = false` further down took orbit, pan AND dolly with it. On a touch screen
+  // it took the second finger as well. Every button was dead but the scroll wheel, which is the one
+  // input that never goes through this handler.
+  // Leave the event completely alone: OrbitControls has its own listener on this canvas and reads
+  // the raw event. Returning is enough; touching `controls` is what broke it.
+  if (e.button !== 0 || e.altKey) return;
   hideModMenu();                      // any press elsewhere dismisses the module menu
   toPtr(e);
   ray.setFromCamera(ptr, camera);
@@ -2113,12 +2152,26 @@ canvas.addEventListener("pointerdown", e => {
   }
 
   const nd = ray.intersectObjects(nodeMeshes, false)[0];
-  // Pressed empty ground. Don't decide yet: this is either a click (deselect) or the start of a
-  // rubber band. pointerup tells them apart by how far it travelled.
+  // PRESSED EMPTY GROUND -- the one decision the whole scheme hangs off.
+  //
+  // Pointing at nothing MOVES THE CAMERA. That is not a preference: it is the only binding a phone
+  // can honour, because one finger is all there is, and a model you cannot turn is not a 3D view.
+  // The rubber band was sitting on this gesture and had quietly eaten orbit on every device.
+  //
+  // So the band is a TOOL now -- an explicit mode off the viewport bar, which is the one mechanism
+  // that works the same with a mouse and with a thumb.
   if (!nd) {
     const r = canvas.getBoundingClientRect();
-    marquee = { x0: e.clientX - r.left, y0: e.clientY - r.top, add: e.shiftKey || e.ctrlKey || e.metaKey };
-    controls.enabled = false;
+    if (bandTool) {
+      // No `controls.enabled` here on purpose: with the tool on, the LEFT button is already not the
+      // camera's (syncLeft), so there is nothing to switch off and nothing to race.
+      marquee = { x0: e.clientX - r.left, y0: e.clientY - r.top, add: e.shiftKey || e.ctrlKey || e.metaKey };
+      return;
+    }
+    // Otherwise the drag belongs to OrbitControls. Only remember WHERE the press landed: if the
+    // pointer barely travels it was a CLICK on nothing, which still deselects. Don't touch
+    // `controls` -- that is exactly the mistake this comment exists because of.
+    emptyPress = { x: e.clientX - r.left, y: e.clientY - r.top };
     return;
   }
   const n = nd.object.userData.node;
@@ -2266,8 +2319,18 @@ canvas.addEventListener("pointermove", e => {
   render();
 });
 
-addEventListener("pointerup", () => {
+addEventListener("pointerup", e => {
   clearTimeout(longPress);
+  // A press that landed on NOTHING. Barely moved -> it was a click, and a click on nothing
+  // deselects. Travelled -> that was the camera orbiting, and orbiting must not also wipe the
+  // selection out from under you.
+  if (emptyPress) {
+    const r = canvas.getBoundingClientRect();
+    const d = Math.hypot((e.clientX - r.left) - emptyPress.x, (e.clientY - r.top) - emptyPress.y);
+    emptyPress = null;
+    if (d <= 6 && (state.sel != null || state.selSet.size)) { selectOnly(null); render(); }
+    return;
+  }
   // A rubber band closes here. Swept more than a few pixels -> take everything whose object sits
   // inside it; barely moved -> it was a click on empty ground, which means deselect.
   if (marquee) {
@@ -2290,7 +2353,6 @@ addEventListener("pointerup", () => {
     }
     marquee = null;
     $("marquee").hidden = true;
-    controls.enabled = true;
     render();
     return;
   }
@@ -2694,8 +2756,21 @@ function focusSelection(n) {
   flyTo(c.clone().addScaledVector(dir, dist), c);
 }
 
-for (const b of document.querySelectorAll("#viewnav button"))
+for (const b of document.querySelectorAll("#viewnav button[data-view]"))
   b.onclick = () => setView(b.dataset.view);
+
+// The rubber-band TOOL. A mode, deliberately: it is the one affordance that reads the same to a
+// mouse and to a thumb, and the alternative -- a modifier chord -- does not exist on a phone at all.
+// Off by default, because empty ground belongs to the camera.
+const bandBtn = $("bandtool");
+function setBand(on) {
+  bandTool = on;
+  syncLeft();
+  bandBtn.classList.toggle("on", on);
+  bandBtn.setAttribute("aria-pressed", String(on));
+  canvas.style.cursor = on ? "crosshair" : "";
+}
+bandBtn.onclick = () => setBand(!bandTool);
 
 function setLeg(n, sku) {
   const root = n.kind === "ext" ? rootOf(n) : n;
@@ -3321,6 +3396,7 @@ addEventListener("keydown", e => {
   if (k === "delete" || k === "backspace") { e.preventDefault(); if (n) removeNode(n); return; }
   if (k === "r" && !e.ctrlKey && !e.metaKey) { if (n && !n.host) rotateNode(n); return; }
   if (k === "f") { n ? focusSelection(n) : fitAll(); return; }   // frame the selection, or fit all
+  if (k === "b") { setBand(!bandTool); return; }                 // the rubber-band tool, on / off
   if (k === "1") { setView("top"); return; }
   if (k === "2") { setView("front"); return; }
   if (k === "3") { setView("side"); return; }

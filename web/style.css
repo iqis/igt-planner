@@ -305,6 +305,22 @@ h2 {
   cursor: pointer;
 }
 #viewnav button:hover { background: var(--raise); color: var(--ink); }
+#viewnav .sep { width: 1px; background: var(--line); margin: .18rem .18rem; }
+/* The band tool is a MODE, so it has to look like one -- a pressed button, not a thing you poked. */
+#bandtool { font-size: .82rem; line-height: 1; padding: .22rem .4rem; }
+#bandtool.on, #bandtool.on:hover { background: var(--accent); color: var(--panel); }
+
+/* TOUCH. A finger is not a mouse pointer: it has no hover, and it is about 9mm wide. Anything you
+   are meant to press gets a 44px box (Apple's number, and the one everyone else copied), and the
+   viewport bar comes off the corner where a thumb cannot reach it. Nothing here changes the mouse. */
+@media (pointer: coarse) {
+  #viewnav { right: .5rem; bottom: .5rem; gap: 4px; padding: 4px; }
+  #viewnav button { min-width: 44px; min-height: 44px; font-size: .7rem; padding: .4rem; }
+  #bandtool { font-size: 1.1rem; }
+  #seltools button, #toolpop button, .panel-toggle { min-width: 44px; min-height: 44px; }
+  /* The hint line is a hover instruction on a device with no hover. */
+  #hint { display: none; }
+}
 
 /* Fixed layout, or a long part name ("IGT Standing Height 830mm Leg Set") shoves
    the price column clean out of the panel. */

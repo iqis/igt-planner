@@ -109,10 +109,14 @@
     <!-- Right-click or long-press a placed module to get this: what it is, and Remove. -->
     <div id="modmenu" hidden></div>
 
-    <div id="hint">hover a table <b>edge</b> to hook on an extension · hover <b>inside a frame</b> to drop in a module · drag to move · <b>right-click or long-press</b> a module for its menu</div>
+    <div id="hint">drag <b>empty space</b> to turn · <b>right-drag</b> or <b>two fingers</b> to pan · scroll to zoom · drag a <b>part</b> to move it · hover an <b>edge</b> to hook something on</div>
 
     <!-- Viewport navigation: preset camera angles + fit-to-scene, all as smooth moves. -->
     <div id="viewnav">
+      <!-- The rubber band is a TOOL, not what empty ground does: pointing at nothing has to move the
+           camera, or a one-finger phone can never turn the model at all. -->
+      <button id="bandtool" aria-pressed="false" title="rubber-band select  (B) — off, empty space turns the view">⬚</button>
+      <span class="sep"></span>
       <button data-view="top" title="top view  (1)">top</button>
       <button data-view="front" title="front view  (2)">front</button>
       <button data-view="side" title="side view  (3)">side</button>
