@@ -6,7 +6,8 @@ import { materialFor, roundedBox, boardMaterial, flatRect,
 import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
          hangRackGroup, clampGroup, screenGroup, postArmGroup, ttaFrameGroup,
          ringGroup, caseGroup, railsGroup, plateGroup, gridPlateGroup,
-         slideExtGroup, entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop } from "./parts3d.js";
+         slideExtGroup, entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop,
+         propGroup, shelterOf } from "./parts3d.js";
 
 /* The bench.
  *
@@ -71,6 +72,19 @@ function woodGrain(key, rx, ry, path = WOOD_GRAIN) {
   woodTexCache[key] = t;
   return t;
 }
+// The chair fabrics. Same two files the planner uses; the loading is this file's own, because a
+// texture is a cache and a cache is not a shape. The ALPHA must stay LINEAR -- read as sRGB the
+// perforation curve is gamma-shifted and the mesh chairs stop being see-through.
+const CANVAS_TEX = "tex/canvas.jpg", MESH_ALPHA = "tex/chair_mesh.png";
+function chairTex(key, path, rep, srgb) {
+  if (woodTexCache[key]) return woodTexCache[key];
+  const t = texLoader.load(path);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.repeat.set(rep, rep);
+  woodTexCache[key] = t;
+  return t;
+}
 const burnerTop = sku => sku.startsWith("GS-450R") ? loadTex("tex/GS-450R_top.jpg") : null;
 
 // The axis a set of measured points sits on. Same rule as the planner uses, so what you
@@ -131,6 +145,28 @@ function benchGeo(p, box) {
   const color = swatchOf(p.sku);
   const w = box.w, d = box.d, h = box.h ?? 40;
   const sku = p.sku, role = p.role;
+
+  // FREE-STANDING PARTS -- chairs, fire pits, the stove. Same builders the planner uses, through the
+  // shared dispatch in parts3d.js (propGroup). This branch is why the bench was lying for months:
+  // without it these fell through to moduleGroup's catch-all, which never says "I don't know this
+  // part" -- it just draws something. A GS-1000 came out a flat burner disc, next to text describing
+  // four legs and a rubber foot; a folding chair came out a storage box. 39 of 139 parts.
+  //
+  // It has to sit ABOVE the moduleGroup call, because being wrong here is silent and being wrong is
+  // exactly what a bench is for catching.
+  //
+  // No `cfg`: the bench shows a part as it comes, not as some node in a layout has configured it.
+  // Textures come from this file's own loader -- the shape is shared, the loading is not.
+  if (role === "seating" || role === "hearth")
+    return propGroup(p, {}, {
+      canvas: () => chairTex("bcanvas", CANVAS_TEX, 4, true),
+      mesh: () => chairTex("bmesh", MESH_ALPHA, 6, false),   // false = LINEAR: it is an alpha, not a colour
+      wood: () => woodGrain("bshelf", 3, 1),
+    }).group;
+
+  // A tent/tarp outline, flat on the ground -- a scale reference, and the one kind of part whose
+  // whole content IS its silhouette, so a slab was an especially poor substitute.
+  if (role === "shelter") return shelterOf(p, sku).group;
 
   // Jikaro: a layout_table, but its own octagon. Default to the published long-edge-in ring.
   if (sku === "ST-050")
@@ -448,6 +484,12 @@ const ROLE_DEF = {
   storage: "a gear box sized in IGT units",
   set: "a bundle of other parts, not a single object",
   excluded: "excluded from the planner",
+  // The free-standing half of the planner. These three roles predate nothing -- they were simply
+  // never added here, so the bench described every chair and fire pit as "a plain slab" (the
+  // default at the bottom of paintUnderstanding) while the planner had modelled them part by part.
+  seating: "a chair or bench that stands AROUND the table -- it connects to nothing",
+  hearth: "the fire the table is built around -- a pit or a stove, standing on its own feet",
+  shelter: "a tent or tarp GROUND OUTLINE, laid flat as a scale reference -- not the shelter itself",
 };
 const ROLE_MODEL = {
   frame: "frameGroup -- the measured cross-section swept to length, with hook-holes and leg sockets",
@@ -469,6 +511,12 @@ const ROLE_MODEL = {
   storage: "moduleGroup -- a box sized in units",
   set: "not modelled as one object (it is a bundle)",
   excluded: "not modelled",
+  // Keep these HONEST as the builders change: the bench earned its keep the moment it drew a real
+  // folding chair next to text still calling it "a plain slab". Drawing the truth and describing a
+  // lie is the same failure as the reverse -- it is just harder to notice.
+  seating: "propGroup -> the chair built part by part from its photo: frame tubes, canvas sling, arms",
+  hearth: "propGroup -> takibiGroup / gs1000Group -- built at floor level, on its own feet",
+  shelter: "shelterOf -> the TRUE ground polygon from the setup drawing, flat, with a size label",
 };
 const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;

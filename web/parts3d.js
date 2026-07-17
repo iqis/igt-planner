@@ -1926,3 +1926,93 @@ export function gs1000Group(w = GS1000.span, d = GS1000.span, h = GS1000.h, { ca
 
   return { group: g, body };
 }
+
+// ---------------------------------------------------------------- WHICH builder a part uses
+//
+// The shapes moved into this file long ago; the CHOOSING did not. `PROP_BUILDERS` stayed behind in
+// app.js, so the part bench -- the tool this project built to check exactly this -- never got the
+// memo: it fell through to moduleGroup's catch-all, which never says "I don't know this part", it
+// just draws something. A GS-1000 came out a flat burner disc. A folding chair came out a storage
+// box. 39 of 139 parts, every one of them wrong, right next to the text describing the right one.
+//
+// That is the bug the header of this file is about, one level up: not two sources of truth for a
+// SHAPE, but two for WHICH SHAPE. So the dispatch lives here now, and both renderers call it.
+//
+// Textures are the caller's business (the planner and the bench have their own loaders and caches),
+// so they come in as thunks rather than being loaded here -- this file stays state-free.
+export const PROP_BUILDERS = {
+  folding: foldingChairGroup, lowbeach: lowBeachChairGroup, sofa: campfieldSofaGroup,
+  cushion: loungeCushionGroup, bench: foldingBenchGroup, shelf: bambooShelfGroup,
+  take: takeChairGroup, takibi: takibiGroup, gs1000: gs1000Group,
+};
+
+/** A free-standing part -- a chair, a fire pit, a stove -- from its catalog record.
+ *  `cfg` is the per-NODE state (a Takibi's bridge, a cushion's fold); the bench passes none and
+ *  gets the part as it comes. `tex` supplies {canvas, mesh, wood} thunks; omit for flat colour. */
+export function propGroup(p, cfg = {}, tex = {}) {
+  const a = p.assembled_mm || { w: 500, d: 500, h: 800 };
+  const which = p.prop || p.chair;
+  const build = PROP_BUILDERS[which] || foldingChairGroup;
+  const isMeshFabric = p.fabric_type === "mesh";
+  return build(a.w, a.d, a.h, {
+    frame: Number(p.frame_hex) || 0x232528,
+    fabric: Number(p.fabric_hex) || 0x8c8279,
+    wood: Number(p.wood_hex) || 0xd8bd86,
+    seatH: p.seat_h_mm || 400,
+    canvasTex: isMeshFabric ? null : (tex.canvas ? tex.canvas() : null),
+    meshAlpha: isMeshFabric ? (tex.mesh ? tex.mesh() : null) : null,
+    woodTex: which === "shelf" && tex.wood ? tex.wood() : null,
+    depth: p.bowl_depth_mm || undefined,
+    ...cfg,
+  });
+}
+
+// ---------------------------------------------------------------- shelter outlines
+// A tent/tarp footprint is a SHAPE, so it belongs beside the other shapes rather than in the
+// planner -- the bench could not draw one either, for the same reason as the props.
+//
+// The catalog gives either an explicit {kind:"polygon", vertices:[[x,y],...]} or a named primitive
+// expanded here, so it can say "hexagon 5700x4200 waist 1800" instead of listing six points. All mm,
+// centred; +y = front (door / ridge), which the caller maps to scene +z.
+export const SHELTER_FILL = { tent: 0x5b8dd6, shell: 0x57b894, tarp: 0xd6a24e };
+export function shelterVerts(g) {
+  if (!g) return [[-500, -500], [500, -500], [500, 500], [-500, 500]];
+  switch (g.kind) {
+    case "polygon": return g.vertices;
+    case "rectangle": { const w = g.w / 2, d = g.d / 2; return [[-w, -d], [w, -d], [w, d], [-w, d]]; }
+    case "hexagon": {  // elongated hexagon: two tips on the long (front-back) axis, a waist band across
+      const L = g.length / 2, W = g.width / 2, waist = (g.waist ?? g.length * 0.3) / 2;
+      return [[0, L], [W, waist], [W, -waist], [0, -L], [-W, -waist], [-W, waist]];
+    }
+    case "pentagon": {  // a "house": rectangle back + triangular front peak
+      const w = g.width / 2, d = g.length / 2, apex = g.apex ?? g.length * 0.34;
+      return [[-w, -d], [w, -d], [w, d - apex], [0, d], [-w, d - apex]];
+    }
+    case "octagon": {   // rectangle with the four corners cut
+      const w = g.width / 2, d = g.length / 2, c = g.chamfer ?? Math.min(g.width, g.length) * 0.29;
+      return [[-w + c, -d], [w - c, -d], [w, -d + c], [w, d - c], [w - c, d], [-w + c, d], [-w, d - c], [-w, -d + c]];
+    }
+    case "oval": {
+      const w = g.w / 2, d = g.d / 2, N = 44, out = [];
+      for (let i = 0; i < N; i++) { const t = i / N * Math.PI * 2; out.push([Math.cos(t) * w, Math.sin(t) * d]); }
+      return out;
+    }
+    default: { const w = (g.w || 1000) / 2, d = (g.d || 1000) / 2; return [[-w, -d], [w, -d], [w, d], [-w, d]]; }
+  }
+}
+export function shelterBBox(verts) {
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of verts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  return { w: x1 - x0, d: y1 - y0 };
+}
+
+/** The footprint for a shelter part, straight from its catalog record. */
+export function shelterOf(p, sku = null) {
+  const verts = shelterVerts(p.geometry);
+  const b = shelterBBox(verts);
+  return shelterFootprint(verts, {
+    fill: SHELTER_FILL[p.shelter_type] || 0x8a8f97,
+    label: p.title_en || sku || p.sku,
+    sub: `${(b.w / 1000).toFixed(2)} x ${(b.d / 1000).toFixed(2)} m`,
+  });
+}

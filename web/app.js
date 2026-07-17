@@ -7,7 +7,8 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop,
          foldingChairGroup, lowBeachChairGroup, campfieldSofaGroup,
          loungeCushionGroup, foldingBenchGroup, bambooShelfGroup,
-         takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group } from "./parts3d.js";
+         takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group,
+         propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -176,37 +177,6 @@ const footprint = n => footprintOf(n.sku, n.kind, n);
 // explicit {kind:"polygon", vertices:[[x,y],...]} or a named primitive we expand here -- so the
 // catalog can say "hexagon 5700x4200 waist 1800" instead of listing six points. All mm, centred;
 // +y = front (door / ridge), which drawFootprint maps to scene +z.
-const SHELTER_FILL = { tent: 0x5b8dd6, shell: 0x57b894, tarp: 0xd6a24e };
-function shelterVerts(g) {
-  if (!g) return [[-500, -500], [500, -500], [500, 500], [-500, 500]];
-  switch (g.kind) {
-    case "polygon": return g.vertices;
-    case "rectangle": { const w = g.w / 2, d = g.d / 2; return [[-w, -d], [w, -d], [w, d], [-w, d]]; }
-    case "hexagon": {  // elongated hexagon: two tips on the long (front-back) axis, a waist band across
-      const L = g.length / 2, W = g.width / 2, waist = (g.waist ?? g.length * 0.3) / 2;
-      return [[0, L], [W, waist], [W, -waist], [0, -L], [-W, -waist], [-W, waist]];
-    }
-    case "pentagon": {  // a "house": rectangle back + triangular front peak
-      const w = g.width / 2, d = g.length / 2, apex = g.apex ?? g.length * 0.34;
-      return [[-w, -d], [w, -d], [w, d - apex], [0, d], [-w, d - apex]];
-    }
-    case "octagon": {   // rectangle with the four corners cut
-      const w = g.width / 2, d = g.length / 2, c = g.chamfer ?? Math.min(g.width, g.length) * 0.29;
-      return [[-w + c, -d], [w - c, -d], [w, -d + c], [w, d - c], [w - c, d], [-w + c, d], [-w, d - c], [-w, -d + c]];
-    }
-    case "oval": {
-      const w = g.w / 2, d = g.d / 2, N = 44, out = [];
-      for (let i = 0; i < N; i++) { const t = i / N * Math.PI * 2; out.push([Math.cos(t) * w, Math.sin(t) * d]); }
-      return out;
-    }
-    default: { const w = (g.w || 1000) / 2, d = (g.d || 1000) / 2; return [[-w, -d], [w, -d], [w, d], [-w, d]]; }
-  }
-}
-function shelterBBox(verts) {
-  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-  for (const [x, y] of verts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-  return { w: x1 - x0, d: y1 - y0 };
-}
 
 /** Top surface height.
  *
@@ -1088,31 +1058,27 @@ function drawSlideExt(g, n) {
 // Free-standing things placed around the layout. Keyed by the part's own builder name -- `chair` for
 // the seating, `prop` for anything that stands on the ground but isn't one (the fire pit). A hearth
 // with `chair: "takibi"` would be a lie; the taxonomy is worth one extra key.
-const PROP_BUILDERS = { folding: foldingChairGroup, lowbeach: lowBeachChairGroup, sofa: campfieldSofaGroup, cushion: loungeCushionGroup, bench: foldingBenchGroup, shelf: bambooShelfGroup, take: takeChairGroup, takibi: takibiGroup, gs1000: gs1000Group };
 
 /** A free-standing prop (a chair): built at floor level (y = 0), tagged for selection + drag like
  *  a table but never connected to the IGT grid -- no hooks, no bay, no legs. */
 function drawProp(g, n) {
   const p = PARTS[n.sku];
-  const a = p.assembled_mm || { w: 500, d: 500, h: 800 };
-  const mesh = p.fabric_type === "mesh";
-  const build = PROP_BUILDERS[p.prop || p.chair] || foldingChairGroup;
-  const built = build(a.w, a.d, a.h, {
-    frame: Number(p.frame_hex) || 0x232528,
-    fabric: Number(p.fabric_hex) || 0x8c8279,
-    wood: Number(p.wood_hex) || 0xd8bd86,
-    seatH: p.seat_h_mm || 400,
-    canvasTex: mesh ? null : chairTex("canvas", CANVAS_TEX, 4, true),
-    meshAlpha: mesh ? chairTex("mesh", MESH_ALPHA, 6, false) : null,
-    woodTex: p.chair === "shelf" ? woodGrain("shelfwood", 3, 1) : null,   // bamboo grain on the shelf top
+  // WHICH builder, and the part's own colours, come from propGroup in parts3d.js -- shared with the
+  // bench, because "two sources of truth for which shape" is how the bench ended up drawing a stove
+  // as a burner disc. Everything passed in here is per-NODE state, which is the only part of this
+  // the bench has no opinion about:
+  //  - the Takibi's four options are FOUR independent decisions on one fire pit (bridge, what's on
+  //    it, coal bed, ground plate) -- a real setup mixes them, so they are not one enum;
+  //  - the GS-1000's canister is OFF by default: it is 専用容器, bought separately, and not in the
+  //    stove's 1,800g. The stove is what you own; the can is what you happened to bring.
+  const built = propGroup(p, {
     folded: n.config === "folded",                                        // lounge cushion: round vs folded
-    // The Takibi's four options. Not one enum: they are four independent decisions on one fire pit
-    // -- the bridge, what's on it, the coal bed, the ground plate -- and a real setup mixes them.
-    depth: p.bowl_depth_mm || undefined,
     bridge: !!n.bridge, surface: n.surface || null, coalBed: !!n.coal, basePlate: !!n.base,
-    // The GS-1000's canister. OFF by default, because it is 専用容器 -- bought separately, and not in
-    // the stove's 1,800g. The stove is what you own; the can is what you happened to bring.
     canister: !!n.canister,
+  }, {
+    canvas: () => chairTex("canvas", CANVAS_TEX, 4, true),
+    mesh: () => chairTex("mesh", MESH_ALPHA, 6, false),
+    wood: () => woodGrain("shelfwood", 3, 1),                             // bamboo grain on the shelf top
   });
   built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
   g.add(built.group);
@@ -1123,14 +1089,7 @@ function drawProp(g, n) {
  *  drag / rotate / delete like any node but never connected to anything. */
 function drawFootprint(g, n) {
   const p = PARTS[n.sku];
-  const verts = shelterVerts(p.geometry);
-  const b = shelterBBox(verts);
-  const size = `${(b.w / 1000).toFixed(2)} × ${(b.d / 1000).toFixed(2)} m`;
-  const built = shelterFootprint(verts, {
-    fill: SHELTER_FILL[p.shelter_type] || 0x8a8f97,
-    label: p.title_en || n.sku,
-    sub: size,
-  });
+  const built = shelterOf(p, n.sku);   // shared with the bench -- see propGroup
   // Locked = a backdrop: only the CURRENTLY SELECTED footprint stays pickable (so you can still
   // drag the one you're placing), every other one is click-through so it can't steal a click meant
   // for the furniture standing on it. Unlocked = all footprints pick normally. Either way it draws.
