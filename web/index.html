@@ -19,10 +19,12 @@
 
 <header>
   <h1>IGT Layout Planner</h1>
-  <div class="grid-facts">
-    unit <b>250mm</b> · half <b>125mm</b> · system datum <b id="datum">400mm</b>
-    <span class="muted">— all derived, none published · <a href="part.html">part bench</a></span>
-  </div>
+  <!-- The unit / half / datum line used to live here, with "all derived, none published" after it.
+       That was the PROJECT talking about itself: three constants that never change and a claim about
+       how they were arrived at, in the corner of every session, helping nobody lay out a table. The
+       constants are worth knowing once and are in the README and on every part's bench page. What
+       survives is the only thing here anyone ever clicked. -->
+  <a class="benchlink" href="part.html">part bench</a>
   <div class="filebar">
     <button id="filebtn" class="chip" title="layouts — save, open, share, export">▤ layouts</button>
     <button id="sharebtn" class="chip" title="copy a link that carries the whole design">⇗ share</button>
@@ -98,7 +100,6 @@
 
   <div id="stage">
     <canvas id="canvas"></canvas>
-    <div id="dimhud" hidden></div>
     <!-- Rubber-band select: drag on empty ground to sweep up everything inside. -->
     <div id="marquee" hidden></div>
     <div id="slotbar" title="half-slot occupancy of the selected frame"></div>
@@ -124,7 +125,20 @@
 
     <!-- One line, over the viewport, gone in a few seconds. -->
     <div id="note" hidden></div>
-    <div id="hint">drag <b>empty space</b> to turn · <b>right-drag</b> or <b>two fingers</b> to pan · scroll to zoom · drag a <b>part</b> to move it · hover an <b>edge</b> to hook something on</div>
+    <!-- The viewport's bottom-left corner, as ONE STACK.
+         These were three absolutely-positioned things sharing one edge, and they collided in the
+         order I touched them: the hint grew to two lines and went under the view bar; I moved it left
+         and it went under the dimensions instead. A magic `bottom` would have missed again the first
+         time the dimensions wrapped. Stacked, they cannot overlap at any size, which is the only
+         version of this that is actually fixed.
+         The hint is one line now, and only the gesture that is NOT a convention: I had it explaining
+         turn / pan / zoom / drag, one commit after making all four conventional precisely so they
+         would need no explaining. This is what is left -- the thing this planner does that nothing
+         else does. -->
+    <div class="stagefoot">
+      <div id="dimhud" hidden></div>
+      <div id="hint">hover a table <b>edge</b> to hook something onto it</div>
+    </div>
 
     <!-- Viewport navigation: preset camera angles + fit-to-scene, all as smooth moves. -->
     <div id="viewnav">

@@ -3086,38 +3086,58 @@ function bomLines() {
   return lines;
 }
 
+// BUILD is a PACKING LIST -- what you own and what it weighs -- and it took a re-read of the whole
+// panel to see that it had not been one for a while.
+//
+// It used to print one row per node, with an × to delete and a price. But the SCENE tree above it
+// does exactly that job and does it better: it shows the NESTING, so you can see what hooks onto
+// what, and it has its own × on every row. Two lists of the same objects, both deletable, stacked in
+// one panel -- and the BOM was the worse of the two at a job it was not for.
+//
+// What the BOM alone knows is the CONSUMABLES: the leg sets, the CK-175s, the rail joints. Things
+// that are not nodes, that no tree will ever show you, and that you still have to own and carry.
+// That is the list worth keeping, so it is the only list it keeps now.
+//
+// And it groups. It listed "IGT Low Height 400mm Leg Set" four separate times for two frames --
+// a shopping list that makes you count is not doing its job.
 function paintBOM() {
   const t = $("bomtable"); t.innerHTML = "";
-  const tot = { us: 0, g: 0 };
+  let grams = 0;
 
+  // Same sku, same row. `req`/`pl` only decide the lead mark, so they collapse together.
+  const rows = new Map();
   for (const l of bomLines()) {
     const p = PARTS[l.sku];
     if (!p) continue;
-    if (p.price.us) tot.us += TO_USD.us(p.price.us);
-    tot.g += p.weight_g || 0;
-
-    const tr = document.createElement("tr");
-    const usd = p.price.us ? "$" + TO_USD.us(p.price.us).toFixed(0) : "—";
-    // A node (frame/table) and an accessory placed in one both get an ×; the required
-    // hardware that comes with them (legs, joints) does not -- it follows what it hangs off.
-    const removable = l.node ? "×" : "";
-    const lead = l.req ? "↳ " : l.pl ? "· " : "";       // · marks a module you dropped in
-    tr.innerHTML = `<td class="x">${removable}</td>`
-      + `<td class="nm" title="${p.sku} — ${p.title_en}">${lead}${p.title_en}</td>`
-      + `<td class="p">${usd}</td>`;
-    if (l.pl) tr.querySelector(".x").onclick = () => removePlacement(l.node, l.pl);
-    else if (l.node) tr.querySelector(".x").onclick = () => removeNode(l.node);
-    t.append(tr);
+    grams += p.weight_g || 0;
+    const r = rows.get(l.sku) || { p, n: 0, req: true, pl: false };
+    r.n++;
+    if (!l.req) r.req = false;         // one placed by hand makes the whole row not "required"
+    if (l.pl) r.pl = true;
+    rows.set(l.sku, r);
   }
 
-  // What a layout WEIGHS and what it COSTS -- and that is all. This used to total three regions and
-  // rank them with percentage deltas and a cheapest-wins highlight, which answers a question the
-  // planner is not asking: where to buy it is not how to lay it out, and it sat in the corner of
-  // every session being answered anyway. The part bench still prices a part in every region, which
-  // is where that question actually belongs.
+  for (const { p, n, req, pl } of rows.values()) {
+    const tr = document.createElement("tr");
+    const lead = req ? "↳ " : pl ? "· " : "";           // ↳ comes with · you dropped in
+    const kg = (p.weight_g || 0) * n / 1000;
+    tr.innerHTML = `<td class="qty">${n > 1 ? "×" + n : ""}</td>`
+      + `<td class="nm" title="${p.sku} — ${p.title_en}">${lead}${p.title_en}</td>`
+      + `<td class="p">${p.weight_g ? kg.toFixed(1) + " kg" : "—"}</td>`;
+    t.append(tr);
+  }
+  const tot = { g: grams };
+
+  // WHAT YOU CARRY. Not what it costs -- owner, twice, and he is right twice: where to buy a frame is
+  // not how to lay one out, and money sat in the corner of every session answering a question nobody
+  // was asking. The part bench prices a part, in every region, which is where a "how much" belongs.
+  //
+  // Both units, no toggle. He buys in a pound country and thinks in kilos; a toggle would make him
+  // click to find out what he already wanted to know, and there is room for six more characters.
+  const kg = tot.g / 1000;
   $("totals").innerHTML = `
-    <div class="row"><span>weight</span><b>${(tot.g / 1000).toFixed(1)} kg</b></div>
-    <div class="row big"><span>US</span><b>$${tot.us.toFixed(0)}</b></div>`;
+    <div class="row big"><span>you carry</span><b>${kg.toFixed(1)} kg</b></div>
+    <div class="row"><span></span><b class="alt">${(kg * 2.20462).toFixed(1)} lb</b></div>`;
 }
 
 function paintWarnings() {
@@ -3829,7 +3849,6 @@ BY_ROLE = {
   unsourced: inScope.filter(p => hookRoles(p) && !HOOKABLE.includes(p)),
 };
 
-$("datum").textContent = `${LAYOUT.datum_height_mm}mm`;
 
 // A way in from the console. Being able to put the camera straight overhead is how you
 // check a silhouette; orbiting by hand and squinting is how you convince yourself.

@@ -2332,7 +2332,7 @@
     "h": 320.0
    },
    "packed_mm": null,
-   "weight_g": 220,
+   "weight_g": 440,
    "material": "ステンレス、アルミニウム合金、樹脂",
    "price": {
     "us": 4995,
@@ -2660,7 +2660,7 @@
     "h": 310.0
    },
    "packed_mm": null,
-   "weight_g": 220,
+   "weight_g": 440,
    "material": "ステンレス、樹脂",
    "price": {
     "us": 4995,
@@ -2696,7 +2696,7 @@
     "h": 410.0
    },
    "packed_mm": null,
-   "weight_g": 250,
+   "weight_g": 500,
    "material": "ステンレス、樹脂",
    "price": {
     "us": 4995,
@@ -2732,7 +2732,7 @@
     "h": 670.0
    },
    "packed_mm": null,
-   "weight_g": 370,
+   "weight_g": 740,
    "material": "ステンレス、樹脂",
    "price": {
     "us": 5495,
@@ -2768,7 +2768,7 @@
     "h": 840.0
    },
    "packed_mm": null,
-   "weight_g": 450,
+   "weight_g": 900,
    "material": "ステンレス、樹脂",
    "price": {
     "us": 5995,

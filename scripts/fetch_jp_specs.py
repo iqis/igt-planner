@@ -68,6 +68,9 @@ def to_mm(s):
 # "1,800" and take just the "1".
 WEIGHT_RE = re.compile(r"(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(kg|g)\b", re.I)
 
+# "（×2）" -- how many of the thing the quoted weight describes. Both bracket styles occur.
+PER_PIECE_RE = re.compile(r"[（(]\s*[×xX]\s*(\d+)\s*[）)]")
+
 # "φ350×420mm" / "φ25.4×320mm" / "φ200×28(h)mm" / "φ350×h420mm" -- a DIAMETER and a length. The
 # optional h before the second number is the manual's style; the web store omits it. Note BOTH phi
 # codepoints occur in the wild: U+03C6 lowercase and U+03A6 uppercase (SSD-702 uses the latter).
@@ -175,14 +178,36 @@ def parse_dims(size_text):
 
 
 def parse_weight(w_text):
-    """Return grams. '3.5kg' -> 3500, '250g' -> 250, '1,800g' -> 1800."""
+    """Return grams for the whole THING SOLD. '3.5kg' -> 3500, '1,800g' -> 1800, '0.25kg（×2）' -> 500.
+
+    The multiplier is the subtle one, and it was wrong for every leg set in the catalog. Snow Peak
+    writes a two-piece product's weight PER PIECE and puts the count beside it -- `0.45kg（×2）` is a
+    900g leg set, not a 450g one. Reading the first number and walking away made CK-109/112/113/114
+    and CK-151 exactly half their real weight, and since a frame stands on TWO sets, the legs are the
+    most repeated line in any bill. It was found the day the panel started showing weight instead of
+    price: put a number in front of someone and it gets checked.
+
+    Exactly the same shape as CK-175 -- `45g(本体一つあたり)`, `セット内容 本体×2`, a 90g pair read as
+    45. That one was caught and patched BY HAND in overrides.json, and nobody came back to ask what
+    else the parser did it to. This is that question, answered in the parser.
+
+    Compound strings are refused, not guessed: FK-329's weight is
+    `【CK-149/...】4.2kg【CK-112/...】（×2）0.25kg（×2）` -- two weights, two multipliers, and a set that
+    has no single weight at all. More than one weight in the string means it is a LIST, and the (xN)
+    in it belongs to some part inside, not to the thing on the shelf.
+    """
     if not w_text:
         return None
     m = WEIGHT_RE.search(w_text)
     if not m:
         return None
     val = to_mm(m.group(1))   # not millimetres -- just the one place that strips the comma
-    return round(val * 1000) if m.group(2).lower() == "kg" else round(val)
+    grams = round(val * 1000) if m.group(2).lower() == "kg" else round(val)
+
+    if len(WEIGHT_RE.findall(w_text)) > 1:
+        return grams          # a list of parts -- see above. Take the first, multiply nothing.
+    mult = PER_PIECE_RE.search(w_text)
+    return grams * int(mult.group(1)) if mult else grams
 
 
 # Canonical copies of these live in snowpeak-sale-watch/snapshot_regions.py, which is
