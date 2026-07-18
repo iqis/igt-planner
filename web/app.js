@@ -35,10 +35,6 @@ const TOUCH = 30;       // two tables closer than this are connected
 // side in slots one board wide (two CK-154 span a four-unit side exactly, 548x2 = 1096).
 const isSlide = p => p?.attach === "slide_in";
 
-// Cents -> dollars. The JP and GBP rates lived here too, for a cross-region total the planner no
-// longer draws -- and an unused exchange rate is worse than none, because it goes stale silently and
-// then someone believes it. The part bench does its own money() for the per-part question.
-const TO_USD = { us: c => c / 100 };
 
 const $ = id => document.getElementById(id);
 
@@ -1827,16 +1823,17 @@ const hideModMenu = () => { modmenu.hidden = true; };
 
 // A menu row is a swatch, a name and a span — no room for the picture or the numbers.
 // Passing over one opens a card beside the menu with the thumbnail (web/img/SKU.jpg) and
-// the details: full name, sku, assembled size, price, weight.
+// the details: full name, sku, assembled size, weight. No price -- owner: "都不必有了". Choosing
+// between two parts is a question of size, span and what it weighs; the money question, if it comes,
+// belongs on the part bench, which prices a part in every region.
 const preview = $("preview");
-const usd1 = p => (p.price?.us ? "$" + TO_USD.us(p.price.us).toFixed(0) : "");
 function showPreview(p, rowEl) {
   const a = p.assembled_mm;
   const span = spanOf(p) ? `${spanOf(p) / 2}u` : "";
   preview.innerHTML =
     `<img src="img/${p.sku}.jpg" alt="">`
     + `<div class="pv-name">${p.title_en}</div>`
-    + `<div class="pv-row"><span class="pv-sku">${p.sku}</span><b>${usd1(p)}</b></div>`
+    + `<div class="pv-row"><span class="pv-sku">${p.sku}</span></div>`
     + (a ? `<div class="pv-row"><span>size</span><b>${a.w}×${a.d}×${a.h}mm</b></div>` : "")
     + (span ? `<div class="pv-row"><span>span</span><b>${span}</b></div>` : "")
     + (p.weight_g ? `<div class="pv-row"><span>weight</span><b>${(p.weight_g / 1000).toFixed(2)}kg</b></div>` : "");
@@ -1989,10 +1986,11 @@ function paintMenu() {
 
     const row = document.createElement("div");
     row.className = "part" + (c.level === "unlisted" ? " caution" : "");
-    const usd = p.price?.us ? "$" + TO_USD.us(p.price.us).toFixed(0) : "";
+    // The trailing badge is the COMPAT flag only now -- a "?" when the manual doesn't list this
+    // pairing -- never a price. It was carrying both, and the price was the half that didn't belong.
     row.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
       + `<span class="nm">${p.title_en}</span>`
-      + `<span class="sp">${c.level === "unlisted" ? "?" : usd}</span>`;
+      + (c.level === "unlisted" ? `<span class="sp caution">?</span>` : "");
     const f = footprintOf(p.sku, kindOf(p));
     row.title = c.level === "unlisted"
       ? `${p.sku} — ${c.why}`
@@ -2028,10 +2026,11 @@ function paintSlotMenu() {
 
     const row = document.createElement("div");
     row.className = "part" + (c.level === "unlisted" ? " caution" : "");
-    const usd = p.price?.us ? "$" + TO_USD.us(p.price.us).toFixed(0) : "";
+    // The trailing badge is the COMPAT flag only now -- a "?" when the manual doesn't list this
+    // pairing -- never a price. It was carrying both, and the price was the half that didn't belong.
     row.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
       + `<span class="nm">${p.title_en}</span>`
-      + `<span class="sp">${c.level === "unlisted" ? "?" : usd}</span>`;
+      + (c.level === "unlisted" ? `<span class="sp caution">?</span>` : "");
     row.title = c.level === "unlisted" ? `${p.sku} — ${c.why}` : `${p.sku} — ${spanOf(p) / 2}u`;
     row.onclick = () => { placeModuleAt(p.sku, n, start); setHover(null); };
     wirePreview(row, p);
