@@ -34,6 +34,10 @@
 <!-- The layouts menu. localStorage is a cache, so the panel says so where the word "save" is. -->
 <div id="filemenu" hidden></div>
 
+<!-- Pages: a strip of tabs, each a whole independent design. The active one is what's on the canvas;
+     the rest wait in localStorage. New / rename (double-click) / delete live on the tabs themselves. -->
+<nav id="pager"></nav>
+
 <main>
   <aside id="palette">
     <button class="panel-toggle" data-panel="left" title="collapse the parts panel">‹</button>
@@ -123,6 +127,14 @@
     <!-- Right-click or long-press a placed module to get this: what it is, and Remove. -->
     <div id="modmenu" hidden></div>
 
+    <!-- Measurements: a ruler is two ground points and the distance between them. Drawn as an SVG
+         overlay (crisp lines, no place in the 3D scene) with an HTML label per ruler carrying the
+         reading and its own delete. Both sit ABOVE the canvas and pass the pointer through, except
+         the delete buttons -- so measuring never blocks turning the model. -->
+    <svg id="rulersvg"></svg>
+    <div id="rulerlabels"></div>
+    <div id="rulerdraftlabel" hidden></div>
+
     <!-- One line, over the viewport, gone in a few seconds. -->
     <div id="note" hidden></div>
     <!-- The viewport's bottom-left corner, as ONE STACK.
@@ -145,6 +157,7 @@
       <!-- The rubber band is a TOOL, not what empty ground does: pointing at nothing has to move the
            camera, or a one-finger phone can never turn the model at all. -->
       <button id="bandtool" aria-pressed="false" title="rubber-band select  (B) — off, empty space turns the view">⬚</button>
+      <button id="rulertool" aria-pressed="false" title="measure  (M) — click two points for the distance between them">⟺</button>
       <span class="sep"></span>
       <button data-view="top" title="top view  (1)">top</button>
       <button data-view="front" title="front view  (2)">front</button>

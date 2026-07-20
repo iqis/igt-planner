@@ -87,6 +87,15 @@ const burnerTop = sku => sku.startsWith("GS-450R") ? loadTex("tex/GS-450R_top.jp
 // the palette is the same colour the part is rendered in, so the two never drift.
 const swatchOf = sku => COLORS[sku]?.color_hex || "#8a929c";
 
+// Legs are aluminium: SILVER by default, every one of them. Black exists as a FINISH -- CK-109 and
+// CK-112 sample pure black in Snow Peak's own photos, so black-anodised legs are real -- but which
+// finish a leg wears is a decision on the node, not a property of the height you picked. The sampled
+// per-SKU leg colour in colors.json conflated finish with height (picking a 400mm leg turned it
+// black), so leg colour no longer reads from swatchOf; it reads the node's chosen finish. Default
+// silver; that data stays only as evidence.
+const LEG_SILVER = "#c0c4c8", LEG_BLACK = "#17191b";
+const legColorOf = n => (n?.legFinish === "black" ? LEG_BLACK : LEG_SILVER);
+
 // A layout is a set of tables. An IGT frame is one kind of table -- the kind with a
 // grid in it. Snow Peak calls the whole thing the Layout System, and the frame is a
 // node in it, not the thing itself.
@@ -100,7 +109,8 @@ const swatchOf = sku => COLORS[sku]?.color_hex || "#8a929c";
 //
 // Modelling the hooked ones as free nodes that happen to be adjacent is what kept the
 // corner from turning: adjacency has no handedness, and a corner is nothing but handedness.
-const state = { nodes: [], sel: null, nextId: 1, shelterLock: true, selSet: new Set() };
+const state = { nodes: [], sel: null, nextId: 1, shelterLock: true, selSet: new Set(), rulers: [] };
+let rulerSeq = 1;   // ids for measurements -- their own counter, reassigned fresh on load
 
 const byId = id => state.nodes.find(n => n.id === id);
 const sel = () => byId(state.sel);
@@ -792,7 +802,7 @@ controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 // So shift+drag on empty ground pans too, without anyone here arranging it.)
 let altDown = false;
 function syncLeft() {
-  controls.mouseButtons.LEFT = altDown ? THREE.MOUSE.PAN : bandTool ? null : THREE.MOUSE.ROTATE;
+  controls.mouseButtons.LEFT = altDown ? THREE.MOUSE.PAN : (bandTool || rulerTool) ? null : THREE.MOUSE.ROTATE;
 }
 const setAlt = down => { altDown = down; syncLeft(); };
 addEventListener("keydown", e => { if (e.key === "Alt") setAlt(true); });
@@ -900,7 +910,7 @@ function drawFrame(g, n) {
     for (const [lx, lz] of spots) {
       const shaft = stock(
         new THREE.CylinderGeometry(LEG_R * MM, LEG_R * 0.82 * MM, h * MM, 16),
-        new THREE.Color(swatchOf(n.leg)), 0.85, 0.3,
+        new THREE.Color(legColorOf(n)), 0.85, 0.3,
       );
       shaft.position.set(lx, h / 2, lz).multiplyScalar(MM);
       g.add(shaft);
@@ -1224,7 +1234,7 @@ function drawTable(g, n) {
       if (legSku && PARTS[legSku]?.height_mm) {
         const leg = stock(
           new THREE.CylinderGeometry(12.5 * MM, 10.5 * MM, legH * MM, 14),
-          new THREE.Color(swatchOf(legSku)), 0.85, 0.32,
+          new THREE.Color(legColorOf(n)), 0.85, 0.32,
         );
         leg.position.set(bx, legH / 2, bz).multiplyScalar(MM);
         g.add(leg);
@@ -1236,7 +1246,7 @@ function drawTable(g, n) {
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const leg = stock(
       new THREE.CylinderGeometry(10 * MM, 8 * MM, (top - thick) * MM, 14),
-      new THREE.Color(swatchOf(n.sku)), 0.85, 0.32,
+      new THREE.Color(legColorOf(n)), 0.85, 0.32,
     );
     leg.position.set(sx * (f.w / 2 - 35), (top - thick) / 2, sz * (f.d / 2 - 35)).multiplyScalar(MM);
     g.add(leg);
@@ -1390,6 +1400,38 @@ function setHoverNode(id) {
 }
 function clearHoverNode() { setHoverNode(null); }
 
+// ---- The floating (not-yet-placed) look --------------------------------------------------------
+// A provisional part reads as provisional three ways at once, because one alone is missable at a bad
+// camera angle: it hovers off the ground, it goes translucent, and it drops a dashed footprint ring
+// where it would actually land. The ring is the honest part -- lifted and see-through say "not real
+// yet", but only the ring on the ground answers "where does it go".
+const GHOST_LIFT = 45;   // mm a floating part hovers above the ground
+function ghostify(g, opacity = 0.42) {
+  // Clone every material before fading it: the draw builders share and cache materials, and dimming a
+  // shared one would ghost solid parts elsewhere in the scene. Picking is unaffected -- a raycast hits
+  // the mesh whatever its opacity -- so a ghost stays selectable and draggable. A hover PREVIEW passes
+  // a fainter value, so "what add would drop" reads distinct from "placed but not locked".
+  g.traverse(o => {
+    if (!o.isMesh || !o.material) return;
+    const fade = m => { m.transparent = true; m.opacity = Math.min(m.opacity ?? 1, opacity); m.depthWrite = false; };
+    if (Array.isArray(o.material)) { o.material = o.material.map(m => m.clone()); o.material.forEach(fade); }
+    else { o.material = o.material.clone(); fade(o.material); }
+  });
+}
+function addGhostFootprint(n) {
+  const f = footprint(n);
+  const hw = f.w / 2 * MM, hd = f.d / 2 * MM;
+  const pts = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd], [-hw, -hd]].map(([x, z]) => new THREE.Vector3(x, 0.002, z));
+  const line = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineDashedMaterial({ color: 0xd8813f, dashSize: 0.035, gapSize: 0.02, transparent: true, opacity: 0.95 }),
+  );
+  line.computeLineDistances();                 // a dashed line draws nothing without this
+  line.position.set(n.x * MM, 0, n.z * MM);
+  line.rotation.y = -n.rot;
+  build.add(line);
+}
+
 function rebuild() {
   clearHoverNode();               // node positions may have moved; drop any stale hover highlight
   build.clear();
@@ -1401,12 +1443,32 @@ function rebuild() {
   const selIds = new Set(selectedIds());
   for (const n of state.nodes) {
     const g = new THREE.Group();
-    g.position.set(n.x * MM, 0, n.z * MM);
+    g.position.set(n.x * MM, n.floating ? GHOST_LIFT * MM : 0, n.z * MM);
     g.rotation.y = -n.rot;
     (n.kind === "frame" ? drawFrame : n.kind === "prop" ? drawProp : n.kind === "footprint" ? drawFootprint : drawTable)(g, n);
+    // Provisional look, applied AFTER the build and BEFORE the selection outline, so the outline
+    // stays crisp while the part itself fades.
+    if (n.floating) { ghostify(g); addGhostFootprint(n); }
     if (selIds.has(n.id)) addSelBox(g, n);   // CAD-style outline around each selected object
     build.add(g);
   }
+
+  // Hover preview: a fainter ghost of what the palette row under the pointer would ADD, at the exact
+  // spot addNode would drop it. Built on the fly -- not in state, and trimmed back out of the pick
+  // arrays so it is look-only: you can't select or drag a thing that isn't there yet.
+  if (hoverPreview && PARTS[hoverPreview]) {
+    const n = previewNode(hoverPreview);
+    const g = new THREE.Group();
+    g.position.set(n.x * MM, n.kind === "footprint" ? 0 : GHOST_LIFT * MM, n.z * MM);
+    g.rotation.y = -n.rot;
+    const keep = [nodeMeshes.length, slotMeshes.length, edgeMeshes.length, slotHandleMeshes.length];
+    (n.kind === "frame" ? drawFrame : n.kind === "prop" ? drawProp : n.kind === "footprint" ? drawFootprint : drawTable)(g, n);
+    nodeMeshes.length = keep[0]; slotMeshes.length = keep[1]; edgeMeshes.length = keep[2]; slotHandleMeshes.length = keep[3];
+    ghostify(g, 0.26);
+    if (n.kind !== "footprint") addGhostFootprint(n);
+    build.add(g);
+  }
+
   if (dropHint) addDropMarker(dropHint);     // where a dragged part will hook / insert on release
 
   // Step joints, where two touching tables stand at different heights. The CK-151 is a stainless
@@ -1550,6 +1612,12 @@ function fillLegs(box, n) {
       n.kind === "ext" ? "an extension is flush with what it hooks to — it takes the same legs, so "
         + "this sets them for the whole run" : p.title_en,
       () => setLeg(n, p.sku)));
+  // Finish is independent of height: legs are silver by default, black is a variant some SKUs ship in.
+  // A hooked run shares one finish, the same way it shares its height.
+  const sep = document.createElement("span"); sep.className = "sep"; box.append(sep);
+  const fin = n.legFinish || "silver";
+  box.append(chip("silver", fin === "silver", "aluminium silver — the default finish", () => setLegFinish(n, "silver")));
+  box.append(chip("black", fin === "black", "black-anodised — a variant finish (CK-109 / CK-112 ship this way)", () => setLegFinish(n, "black")));
 }
 
 /** Everything this particular part can be configured into. */
@@ -1662,6 +1730,31 @@ function openToolPop(which, n) {
   followSelTools();
 }
 
+/** The one placement-lifecycle button, whichever move fits where this part is now:
+ *   floating (ghost)        -> "place"  : lock it down where it sits
+ *   free, committed, open    -> "lock"   : fix it so a stray drag can't move it
+ *   free, locked             -> "unlock" : float it again to move it
+ *   hooked to an edge        -> "detach" : pull it off, floating, to move or re-hook
+ *   on a rail                -> lock / unlock the slide position (never detaches -- delete to remove)
+ *  Words, not an icon: a padlock glyph would be the one emoji in a toolbar of thin line symbols, and
+ *  "detach" says a thing no padlock does. */
+function placementBtn(n) {
+  if (n.host != null && n.rail)
+    return toolBtn(n.locked ? "unlock" : "lock",
+      n.locked ? "unlock — free to slide along the rail" : "lock the slide position so it can't move", "wide",
+      () => { n.locked = !n.locked; render(); });
+  if (n.host != null)
+    return toolBtn("detach", "pull it off — float it free to move or re-hook onto another edge", "wide",
+      () => { detachNode(n); n.floating = true; n.locked = false; selectOnly(n.id); render();
+              note("pulled off — drag it where you want, then lock it"); });
+  const fixed = !!n.locked;
+  return toolBtn(fixed ? "unlock" : (n.floating ? "place" : "lock"),
+    fixed ? "unlock — float it to move it again"
+      : (n.floating ? "place it — lock it down where it sits" : "lock it in place so a stray drag can't move it"),
+    "wide",
+    () => { if (fixed) { n.locked = false; n.floating = true; } else { n.locked = true; n.floating = false; } render(); });
+}
+
 function paintSelTools() {
   const n = sel();
   replaceMenu.hidden = true;   // any repaint (selection change, action) closes a stale popup
@@ -1679,6 +1772,8 @@ function paintSelTools() {
     const sep0 = document.createElement("span"); sep0.className = "sep"; selTools.append(sep0);
     selTools.append(toolBtn("✕", "delete all  (Del)", "danger", () => removeNode(n)));
   } else {
+    // Placement first: is this thing floating, placed, locked, hooked? -- the leading decision.
+    selTools.append(placementBtn(n));
     // This part's OWN controls, at the part: height, then whatever it can be configured into.
     if (legAdjustable(n) && PARTS[n.leg])
       selTools.append(toolBtn(`${PARTS[n.leg].height_mm}`, "leg height — sets the standing height", "wide",
@@ -2051,6 +2146,10 @@ const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
 let dragNode = null, dragMod = null, dragSlide = null, longPress = null, dragHooked = false;
 let bandTool = false;     // the rubber-band TOOL: off by default, because empty ground is the camera's
+let rulerTool = false;    // the measure TOOL: click two ground points to lay a dimension between them
+let rulerDraft = null;    // {x, z} of the first point placed, waiting for the second
+let rulerHover = null;    // {x, z} the pointer is over while drafting -- draws the live preview line
+let hoverPreview = null;  // sku of the palette part the pointer is over -- a ghost of what "add" would drop
 let emptyPress = null;   // where a press on nothing landed -- a click deselects, a drag is the camera
 let dragGroup = null;    // [{node, ox, oz}] when a whole multi-selection is being moved together
 let marquee = null;      // {x0, y0} while a rubber-band select is being dragged on empty ground
@@ -2079,6 +2178,12 @@ canvas.addEventListener("pointerdown", e => {
   toPtr(e);
   ray.setFromCamera(ptr, camera);
 
+  // The measure tool is MODAL: while it is on, the left button lays measurement points and does
+  // nothing else -- not select, not drag, not orbit (syncLeft already took the button off the
+  // camera). A point drops on the ground under the cursor even when that is over a table, so you
+  // can measure between the far corners of a layout, not just across open floor.
+  if (rulerTool) { placeRulerPoint(); return; }
+
   // Anything on the long rail -- a sliding extension OR a hook-on board -- is GRABBED to drag it
   // ALONG the rail. It sits on the rail, so the rail's own "add here" edge handle would otherwise
   // swallow the click; the board is the closer hit, so prefer it.
@@ -2086,7 +2191,11 @@ canvas.addEventListener("pointerdown", e => {
   const slideHit = ray.intersectObjects(nodeMeshes, false)
     .find(h => { const nn = h.object.userData.node; return nn?.host && nn?.rail; });
   if (slideHit && (!edge || slideHit.distance <= edge.distance + 1)) {
-    dragSlide = slideHit.object.userData.node;
+    const sn = slideHit.object.userData.node;
+    // A LOCKED slide is fixed in place -- that is what "lock the slide position" means. Select it
+    // (so its toolbar, and the unlock button, are right there) but do not start a drag.
+    if (sn.locked) { selectOnly(sn.id); render(); return; }
+    dragSlide = sn;
     selectOnly(dragSlide.id);
     controls.enabled = false;
     render();
@@ -2160,6 +2269,9 @@ canvas.addEventListener("pointerdown", e => {
   // PowerPoint's rule, and the one you expect. Pressing anything else resets to just that object.
   const inMulti = state.selSet.size > 1 && state.selSet.has(n.id);
   if (!inMulti) selectOnly(n.id);
+  // A LOCKED node is fixed: select it (its toolbar carries the unlock button) but do not drag it.
+  // The whole point of the lock is that a stray press cannot nudge a part you have committed.
+  if (n.locked && !inMulti) { controls.enabled = false; render(); return; }
   // Any node can be dragged -- a FREE one moves, a hooked one DETACHES on the first move and floats
   // free until dropped onto a legal edge again. (Rail-hosted nodes are caught above and slide along
   // their rail instead of detaching.)
@@ -2197,6 +2309,10 @@ canvas.addEventListener("pointermove", e => {
   }
   toPtr(e);
   ray.setFromCamera(ptr, camera);
+
+  // Drafting a measurement: track the ground point under the cursor so followRulers can draw the
+  // live preview line. No render() -- the overlay redraws itself every frame in the loop.
+  if (rulerTool && rulerDraft) { const at = hitPlane(0); if (at) rulerHover = groundSnap(at); return; }
 
   if (!dragNode && !dragMod && !dragSlide) {
     const hit = ray.intersectObjects(edgeMeshes, false)[0];
@@ -2337,9 +2453,13 @@ addEventListener("pointerup", e => {
   }
   const wasDragging = dragNode || dragMod || dragSlide;
   // Dropped a free/detached part on a legal edge -> hook it back on (an occupied edge = insert).
+  // Hooking IS committing: a part hanging off a real edge is placed, so it stops floating. Dropping
+  // on open ground does NOT commit -- a ghost stays a ghost until you hook it or press lock, which is
+  // what lets you nudge it around before deciding.
   if (dragNode && dragNode.host == null && dropHint) {
     if (dropHint.occupied) insertAt(dragNode, dropHint.host, dropHint.key);
     else hookNode(dragNode, dropHint.host, dropHint.key);
+    dragNode.floating = false;
   }
   dropHint = null;
   dragNode = dragMod = dragSlide = dragGroup = null; dragHooked = false; controls.enabled = true;
@@ -2449,21 +2569,23 @@ const kindOf = p => (p.role === "frame" ? "frame"
 // NEXT extension hooks into.
 const LEG_SETS = { frame: 2, ext: 1, table: 0 };
 
-/** Put a free-standing node on the ground. */
-function addNode(sku) {
+/** Add a part. New objects arrive FLOATING -- a lifted, translucent ghost dropped in a clear spot in
+ *  front of the layout, NOT jammed onto whatever is already there. You move it where you want, then
+ *  lock it (or drag it onto an edge to hook). This is the whole point of the change: where a new part
+ *  goes is your call, not the layout's.
+ *
+ *  Two things do NOT float. A footprint is a ground reference -- it lies flat and centred like a floor
+ *  plan, not a thing you place and lock. And the first-run default frame (float=false) arrives already
+ *  placed at the origin: a blank canvas offering you a ghost to chase is a worse welcome than a table.
+ *
+ *  A hook-on board floats too now. It used to auto-hook to the first free edge, which is exactly the
+ *  "deploys onto the old object" behaviour being removed. It comes in as a ghost; drag it onto an edge
+ *  to hook it (that still commits instantly), or lock it loose. Hooking a board straight onto a chosen
+ *  edge still happens the direct way -- through that edge's own + menu, which calls attach(). */
+function addNode(sku, float = true) {
+  hoverPreview = null;          // the click that adds it replaces the preview ghost with the real one
   const p = PARTS[sku];
   const kind = kindOf(p);
-
-  if (kind === "ext") {
-    // A hook-on board cannot stand alone -- so "add" means "hook onto the first edge
-    // that is free", starting with whatever is selected. If nothing has a free edge,
-    // there is nowhere for it to go, and the palette row is dead anyway.
-    for (const h of [sel(), ...state.nodes].filter(Boolean)) {
-      const e = openEdges(h)[0];
-      if (e) return attach(sku, h, e.key);
-    }
-    return;
-  }
 
   const n = {
     id: state.nextId++, sku, kind, x: 0, z: 0, rot: 0,
@@ -2476,44 +2598,61 @@ function addNode(sku) {
     // A lounge cushion defaults to its round (open) form; it can be folded to a half-circle.
     ...(p.chair === "cushion" ? { config: "round" } : {}),
   };
+
   // A shelter footprint is a big ground reference: drop it CENTRED on whatever is already there
-  // (so it frames the layout), or at the origin if the canvas is empty. Then drag / rotate it.
+  // (so it frames the layout), or at the origin if the canvas is empty. It does not float.
   if (kind === "footprint") {
-    const others = state.nodes.filter(m => m.kind !== "footprint");
-    if (others.length) {
-      const xs = others.flatMap(m => { const a = aabb(m); return [a.x0, a.x1]; });
-      const zs = others.flatMap(m => { const a = aabb(m); return [a.z0, a.z1]; });
-      n.x = (Math.min(...xs) + Math.max(...xs)) / 2;
-      n.z = (Math.min(...zs) + Math.max(...zs)) / 2;
-    }
+    Object.assign(n, footprintSpot(n));
     state.nodes.unshift(n);   // render first, under everything -- it is the floor plan
     selectOnly(n.id);
     render();
     return;
   }
-  // A prop (chair) is free-standing: drop it IN FRONT of the layout (+z) rather than butt it
-  // against a table edge, and stagger repeats sideways so they don't stack. Then just drag it.
-  if (kind === "prop") {
-    const tables = state.nodes.filter(m => m.kind !== "ext" && m.kind !== "prop");
-    const zFront = tables.length ? Math.max(...tables.map(m => aabb(m).z1)) : 0;
-    const nProps = state.nodes.filter(m => m.kind === "prop").length;
-    n.x = (nProps - 1) * 650;
-    n.z = zFront + footprint(n).d / 2 + 250;
-    state.nodes.push(n);
-    selectOnly(n.id);
-    render();
-    return;
+
+  if (float) {
+    // A clear spot in front of the layout, staggered so repeats don't stack. Provisional -- nothing
+    // auto-hooks, nothing lands flush. floatSpot() is shared with the hover preview, so the ghost you
+    // see is exactly where the click will drop it.
+    n.floating = true;
+    Object.assign(n, floatSpot(n));
   }
-  // Land it flush against the right edge of what is already there. This is a layout
-  // system -- tables connect. Dropping the new one in open space and making you drag
-  // it into contact would be a worse default than the thing the system is for.
-  const free = state.nodes.filter(m => m.kind !== "ext");
-  const right = free.length ? Math.max(...free.map(m => aabb(m).x1)) : null;
-  n.x = right === null ? 0 : right + footprint(n).w / 2;
-  if (free.length) n.z = free[free.length - 1].z;
+  // else: the first-run frame, placed at the origin and committed.
   state.nodes.push(n);
   selectOnly(n.id);
   render();
+}
+
+/** Where a floating add lands: a clear spot in front of the layout (+z), staggered sideways by how
+ *  many parts are already floating so a run of adds doesn't stack on one spot. Shared by addNode and
+ *  the hover preview -- one source of truth for "where would this go". */
+function floatSpot(n) {
+  const others = state.nodes.filter(m => m.kind !== "footprint");
+  const zFront = others.length ? Math.max(...others.map(m => aabb(m).z1)) : 0;
+  const nFloat = state.nodes.filter(m => m.floating).length;
+  return { x: nFloat * 700, z: zFront + footprint(n).d / 2 + 300, rot: 0 };
+}
+/** Where a footprint lands: centred on the whole layout's extent, or the origin on an empty canvas. */
+function footprintSpot(n) {
+  const others = state.nodes.filter(m => m.kind !== "footprint");
+  if (!others.length) return { x: 0, z: 0, rot: 0 };
+  const xs = others.flatMap(m => { const a = aabb(m); return [a.x0, a.x1]; });
+  const zs = others.flatMap(m => { const a = aabb(m); return [a.z0, a.z1]; });
+  return { x: (Math.min(...xs) + Math.max(...xs)) / 2, z: (Math.min(...zs) + Math.max(...zs)) / 2, rot: 0 };
+}
+
+/** The node a palette row would ADD, built on the fly for the hover preview -- same fields addNode
+ *  would set, at the same spot, but never pushed into state. id -1 marks it as not real. */
+function previewNode(sku) {
+  const p = PARTS[sku], kind = kindOf(p);
+  const n = {
+    id: -1, sku, kind, x: 0, z: 0, rot: 0,
+    leg: kind === "frame" ? "CK-114" : null, placements: [],
+    ...(sku === JIKARO ? { config: "long_in", bridge: false } : {}),
+    ...(expDef(sku) ? { config: expDef(sku).default } : {}),
+    ...(p.chair === "cushion" ? { config: "round" } : {}),
+  };
+  Object.assign(n, kind === "footprint" ? footprintSpot(n) : floatSpot(n));
+  return n;
 }
 
 /** Hook a board onto one specific edge of one specific host.
@@ -2655,7 +2794,12 @@ function duplicateNode(n) {
   }
   for (const [m, c] of clones) {
     if (c.host != null) c.host = idMap.get(c.host) ?? c.host;
-    if (m.id === n.id) { c.x = n.x + 180; c.z = n.z + 180; }   // offset the root; children follow the host edge
+    if (m.id === n.id) {
+      c.x = n.x + 180; c.z = n.z + 180;   // offset the root; children follow the host edge
+      // A copy is a new thing to place: it arrives FLOATING (a ghost) and never inherits a lock, so
+      // duplicating a pinned-down part doesn't hand you a second part you can't move.
+      c.floating = true; delete c.locked;
+    }
   }
   state.nodes.push(...clones.map(([, c]) => c));
   selectOnly(idMap.get(n.id));
@@ -2743,6 +2887,7 @@ for (const b of document.querySelectorAll("#viewnav button[data-view]"))
 // Off by default, because empty ground belongs to the camera.
 const bandBtn = $("bandtool");
 function setBand(on) {
+  if (on && rulerTool) setRuler(false);   // one modal tool at a time -- they both own the left button
   bandTool = on;
   syncLeft();
   bandBtn.classList.toggle("on", on);
@@ -2751,10 +2896,137 @@ function setBand(on) {
 }
 bandBtn.onclick = () => setBand(!bandTool);
 
+// ---- Measurements: two ground points and the distance between them ------------------------------
+// A ruler is intent (two points on the ground), not a thing in the 3D scene -- it draws as an SVG
+// overlay so the line stays one pixel crisp at any zoom and never fights the model for depth. The
+// points snap to the same 25mm grid the tables sit on, so a reading between two grid-placed parts
+// comes out a round number instead of 1247.8.
+const rulerBtn = $("rulertool");
+function setRuler(on) {
+  if (on && bandTool) setBand(false);
+  rulerTool = on;
+  rulerDraft = null; rulerHover = null;
+  syncLeft();
+  rulerBtn.classList.toggle("on", on);
+  rulerBtn.setAttribute("aria-pressed", String(on));
+  canvas.style.cursor = on ? "crosshair" : "";
+  paintRulers();
+}
+rulerBtn.onclick = () => setRuler(!rulerTool);
+
+const groundSnap = at => ({ x: Math.round(at.x / MM / SNAP) * SNAP, z: Math.round(at.z / MM / SNAP) * SNAP });
+
+/** A left-press while the measure tool is on. First press sets one end; second press completes the
+ *  measurement and clears the draft, so a third press starts a fresh one. */
+function placeRulerPoint() {
+  const at = hitPlane(0);
+  if (!at) return;
+  const p = groundSnap(at);
+  if (!rulerDraft) { rulerDraft = p; rulerHover = p; return; }
+  if (p.x === rulerDraft.x && p.z === rulerDraft.z) return;   // a zero-length measure is a mis-click
+  state.rulers.push({ id: rulerSeq++, a: rulerDraft, b: p });
+  rulerDraft = null; rulerHover = null;
+  paintRulers();
+  commitHistory();
+}
+function removeRuler(id) {
+  state.rulers = state.rulers.filter(r => r.id !== id);
+  paintRulers();
+  commitHistory();
+}
+function clearRulerDraft() {
+  if (!rulerDraft && !rulerHover) return;
+  rulerDraft = null; rulerHover = null;
+}
+function rulerDist(r) { return Math.hypot(r.b.x - r.a.x, r.b.z - r.a.z); }
+/** The reading: straight-line distance big, and Δx / Δz small -- a layout is placed on two axes, so
+ *  "how far apart along each" is as much the question as the diagonal between them. */
+function rulerText(r) {
+  const d = rulerDist(r), dx = Math.abs(r.b.x - r.a.x), dz = Math.abs(r.b.z - r.a.z);
+  const main = d >= 1000 ? `${Math.round(d)} mm · ${(d / 1000).toFixed(2)} m` : `${Math.round(d)} mm`;
+  return `<span class="d">${main}</span>` + (dx && dz ? ` <span class="dx">Δx ${Math.round(dx)} · Δz ${Math.round(dz)}</span>` : "");
+}
+
+// A persistent label div per measurement (its × survives across frames, so the click always lands);
+// followRulers only MOVES them. Reconciled here on any change to the set.
+const rulerEls = new Map();
+function paintRulers() {
+  const seen = new Set();
+  for (const r of state.rulers) {
+    seen.add(r.id);
+    let el = rulerEls.get(r.id);
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "rlabel";
+      const txt = document.createElement("span");
+      const del = document.createElement("button");
+      del.textContent = "×"; del.title = "remove this measurement";
+      del.onclick = ev => { ev.stopPropagation(); removeRuler(r.id); };
+      el.append(txt, del);
+      el._txt = txt;
+      $("rulerlabels").append(el);
+      rulerEls.set(r.id, el);
+    }
+    el._txt.innerHTML = rulerText(r);
+  }
+  for (const [id, el] of rulerEls) if (!seen.has(id)) { el.remove(); rulerEls.delete(id); }
+}
+
+const svgLine = (a, b, draft) => `<line class="${draft ? "draft" : ""}" x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}"/>`;
+const svgDot = p => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3"/>`;
+
+/** Called every frame: project each measurement's two ground points to the screen and lay the SVG
+ *  over them, plus the live draft line. Cheap -- a handful of elements, redrawn as strings. */
+function followRulers() {
+  const svg = $("rulersvg");
+  const draftLabel = $("rulerdraftlabel");
+  if (!state.rulers.length && !rulerDraft) {
+    if (svg.childNodes.length) svg.replaceChildren();
+    draftLabel.hidden = true;
+    return;
+  }
+  const parts = [];
+  for (const r of state.rulers) {
+    const A = toScreen({ x: r.a.x, y: 0, z: r.a.z });
+    const B = toScreen({ x: r.b.x, y: 0, z: r.b.z });
+    const el = rulerEls.get(r.id);
+    if (A.behind || B.behind) { if (el) el.style.display = "none"; continue; }
+    parts.push(svgLine(A, B, false), svgDot(A), svgDot(B));
+    if (el) {
+      el.style.display = "";
+      el.style.left = `${(A.x + B.x) / 2}px`;
+      el.style.top = `${(A.y + B.y) / 2}px`;
+    }
+  }
+  if (rulerDraft && rulerHover) {
+    const A = toScreen({ x: rulerDraft.x, y: 0, z: rulerDraft.z });
+    const B = toScreen({ x: rulerHover.x, y: 0, z: rulerHover.z });
+    if (!A.behind && !B.behind) {
+      parts.push(svgLine(A, B, true), svgDot(A), svgDot(B));
+      const live = { a: rulerDraft, b: rulerHover };
+      draftLabel.innerHTML = rulerText(live);
+      draftLabel.style.left = `${(A.x + B.x) / 2}px`;
+      draftLabel.style.top = `${(A.y + B.y) / 2}px`;
+      draftLabel.hidden = false;
+    } else draftLabel.hidden = true;
+  } else draftLabel.hidden = true;
+  svg.innerHTML = parts.join("");
+}
+
 function setLeg(n, sku) {
   const root = n.kind === "ext" ? rootOf(n) : n;
   if (!root || root.kind === "table") return;
   root.leg = sku;
+  render();
+}
+
+/** Silver or black. Applies to the whole run for a hooked board, the same rule setLeg uses -- one
+ *  run wears one finish. Stored on the node so it survives a reload and travels in a shared link. */
+function setLegFinish(n, finish) {
+  const root = n.kind === "ext" ? rootOf(n) : n;
+  if (!root) return;
+  if (finish === "silver") delete root.legFinish;   // silver is the default -- absence means silver
+  else root.legFinish = finish;
   render();
 }
 
@@ -2847,8 +3119,16 @@ function partRow(p, fn, dead, why) {
     + `<span class="sp">${s ? s / 2 + "u" : ""}</span>`;
   el.title = why || `${p.sku} — ${p.title_en}`;
   el.dataset.search = searchKey(p);
-  if (!dead) el.onclick = () => fn(p);
+  if (!dead) { el.onclick = () => fn(p); previewOnHover(el, p.sku); }
   return el;
+}
+
+// Hovering a palette row shows a ghost of that part in the 3D view, right where "add" would drop it.
+// Only rebuild() -- the scene, not the panels -- so hovering the list doesn't repaint the list under
+// the pointer. Mouse only: a touch has no hover, and coarse pointers hide hint affordances anyway.
+function previewOnHover(el, sku) {
+  el.addEventListener("mouseenter", () => { hoverPreview = sku; rebuild(); });
+  el.addEventListener("mouseleave", () => { if (hoverPreview === sku) { hoverPreview = null; rebuild(); } });
 }
 
 function paintPalette() {
@@ -2856,16 +3136,19 @@ function paintPalette() {
   for (const p of BY_ROLE.frame) {
     const c = chip(`${p.units}u${p.collapsible ? " ⤢" : ""}`, false, p.title_en, () => addNode(p.sku));
     c.dataset.search = searchKey(p);
+    previewOnHover(c, p.sku);
     add.append(c);
   }
 
-  // Extensions & corners: the hook-on boards. Live only when there's an open edge to take them.
+  // Extensions & corners: the hook-on boards. Since float-first, "add" no longer needs a free edge --
+  // the board comes in floating and you drag it onto an edge (or use an edge's own + menu to hook it
+  // straight on). So the rows are always live; the tooltip just says which.
   const ext = $("extensions"); ext.innerHTML = "";
   const open = anyOpenEdge();
   for (const p of HOOKABLE)
-    ext.append(partRow(p, () => addNode(p.sku), !open,
-      open ? `${p.sku} — hooks onto an edge. Hover an edge in the scene to choose which.`
-           : `${p.sku} — hooks onto a frame or another extension. Put a frame down first.`));
+    ext.append(partRow(p, () => addNode(p.sku), false,
+      open ? `${p.sku} — adds as a floating board; drag it onto a highlighted edge to hook it (or use that edge's + menu).`
+           : `${p.sku} — adds as a floating board. Put a frame down and drag it onto an edge to hook it.`));
   // Two different gaps, and they deserve two different sentences. One part has no copy
   // saying how it attaches; the other says it hooks on but has no plan view, so WHICH
   // edge carries the hooks was never measured. Both are unplaceable, for opposite reasons.
@@ -3342,7 +3625,7 @@ const bindPos = (id, axis) => $(id).addEventListener("input", () => {
 bindPos("posx", "x");
 bindPos("posz", "z");
 
-function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); paintBlocks(); }
+function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); paintBlocks(); paintRulers(); }
 
 // ---------------------------------------------------------------- saving a layout
 //
@@ -3365,12 +3648,12 @@ function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); pa
 // intent". A file has no excuse to disagree with the model it came from.
 const SAVE_V = 1;
 // Everything a node carries that is a DECISION. Anything absent from a node is simply left out.
-const INTENT = ["sku", "host", "edge", "leg", "step", "slide", "config", "sharedJoint",
-                "bridge", "surface", "coal", "base", "canister", "placements"];
+const INTENT = ["sku", "host", "edge", "leg", "legFinish", "floating", "locked", "step", "slide",
+                "config", "sharedJoint", "bridge", "surface", "coal", "base", "canister", "placements"];
 
 /** The scene as a plain object -- intent only. `sel` is not saved: a selection is not a design. */
 function serializeLayout(nodes = state.nodes) {
-  return {
+  const doc = {
     app: "igt-planner", v: SAVE_V,
     nodes: nodes.map(n => {
       const o = {};
@@ -3381,6 +3664,11 @@ function serializeLayout(nodes = state.nodes) {
       return o;
     }),
   };
+  // Measurements belong to the whole scene, not to any node -- so they ride along only on a full-scene
+  // save, never when serializeLayout is asked for a subset (a saved block is parts, not annotations).
+  if (nodes === state.nodes && state.rulers.length)
+    doc.rulers = state.rulers.map(r => ({ a: { x: r.a.x, z: r.a.z }, b: { x: r.b.x, z: r.b.z } }));
+  return doc;
 }
 
 /** Rebuild the scene from a saved object. Returns {nodes, nextId, dropped[]} without touching state,
@@ -3413,13 +3701,18 @@ function readLayout(doc) {
     nodes.push(n);
   }
   const nextId = Math.max(0, ...nodes.map(n => n.id)) + 1;
-  return { nodes, nextId, dropped: [...new Set(dropped)] };
+  // Measurements get fresh session ids (the file stores only the two points). Coerced to numbers so
+  // a hand-edited or older file can't smuggle a NaN into the geometry.
+  const rulers = (doc.rulers || [])
+    .filter(r => r?.a && r?.b)
+    .map(r => ({ id: rulerSeq++, a: { x: +r.a.x || 0, z: +r.a.z || 0 }, b: { x: +r.b.x || 0, z: +r.b.z || 0 } }));
+  return { nodes, nextId, dropped: [...new Set(dropped)], rulers };
 }
 
 /** Put a read layout on screen. */
 function loadLayout(doc) {
-  const { nodes, nextId, dropped } = readLayout(doc);
-  state.nodes = nodes; state.nextId = nextId;
+  const { nodes, nextId, dropped, rulers } = readLayout(doc);
+  state.nodes = nodes; state.nextId = nextId; state.rulers = rulers;
   selectOnly(null);
   undoStack.length = 0; redoStack.length = 0;      // a new document has no past
   render();
@@ -3445,7 +3738,7 @@ function loadLayout(doc) {
 // localStorage is a CACHE and not a backup: clear the browser and it is gone. Export is what makes a
 // layout outlive this machine. The UI says that out loud rather than letting the word "save" imply
 // something it cannot do.
-const LS_SCENE = "igt.scene", LS_SAVED = "igt.saved", LS_BLOCKS = "igt.blocks";
+const LS_SCENE = "igt.scene", LS_SAVED = "igt.saved", LS_BLOCKS = "igt.blocks", LS_PAGES = "igt.pages";
 
 const lsGet = (k, fallback) => { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } };
 const lsPut = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
@@ -3462,10 +3755,105 @@ function note(msg, ms = 3200) {
 
 // The scene, kept warm. Debounced because render() fires on every drag frame and localStorage is
 // synchronous -- writing there 60 times a second would make dragging feel like the bug.
+//
+// The live scene IS the active page. So a save folds what is on screen back into that page, writes
+// the whole book, and mirrors the active page to the legacy single-scene key -- the mirror keeps the
+// old boot fallback warm, so nothing a page loses can strand the current design.
 let autoTimer = null;
 function autosave() {
   clearTimeout(autoTimer);
-  autoTimer = setTimeout(() => lsPut(LS_SCENE, serializeLayout()), 400);
+  autoTimer = setTimeout(() => {
+    commitActivePage();
+    lsPut(LS_PAGES, book);
+    lsPut(LS_SCENE, activePage()?.doc);
+  }, 400);
+}
+
+// ---- pages: a book of independent designs -------------------------------------------------------
+// Each page is a whole layout, kept by the same intent-only serializer a file uses. The one on screen
+// is the active page; switching folds the live scene back into the page you are leaving and loads the
+// one you are opening. The whole book lives in localStorage, so a reload brings back every page and
+// the one you were on -- not just the last thing you touched.
+let book = { activeId: null, pages: [] };   // pages: [{ id, name, doc }]  (doc = a serializeLayout object)
+let pageSeq = 1;
+const activePage = () => book.pages.find(p => p.id === book.activeId);
+/** Fold the live scene back into the active page, so the book is current before we persist or leave. */
+function commitActivePage() { const p = activePage(); if (p) p.doc = serializeLayout(); }
+
+/** Wrap whatever is on screen right now as the first (or a shared) page. Used on first run and after a
+ *  shared link, where there is a live scene but no book yet. */
+function adoptAsBook(name) {
+  book = { activeId: 1, pages: [{ id: 1, name, doc: serializeLayout() }] };
+  pageSeq = 2;
+  commitActivePage(); lsPut(LS_PAGES, book); lsPut(LS_SCENE, activePage().doc);
+  paintPager();
+}
+function switchPage(id) {
+  if (id === book.activeId) return;
+  commitActivePage();                 // save what's on screen into the page we're leaving
+  book.activeId = id;
+  const p = activePage(); if (!p) return;
+  loadLayout(p.doc);                  // loadLayout resets undo + selection: a page opens as its own document
+  lsPut(LS_PAGES, book); lsPut(LS_SCENE, p.doc);
+  paintPager();
+  note(`opened "${p.name}"`);
+}
+function newPage(name) {
+  commitActivePage();
+  const id = pageSeq++;
+  const doc = { app: "igt-planner", v: SAVE_V, nodes: [] };
+  book.pages.push({ id, name: name || `Page ${book.pages.length + 1}`, doc });
+  book.activeId = id;
+  loadLayout(doc);                    // a fresh, empty design
+  lsPut(LS_PAGES, book); lsPut(LS_SCENE, doc);
+  paintPager();
+}
+function deletePage(id) {
+  if (book.pages.length <= 1) { note("this is the only page — can't delete it"); return; }
+  const idx = book.pages.findIndex(p => p.id === id);
+  if (idx < 0) return;
+  const wasActive = id === book.activeId;
+  book.pages.splice(idx, 1);
+  if (wasActive) {
+    book.activeId = book.pages[Math.min(idx, book.pages.length - 1)].id;
+    loadLayout(activePage().doc);
+  }
+  commitActivePage(); lsPut(LS_PAGES, book); lsPut(LS_SCENE, activePage().doc);
+  paintPager();
+}
+function renamePage(id, name) {
+  const p = book.pages.find(q => q.id === id);
+  if (!p) return;
+  p.name = name;
+  lsPut(LS_PAGES, book);
+  paintPager();
+}
+function paintPager() {
+  const el = $("pager");
+  if (!el) return;
+  el.innerHTML = "";
+  for (const p of book.pages) {
+    const tab = document.createElement("button");
+    tab.className = "ptab" + (p.id === book.activeId ? " on" : "");
+    tab.title = "open · double-click to rename";
+    const name = document.createElement("span");
+    name.className = "pname"; name.textContent = p.name;
+    tab.append(name);
+    tab.onclick = () => switchPage(p.id);
+    tab.ondblclick = () => { const nn = prompt("rename this page:", p.name); if (nn && nn.trim()) renamePage(p.id, nn.trim()); };
+    // No delete on the last page: a book always has at least one page.
+    if (book.pages.length > 1) {
+      const x = document.createElement("span");
+      x.className = "pclose"; x.textContent = "×"; x.title = "delete this page";
+      x.onclick = ev => { ev.stopPropagation(); if (confirm(`Delete page "${p.name}"? This can't be undone.`)) deletePage(p.id); };
+      tab.append(x);
+    }
+    el.append(tab);
+  }
+  const add = document.createElement("button");
+  add.className = "padd"; add.textContent = "+"; add.title = "new page — a fresh, independent design";
+  add.onclick = () => newPage();
+  el.append(add);
 }
 
 // ---- named layouts ----------------------------------------------------------------------------
@@ -3694,7 +4082,7 @@ function paintBlocks() {
 // steps back, Shift-Ctrl-Z (or Ctrl-Y) redoes.
 const undoStack = [], redoStack = [];
 let restoring = false;
-const snapshot = () => JSON.stringify({ nodes: state.nodes, nextId: state.nextId });
+const snapshot = () => JSON.stringify({ nodes: state.nodes, nextId: state.nextId, rulers: state.rulers });
 function commitHistory() {
   if (restoring) return;
   const s = snapshot();
@@ -3707,7 +4095,7 @@ function commitHistory() {
 }
 function restoreHistory(json) {
   const s = JSON.parse(json);
-  state.nodes = s.nodes; state.nextId = s.nextId;
+  state.nodes = s.nodes; state.nextId = s.nextId; state.rulers = s.rulers || [];
   for (const id of [...state.selSet]) if (!byId(id)) state.selSet.delete(id);   // drop vanished ids
   if (!byId(state.sel)) state.sel = [...state.selSet].pop() ?? null;
   restoring = true; render(); restoring = false;   // render without pushing a fresh snapshot
@@ -3739,6 +4127,8 @@ addEventListener("keydown", e => {
   if (k === "r" && !e.ctrlKey && !e.metaKey) { if (n && !n.host) rotateNode(n); return; }
   if (k === "f") { n ? focusSelection(n) : fitAll(); return; }   // frame the selection, or fit all
   if (k === "b") { setBand(!bandTool); return; }                 // the rubber-band tool, on / off
+  if (k === "m") { setRuler(!rulerTool); return; }               // the measure tool, on / off
+  if (k === "escape") { if (rulerDraft) { clearRulerDraft(); return; } if (rulerTool) { setRuler(false); return; } }
   if (k === "1") { setView("top"); return; }
   if (k === "2") { setView("front"); return; }
   if (k === "3") { setView("side"); return; }
@@ -3791,6 +4181,7 @@ addEventListener("resize", resize);
   controls.update();
   followHover();
   followSelTools();
+  followRulers();
   renderer.render(scene, camera);
 })();
 
@@ -3856,6 +4247,7 @@ window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
   findDropTarget, hookNode, detachNode, insertAt, edgeKeysOf, selectedIds,
   serializeLayout, readLayout, loadLayout, saveNamed, openNamed, savedAll, blocksAll,
   saveBlock, addBlock, shareLink, exportFile,
+  newPage, switchPage, deletePage, renamePage, pages: () => book,
   top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); } };
 
 resize();
@@ -3863,17 +4255,28 @@ initTheme();
 paintFiles();
 
 // WHAT YOU SEE WHEN YOU ARRIVE, most specific first:
-//   a shared link   -- someone sent you a design; it wins over anything cached here
-//   the last scene  -- you reloaded, or the tab crashed, and nothing should have been lost
+//   a shared link   -- someone sent you a design; it becomes a fresh one-page book to branch from
+//   your book       -- every page you had, and the one you were on; a reload loses nothing
+//   a legacy scene  -- the single scene from before pages existed, migrated into page 1
 //   a 4-unit frame  -- a blank page is not a starting point
 (async () => {
-  if (await fromHash()) return;
-  const cached = lsGet(LS_SCENE, null);
-  if (cached) {
-    try {
-      loadLayout(cached);
-      if (state.nodes.length) return;
-    } catch (e) { note(`could not restore the last scene: ${e.message}`, 5000); }
+  if (await fromHash()) { adoptAsBook("Shared"); return; }
+
+  const savedBook = lsGet(LS_PAGES, null);
+  if (savedBook?.pages?.length) {
+    book = savedBook;
+    pageSeq = Math.max(0, ...book.pages.map(p => p.id)) + 1;
+    if (!activePage()) book.activeId = book.pages[0].id;
+    try { loadLayout(activePage().doc); }
+    catch (e) { note(`could not open that page: ${e.message}`, 5000); loadLayout({ app: "igt-planner", v: SAVE_V, nodes: [] }); }
+    paintPager();
+    return;
   }
-  addNode("CK-150");
+
+  // First run under the pages model. A single scene from before -> migrate it into page 1 so no
+  // in-progress design is lost in the upgrade; otherwise a placed 4-unit frame.
+  const legacy = lsGet(LS_SCENE, null);
+  if (legacy) { try { loadLayout(legacy); } catch { addNode("CK-150", false); } }
+  else addNode("CK-150", false);
+  adoptAsBook("Page 1");
 })();

@@ -84,6 +84,48 @@ h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
 .benchlink:hover { color: var(--accent); }
 #theme { margin-left: auto; font-size: .9rem; line-height: 1; padding: .25rem .45rem; }
 
+/* Pages. A tab strip between the header and the canvas -- each tab a whole independent design, the
+   active one wearing the accent on its top edge. New / rename / delete live on the tabs. */
+#pager {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  padding: .3rem .7rem 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  overflow-x: auto;
+}
+#pager .ptab {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font: .7rem ui-monospace, monospace;
+  color: var(--dim);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-bottom: none;
+  border-radius: 5px 5px 0 0;
+  padding: .3rem .6rem;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 220px;
+}
+#pager .ptab:hover { color: var(--ink); background: var(--raise); }
+#pager .ptab.on { color: var(--ink); box-shadow: inset 0 2px 0 var(--accent); }
+#pager .pname { overflow: hidden; text-overflow: ellipsis; }
+#pager .pclose { color: var(--faint); font-size: .85rem; line-height: 1; border-radius: 3px; padding: 0 .15rem; }
+#pager .pclose:hover { color: var(--bad); background: var(--raise); }
+#pager .padd {
+  font: .9rem ui-monospace, monospace; color: var(--dim);
+  background: transparent; border: none; cursor: pointer;
+  padding: .2rem .55rem; align-self: center;
+}
+#pager .padd:hover { color: var(--accent); }
+@media (pointer: coarse) {
+  #pager .ptab { min-height: 40px; }
+  #pager .pclose { min-width: 28px; min-height: 28px; display: inline-flex; align-items: center; justify-content: center; }
+  #pager .padd { min-width: 40px; min-height: 40px; }
+}
+
 main {
   flex: 1;
   display: grid;
@@ -314,6 +356,57 @@ h2 {
 /* The band tool is a MODE, so it has to look like one -- a pressed button, not a thing you poked. */
 #bandtool { font-size: .82rem; line-height: 1; padding: .22rem .4rem; }
 #bandtool.on, #bandtool.on:hover { background: var(--accent); color: var(--panel); }
+#rulertool { font-size: .82rem; line-height: 1; padding: .22rem .4rem; }
+#rulertool.on, #rulertool.on:hover { background: var(--accent); color: var(--panel); }
+
+/* Measurements. The SVG carries the lines and end ticks and never takes the pointer -- it is a
+   drawing, not a control. The label is the only part you touch, and only its × is live, so a
+   measurement can sit right over a table without stealing a drag from it. */
+#rulersvg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 4;
+}
+#rulersvg line { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
+#rulersvg line.draft { stroke-dasharray: 5 4; opacity: .85; }
+#rulersvg circle { fill: var(--accent); }
+#rulerlabels { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+.rlabel {
+  position: absolute; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .1rem .2rem .1rem .38rem;
+  font: .66rem ui-monospace, monospace;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: 0 1px 5px var(--shadow);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.rlabel .dx { color: var(--dim); font-size: .58rem; }
+.rlabel button {
+  pointer-events: auto;
+  border: none; background: transparent; color: var(--dim);
+  cursor: pointer; font-size: .82rem; line-height: 1; padding: 0 .12rem;
+}
+.rlabel button:hover { color: var(--accent); }
+#rulerdraftlabel[hidden] { display: none; }
+#rulerdraftlabel {
+  position: absolute; transform: translate(-50%, -50%);
+  z-index: 6; pointer-events: none;
+  padding: .1rem .35rem;
+  font: .66rem ui-monospace, monospace;
+  color: var(--panel); background: var(--accent);
+  border-radius: 4px; white-space: nowrap;
+  box-shadow: 0 1px 5px var(--shadow);
+}
+@media (pointer: coarse) {
+  #rulertool { font-size: 1.1rem; }
+  .rlabel button { min-width: 32px; min-height: 32px; }
+}
 
 /* TOUCH. A finger is not a mouse pointer: it has no hover, and it is about 9mm wide. Anything you
    are meant to press gets a 44px box (Apple's number, and the one everyone else copied), and the
