@@ -25,6 +25,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
+    def do_GET(self):
+        # The app lives under web/; the project root is served so /web/ assets AND
+        # /anno data both resolve, but that means bare "/" hits SimpleHTTPRequestHandler's
+        # directory listing instead of the app. Land the root on the app.
+        if self.path in ("", "/"):
+            self.send_response(302)
+            self.send_header("Location", "/web/")
+            self.end_headers()
+            return
+        super().do_GET()
+
     # The bench POSTs its annotations here so they land on disk in a readable form --
     # points/pairs as mm and px -- instead of living only in the browser's localStorage.
     # One file per part, anno/<sku>.json, so the marks can be read straight off the disk.
