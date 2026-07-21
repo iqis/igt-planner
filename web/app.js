@@ -823,6 +823,121 @@ function setGrid(major, minor) {
 }
 setGrid(0x2b3038, 0x21252b);
 
+// ---- ground surface ------------------------------------------------------------------------------
+// A textured ground under the grid, for setting a layout in a place instead of on graph paper. The
+// textures are GENERATED on a canvas, not fetched -- so there is nothing to source, nothing to license,
+// and nothing to ship: it stays as self-contained as the rest of the planner. The grid stays ON TOP as
+// the scale reference (a planner still needs to read distances off the floor), the ground just gives it
+// somewhere to sit. The choice is a PREFERENCE like the theme -- one per browser, not part of a design,
+// so it lives in its own localStorage key and never travels in a shared link.
+function groundCanvas(draw) {
+  const c = document.createElement("canvas");
+  c.width = c.height = 512;
+  draw(c.getContext("2d"), 512);
+  return c;
+}
+function makeGrassTexture() {
+  return groundCanvas((ctx, S) => {
+    ctx.fillStyle = "#3d4b2e"; ctx.fillRect(0, 0, S, S);
+    for (let i = 0; i < 14000; i++) {                 // short blades in varied greens
+      const x = Math.random() * S, y = Math.random() * S, g = 58 + Math.random() * 66;
+      ctx.strokeStyle = `rgb(${g * 0.55 | 0},${g | 0},${g * 0.48 | 0})`;
+      ctx.globalAlpha = 0.45 + Math.random() * 0.5;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (Math.random() - 0.5) * 2.5, y - 2 - Math.random() * 3.5); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < 34; i++) {                    // faint darker patches
+      ctx.fillStyle = `rgba(18,28,14,${0.05 + Math.random() * 0.09})`;
+      ctx.beginPath(); ctx.arc(Math.random() * S, Math.random() * S, 22 + Math.random() * 64, 0, 7); ctx.fill();
+    }
+  });
+}
+function makeWoodTexture() {
+  return groundCanvas((ctx, S) => {
+    const planks = 6, pw = S / planks;
+    for (let i = 0; i < planks; i++) {
+      const b = 100 + (Math.random() * 26 - 13);      // per-plank brown
+      ctx.fillStyle = `rgb(${b + 32 | 0},${b | 0},${b - 42 | 0})`;
+      ctx.fillRect(i * pw, 0, pw, S);
+      for (let j = 0; j < 90; j++) {                  // grain streaks along the plank
+        const d = Math.random() * 40 - 20, x = i * pw + Math.random() * pw, y = Math.random() * S;
+        ctx.strokeStyle = `rgba(${b + 32 + d | 0},${b + d | 0},${b - 42 + d | 0},0.4)`;
+        ctx.lineWidth = 0.5 + Math.random();
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (Math.random() - 0.5) * 4, y + 12 + Math.random() * 40); ctx.stroke();
+      }
+      ctx.fillStyle = "rgba(28,18,8,0.6)";            // dark seam between planks
+      ctx.fillRect((i + 1) * pw - 1.5, 0, 1.5, S);
+    }
+  });
+}
+function makeGravelTexture() {
+  return groundCanvas((ctx, S) => {
+    ctx.fillStyle = "#565654"; ctx.fillRect(0, 0, S, S);
+    for (let i = 0; i < 2400; i++) {                  // pebbles, each with a small shadow
+      const x = Math.random() * S, y = Math.random() * S, r = 2 + Math.random() * 6.5, v = 58 + Math.random() * 96;
+      ctx.fillStyle = "rgba(0,0,0,0.16)";
+      ctx.beginPath(); ctx.ellipse(x + r * 0.35, y + r * 0.35, r, r * 0.8, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = `rgb(${v | 0},${v | 0},${v * 0.97 | 0})`;
+      ctx.beginPath(); ctx.ellipse(x, y, r, r * (0.7 + Math.random() * 0.3), Math.random() * 3, 0, 7); ctx.fill();
+    }
+  });
+}
+function makeSandTexture() {
+  return groundCanvas((ctx, S) => {
+    ctx.fillStyle = "#bfa87f"; ctx.fillRect(0, 0, S, S);
+    const img = ctx.getImageData(0, 0, S, S), d = img.data;
+    for (let i = 0; i < d.length; i += 4) {           // fine per-pixel grain
+      const n = Math.random() * 28 - 14;
+      d[i] += n; d[i + 1] += n * 0.95; d[i + 2] += n * 0.8;
+    }
+    ctx.putImageData(img, 0, 0);
+    for (let i = 0; i < 2600; i++) {                  // darker specks
+      ctx.fillStyle = `rgba(120,100,70,${0.1 + Math.random() * 0.18})`;
+      ctx.fillRect(Math.random() * S, Math.random() * S, 1 + Math.random(), 1 + Math.random());
+    }
+  });
+}
+const GROUNDS = {
+  grid:   { name: "Grid" },                                                     // no texture -- the bare CAD floor
+  grass:  { name: "Grass",  make: makeGrassTexture,  repeat: 8, rough: 0.96 },
+  wood:   { name: "Wood",   make: makeWoodTexture,   repeat: 5, rough: 0.72 },
+  gravel: { name: "Gravel", make: makeGravelTexture, repeat: 8, rough: 0.95 },
+  sand:   { name: "Sand",   make: makeSandTexture,   repeat: 7, rough: 0.9 },
+};
+const LS_GROUND = "igt.ground";
+const groundTexCache = {};
+let groundMesh = null, currentGround = "grid";
+function groundTexture(key) {
+  if (groundTexCache[key]) return groundTexCache[key];
+  const g = GROUNDS[key];
+  const tex = new THREE.CanvasTexture(g.make());
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(g.repeat, g.repeat);
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  tex.colorSpace = THREE.SRGBColorSpace;
+  groundTexCache[key] = tex;
+  return tex;
+}
+function setGround(key) {
+  if (!GROUNDS[key]) key = "grid";
+  currentGround = key;
+  try { localStorage.setItem(LS_GROUND, key); } catch {}
+  if (groundMesh) { scene.remove(groundMesh); groundMesh.material.dispose(); groundMesh.geometry.dispose(); groundMesh = null; }
+  if (key !== "grid") {
+    const g = GROUNDS[key];
+    groundMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(16, 16),                // wider than the 8m grid, so it fills the view
+      new THREE.MeshStandardMaterial({ map: groundTexture(key), roughness: g.rough, metalness: 0 }),
+    );
+    groundMesh.rotation.x = -Math.PI / 2;
+    groundMesh.position.y = -0.003;                   // just under the grid lines and the parts' feet
+    scene.add(groundMesh);
+  }
+  const sel = $("groundsel");
+  if (sel && sel.value !== key) sel.value = key;
+}
+
 // Metal cannot look like metal with nothing to reflect. Without an environment map a
 // MeshStandardMaterial at metalness 0.9 renders nearly black; the flat, plasticky look
 // the first pass had was not the colours, it was this.
@@ -4165,6 +4280,20 @@ function initTheme() {
   };
 }
 
+function initGround() {
+  const sel = $("groundsel");
+  if (!sel) return;
+  sel.innerHTML = "";
+  for (const [key, g] of Object.entries(GROUNDS)) {
+    const o = document.createElement("option");
+    o.value = key; o.textContent = g.name;
+    sel.append(o);
+  }
+  sel.onchange = () => setGround(sel.value);
+  // Textures are generated lazily on first pick, so an empty canvas costs nothing until it is used.
+  setGround(localStorage.getItem(LS_GROUND) || "grid");
+}
+
 // ---------------------------------------------------------------- boot
 
 function resize() {
@@ -4252,6 +4381,7 @@ window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
 
 resize();
 initTheme();
+initGround();
 paintFiles();
 
 // WHAT YOU SEE WHEN YOU ARRIVE, most specific first:

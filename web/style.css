@@ -82,7 +82,20 @@ h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
 /* The one thing anyone ever clicked in the old header line. */
 .benchlink { font-size: .72rem; color: var(--dim); text-decoration: underline; text-underline-offset: 3px; }
 .benchlink:hover { color: var(--accent); }
-#theme { margin-left: auto; font-size: .9rem; line-height: 1; padding: .25rem .45rem; }
+/* Ground picker + theme cluster to the right. Only #groundsel carries margin-left:auto -- two auto
+   margins would SPLIT the free space and push the pair apart instead of grouping them. */
+#groundsel {
+  margin-left: auto;
+  font: .68rem ui-monospace, monospace;
+  color: var(--dim);
+  background: var(--raise);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: .25rem .4rem;
+  cursor: pointer;
+}
+#groundsel:hover { color: var(--ink); }
+#theme { font-size: .9rem; line-height: 1; padding: .25rem .45rem; }
 
 /* Pages. A tab strip between the header and the canvas -- each tab a whole independent design, the
    active one wearing the accent on its top edge. New / rename / delete live on the tabs. */
