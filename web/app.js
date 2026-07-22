@@ -815,21 +815,26 @@ const key = new THREE.DirectionalLight(0xffffff, 1.4);
 key.position.set(2, 3.4, 1.8);
 scene.add(key);
 // The floor grid. Its colours are baked into the geometry, so a theme change rebuilds it.
+// It is graph paper: ON only for the bare "Grid" ground, OFF once a real surface is chosen (you do
+// not rule a lawn) -- but a theme change rebuilds the grid, so it re-reads that choice each time.
 let grid = null;
+let currentGround = "grid";
 function setGrid(major, minor) {
   if (grid) scene.remove(grid);
   grid = new THREE.GridHelper(8, 32, major, minor);
+  grid.visible = currentGround === "grid";
   scene.add(grid);
 }
 setGrid(0x2b3038, 0x21252b);
 
 // ---- ground surface ------------------------------------------------------------------------------
-// A textured ground under the grid, for setting a layout in a place instead of on graph paper. The
-// textures are GENERATED on a canvas, not fetched -- so there is nothing to source, nothing to license,
-// and nothing to ship: it stays as self-contained as the rest of the planner. The grid stays ON TOP as
-// the scale reference (a planner still needs to read distances off the floor), the ground just gives it
-// somewhere to sit. The choice is a PREFERENCE like the theme -- one per browser, not part of a design,
-// so it lives in its own localStorage key and never travels in a shared link.
+// A textured ground for setting a layout in a place instead of on graph paper. The textures are
+// GENERATED on a canvas, not fetched -- so there is nothing to source, nothing to license, and nothing
+// to ship: it stays as self-contained as the rest of the planner. Choosing a real surface HIDES the
+// grid (see setGround): the grid is graph paper for reading distances off the bare floor, and it reads
+// as litter once there is grass or wood under it -- the ruler tool is there when you actually need a
+// measurement. The choice is a PREFERENCE like the theme -- one per browser, not part of a design, so
+// it lives in its own localStorage key and never travels in a shared link.
 function groundCanvas(draw) {
   const c = document.createElement("canvas");
   c.width = c.height = 512;
@@ -907,7 +912,7 @@ const GROUNDS = {
 };
 const LS_GROUND = "igt.ground";
 const groundTexCache = {};
-let groundMesh = null, currentGround = "grid";
+let groundMesh = null;
 function groundTexture(key) {
   if (groundTexCache[key]) return groundTexCache[key];
   const g = GROUNDS[key];
@@ -924,6 +929,7 @@ function setGround(key) {
   currentGround = key;
   try { localStorage.setItem(LS_GROUND, key); } catch {}
   if (groundMesh) { scene.remove(groundMesh); groundMesh.material.dispose(); groundMesh.geometry.dispose(); groundMesh = null; }
+  if (grid) grid.visible = key === "grid";            // graph paper only on the bare floor
   if (key !== "grid") {
     const g = GROUNDS[key];
     groundMesh = new THREE.Mesh(
@@ -3367,7 +3373,23 @@ function paintPalette() {
 
   $("selname").textContent = n ? PARTS[n.sku].title_en : "nothing selected";
   $("selbox").hidden = !n;   // the selected-part controls ride at the TOP, only while something is picked
+  paintCatCounts();      // put the part-count on each category head, now the rows exist
   filterPalette();       // re-apply the current search over the freshly painted rows
+}
+
+// The number beside each category head. Counts only real catalog rows -- everything the palette
+// draws that a search can match carries data-search, while the shelter lock toggle, the "placed"
+// subhead and its rows do not, so they are excluded for free. Total, not filtered: it says how big
+// the category is, and holds steady while a search hides rows inside it.
+function paintCatCounts() {
+  for (const sec of document.querySelectorAll(".cat")) {
+    const head = sec.querySelector(".cathead");
+    if (!head) continue;
+    let span = head.querySelector(".catcount");
+    if (!span) { span = document.createElement("span"); span.className = "catcount"; head.append(span); }
+    const n = sec.querySelectorAll(".catbody [data-search]").length;
+    span.textContent = n ? String(n) : "";
+  }
 }
 
 // Find a part by name, number or category: hide the rows that don't match, show a hit count, and

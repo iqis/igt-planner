@@ -197,8 +197,23 @@ h2 {
 .caret { font-size: .6rem; color: var(--faint); transition: transform .12s; }
 .cat.collapsed .caret { transform: rotate(-90deg); display: inline-block; }
 .cat.collapsed .catbody { display: none; }
+/* Count of parts in the category, right-aligned so the numbers line up down the panel edge. */
+.catcount { margin-left: auto; font-size: .6rem; color: var(--faint);
+  letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+
+/* Super-group divider: one tier ABOVE the foldable category heads. A label with a rule trailing off
+   it, so it reads as a phase of the build, never as another category you can click to collapse. */
+.catgroup {
+  display: flex; align-items: center; gap: .55rem;
+  font-size: .58rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--faint); margin: 1.5rem 0 .8rem;
+}
+.catgroup::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.catgroup:first-of-type { margin-top: .35rem; }
+
 #palette.searching .catbody { display: block; }
 #palette.searching .cat.empty { display: none; }   /* hide categories with no match while searching */
+#palette.searching .catgroup { display: none; }     /* the results view is a flat list -- no phase labels */
 .searchcount { font-size: .64rem; color: var(--faint); margin: -.3rem 0 .5rem; }
 
 /* Find a part by name or number -- used in both the planner palette and the bench list. */
