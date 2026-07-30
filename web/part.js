@@ -177,8 +177,8 @@ function benchGeo(p, box) {
           color: COLORS[sku]?.color_hex || 0x8a7460,
           family: vs.length === 4 ? "recta" : "hexa" }).group);
     }
-    if (p.shell3d === "landlock")
-      base.group.add(landLockGroup(p.assembled_mm.w, p.assembled_mm.d, p.assembled_mm.h).group);
+    if (p.shell3d === "landlock")   // near-opaque on the bench: the PART is the subject here
+      base.group.add(landLockGroup(p.assembled_mm.w, p.assembled_mm.d, p.assembled_mm.h, { opacity: 0.96 }).group);
     return base.group;
   }
 

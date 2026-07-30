@@ -2184,7 +2184,7 @@ export function tarpPitchGroup({ verts, h, color = 0x8a7460, family = "hexa" }) 
  *  darker skirt at grade. Same 0.5 opacity as the tarps, for the same two reasons: the
  *  kitchen lives INSIDE this one, and an opaque 25 square metres would print a shadow-map
  *  blob over half the layout. */
-export function landLockGroup(w = 6250, d = 4050, h = 2050) {
+export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5 } = {}) {
   const g = new THREE.Group();
   const nPlan = 3, L2 = w / 2, W2 = d / 2;
   // The massing is a LOAF, not an egg: a long near-level ridge, steep rounded end caps, and
@@ -2193,17 +2193,47 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050) {
   const halfW = x => W2 * Math.pow(Math.max(1e-4, 1 - Math.pow(Math.abs(x / L2), nPlan)), 1 / nPlan);
   const hAt = x => h * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(x / L2), 4.5)), 1 / 1.8);
   const CS = 2.4;                               // cross-section exponent: plumb-ish walls, flat crown
+
+  // WHAT KEEPS IT FROM READING AS BREAD: tensioned fabric is not a smooth solid. The skin
+  // BULGES along every frame sleeve and relaxes between them, so the frame plan prints
+  // itself into the surface. Each frame contributes a gaussian ridge (~30mm, sigma ~280mm
+  // of plan distance) along its plan line; the pole tubes then ride on top of their own
+  // bulges. Plan lines: C-frames at +/-0.42w, the two crossing A-frame diagonals, the
+  // centre ridge -- the manual's page-5 drawing, expressed as distance fields.
+  const segDist = (px, pz, ax_, az_, bx_, bz_) => {
+    const dx = bx_ - ax_, dz = bz_ - az_;
+    const t = Math.max(0, Math.min(1, ((px - ax_) * dx + (pz - az_) * dz) / (dx * dx + dz * dz)));
+    return Math.hypot(px - (ax_ + dx * t), pz - (az_ + dz * t));
+  };
+  const frameLines = [
+    (x, z) => segDist(x, z, -0.42 * w, -W2, -0.42 * w, W2),        // C-frame, entrance end
+    (x, z) => segDist(x, z, 0.42 * w, -W2, 0.42 * w, W2),          // C-frame, inner-room end
+    (x, z) => segDist(x, z, -0.30 * w, 0.94 * W2, 0.30 * w, -0.94 * W2),   // A-frame
+    (x, z) => segDist(x, z, -0.30 * w, -0.94 * W2, 0.30 * w, 0.94 * W2),   // its crossing mirror
+    (x, z) => segDist(x, z, -0.14 * w, 0, 0.14 * w, 0),            // the centre ridge frame
+  ];
+  const bumpAt = (x, z) => {
+    let b = 0;
+    for (const f of frameLines) { const dd = f(x, z); b += 30 * Math.exp(-(dd * dd) / (2 * 280 * 280)); }
+    return Math.min(b, 42);
+  };
   const skin = (x, v) => {
     const cw = halfW(x), ch = hAt(x), sz = Math.sin(v * Math.PI / 2);
-    return { x, z: cw * sz, y: ch * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(sz), CS)), 1 / CS) };
+    const z = cw * sz;
+    const y0 = ch * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(sz), CS)), 1 / CS);
+    const b = bumpAt(x, z) * Math.min(1, y0 / 400);   // fade the bulge out at the skirt
+    // push along the local outward direction: up on the crown, out on the walls
+    return { x, z: z + b * Math.abs(sz) * Math.sign(sz || 1), y: y0 + b * Math.cos(v * Math.PI / 2) };
   };
   const surfY = (x, z) => {                     // fabric height over a plan point, for the frames
     const cw = halfW(x), t = Math.min(1, Math.abs(z) / cw);
-    return hAt(x) * Math.pow(Math.max(0, 1 - Math.pow(t, CS)), 1 / CS);
+    const y0 = hAt(x) * Math.pow(Math.max(0, 1 - Math.pow(t, CS)), 1 / CS);
+    return y0 + bumpAt(x, z) * Math.min(1, y0 / 400) * Math.sqrt(Math.max(0, 1 - t * t));
   };
 
-  const brown = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x6b5a4b),
-    metalness: 0, roughness: 0.9, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+  const brown = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x5d4c3e),
+    metalness: 0, roughness: 0.9, side: THREE.DoubleSide,
+    transparent: opacity < 1, opacity });
   const NU = 44, NV = 20, pos = [], idx = [];
   for (let iu = 0; iu <= NU; iu++) {
     const x = -L2 + (w * iu) / NU;
@@ -2270,10 +2300,32 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050) {
     }
     tube(cpts, 11, alu);
   }
-  for (const s of [-1, 1])                        // A-frames: the crossing diagonals of the plan
+  for (const s of [-1, 1]) {                      // A-frames: the crossing diagonals of the plan
     tube(arcOver(-0.30 * w * s, s * 0.94 * halfW(-0.30 * w * s), 0.30 * w * s, s * 0.94 * halfW(0.30 * w * s)), 11, alu);
+    // the red sleeve tape riding each A-frame -- the hero's most visible accent lines
+    const sleeve = [];
+    for (let i = 2; i <= 22; i++) {
+      const t = i / 24, x = -0.30 * w * s + 0.60 * w * s * t;
+      const z = s * 0.94 * halfW(-0.30 * w * s) * (1 - t) - s * 0.94 * halfW(0.30 * w * s) * t;
+      sleeve.push(ride(x, z, 30));
+    }
+    tube(sleeve, 4.5, red);
+  }
   tube([ride(-0.14 * w, 0, 26), ride(0, 0, 26), ride(0.14 * w, 0, 26)], 11, alu);   // centre frame
   tube([ride(-0.14 * w, 0, 34), ride(0, 0, 34), ride(0.14 * w, 0, 34)], 5, red);    // its red sleeve accent
+
+  // Panel seams: tensioned fabric is SEWN, and the stitch lines are what stop 25 square
+  // metres reading as one blown-up loaf. Two horizontal seams per side, full length.
+  const seamMat = metal(0x57493d, 0.05, 0.9);
+  for (const s of [-1, 1]) for (const vlev of [0.30, 0.62]) {
+    const pts = [];
+    for (let i = 0; i <= 30; i++) {
+      const x = -0.95 * L2 + (1.9 * L2 * i) / 30;
+      const p = skin(x, s * vlev);
+      pts.push(new THREE.Vector3(p.x * MM, (p.y + 6) * MM, (p.z + 5 * s * vlev) * MM));
+    }
+    tube(pts, 2.5, seamMat);
+  }
 
   // The door (entrance end's side panel, red-bound) and the big mesh window opposite.
   const patch = (x0, x1, v0, v1, mat, lift = 8) => {
@@ -2293,19 +2345,35 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050) {
     pg.setIndex(I); pg.computeVertexNormals();
     g.add(new THREE.Mesh(pg, mat));
   };
-  patch(-0.34 * w, -0.10 * w, 0.42, 0.96,
-    new THREE.MeshStandardMaterial({ color: 0x2c2723, roughness: 0.85, side: THREE.DoubleSide }));
-  const doorRim = [];
-  for (let i = 0; i <= 20; i++) {                 // the red door binding, around the dark panel
-    const t = i / 20, th = t * 2 * Math.PI;
-    const x = -0.22 * w + 0.12 * w * Math.cos(th), v = 0.69 + 0.27 * Math.sin(th);
-    const s = skin(x, v);
-    doorRim.push(new THREE.Vector3(s.x * MM, (s.y + 10) * MM, (s.z + 10 * Math.sin(v * Math.PI / 2)) * MM));
+  // A rim loop on the skin -- door bindings, window surrounds.
+  const rimLoop = (cx, rx, vc, rv, r, mat, lift = 10) => {
+    const pts = [];
+    for (let i = 0; i <= 24; i++) {
+      const th = (i / 24) * 2 * Math.PI;
+      const s = skin(cx + rx * Math.cos(th), vc + rv * Math.sin(th));
+      pts.push(new THREE.Vector3(s.x * MM, (s.y + lift) * MM,
+        (s.z + lift * Math.sin((vc) * Math.PI / 2)) * MM));
+    }
+    tube(pts, r, mat);
+  };
+  const meshMat = new THREE.MeshStandardMaterial({ color: 0x3f4240, roughness: 0.85,
+    side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x2c2723, roughness: 0.85, side: THREE.DoubleSide });
+  const tan = metal(0x8d7a67, 0.05, 0.85);
+
+  // The entrance-end door, red-bound (hero, front left), and its small mesh light.
+  patch(-0.34 * w, -0.10 * w, 0.42, 0.96, darkMat);
+  rimLoop(-0.22 * w, 0.12 * w, 0.69, 0.27, 5, red);
+  patch(-0.30 * w, -0.14 * w, 0.48, 0.72, meshMat, 12);
+  // The BIG side windows -- one each side, rear-of-middle, tan-bound (the Land Lock's face).
+  for (const s of [-1, 1]) {
+    patch(0.02 * w, 0.30 * w, s * 0.50, s * 0.88, meshMat);
+    rimLoop(0.16 * w, 0.14 * w, s * 0.69, s * 0.19, 4, tan);
+    // and a smaller front window opposite the door side gets one too
+    if (s < 0) { patch(-0.32 * w, -0.12 * w, s * 0.52, s * 0.86, meshMat); rimLoop(-0.22 * w, 0.10 * w, s * 0.69, s * 0.17, 4, tan); }
   }
-  tube(doorRim, 5, red);
-  patch(-0.06 * w, 0.26 * w, -0.94, -0.48,
-    new THREE.MeshStandardMaterial({ color: 0x585a58, roughness: 0.8, side: THREE.DoubleSide,
-      transparent: true, opacity: 0.75 }));
+  // Vent hoods capping each end, just under the ridge line.
+  for (const s of [-1, 1]) patch(s * 0.40 * w, s * 0.475 * w, -0.30, 0.30, darkMat, 24);
 
   // Guys at the frame feet, out at the manual's ~45 degrees, and their stakes.
   const guyPts = [], gv = (x, y, z) => new THREE.Vector3(x * MM, y * MM, z * MM);
