@@ -2021,6 +2021,161 @@ export function hangRackGroup({ w, d, drop, tiers = 1, hasSurface = false, color
   return { group: g, body: ghost };
 }
 
+/** A ridge-pitched tarp, STANDING -- the first shelter to get a body instead of a ground
+ *  outline. One builder, two pitches, because the photos say they are two different objects:
+ *
+ *    hexa   (6 verts)  2 poles at the ridge tips, the four wing corners guyed LOW (~0.20h,
+ *                      measured against the known 2400 pole in the TP-862 set hero). Every
+ *                      edge arcs INWARD AND UPWARD between its anchors -- the catenary cut,
+ *                      the thing that makes a hexa a hexa -- at a sagitta of ~8-10% of the
+ *                      chord, read off the same hero.
+ *    recta  (4 verts)  SIX poles: two main at the ridge (mid-short-edge) and four corner
+ *                      sub-poles at ~0.65h (the TP-842 hero measures 0.62-0.67). The fabric
+ *                      is a gently-sloped roof; edges nearly straight with a whisper of sag.
+ *
+ *  The membrane is a ruled surface per half -- ridge curve to outer edge chain -- with a
+ *  slight belly, built straight from the MEASURED footprint polygon and the published pole
+ *  height. It draws at opacity 0.5: see-through enough that the kitchen under it stays the
+ *  subject, and just under rebuild()'s 0.55 shadow threshold, so a tarp shades nothing --
+ *  a hard black shadow-map blob over the whole layout would be worse than no shade.
+ *  `verts` the footprint polygon (mm, [x,z]); `h` the published pole height; rim at y = 0
+ *  is GROUND here (shelters stand; they do not hang). */
+export function tarpPitchGroup({ verts, h, color = 0x8a7460, family = "hexa" }) {
+  const P = family === "recta"
+    ? { cornerH: 0.65, bow: 0.02, lift: -0.025, ridgeSag: 0.012, belly: 0.03, cornerPoles: true, lean: 0 }
+    : { cornerH: 0.20, bow: 0.085, lift: 0.10, ridgeSag: 0.02, belly: 0.05, cornerPoles: false, lean: 4 };
+  const g = new THREE.Group();
+
+  // The ridge runs along the footprint's LONG axis. A hexa has its two tip vertices ON that
+  // axis; a recta has none, so its ridge ends are the mid-points of the two short edges,
+  // spliced into the boundary chain as extra nodes.
+  const xs = verts.map(v => v[0]), zs = verts.map(v => v[1]);
+  const ext = a => Math.max(...a) - Math.min(...a);
+  const ax = ext(xs) >= ext(zs) ? 0 : 1, perp = 1 - ax;
+  let ring = verts.map(v => [v[0], v[1]]);
+  if (!ring.some(v => Math.abs(v[perp]) < 1)) {
+    const out = [];
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i], b = ring[(i + 1) % ring.length];
+      out.push(a);
+      if ((a[perp] > 0) !== (b[perp] > 0)) {         // this edge crosses the axis: splice the midpoint
+        const t = a[perp] / (a[perp] - b[perp]);
+        out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+      }
+    }
+    ring = out;
+  }
+  const onAxis = ring.map((v, i) => [i, v]).filter(([, v]) => Math.abs(v[perp]) < 1);
+  const [iA] = onAxis.reduce((m, c) => c[1][ax] > m[1][ax] ? c : m);
+  const [iB] = onAxis.reduce((m, c) => c[1][ax] < m[1][ax] ? c : m);
+  const seq = [];                                     // ring rotated to start at tip A
+  for (let k = 0; k < ring.length; k++) seq.push(ring[(iA + k) % ring.length]);
+  const cut = seq.findIndex(v => Math.abs(v[perp]) < 1 && v !== seq[0] && Math.abs(v[ax] - ring[iB][ax]) < 1);
+  // BOTH chains run tip A -> tip B, so each half's edge parameter marches the same way as
+  // the ridge's -- pairing them the raw ring order gave one half an E running B->A against
+  // an R running A->B, and the surface twisted across the diagonal.
+  const chains = [seq.slice(0, cut + 1), [seq[0], ...seq.slice(cut + 1).reverse(), seq[cut]]];
+
+  const V3 = (x, y, z) => new THREE.Vector3(x * MM, y * MM, z * MM);
+  const tipA = ring[iA], tipB = ring[iB];
+  const membrane = new THREE.MeshStandardMaterial({ color: new THREE.Color(color),
+    metalness: 0, roughness: 0.85, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+  const trimMat = metal(0xa8382e, 0.15, 0.6);          // the red edge binding, both families' heroes
+  let body = null;
+
+  for (const chain of chains) {
+    if (chain.length < 3) continue;
+    // node heights: pole tips at h, everything between at the measured corner fraction
+    const nodes = chain.map((v, i) => ({ v, y: (i === 0 || i === chain.length - 1) ? h : h * P.cornerH }));
+    const segLen = [];
+    let L = 0;
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const a = nodes[i].v, b = nodes[i + 1].v;
+      segLen.push(Math.hypot(b[0] - a[0], b[1] - a[1]));
+      L += segLen[i];
+    }
+    const E = t => {                                   // the outer edge, catenary bows and all
+      let s = t * L, i = 0;
+      while (i < segLen.length - 1 && s > segLen[i]) s -= segLen[i++];
+      const lt = segLen[i] ? s / segLen[i] : 0;
+      const a = nodes[i], b = nodes[i + 1];
+      const x = a.v[0] + (b.v[0] - a.v[0]) * lt, z = a.v[1] + (b.v[1] - a.v[1]) * lt;
+      let y = a.y + (b.y - a.y) * lt;
+      const arc = Math.sin(Math.PI * lt);
+      y += P.lift * segLen[i] * arc;                   // the edge arcs up (hexa) or sags (recta)
+      const p = [x, z];
+      const inward = -Math.sign(p[perp]) * P.bow * segLen[i] * arc;   // and bows toward the ridge
+      p[perp] += inward;
+      return { x: p[0], z: p[1], y };
+    };
+    const R = t => {                                   // the ridge, tip to tip, with its slight sag
+      const x = tipA[0] + (tipB[0] - tipA[0]) * t, z = tipA[1] + (tipB[1] - tipA[1]) * t;
+      return { x, z, y: h - P.ridgeSag * L * Math.sin(Math.PI * t) };
+    };
+    const NU = 36, NV = 10, pos = [], idx = [];
+    for (let iu = 0; iu <= NU; iu++) {
+      const u = iu / NU, r = R(u), e = E(u);
+      for (let iv = 0; iv <= NV; iv++) {
+        const v = iv / NV;
+        let x = r.x + (e.x - r.x) * v, z = r.z + (e.z - r.z) * v, y = r.y + (e.y - r.y) * v;
+        y -= P.belly * Math.hypot(e.x - r.x, e.z - r.z) * Math.sin(Math.PI * v) * Math.sin(Math.PI * u);
+        pos.push(x * MM, y * MM, z * MM);
+      }
+    }
+    for (let iu = 0; iu < NU; iu++) for (let iv = 0; iv < NV; iv++) {
+      const a = iu * (NV + 1) + iv, b = a + NV + 1;
+      idx.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    const mesh = new THREE.Mesh(geo, membrane);
+    g.add(mesh);
+    body = body || mesh;
+    // the red binding, swept along the same edge curve that shaped the fabric
+    const trimPts = [];
+    for (let i = 0; i <= 48; i++) { const e = E(i / 48); trimPts.push(V3(e.x, e.y, e.z)); }
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(trimPts), 96, 4 * MM, 6, false), trimMat));
+  }
+
+  // Poles, guys, stakes. The hexa's mains lean a few degrees out along the ridge (hero);
+  // the recta's stand plumb, and its corners get their sub-poles.
+  const alu = metal(0xc9ccd1, 0.8, 0.35);
+  const guyPts = [];
+  const stake = (x, z) => { cyl(g, 4, 5, 22, 8, metal(0x3a3d42, 0.4, 0.6), x, 11, z); };
+  const pole = (v, top, r, leanDeg) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, top * MM, 12), alu);
+    const lean = (leanDeg * Math.PI) / 180 * Math.sign(v[ax] || 1);
+    m.position.set(v[0] * MM, top / 2 * MM, v[1] * MM);
+    if (ax === 0) m.rotation.z = -lean; else m.rotation.x = lean;
+    g.add(m);
+  };
+  pole(tipA, h, 14, P.lean); pole(tipB, h, 14, P.lean);
+  for (const [tip, s] of [[tipA, 1], [tipB, -1]]) {    // each main pole: two guys past the tip
+    for (const side of [-1, 1]) {
+      const st = [tip[0], tip[1]], out = [0, 0];
+      out[ax] = s * 0.55 * h; out[perp] = side * 0.33 * h;
+      const sx = st[0] + out[0], sz = st[1] + out[1];
+      guyPts.push(V3(tip[0], h, tip[1]), V3(sx, 0, sz));
+      stake(sx, sz);
+    }
+  }
+  for (const chain of chains) for (let i = 1; i < chain.length - 1; i++) {
+    const c = chain[i], yc = h * P.cornerH;
+    if (P.cornerPoles) pole(c, yc, 11, 0);
+    const dx = c[0] - (tipA[0] + tipB[0]) / 2, dz = c[1] - (tipA[1] + tipB[1]) / 2;
+    const dl = Math.hypot(dx, dz) || 1;
+    const sx = c[0] + (dx / dl) * 0.4 * h, sz = c[1] + (dz / dl) * 0.4 * h;
+    guyPts.push(V3(c[0], yc, c[1]), V3(sx, 0, sz));
+    stake(sx, sz);
+  }
+  const guyGeo = new THREE.BufferGeometry().setFromPoints(guyPts);
+  g.add(new THREE.LineSegments(guyGeo, new THREE.LineBasicMaterial({ color: 0x9aa0a8, transparent: true, opacity: 0.85 })));
+
+  return { group: g, body };
+}
+
 // ===========================================================================================
 // The smaller hardware -- clamps, poles, screens, cases, rails, rings. None of these is a
 // box, and every one of them was being drawn as one (or crashing). These are honest,

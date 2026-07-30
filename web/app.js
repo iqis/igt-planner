@@ -8,7 +8,8 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          foldingChairGroup, lowBeachChairGroup, campfieldSofaGroup,
          loungeCushionGroup, foldingBenchGroup, bambooShelfGroup,
          takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group,
-         propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox, burnerOf } from "./parts3d.js";
+         propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox, burnerOf,
+         tarpPitchGroup } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -1284,11 +1285,28 @@ function drawFootprint(g, n) {
   // Locked = a backdrop: only the CURRENTLY SELECTED footprint stays pickable (so you can still
   // drag the one you're placing), every other one is click-through so it can't steal a click meant
   // for the furniture standing on it. Unlocked = all footprints pick normally. Either way it draws.
-  if (!state.shelterLock || n.id === state.sel) {
+  const pickable = !state.shelterLock || n.id === state.sel;
+  if (pickable) {
     built.body.userData.node = n;
     nodeMeshes.push(built.body);
   }
   g.add(built.group);
+  // The ridge tarps STAND now -- membrane, poles, guys -- so "does the kitchen fit under it"
+  // finally has a height answer, not just a floor one. The flat outline stays underneath:
+  // it is still the placement handle and the size label. Tents and shells stay flat until
+  // they earn bodies of their own.
+  if (p.shelter_type === "tarp") {
+    const vs = shelterVerts(p.geometry);
+    if (vs.length === 4 || vs.length === 6) {
+      const pitched = tarpPitchGroup({ verts: vs, h: p.assembled_mm.h,
+        color: COLORS[n.sku]?.color_hex || 0x8a7460,
+        family: vs.length === 4 ? "recta" : "hexa" });
+      if (pickable) pitched.group.traverse(o => {
+        if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); }
+      });
+      g.add(pitched.group);
+    }
+  }
 }
 
 /** The Connection Table (LV-381): a black heat-resistant stainless top on black X-frame folding

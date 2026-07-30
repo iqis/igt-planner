@@ -8,7 +8,7 @@ import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
          boxHangerGroup, sideTrayGroup, cylinderStandGroup,
          ringGroup, caseGroup, railsGroup, plateGroup, gridPlateGroup, grillNetGroup,
          slideExtGroup, entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop, lv310Group,
-         propGroup, shelterOf } from "./parts3d.js";
+         propGroup, shelterOf, shelterVerts, tarpPitchGroup } from "./parts3d.js";
 
 /* The bench.
  *
@@ -166,8 +166,19 @@ function benchGeo(p, box) {
     }).group;
 
   // A tent/tarp outline, flat on the ground -- a scale reference, and the one kind of part whose
-  // whole content IS its silhouette, so a slab was an especially poor substitute.
-  if (role === "shelter") return shelterOf(p, sku).group;
+  // whole content IS its silhouette, so a slab was an especially poor substitute. The ridge
+  // tarps (hexa / recta) additionally STAND: membrane, poles, guys, from the same polygon.
+  if (role === "shelter") {
+    const base = shelterOf(p, sku);
+    if (p.shelter_type === "tarp") {
+      const vs = shelterVerts(p.geometry);
+      if (vs.length === 4 || vs.length === 6)
+        base.group.add(tarpPitchGroup({ verts: vs, h: p.assembled_mm.h,
+          color: COLORS[sku]?.color_hex || 0x8a7460,
+          family: vs.length === 4 ? "recta" : "hexa" }).group);
+    }
+    return base.group;
+  }
 
   // Jikaro: a layout_table, but its own octagon. Default to the published long-edge-in ring.
   if (sku === "ST-050")
@@ -538,7 +549,7 @@ const ROLE_MODEL = {
   // lie is the same failure as the reverse -- it is just harder to notice.
   seating: "propGroup -> the chair built part by part from its photo: frame tubes, canvas sling, arms",
   hearth: "propGroup -> takibiGroup / gs1000Group -- built at floor level, on its own feet",
-  shelter: "shelterOf -> the TRUE ground polygon from the setup drawing, flat, with a size label",
+  shelter: "shelterOf -> the TRUE ground polygon from the setup drawing; ridge tarps (hexa/recta) also STAND -- tarpPitchGroup builds membrane, poles and guys from the same polygon",
 };
 const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
