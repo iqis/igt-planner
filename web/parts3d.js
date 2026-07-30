@@ -2204,7 +2204,8 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050,
     const t = (Math.abs(x) - XF) / (L2 - XF);   // near-linear ramp: the sloped end face
     return hBody(XF) * Math.max(0, 1 - Math.pow(t, 1.1));
   };
-  const CS = 2.4;                               // cross-section exponent: plumb-ish walls, flat crown
+  const CS = 2.7;                               // cross-section exponent: plumb walls, flat crown
+                                                // (the beach side-on reads more vertical than 2.4 gave)
 
   // WHAT KEEPS IT FROM READING AS BREAD: tensioned fabric is not a smooth solid. The skin
   // BULGES along every frame sleeve and relaxes between them, so the frame plan prints
@@ -2226,8 +2227,8 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050,
   ];
   const bumpAt = (x, z) => {
     let b = 0;
-    for (const f of frameLines) { const dd = f(x, z); b += 30 * Math.exp(-(dd * dd) / (2 * 280 * 280)); }
-    return Math.min(b, 42);
+    for (const f of frameLines) { const dd = f(x, z); b += 45 * Math.exp(-(dd * dd) / (2 * 280 * 280)); }
+    return Math.min(b, 60);                     // the beach photo's roofline visibly humps at the frames
   };
   const skin = (x, v) => {
     const cw = halfW(x), ch = hAt(x), sz = Math.sin(v * Math.PI / 2);
@@ -2347,14 +2348,14 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050,
       cpts.push(q);
     }
     seg(cpts, 11, alu);
-    seg(cpts.slice(2, 5).map(p => p.clone().setY(p.y + 8 * MM)), 5, orange);   // crown tape
+    seg(cpts.slice(1, 6).map(p => p.clone().setY(p.y + 8 * MM)), 6, orange);   // sleeve tape, full arc
   }
   for (const s of [-1, 1]) {                      // A-frames: the crossing diagonals of the plan
     const apts = arcOver(-0.30 * w * s, s * 0.94 * halfW(-0.30 * w * s),
                          0.30 * w * s, s * 0.94 * halfW(0.30 * w * s), 6);
     seg(apts, 11, alu);
-    seg(apts.slice(1, 6).map(p => p.clone().setY(p.y + 8 * MM)), 4.5, orange); // its sleeve tape
-  }
+    seg(apts.slice(1, 6).map(p => p.clone().setY(p.y + 8 * MM)), 6, orange);   // its sleeve tape --
+  }                                               // the beach photo's red lines OWN the roof
   seg([ride(-0.14 * w, 0, 26), ride(0, 0, 26), ride(0.14 * w, 0, 26)], 11, alu);   // centre frame
   seg([ride(-0.14 * w, 0, 34), ride(0, 0, 34), ride(0.14 * w, 0, 34)], 5, orange); // its tape
 
@@ -2409,12 +2410,16 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050,
   patch(-0.34 * w, -0.10 * w, 0.42, 0.96, darkMat);
   rimLoop(-0.22 * w, 0.12 * w, 0.69, 0.27, 5, red);
   patch(-0.30 * w, -0.14 * w, 0.48, 0.72, meshMat, 12);
-  // The BIG side windows -- PDP_2 shows them filling most of the wall height, wide
-  // rounded rectangles. One large each side rear-of-middle, one forward on the far side.
+  // The side walls are MOSTLY WINDOW -- the beach side-on shows huge dark-trimmed panels
+  // dominating the wall, only narrow fabric piers between them. The door side keeps its
+  // front zone for the door; the far side gets the full pair.
   for (const s of [-1, 1]) {
-    patch(0.02 * w, 0.32 * w, s * 0.44, s * 0.92, meshMat);
-    rimLoop(0.17 * w, 0.15 * w, s * 0.68, s * 0.22, 4, tan);
-    if (s < 0) { patch(-0.32 * w, -0.10 * w, s * 0.46, s * 0.90, meshMat); rimLoop(-0.21 * w, 0.11 * w, s * 0.68, s * 0.20, 4, tan); }
+    patch(0.03 * w, 0.31 * w, s * 0.38, s * 0.94, meshMat);
+    rimLoop(0.17 * w, 0.14 * w, s * 0.66, s * 0.27, 4, tan);
+    if (s < 0) {
+      patch(-0.30 * w, -0.03 * w, s * 0.38, s * 0.94, meshMat);
+      rimLoop(-0.165 * w, 0.135 * w, s * 0.66, s * 0.27, 4, tan);
+    }
   }
   // Vent hoods capping each end, just under the ridge line -- only where the cap still is.
   for (const s of [-1, 1]) {
