@@ -3730,6 +3730,33 @@ function paintWarnings() {
     if (used === slotsOf(n)) add(`${PARTS[n.sku].title_en}: full, ${used}/${slotsOf(n)} half-slots.`, "warn info");
   }
 
+  // GAS NEEDS AN EXIT. The burners feed from OUTSIDE the frame: the GS-450R's manual pins
+  // the hose to the module's short edge -- which in the frame points at a long rail -- the
+  // GS-355 runs the same hose, and the GS-230 hangs its two canisters off its knob face. So
+  // a gas module needs at least one long-rail side of its span left open, and boards ON the
+  // rail (slide-ins, and boards on rail joints) cover exactly that zone.
+  for (const n of state.nodes) {
+    if (!hasBay(n)) continue;
+    const railGuests = state.nodes.filter(m => m.host === n.id && m.rail);
+    if (!railGuests.length) continue;
+    for (const pl of n.placements) {
+      if (!burnerOf(pl.sku)?.hose) continue;
+      const x0 = slotX(n, pl.start), x1 = x0 + pl.span * HALF;
+      const sides = new Set();
+      for (const m of railGuests) {
+        const off = slideOffset(m, n), bw = railW(PARTS[m.sku]);
+        if (off - bw / 2 < x1 && off + bw / 2 > x0) sides.add(m.edge);
+      }
+      const name = PARTS[pl.sku].title_en;
+      if (sides.size >= 2)
+        add(`${name}: boards cover BOTH long-rail sides of its slots — its gas line has no `
+          + `way out. Slide a board clear, or move the burner along the run.`);
+      else if (sides.size === 1)
+        add(`${name}: a board covers one long-rail side of its slots — the gas line must run `
+          + `out the other side.`, "warn info");
+    }
+  }
+
   // A frame joined at a BOARD-scale port (a rail joint, or a board's bracket) can't lean on that
   // joint for support -- it stands on its own four legs. Fine by default; a warning if the user has
   // dropped a pair (shared joint), because then it has nothing to hold it up.
