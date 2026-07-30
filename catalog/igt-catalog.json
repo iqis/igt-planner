@@ -633,7 +633,7 @@
    }
   }
  },
- "count": 140,
+ "count": 141,
  "unmatched_sku": [
   "CK-904SET",
   "CK-080SET",
@@ -5096,6 +5096,107 @@
    },
    "capacity": 6,
    "peak_h_mm": 2200
+  },
+  {
+   "sku": "TP-671R",
+   "handle": null,
+   "title_en": "Land Lock",
+   "title_jp": "ランドロック",
+   "barcode": "",
+   "role": "shelter",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 6250,
+    "d": 4050,
+    "h": 2050
+   },
+   "packed_mm": null,
+   "weight_g": 24500,
+   "material": "本体／150Dポリエステルオックス・遮光ピグメントPUコーティング耐水圧3,000mmミニマム・撥水加工・UVカット加工（ルーフ部）、150Dポリエステルオックス・PUコーティング耐水圧1,800mmミニマム・撥水加工・UVカット加工（ウォール部）、75Dポリエステルタフタ・PUコーティング耐水圧1,800mmミニマム・撥水加工・UVカット加工（メッシュパネル裏生地部）、210Dポリエステルオックス・PUコーティング耐水圧450mmミニマム（スカート部）、インナールーム／68Dポリエステルタフタ（ウォール部）、210Dポリエステルオックス・PUコーティング耐水圧1,800mmミニマム（ボトム部）、フレーム／A6061（Φ16mm,Φ19mm）",
+   "price": {
+    "us": null,
+    "jp": 217800,
+    "uk": 182500
+   },
+   "available": {},
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/landlock_tp-671r_hero_01.jpg",
+   "url": {
+    "us": "https://www.snowpeak.com/products/land-lock",
+    "jp": "https://ec.snowpeak.co.jp/snowpeak/ja/p/26235"
+   },
+   "curated_reason": "Land Lock (TP-671R): the flagship 2-room shelter, owner-asked. Official 設営サイズ 625x405x205(h)cm and 24.5kg from the JP listing; the manual (TP-671R_manual.pdf, public S3) page 5 gives the frame plan -- two A-frames crossing over the body, two C-frames rounding the ends, one centre ridge frame -- which is what landLockGroup draws. Footprint = the manual's rounded oblong, sampled as a 16-vertex superellipse (n=3) of the published 6250x4050; a scale drawing exists in the manual if anyone wants to trace the true corner radii later. shell3d 'landlock' picks the 3D body.",
+   "shelter_type": "shell",
+   "shell3d": "landlock",
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      3125,
+      0
+     ],
+     [
+      2964,
+      1067
+     ],
+     [
+      2480,
+      1607
+     ],
+     [
+      1647,
+      1921
+     ],
+     [
+      0,
+      2025
+     ],
+     [
+      -1647,
+      1921
+     ],
+     [
+      -2480,
+      1607
+     ],
+     [
+      -2964,
+      1067
+     ],
+     [
+      -3125,
+      0
+     ],
+     [
+      -2964,
+      -1067
+     ],
+     [
+      -2480,
+      -1607
+     ],
+     [
+      -1647,
+      -1921
+     ],
+     [
+      0,
+      -2025
+     ],
+     [
+      1647,
+      -1921
+     ],
+     [
+      2480,
+      -1607
+     ],
+     [
+      2964,
+      -1067
+     ]
+    ]
+   }
   },
   {
    "sku": "TP-815",

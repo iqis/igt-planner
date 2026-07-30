@@ -8,7 +8,7 @@ import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
          boxHangerGroup, sideTrayGroup, cylinderStandGroup,
          ringGroup, caseGroup, railsGroup, plateGroup, gridPlateGroup, grillNetGroup,
          slideExtGroup, entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop, lv310Group,
-         propGroup, shelterOf, shelterVerts, tarpPitchGroup } from "./parts3d.js";
+         propGroup, shelterOf, shelterVerts, tarpPitchGroup, landLockGroup } from "./parts3d.js";
 
 /* The bench.
  *
@@ -177,6 +177,8 @@ function benchGeo(p, box) {
           color: COLORS[sku]?.color_hex || 0x8a7460,
           family: vs.length === 4 ? "recta" : "hexa" }).group);
     }
+    if (p.shell3d === "landlock")
+      base.group.add(landLockGroup(p.assembled_mm.w, p.assembled_mm.d, p.assembled_mm.h).group);
     return base.group;
   }
 

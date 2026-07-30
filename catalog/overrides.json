@@ -1614,6 +1614,93 @@
     "jp": null
    },
    "reason": "Hard Rock Cooler 40QT: the Grizzly-built rotomolded cooler in Snow Peak grey. It cannot enter a unit slot, which is why the collection sweep rightly excludes it from IGT membership -- and its JP category is ギア > クーラーボックス, so both taxonomy sweeps miss it. It joins as a SCENE PROP the same way the chairs do: a camp kitchen has a cooler standing beside it. Owner asked for it by SKU. Dims/weight come from the JP spec table as usual (648x406x391, 11kg) -- and Grizzly's own published spec for the Grizzly 40 (25.5 x 16 x 15.375 in) agrees to the millimetre, a two-source cross-check. Body/latch colours sampled from UG-302_hero01. prop type 'cooler'."
+  },
+  "TP-671R": {
+   "role": "shelter",
+   "title_en": "Land Lock",
+   "shelter_type": "shell",
+   "shell3d": "landlock",
+   "assembled_mm": {
+    "w": 6250,
+    "d": 4050,
+    "h": 2050
+   },
+   "weight_g": 24500,
+   "geometry": {
+    "kind": "polygon",
+    "vertices": [
+     [
+      3125,
+      0
+     ],
+     [
+      2964,
+      1067
+     ],
+     [
+      2480,
+      1607
+     ],
+     [
+      1647,
+      1921
+     ],
+     [
+      0,
+      2025
+     ],
+     [
+      -1647,
+      1921
+     ],
+     [
+      -2480,
+      1607
+     ],
+     [
+      -2964,
+      1067
+     ],
+     [
+      -3125,
+      0
+     ],
+     [
+      -2964,
+      -1067
+     ],
+     [
+      -2480,
+      -1607
+     ],
+     [
+      -1647,
+      -1921
+     ],
+     [
+      0,
+      -2025
+     ],
+     [
+      1647,
+      -1921
+     ],
+     [
+      2480,
+      -1607
+     ],
+     [
+      2964,
+      -1067
+     ]
+    ]
+   },
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/landlock_tp-671r_hero_01.jpg",
+   "url": {
+    "us": "https://www.snowpeak.com/products/land-lock",
+    "jp": "https://ec.snowpeak.co.jp/snowpeak/ja/p/26235"
+   },
+   "reason": "Land Lock (TP-671R): the flagship 2-room shelter, owner-asked. Official 設営サイズ 625x405x205(h)cm and 24.5kg from the JP listing; the manual (TP-671R_manual.pdf, public S3) page 5 gives the frame plan -- two A-frames crossing over the body, two C-frames rounding the ends, one centre ridge frame -- which is what landLockGroup draws. Footprint = the manual's rounded oblong, sampled as a 16-vertex superellipse (n=3) of the published 6250x4050; a scale drawing exists in the manual if anyone wants to trace the true corner radii later. shell3d 'landlock' picks the 3D body."
   }
  },
  "GF-051": {

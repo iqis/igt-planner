@@ -2176,6 +2176,153 @@ export function tarpPitchGroup({ verts, h, color = 0x8a7460, family = "hexa" }) 
   return { group: g, body };
 }
 
+/** Land Lock (TP-671R): the flagship 2-room shell, STANDING. The published 6250x4050x2050
+ *  envelope shapes the loft; the manual's frame plan (TP-671R_manual.pdf p.5) names what the
+ *  hero photo shows: two A-FRAMES crossing over the body, two C-FRAMES rounding the ends,
+ *  one CENTRE ridge frame -- so those five tubes are drawn riding just proud of the fabric,
+ *  where their sleeves are. Brown skin, red trim (the door surround and ridge accents), the
+ *  darker skirt at grade. Same 0.5 opacity as the tarps, for the same two reasons: the
+ *  kitchen lives INSIDE this one, and an opaque 25 square metres would print a shadow-map
+ *  blob over half the layout. */
+export function landLockGroup(w = 6250, d = 4050, h = 2050) {
+  const g = new THREE.Group();
+  const nPlan = 3, L2 = w / 2, W2 = d / 2;
+  // The massing is a LOAF, not an egg: a long near-level ridge, steep rounded end caps, and
+  // walls that stand nearly plumb before turning into the crown -- superellipse profiles in
+  // both directions, tuned against the hero's silhouette.
+  const halfW = x => W2 * Math.pow(Math.max(1e-4, 1 - Math.pow(Math.abs(x / L2), nPlan)), 1 / nPlan);
+  const hAt = x => h * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(x / L2), 4.5)), 1 / 1.8);
+  const CS = 2.4;                               // cross-section exponent: plumb-ish walls, flat crown
+  const skin = (x, v) => {
+    const cw = halfW(x), ch = hAt(x), sz = Math.sin(v * Math.PI / 2);
+    return { x, z: cw * sz, y: ch * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(sz), CS)), 1 / CS) };
+  };
+  const surfY = (x, z) => {                     // fabric height over a plan point, for the frames
+    const cw = halfW(x), t = Math.min(1, Math.abs(z) / cw);
+    return hAt(x) * Math.pow(Math.max(0, 1 - Math.pow(t, CS)), 1 / CS);
+  };
+
+  const brown = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x6b5a4b),
+    metalness: 0, roughness: 0.9, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+  const NU = 44, NV = 20, pos = [], idx = [];
+  for (let iu = 0; iu <= NU; iu++) {
+    const x = -L2 + (w * iu) / NU;
+    for (let iv = 0; iv <= NV; iv++) {
+      const s = skin(x, -1 + (2 * iv) / NV);
+      pos.push(s.x * MM, s.y * MM, s.z * MM);
+    }
+  }
+  for (let iu = 0; iu < NU; iu++) for (let iv = 0; iv < NV; iv++) {
+    const a = iu * (NV + 1) + iv, b = a + NV + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  const shell = new THREE.Mesh(geo, brown);
+  g.add(shell);
+
+  // the skirt: a darker band standing at grade, following the plan outline
+  const skirtPos = [], skirtIdx = [];
+  const NS = 64;
+  for (let i = 0; i <= NS; i++) {
+    const th = (2 * Math.PI * i) / NS;
+    const x = L2 * Math.sign(Math.cos(th)) * Math.pow(Math.abs(Math.cos(th)), 2 / nPlan);
+    const z = W2 * Math.sign(Math.sin(th)) * Math.pow(Math.abs(Math.sin(th)), 2 / nPlan);
+    skirtPos.push(x * MM, 0, z * MM, x * MM, 140 * MM, z * MM);
+    if (i < NS) { const a = i * 2; skirtIdx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+  }
+  const skirtGeo = new THREE.BufferGeometry();
+  skirtGeo.setAttribute("position", new THREE.Float32BufferAttribute(skirtPos, 3));
+  skirtGeo.setIndex(skirtIdx);
+  skirtGeo.computeVertexNormals();
+  g.add(new THREE.Mesh(skirtGeo, new THREE.MeshStandardMaterial({ color: new THREE.Color(0x4a3f36),
+    metalness: 0, roughness: 0.9, side: THREE.DoubleSide, transparent: true, opacity: 0.55 })));
+
+  // The frame, riding 20mm proud of the fabric where the sleeves are. Positions from the
+  // manual's plan: C-frames arc across near each end, the two A-frames run diagonally and
+  // CROSS over the body, the centre frame bridges the crossing points along the ridge.
+  const tube = (pts, r, mat) => g.add(new THREE.Mesh(new THREE.TubeGeometry(
+    new THREE.CatmullRomCurve3(pts), pts.length * 4, r * MM, 8, false), mat));
+  const alu = metal(0xc9ccd1, 0.8, 0.35);
+  const red = metal(0xa8332e, 0.15, 0.6);
+  const ride = (x, z, lift = 20) => new THREE.Vector3(x * MM, (surfY(x, z) + lift) * MM, z * MM);
+  const arcOver = (xa, za, xb, zb, N = 24) => {   // a pole from ground A over the shell to ground B
+    const pts = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, x = xa + (xb - xa) * t, z = za + (zb - za) * t;
+      const p = ride(x, z);
+      if (i === 0 || i === N) p.y = 0;
+      pts.push(p);
+    }
+    return pts;
+  };
+  for (const s of [-1, 1]) {                      // C-frames: transverse hoops near the ends,
+    const xc = s * 0.42 * w, NC = 24, cpts = [];  // leaning outward over the end caps
+    for (let i = 0; i <= NC; i++) {
+      const t = i / NC;
+      const z = halfW(xc) * Math.cos(t * Math.PI) * 0.98;
+      const x = xc + Math.sin(t * Math.PI) * 0.07 * w * s;
+      const q = ride(x, z, 22);
+      if (i === 0 || i === NC) q.y = 0;
+      cpts.push(q);
+    }
+    tube(cpts, 11, alu);
+  }
+  for (const s of [-1, 1])                        // A-frames: the crossing diagonals of the plan
+    tube(arcOver(-0.30 * w * s, s * 0.94 * halfW(-0.30 * w * s), 0.30 * w * s, s * 0.94 * halfW(0.30 * w * s)), 11, alu);
+  tube([ride(-0.14 * w, 0, 26), ride(0, 0, 26), ride(0.14 * w, 0, 26)], 11, alu);   // centre frame
+  tube([ride(-0.14 * w, 0, 34), ride(0, 0, 34), ride(0.14 * w, 0, 34)], 5, red);    // its red sleeve accent
+
+  // The door (entrance end's side panel, red-bound) and the big mesh window opposite.
+  const patch = (x0, x1, v0, v1, mat, lift = 8) => {
+    const P = [], I = [], M = 10, N = 8;
+    for (let i = 0; i <= M; i++) for (let j = 0; j <= N; j++) {
+      const x = x0 + ((x1 - x0) * i) / M, v = v0 + ((v1 - v0) * j) / N;
+      const s = skin(x, v);
+      P.push(s.x * MM, (s.y + lift * Math.pow(Math.cos(v * Math.PI / 2), 0.5)) * MM,
+             (s.z + lift * Math.sin(v * Math.PI / 2)) * MM);
+    }
+    for (let i = 0; i < M; i++) for (let j = 0; j < N; j++) {
+      const a = i * (N + 1) + j, b = a + N + 1;
+      I.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+    const pg = new THREE.BufferGeometry();
+    pg.setAttribute("position", new THREE.Float32BufferAttribute(P, 3));
+    pg.setIndex(I); pg.computeVertexNormals();
+    g.add(new THREE.Mesh(pg, mat));
+  };
+  patch(-0.34 * w, -0.10 * w, 0.42, 0.96,
+    new THREE.MeshStandardMaterial({ color: 0x2c2723, roughness: 0.85, side: THREE.DoubleSide }));
+  const doorRim = [];
+  for (let i = 0; i <= 20; i++) {                 // the red door binding, around the dark panel
+    const t = i / 20, th = t * 2 * Math.PI;
+    const x = -0.22 * w + 0.12 * w * Math.cos(th), v = 0.69 + 0.27 * Math.sin(th);
+    const s = skin(x, v);
+    doorRim.push(new THREE.Vector3(s.x * MM, (s.y + 10) * MM, (s.z + 10 * Math.sin(v * Math.PI / 2)) * MM));
+  }
+  tube(doorRim, 5, red);
+  patch(-0.06 * w, 0.26 * w, -0.94, -0.48,
+    new THREE.MeshStandardMaterial({ color: 0x585a58, roughness: 0.8, side: THREE.DoubleSide,
+      transparent: true, opacity: 0.75 }));
+
+  // Guys at the frame feet, out at the manual's ~45 degrees, and their stakes.
+  const guyPts = [], gv = (x, y, z) => new THREE.Vector3(x * MM, y * MM, z * MM);
+  for (const [gx, gz] of [[-0.47, 0.3], [-0.47, -0.3], [0.47, 0.3], [0.47, -0.3],
+                          [-0.30, 0.98], [-0.30, -0.98], [0.30, 0.98], [0.30, -0.98]]) {
+    const ax = gx * w, az = gz * halfW(gx * w);
+    const ay = surfY(ax, az) * 0.55;
+    const sx = ax + Math.sign(gx) * 0.5 * ay, sz = az + Math.sign(gz) * 0.9 * ay;
+    guyPts.push(gv(ax, ay, az), gv(sx, 0, sz));
+    cyl(g, 4, 5, 22, 8, metal(0x3a3d42, 0.4, 0.6), sx, 11, sz);
+  }
+  g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(guyPts),
+    new THREE.LineBasicMaterial({ color: 0x9aa0a8, transparent: true, opacity: 0.85 })));
+
+  return { group: g, body: shell };
+}
+
 // ===========================================================================================
 // The smaller hardware -- clamps, poles, screens, cases, rails, rings. None of these is a
 // box, and every one of them was being drawn as one (or crashing). These are honest,
