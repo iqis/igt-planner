@@ -85,7 +85,7 @@ function chairTex(key, path, rep, srgb) {
   woodTexCache[key] = t;
   return t;
 }
-const burnerTop = sku => sku.startsWith("GS-450R") ? loadTex("tex/GS-450R_top.jpg") : null;
+const burnerTop = () => null;   // the GS-450R is procedural now; its photo top (an oblique crop) is retired
 
 // The axis a set of measured points sits on. Same rule as the planner uses, so what you
 // see here is what the layout will do with it.

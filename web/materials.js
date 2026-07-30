@@ -13,7 +13,9 @@ import * as THREE from "three";
 
 const RESPONSE = [
   // JP material strings are authoritative: they name the alloy.
-  [/竹|bamboo/i,                 { metalness: 0.0,  roughness: 0.68 }],
+  // Bamboo is LAMINATED and lacquered -- matte wood colour under a satin film. Clearcoat is
+  // that film: without it the largest surfaces in the iso view read as unfinished plywood.
+  [/竹|bamboo/i,                 { metalness: 0.0,  roughness: 0.55, clearcoat: 0.3, clearcoatRoughness: 0.35 }],
   [/ステンレス|stainless/i,        { metalness: 0.85, roughness: 0.28 }],
   [/アルミ|alumin/i,              { metalness: 0.80, roughness: 0.42 }],  // anodised, not mirror
   [/鋳鉄|鉄|iron|steel/i,         { metalness: 0.55, roughness: 0.62 }],
@@ -29,6 +31,14 @@ export function responseFor(material) {
   return (RESPONSE.find(([re]) => re.test(material || "")) || [null, DEFAULT_RESPONSE])[1];
 }
 
+/** Build the material a response calls for: Physical when the response carries a clearcoat
+ *  (the lacquer film needs it), Standard otherwise. Params pass straight through. */
+function surface(r, params) {
+  return r.clearcoat
+    ? new THREE.MeshPhysicalMaterial({ clearcoat: r.clearcoat, clearcoatRoughness: r.clearcoatRoughness, ...params })
+    : new THREE.MeshStandardMaterial(params);
+}
+
 /** Snow Peak names the mesh parts "Mesh Tray". The name is the authority, the same way
  *  it is for unit spans; the photo's measured openness only corroborates it (the mesh
  *  trays measure 0.62-0.74 see-through, the solid bamboo inserts 0.01). */
@@ -39,7 +49,7 @@ export const isMesh = p => /mesh/i.test(p.title_en || "");
 export function materialFor(p, colors, selected) {
   const hex = colors[p.sku]?.color_hex;
   const r = responseFor(p.material);
-  return new THREE.MeshStandardMaterial({
+  return surface(r, {
     color: new THREE.Color(hex || FALLBACK_COLOR),
     metalness: r.metalness,
     roughness: r.roughness,
@@ -297,9 +307,12 @@ export function boardMaterial(p, colors, texture, w, d, selected) {
   // the arc of the painted photo running one way and the arc of the board the other.
   texture.repeat.set(1 / w, 1 / d);
   texture.offset.set(0.5, 0.5);
-  texture.needsUpdate = true;
+  // Only if the image is here: needsUpdate on a still-loading texture makes the renderer
+  // warn "no image data found" once per material. A texture that arrives later uploads
+  // with these wrap/colour settings anyway -- the flag buys nothing before then.
+  if (texture.image) texture.needsUpdate = true;
 
-  return new THREE.MeshStandardMaterial({
+  return surface(r, {
     map: texture,
     color: 0xffffff,
     metalness: r.metalness,
@@ -413,9 +426,9 @@ export function grainMaterial(p, colors, grain, wMM, dMM, selected, tileMM = 320
   grain.wrapS = grain.wrapT = THREE.RepeatWrapping;
   grain.colorSpace = THREE.SRGBColorSpace;
   grain.repeat.set(Math.max(1, wMM / tileMM), Math.max(1, dMM / tileMM));
-  grain.needsUpdate = true;
+  if (grain.image) grain.needsUpdate = true;   // see boardMaterial: no image yet, no warning
 
-  return new THREE.MeshStandardMaterial({
+  return surface(r, {
     map: grain,
     color: new THREE.Color(colors[p.sku]?.color_hex || 0xb98b53),
     metalness: r.metalness,

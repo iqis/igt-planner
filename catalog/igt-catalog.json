@@ -633,7 +633,7 @@
    }
   }
  },
- "count": 139,
+ "count": 140,
  "unmatched_sku": [
   "CK-904SET",
   "CK-080SET",
@@ -3437,6 +3437,39 @@
    "fabric_hex": "0xcf6a20",
    "chair": "cushion",
    "fabric_type": "canvas"
+  },
+  {
+   "sku": "UG-302GY",
+   "handle": null,
+   "title_en": "Hard Rock Cooler 40QT",
+   "title_jp": "ハードロッククーラー 40QT [容量38L]",
+   "barcode": "",
+   "role": "seating",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": {
+    "w": 648.0,
+    "d": 406.0,
+    "h": 391.0
+   },
+   "packed_mm": null,
+   "weight_g": 11000,
+   "material": "ポリエチレン、ポリウレタン、ゴム",
+   "price": {
+    "us": null,
+    "jp": 76560,
+    "uk": 31000
+   },
+   "available": {},
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/UG-302_hero01.jpg",
+   "url": {
+    "us": "https://www.snowpeak.com/products/hard-rock-coller-40qt",
+    "jp": null
+   },
+   "curated_reason": "Hard Rock Cooler 40QT: the Grizzly-built rotomolded cooler in Snow Peak grey. It cannot enter a unit slot, which is why the collection sweep rightly excludes it from IGT membership -- and its JP category is ギア > クーラーボックス, so both taxonomy sweeps miss it. It joins as a SCENE PROP the same way the chairs do: a camp kitchen has a cooler standing beside it. Owner asked for it by SKU. Dims/weight come from the JP spec table as usual (648x406x391, 11kg) -- and Grizzly's own published spec for the Grizzly 40 (25.5 x 16 x 15.375 in) agrees to the millimetre, a two-source cross-check. Body/latch colours sampled from UG-302_hero01. prop type 'cooler'.",
+   "frame_hex": "0x8a7e76",
+   "fabric_hex": "0xa83832",
+   "prop": "cooler"
   },
   {
    "sku": "CK-080SET",

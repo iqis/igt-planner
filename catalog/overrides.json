@@ -1601,6 +1601,19 @@
     "jp": "https://ec.snowpeak.co.jp/item/SNP0104A0268"
    },
    "reason": "炭床Pro.L: a 310x310x20 cast-iron GRATE (a slotted slab with a raised logo boss and four little feet), 3.9kg -- published. It has no legs and no position of its own: it WEDGES into the bowl's taper wherever the square section is 310, which at bowl_depth 200 is 64mm below the rim -- and the JP a001 shows it exactly there. That is its whole purpose (raise the burn floor, burn less charcoal). A toggle on the Takibi, billed, never a node."
+  },
+  "UG-302GY": {
+   "role": "seating",
+   "title_en": "Hard Rock Cooler 40QT",
+   "frame_hex": "0x8a7e76",
+   "fabric_hex": "0xa83832",
+   "prop": "cooler",
+   "image": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/UG-302_hero01.jpg",
+   "url": {
+    "us": "https://www.snowpeak.com/products/hard-rock-coller-40qt",
+    "jp": null
+   },
+   "reason": "Hard Rock Cooler 40QT: the Grizzly-built rotomolded cooler in Snow Peak grey. It cannot enter a unit slot, which is why the collection sweep rightly excludes it from IGT membership -- and its JP category is ギア > クーラーボックス, so both taxonomy sweeps miss it. It joins as a SCENE PROP the same way the chairs do: a camp kitchen has a cooler standing beside it. Owner asked for it by SKU. Dims/weight come from the JP spec table as usual (648x406x391, 11kg) -- and Grizzly's own published spec for the Grizzly 40 (25.5 x 16 x 15.375 in) agrees to the millimetre, a two-source cross-check. Body/latch colours sampled from UG-302_hero01. prop type 'cooler'."
   }
  },
  "GF-051": {

@@ -256,15 +256,15 @@
  },
  "GS-450R-US": {
   "what": "Flat Burner: a low, flat single-burner stove sized to drop into two IGT units (270x410), sitting flush in the frame like a tabletop.",
-  "model": "moduleGroup (a slot module) with a real top texture cropped from the burner's own top-view photo.",
-  "fits": "Drops into the frame as a 2-unit slot module -- its rim rests on the rails, the body hangs below.",
+  "model": "burnerGroup's flat450 branch -- fully procedural: a bright plate with the round bowl CUT THROUGH it, the head and brass port ring standing in the recess, four W-kinked grate wires over it, a shallow 18mm skirt below, and the gas port stub out the right side. The old photo top (an oblique a016 detail crop baked flat) is retired: it was skewed from every angle but the photo's own, and it painted the 3D grate flat.",
+  "fits": "Drops into the frame as a 2-unit slot module -- its rim rests on the rails and almost nothing hangs below the rail line, which is the point of a flat burner.",
   "confidence": "medium",
   "derived": [
    "270x410 = 2 units wide",
-   "top texture from the a016 top-view photo"
+   "plate/bowl/wire layout from the JP a002 photo; side hose port from a003 (the regulator rides the REMOTE canister -- the body has no knob)"
   ],
   "assumed": [
-   "how deep the body hangs below the rail line"
+   "bowl depth ~26mm and wire gauge 5mm -- read off the photos, not published"
   ],
   "unknown": []
  },

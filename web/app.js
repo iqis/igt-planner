@@ -81,7 +81,9 @@ function chairTex(key, path, rep, srgb) {
   return t;
 }
 // The flat burner (GS-450R) shows its real top -- stainless well, brass head, ports, grate.
-const burnerTop = sku => sku.startsWith("GS-450R") ? loadTex("tex/GS-450R_top.jpg") : null;
+// (The GS-450R's photo top is gone: it was an oblique detail crop baked onto a flat plane,
+// skewed from every angle but the photo's own. The burner is procedural geometry now.)
+const burnerTop = () => null;
 
 // Colours come from Snow Peak's product photography (catalog/colors.json). The swatch in
 // the palette is the same colour the part is rendered in, so the two never drift.
@@ -770,6 +772,13 @@ function canPlaceAt(n, start, span, ignore) {
 const canvas = $("canvas");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+// Shadows, at last -- the missing dark seam under every frame and chair was the single
+// biggest reason parts read as stickers floating over the ground. The depth pass is NOT
+// per-frame: the scene only changes through rebuild(), so autoUpdate stays off and rebuild
+// flips needsUpdate -- the steady-state rAF loop a phone pays for renders shadows for free.
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x14161a);   // replaced by applyTheme() on boot
@@ -810,10 +819,33 @@ addEventListener("keyup", e => { if (e.key === "Alt") setAlt(false); });
 // Put it back on blur, or alt-tabbing away leaves the canvas panning on left-drag forever.
 addEventListener("blur", () => setAlt(false));
 
-scene.add(new THREE.HemisphereLight(0xdfe6f0, 0x33383f, 1.5));
+const hemi = new THREE.HemisphereLight(0xdfe6f0, 0x33383f, 1.5);
+scene.add(hemi);
 const key = new THREE.DirectionalLight(0xffffff, 1.4);
 key.position.set(2, 3.4, 1.8);
+// A tight ortho frustum: layouts live within a few metres of the origin, and shadow-map
+// texels spent on empty floor are texels the contact seam does not get.
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = key.shadow.camera.bottom = -4.5;
+key.shadow.camera.right = key.shadow.camera.top = 4.5;
+key.shadow.camera.near = 0.5;
+key.shadow.camera.far = 12;
+key.shadow.bias = -0.0004;
+key.shadow.normalBias = 0.015;
 scene.add(key);
+scene.add(key.target);
+// The catcher: ShadowMaterial renders NOTHING but the shadows cast on it, so the bare grid
+// floor gets a contact seam without getting a floor. The textured grounds receive on their
+// own mesh and this plane sits just beneath them, invisible either way.
+const shadowCatcher = new THREE.Mesh(
+  new THREE.PlaneGeometry(24, 24),
+  new THREE.ShadowMaterial({ opacity: 0.3 }),
+);
+shadowCatcher.rotation.x = -Math.PI / 2;
+shadowCatcher.position.y = -0.001;
+shadowCatcher.receiveShadow = true;
+scene.add(shadowCatcher);
 // The floor grid. Its colours are baked into the geometry, so a theme change rebuilds it.
 // It is graph paper: ON only for the bare "Grid" ground, OFF once a real surface is chosen (you do
 // not rule a lawn) -- but a theme change rebuilds the grid, so it re-reads that choice each time.
@@ -933,13 +965,20 @@ function setGround(key) {
   if (key !== "grid") {
     const g = GROUNDS[key];
     groundMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(16, 16),                // wider than the 8m grid, so it fills the view
+      new THREE.PlaneGeometry(26, 26),                // wide enough that the fog swallows its edge
       new THREE.MeshStandardMaterial({ map: groundTexture(key), roughness: g.rough, metalness: 0 }),
     );
     groundMesh.rotation.x = -Math.PI / 2;
     groundMesh.position.y = -0.003;                   // just under the grid lines and the parts' feet
+    groundMesh.receiveShadow = true;
     scene.add(groundMesh);
   }
+  // Ground bounce: the hemisphere's under-light takes the surface's own colour, so grass
+  // reflects green up at the parts instead of studio grey -- the cheapest cue after shadows
+  // that things stand IN the scene rather than on a swatch of it.
+  const BOUNCE = { grass: 0x25301c, wood: 0x4a3c28, gravel: 0x353533, sand: 0x74644c };
+  hemi.groundColor.set(BOUNCE[key] || 0x33383f);
+  renderer.shadowMap.needsUpdate = true;
   const sel = $("groundsel");
   if (sel && sel.value !== key) sel.value = key;
 }
@@ -1614,6 +1653,18 @@ function rebuild() {
   }
 
   if (dropHint) addDropMarker(dropHint);     // where a dragged part will hook / insert on release
+
+  // Shadow casting, decided by VISIBILITY: the invisible hit slabs (opacity 0) and the
+  // fading ghosts must not print on the floor, and the shadow catcher must not re-catch
+  // its own children. One pass here, so no builder has to remember it.
+  build.traverse(o => {
+    if (!o.isMesh || o.isSprite) return;
+    const m = Array.isArray(o.material) ? o.material[0] : o.material;
+    const solid = m && !(m.transparent && m.opacity < 0.55);
+    o.castShadow = solid;
+    o.receiveShadow = solid;
+  });
+  renderer.shadowMap.needsUpdate = true;
 
   // Step joints, where two touching tables stand at different heights. The CK-151 is a stainless
   // post of FIXED length (~320mm) that screws to the HIGHER table and hangs down; the lower
@@ -4458,6 +4509,14 @@ function applyTheme(t) {
   // Phone browser chrome follows the panels, not the colour the page happened to load with.
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", val("--bg", "#14161a"));
   scene.background = new THREE.Color(val("--scene", "#14161a"));
+  // Fog in the background's own colour: the ground plane DISSOLVES into the distance
+  // instead of ending at a razor edge -- the cheapest possible horizon.
+  scene.fog = new THREE.Fog(scene.background, 9, 24);
+  // Daylight for the light theme: brighter, whiter ambient, softer shadow -- parts lit for
+  // a dark room read muddy against a bright page.
+  hemi.intensity = t === "light" ? 1.75 : 1.5;
+  hemi.color.set(t === "light" ? 0xf2f5f9 : 0xdfe6f0);
+  shadowCatcher.material.opacity = t === "light" ? 0.2 : 0.32;
   // Grid lines: faint on either ground. Baked into the geometry, so rebuild on change.
   if (t === "light") setGrid(0xc2c7cf, 0xd8dbe1);
   else setGrid(0x2b3038, 0x21252b);

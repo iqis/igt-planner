@@ -44,7 +44,13 @@ export function flatBoardGeo(role, t, w, d, thickMM) {
 // geometry it drives, and keyed by base SKU (region suffixes stripped).
 export const BURNERS = {
   "GS-355":  { plate: true, knobs: 1 },
-  "GS-450R": { heads: 1, knobs: 1 },
+  // Fully procedural, NO photo top and NO knob. The old top was an OBLIQUE detail crop baked
+  // onto a flat plane -- the burner head's own side was in the picture, so it read skewed
+  // from every angle but the photo's -- and the front knob was invented: the real regulator
+  // rides the REMOTE canister at the end of a braided hose (JP a003), the body only carries
+  // a side port. Geometry from the JP photos: a thin plate, a recessed bowl, a small head,
+  // four W-kinked grate wires, a side valve stub.
+  "GS-450R": { flat450: true },
   // Its own builder -- an appliance, not a box. Kept here so burnerOf still says "yes, a burner".
   "GS-230":  { gs230: true, heads: 2, knobs: 2 },
   "GP-040":  { heads: 1, knobs: 1, mounts: "GS-1000" },
@@ -81,23 +87,62 @@ export function burnerGroup(spec, w, d, h, topTex = null) {
   const g = new THREE.Group();
   const steel = 0x9aa0a8, dark = 0x26292e;
 
-  // The stainless housing, dropped in. Rim at y=0, body hanging to -h.
-  const body = box(g, w, h, d, 3, metal(steel, 0.85, 0.35), 0, -h / 2, 0);
-
-  // A flat burner (GS-450R) carries its REAL top as a photo: the stainless well, the brass
-  // head with its ring of ports, the pot-support grate over it -- laid on the housing rim.
-  // It is a flat burner, so there is no modelled cylinder head; the picture is the top.
-  if (topTex) {
-    const s = Math.min(w, d) * 0.96;
-    const top = new THREE.Mesh(new THREE.PlaneGeometry(s * MM, s * MM),
-      new THREE.MeshStandardMaterial({ map: topTex, metalness: 0.5, roughness: 0.5 }));
-    top.rotation.x = -Math.PI / 2;             // lay it flat, facing up
-    top.position.y = 1.4 * MM;
-    g.add(top);
-    for (let i = 0; i < (spec.knobs || 0); i++)
-      cyl(g, 9, 9, 10, 16, metal(0x1c1f24, 0.4, 0.6), 0, -h * 0.35, d / 2 + 4, Math.PI / 2);
+  // The Flat Burner (GS-450R): everything the eye checks is above the rim, so the body is a
+  // shallow pan, not a full-depth box -- in the frame the real thing nearly disappears
+  // below the rail line (JP a003 shows a pot ON it and daylight UNDER it).
+  if (spec.flat450) {
+    const bright = metal(0xc9cdd2, 0.9, 0.25);
+    const R = Math.min(w, d) * 0.40;
+    // The plate, WITH THE HOLE IN IT: a solid slab over the bowl would bury the recess
+    // that makes this a burner. Rounded rectangle, circular cutout, 3mm of steel.
+    const sh = new THREE.Shape();
+    const hw = (w / 2) * MM, hd = (d / 2) * MM, cr = 8 * MM;
+    sh.moveTo(-hw + cr, -hd);
+    sh.lineTo(hw - cr, -hd); sh.quadraticCurveTo(hw, -hd, hw, -hd + cr);
+    sh.lineTo(hw, hd - cr); sh.quadraticCurveTo(hw, hd, hw - cr, hd);
+    sh.lineTo(-hw + cr, hd); sh.quadraticCurveTo(-hw, hd, -hw, hd - cr);
+    sh.lineTo(-hw, -hd + cr); sh.quadraticCurveTo(-hw, -hd, -hw + cr, -hd);
+    const hole = new THREE.Path();
+    hole.absarc(0, 0, R * MM, 0, Math.PI * 2, true);
+    sh.holes.push(hole);
+    const plate = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(sh, { depth: 3 * MM, bevelEnabled: false, curveSegments: 40 }), bright);
+    plate.rotation.x = -Math.PI / 2;
+    plate.position.y = -3 * MM;                    // top face lands at the rim, y = 0
+    g.add(plate);
+    const body = plate;
+    box(g, w - 8, 16, d - 8, 3, metal(0x9aa0a8, 0.8, 0.4), 0, -11, 0);   // the shallow skirt
+    // The bowl seen THROUGH the hole: tapering wall, floor, the head standing on it.
+    cyl(g, R, R * 0.86, 26, 40, metal(0xaeb4bb, 0.85, 0.35), 0, -13, 0);
+    cyl(g, R * 0.85, R * 0.85, 3, 40, metal(0x878d95, 0.8, 0.45), 0, -26, 0);
+    cyl(g, 30, 38, 16, 24, metal(0x4a4d52, 0.6, 0.5), 0, -17, 0);        // the head's body
+    cyl(g, 27, 27, 5, 24, metal(0xb98a4a, 0.75, 0.4), 0, -7, 0);         // brass port ring
+    cyl(g, 10, 10, 2, 12, metal(0x2b2e33, 0.4, 0.6), 0, -4, 0);          // the jet cap
+    // Four grate wires along the depth, each dipping toward the bowl in a shallow W (a002).
+    const wire = metal(0xd3d7db, 0.9, 0.25);
+    const seg = d * 0.30, dip = seg * 0.55;
+    for (const i of [-1.5, -0.5, 0.5, 1.5]) {
+      const x = i * (w * 0.22);
+      for (const s of [-1, 1]) {
+        box(g, 5, 5, seg, 2, wire, x, 10, s * (d / 2 - seg / 2 - 8));
+        const a = new THREE.Mesh(roundedBox(5 * MM, 5 * MM, dip * MM, 2 * MM), wire);
+        a.position.set(x * MM, 7.5 * MM, s * (d / 2 - seg - 8 + dip / 2 - 4) * MM);
+        a.rotation.x = s * 0.10;
+        g.add(a);
+      }
+      box(g, 5, 5, d * 0.16, 2, wire, x, 5, 0);      // the low centre run over the bowl
+    }
+    // The gas port: a stub out the right short side, where the braided hose clips on.
+    const port = new THREE.Mesh(new THREE.CylinderGeometry(7 * MM, 7 * MM, 26 * MM, 12),
+      metal(0x63676d, 0.7, 0.4));
+    port.rotation.z = Math.PI / 2;
+    port.position.set((w / 2 + 6) * MM, -14 * MM, d * 0.18 * MM);
+    g.add(port);
     return { group: g, body };
   }
+
+  // The stainless housing, dropped in. Rim at y=0, body hanging to -h.
+  const body = box(g, w, h, d, 3, metal(steel, 0.85, 0.35), 0, -h / 2, 0);
 
   if (spec.plate) {
     box(g, w - 8, 10, d - 8, 4, metal(dark, 0.3, 0.6), 0, 4, 0);
@@ -655,13 +700,18 @@ export function frameGroup({ w, d, thick, collapsible = false, section, hookHole
     lip: (section.lip_mm[1] - section.lip_mm[0]) * MM,
   };
   for (const s of [-1, 1]) {
-    const r = new THREE.Mesh(railProfile(w * MM, thick * MM, prof, s), metalE(railColor, 0.8, 0.42, glow));
+    // Black rails (the collapsible's) are the same anodised coating as the ends -- matte.
+    const anodised = railColor === BLK_;
+    const r = new THREE.Mesh(railProfile(w * MM, thick * MM, prof, s),
+      metalE(railColor, anodised ? 0.3 : 0.8, anodised ? 0.6 : 0.42, glow));
     r.position.set(0, -thick / 2 * MM, s * (d / 2 - railWidth / 2) * MM);
     g.add(r); pick.push(r);
   }
   // End pieces -- anodised black on the standard frame; the hook holes live in them.
+  // The coating is MATTE: at metalness 0.55 the env map turned them semi-gloss dark
+  // chrome, and the two-finish identity that tells the families apart went muddy.
   for (const x of [-(w - endW) / 2, (w - endW) / 2]) {
-    const e = new THREE.Mesh(roundedBox(endW * MM, thick * MM, d * MM, 2 * MM), metalE(endColor, 0.55, 0.5, glow));
+    const e = new THREE.Mesh(roundedBox(endW * MM, thick * MM, d * MM, 2 * MM), metalE(endColor, 0.28, 0.62, glow));
     e.position.set(x * MM, -thick / 2 * MM, 0);
     g.add(e); pick.push(e);
   }
@@ -1142,6 +1192,40 @@ export function takeChairGroup(w, d, h, { frame = 0xcfd3d7, fabric = 0xefe6d0, w
   const bBot = seatH + 150, bTop = h - 25;
   box(2 * sw - 6, bTop - bBot, 10, 0, (bBot + bTop) / 2, -sd - 32, -0.13);
   return { group: g, body: g.children[0] };
+}
+
+/** Hard Rock Cooler 40QT (UG-302GY): the Grizzly-built rotomolded cooler in Snow Peak grey.
+ *  From the UG-302_hero01 photo: a soft-cornered tub, a lid that overhangs it slightly with
+ *  screw bosses in its top corners, TWO RED T-LATCHES bridging the seam on the front face --
+ *  the one detail that identifies it across a campsite -- recessed grip notches in the short
+ *  ends, and a drain plug low on the front right. Stands on the ground, +z is the latch face.
+ *  `frame` paints the body (the catalog's frame_hex channel), `fabric` the latches. */
+export function coolerGroup(w, d, h, { frame = 0x8a7e76, fabric = 0xa83832 } = {}) {
+  const g = new THREE.Group();
+  const poly = new THREE.MeshStandardMaterial({ color: new THREE.Color(frame), metalness: 0, roughness: 0.62 });
+  const dark = new THREE.MeshStandardMaterial({ color: new THREE.Color(frame).multiplyScalar(0.55), metalness: 0, roughness: 0.85 });
+  const lidH = h * 0.22, seam = 3, bodyH = h - lidH - seam;
+  const body = new THREE.Mesh(roundedBox((w - 12) * MM, bodyH * MM, (d - 12) * MM, 12 * MM), poly);
+  body.position.y = bodyH / 2 * MM; g.add(body);
+  // The seam: a slightly recessed dark band, so the lid reads as a separate piece.
+  const band = new THREE.Mesh(roundedBox((w - 20) * MM, seam * 2 * MM, (d - 20) * MM, 8 * MM), dark);
+  band.position.y = (bodyH + seam) * MM; g.add(band);
+  const lid = new THREE.Mesh(roundedBox(w * MM, lidH * MM, d * MM, 12 * MM), poly);
+  lid.position.y = (bodyH + seam + lidH / 2) * MM; g.add(lid);
+  // Screw bosses in the lid's top corners (the hero shows all four).
+  for (const sx of [-1, 1]) for (const sz of [-1, 1])
+    cyl(g, 16, 16, 4, 18, dark, sx * (w / 2 - 42), bodyH + seam + lidH - 1, sz * (d / 2 - 42));
+  // The red T-latches: a vertical rubber strap over the seam, crossbar at the bottom.
+  const latch = new THREE.MeshStandardMaterial({ color: new THREE.Color(fabric), metalness: 0, roughness: 0.7 });
+  for (const sx of [-1, 1]) {
+    const x = sx * w * 0.22, zc = (d - 6) / 2;
+    box(g, 26, 105, 9, 3, latch, x, bodyH + seam + lidH * 0.45 - 105 / 2 + 8, zc);
+    box(g, 62, 24, 11, 4, latch, x, bodyH - 88, zc);      // the T's crossbar, pulled down on the body
+  }
+  // Recessed grips in the short ends, and the drain plug low on the front right.
+  for (const sx of [-1, 1]) box(g, 8, 34, 130, 3, dark, sx * (w - 14) / 2, bodyH * 0.62, 0);
+  cyl(g, 15, 15, 6, 16, dark, w / 2 - 70, 32, (d - 8) / 2, Math.PI / 2);
+  return { group: g, body };
 }
 
 /** The Jikaro: an octagonal ring of four trapezoid segments with the fire hole in the
@@ -1943,7 +2027,7 @@ export function gs1000Group(w = GS1000.span, d = GS1000.span, h = GS1000.h, { ca
 export const PROP_BUILDERS = {
   folding: foldingChairGroup, lowbeach: lowBeachChairGroup, sofa: campfieldSofaGroup,
   cushion: loungeCushionGroup, bench: foldingBenchGroup, shelf: bambooShelfGroup,
-  take: takeChairGroup, takibi: takibiGroup, gs1000: gs1000Group,
+  take: takeChairGroup, takibi: takibiGroup, gs1000: gs1000Group, cooler: coolerGroup,
 };
 
 /** A free-standing part -- a chair, a fire pit, a stove -- from its catalog record.
