@@ -8,7 +8,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          foldingChairGroup, lowBeachChairGroup, campfieldSofaGroup,
          loungeCushionGroup, foldingBenchGroup, bambooShelfGroup,
          takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group,
-         propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox } from "./parts3d.js";
+         propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox, burnerOf } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -3283,13 +3283,13 @@ const CAT_WORDS = {
 };
 const searchKey = p => `${p.sku} ${p.title_en || ""} ${CAT_WORDS[p.role] || p.role || ""}`.toLowerCase();
 
-function partRow(p, fn, dead, why) {
+function partRow(p, fn, dead, why, badge) {
   const el = document.createElement("div");
   el.className = "part" + (dead ? " dead" : "");
   const s = spanOf(p);
   el.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
     + `<span class="nm">${p.title_en}</span>`
-    + `<span class="sp">${s ? s / 2 + "u" : ""}</span>`;
+    + `<span class="sp">${badge ?? (s ? s / 2 + "u" : "")}</span>`;
   el.title = why || `${p.sku} — ${p.title_en}`;
   el.dataset.search = searchKey(p);
   if (!dead) { el.onclick = () => fn(p); previewOnHover(el, p.sku); }
@@ -3305,17 +3305,16 @@ function previewOnHover(el, sku) {
 }
 
 function paintPalette() {
+  // Frames were still the ORIGINAL "Add a table" chip row -- "2u ⤢", meaning stated nowhere --
+  // years after every other category went to full rows. Same rows now; the unit count is the
+  // badge and "Collapsible" is in the name, where the answer belongs.
   const add = $("add"); add.innerHTML = "";
-  for (const p of BY_ROLE.frame) {
-    const c = chip(`${p.units}u${p.collapsible ? " ⤢" : ""}`, false, p.title_en, () => addNode(p.sku));
-    c.dataset.search = searchKey(p);
-    previewOnHover(c, p.sku);
-    add.append(c);
-  }
+  for (const p of BY_ROLE.frame)
+    add.append(partRow(p, () => addNode(p.sku), false, null, `${p.units}u`));
 
-  // Extensions & corners: the hook-on boards. Since float-first, "add" no longer needs a free edge --
-  // the board comes in floating and you drag it onto an edge (or use an edge's own + menu to hook it
-  // straight on). So the rows are always live; the tooltip just says which.
+  // Hook-on boards. Since float-first, "add" no longer needs a free edge -- the board comes in
+  // floating and you drag it onto an edge (or use an edge's own + menu to hook it straight on).
+  // So the rows are always live; the tooltip just says which.
   const ext = $("extensions"); ext.innerHTML = "";
   const open = anyOpenEdge();
   for (const p of HOOKABLE)
@@ -3331,10 +3330,21 @@ function paintPalette() {
         + `edge carries the hooks is unmeasured. The planner will not guess.`
       : `${p.sku} — Snow Peak never documents how this attaches. The planner will not guess.`));
 
-  // Tables: the free-standing surfaces (layout tables + all-in-one IGTs like the Entry).
-  const tab = $("tables"); tab.innerHTML = "";
-  for (const p of [...BY_ROLE.layout_table, ...BY_ROLE.standalone])
-    tab.append(partRow(p, () => addNode(p.sku), false));
+  // Slide-in extensions: same float-first flow, different rail. They were only reachable
+  // through a long rail's + menu -- a whole attach mechanism the library never showed.
+  const sl = $("slides"); sl.innerHTML = "";
+  for (const p of SLIDE_IN)
+    sl.append(partRow(p, () => addNode(p.sku), false,
+      `${p.sku} — adds as a floating board; drag it onto a frame's LONG rail. It slides along it, and tiles.`));
+
+  // The freestanding surfaces, split the way the connection graph splits them: layout tables
+  // are part of the system (frames hook onto them), standalone IGTs just stand there.
+  const lay = $("laytables"); lay.innerHTML = "";
+  for (const p of BY_ROLE.layout_table)
+    lay.append(partRow(p, () => addNode(p.sku), false));
+  const free = $("freetables"); free.innerHTML = "";
+  for (const p of BY_ROLE.standalone)
+    free.append(partRow(p, () => addNode(p.sku), false));
 
   // Non-IGT props placed around the layout (chairs). Free-standing -- add and drag.
   const seat = $("seating"); seat.innerHTML = "";
@@ -3396,31 +3406,37 @@ function paintPalette() {
 
   const n = sel();
 
-  const mods = $("modules"); mods.innerHTML = "";
-  // Any node with a bay hosts slot modules (frame, bridged Jikaro, opened Extension IGT); a hanging
-  // rack hooks over RAILS, so it goes on any host that declares a `hanging` port (a frame or the
-  // Entry IGT), not just a literal frame.
+  // The slot modules, BROWSABLE AT LAST. They used to exist only in the selected-frame box --
+  // a first-timer could scroll the whole library and never learn the system has burners. The
+  // rows are always here now, live when a bay host is selected (frame, bridged ring, opened
+  // Extension IGT), dead-with-a-reason when nothing is. Cooking and storage split, because
+  // "which stove" and "which tray" are different questions.
   const host = n && hasBay(n) ? n : null;
   const railHost = host && hostsHanging(host) ? host : null;
+  const cook = $("cooking"), tray = $("trays");
+  cook.innerHTML = ""; tray.innerHTML = "";
+  const isCooking = p => !!burnerOf(p.sku) || p.sku.replace(/-(US|INT|EC|R)$/i, "") === "CK-160";
   for (const p of BY_ROLE.slot_module) {
     const c = host ? compat(p.sku, host.sku) : { level: "ok" };
     const dead = !host || firstFit(host, p.span) < 0 || c.level === "blocked";
-    const why = c.level === "blocked" ? `${p.sku} — ${c.why}`
-      : c.level === "unlisted" ? `${p.sku} — ${c.why}` : null;
+    const why = !host ? `${p.sku} — drops into a frame's slots. Select a frame first.`
+      : c.level === "blocked" || c.level === "unlisted" ? `${p.sku} — ${c.why}` : null;
     const row = partRow(p, () => placeModule(p.sku), dead, why);
     if (c.level === "unlisted" && !dead) row.classList.add("caution");
-    mods.append(row);
+    (isCooking(p) ? cook : tray).append(row);
   }
 
   // Hanging racks occupy 2U of the grid but hang BELOW the frame instead of sitting in it.
   // One per frame -- their side frames collide otherwise (both manuals say so). So they are
   // dead if the frame already has one, or if 2U will not fit.
+  const hang = $("hangers"); hang.innerHTML = "";
   for (const p of BY_ROLE.hang_rack) {
     const dead = !railHost || hasHangRack(railHost) || firstFit(railHost, p.span) < 0;
-    mods.append(partRow(p, () => placeModule(p.sku), dead,
-      dead && railHost && hasHangRack(railHost)
-        ? `${p.sku} — one hanging rack per host; the side frames would collide.`
-        : `${p.sku} — hangs a ${p.tiers === 2 ? "two-tier" : "one-tier"} rack under 2U of the rails.`));
+    hang.append(partRow(p, () => placeModule(p.sku), dead,
+      !railHost ? `${p.sku} — hangs under 2U of a frame's rails. Select a frame first.`
+        : dead && hasHangRack(railHost)
+          ? `${p.sku} — one hanging rack per host; the side frames would collide.`
+          : `${p.sku} — hangs a ${p.tiers === 2 ? "two-tier" : "one-tier"} rack under 2U of the rails.`));
   }
 
   $("selname").textContent = n ? PARTS[n.sku].title_en : "nothing selected";

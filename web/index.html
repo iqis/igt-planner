@@ -60,7 +60,9 @@
     </div>
 
     <!-- Shown at the TOP the moment something is selected (in the 3D view or here), so the
-         height / module / action controls for it are never buried under the table list. -->
+         controls for it are never buried under the table list. The Modules list that used to
+         live here moved into the library proper (Cooking / Trays & boxes / Hanging racks):
+         the same rows painted twice in one panel was the panel arguing with itself. -->
     <section class="selbox" id="selbox" hidden>
       <h2>Selected <span class="hint" id="selname">nothing selected</span></h2>
       <div id="transform" hidden>
@@ -73,31 +75,55 @@
           <span class="rot" id="rotread">0°</span>
         </div>
       </div>
-      <h3>Modules</h3>
-      <div id="modules" class="parts"></div>
     </section>
 
     <!-- Super-groups: the library read in BUILD ORDER. First the IGT system you bolt together (a
-         frame, then the boards that hook onto it), then the freestanding tables you stand nearby,
-         then the scene you arrange around the whole thing. Labels only -- the sections below still
-         fold on their own. -->
+         frame, then what hooks, slides, drops and hangs on it), then the freestanding tables you
+         stand nearby, then the scene you arrange around the whole thing. The categories follow the
+         ATTACH MECHANISMS the catalog measures -- hook_on / slide_in / slot / hang -- not either
+         storefront's tree. Labels only; the sections below still fold on their own. -->
     <div class="catgroup">The IGT system</div>
 
     <section class="cat">
       <h2 class="cathead"><span class="caret">▾</span>Frames</h2>
-      <div class="catbody"><div id="add" class="chips"></div></div>
+      <div class="catbody"><div id="add" class="parts"></div></div>
     </section>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Extensions &amp; corners</h2>
+      <h2 class="cathead"><span class="caret">▾</span>Hook-on boards <span class="hint">hang off the short ends</span></h2>
       <div class="catbody"><div id="extensions" class="parts"></div></div>
+    </section>
+
+    <section class="cat">
+      <h2 class="cathead"><span class="caret">▾</span>Slide-in extensions <span class="hint">grip the long rail</span></h2>
+      <div class="catbody"><div id="slides" class="parts"></div></div>
+    </section>
+
+    <section class="cat">
+      <h2 class="cathead"><span class="caret">▾</span>Cooking <span class="hint">burners &amp; stoves, into the slots</span></h2>
+      <div class="catbody"><div id="cooking" class="parts"></div></div>
+    </section>
+
+    <section class="cat">
+      <h2 class="cathead"><span class="caret">▾</span>Trays &amp; boxes <span class="hint">into the slots</span></h2>
+      <div class="catbody"><div id="trays" class="parts"></div></div>
+    </section>
+
+    <section class="cat">
+      <h2 class="cathead"><span class="caret">▾</span>Hanging racks <span class="hint">under the rails</span></h2>
+      <div class="catbody"><div id="hangers" class="parts"></div></div>
     </section>
 
     <div class="catgroup">Freestanding tables</div>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Tables</h2>
-      <div class="catbody"><div id="tables" class="parts"></div></div>
+      <h2 class="cathead"><span class="caret">▾</span>Layout tables <span class="hint">the system joins onto them</span></h2>
+      <div class="catbody"><div id="laytables" class="parts"></div></div>
+    </section>
+
+    <section class="cat">
+      <h2 class="cathead"><span class="caret">▾</span>Standalone tables</h2>
+      <div class="catbody"><div id="freetables" class="parts"></div></div>
     </section>
 
     <div class="catgroup">The scene around it</div>
