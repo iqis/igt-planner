@@ -2184,19 +2184,25 @@ export function tarpPitchGroup({ verts, h, color = 0x8a7460, family = "hexa" }) 
  *  darker skirt at grade. Same 0.5 opacity as the tarps, for the same two reasons: the
  *  kitchen lives INSIDE this one, and an opaque 25 square metres would print a shadow-map
  *  blob over half the layout. */
-export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5, fabricTex = null } = {}) {
+export function landLockGroup(w = 6250, d = 4050, h = 2050,
+    { opacity = 0.5, fabricTex = null, awning = "closed" } = {}) {
   const g = new THREE.Group();
+  // The 跳ね上げ states: either end panel props open on two upright poles as an awning.
+  // front = the entrance (-x) end. One string, like every other node config in this app.
+  const openF = awning === "front" || awning === "both";
+  const openR = awning === "rear" || awning === "both";
   const nPlan = 3, L2 = w / 2, W2 = d / 2;
-  // The massing is a LOAF with CUT ENDS: a long near-level ridge, walls that stand nearly
-  // plumb under a flat crown -- and end caps that are SLOPED FACES, not round domes (the
-  // PDP side view shows the rear end as a flattish inclined triangle wearing the door).
+  // The massing is a LOAF with CUT ENDS: a level ridge between the A-frames, then each end
+  // is one long SLOPED FACE -- the open-portal photo shows the C-frame arch leaning back
+  // inside that plane, feet at the very end, crown meeting the level body. So the level
+  // section stops at the C-frame crowns (~0.28w) and the slope runs all the way out.
   const halfW = x => W2 * Math.pow(Math.max(1e-4, 1 - Math.pow(Math.abs(x / L2), nPlan)), 1 / nPlan);
-  const XF = 0.36 * w;                          // where the level body hands over to the cut end
+  const XF = 0.28 * w;                          // where the level body hands over to the cut end
   const hBody = x => h * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(x / L2), 4.5)), 1 / 1.8);
   const hAt = x => {
     if (Math.abs(x) <= XF) return hBody(x);
     const t = (Math.abs(x) - XF) / (L2 - XF);   // near-linear ramp: the sloped end face
-    return hBody(XF) * Math.max(0, 1 - Math.pow(t, 1.12));
+    return hBody(XF) * Math.max(0, 1 - Math.pow(t, 1.1));
   };
   const CS = 2.4;                               // cross-section exponent: plumb-ish walls, flat crown
 
@@ -2248,10 +2254,19 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5, fab
   const smooth = (a, b, t) => { const u = Math.max(0, Math.min(1, (t - a) / (b - a))); return u * u * (3 - 2 * u); };
   const NU = 44, NV = 20, pos = [], col = [], uv = [], idx = [];
   const cTmp = new THREE.Color();
+  // An open end TRUNCATES the loft along the LEANING ARCH LINE -- the C-frame is the
+  // portal's edge, crown meeting the level body, feet at the very end (PDP_1) -- and the
+  // sloped cap beyond it is exactly the panel that swung up to become the awning.
+  const xEdge = (s, f) => {
+    const t = Math.acos(Math.min(1, f / 0.95)) / Math.PI;   // arch param: crown t=.5, feet t=0
+    return s * (0.47 * w - 0.19 * w * Math.sin(t * Math.PI));
+  };
   for (let iu = 0; iu <= NU; iu++) {
-    const x = -L2 + (w * iu) / NU;
     for (let iv = 0; iv <= NV; iv++) {
       const v = -1 + (2 * iv) / NV;
+      const f = Math.abs(Math.sin(v * Math.PI / 2));
+      const xLo = openF ? xEdge(-1, f) : -L2, xHi = openR ? xEdge(1, f) : L2;
+      const x = xLo + ((xHi - xLo) * iu) / NU;
       const s = skin(x, v);
       pos.push(s.x * MM, s.y * MM, s.z * MM);
       uv.push((iu / NU) * 12, (iv / NV) * 6);   // weave tiling for the caller's canvas map
@@ -2321,12 +2336,12 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5, fab
     }
     return pts;
   };
-  for (const s of [-1, 1]) {                      // C-frames: faceted hoops leaning out over the ends
-    const xc = s * 0.42 * w, NC = 6, cpts = [];
-    for (let i = 0; i <= NC; i++) {
+  for (const s of [-1, 1]) {                      // C-frames: the LEANING portal arches -- feet at
+    const NC = 6, cpts = [];                      // the very end, crowns meeting the level body,
+    for (let i = 0; i <= NC; i++) {               // each living in its sloped end plane
       const t = i / NC;
-      const z = halfW(xc) * Math.cos(t * Math.PI) * 0.98;
-      const x = xc + Math.sin(t * Math.PI) * 0.07 * w * s;
+      const x = s * (0.47 * w - 0.19 * w * Math.sin(t * Math.PI));
+      const z = 0.95 * halfW(x) * Math.cos(t * Math.PI);
       const q = ride(x, z, 22);
       if (i === 0 || i === NC) q.y = 0;
       cpts.push(q);
@@ -2401,18 +2416,87 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5, fab
     rimLoop(0.17 * w, 0.15 * w, s * 0.68, s * 0.22, 4, tan);
     if (s < 0) { patch(-0.32 * w, -0.10 * w, s * 0.46, s * 0.90, meshMat); rimLoop(-0.21 * w, 0.11 * w, s * 0.68, s * 0.20, 4, tan); }
   }
-  // Vent hoods capping each end, just under the ridge line.
-  for (const s of [-1, 1]) patch(s * 0.40 * w, s * 0.475 * w, -0.30, 0.30, darkMat, 24);
+  // Vent hoods capping each end, just under the ridge line -- only where the cap still is.
+  for (const s of [-1, 1]) {
+    if ((s < 0 && openF) || (s > 0 && openR)) continue;
+    patch(s * 0.40 * w, s * 0.475 * w, -0.30, 0.30, darkMat, 24);
+  }
 
-  // Guys at the frame feet, out at the manual's ~45 degrees, and their stakes.
+  // Guy-line plumbing, shared by the frame feet and the awning poles below.
   const guyPts = [], gv = (x, y, z) => new THREE.Vector3(x * MM, y * MM, z * MM);
+  const stakeAt = (x, z) => { cyl(g, 4, 5, 22, 8, metal(0x3a3d42, 0.4, 0.6), x, 11, z); };
+
+  // The awnings: each open end's cap fabric, swung up past the portal and propped on two
+  // upright poles -- PDP_2's rear panel, as a state. Hinged at the portal crown band,
+  // reaching just past where the cap's tip used to be, with a soft belly and its red
+  // binding; the poles get their own guys.
+  const awnMat = new THREE.MeshStandardMaterial({ color: BROWN, metalness: 0, roughness: 0.9,
+    side: THREE.DoubleSide, transparent: opacity < 1, opacity });
+  for (const s of [-1, 1]) {
+    const open = s < 0 ? openF : openR;
+    if (!open) continue;
+    const len = 1500, VA = 0.6;
+    const yTip = surfY(s * XF, 0) - 260;
+    const P = [], I = [], M = 8, N = 8;
+    for (let i = 0; i <= M; i++) for (let j = 0; j <= N; j++) {
+      const t = i / M, v = -VA + (2 * VA * j) / N;
+      const fh = Math.abs(Math.sin(v * Math.PI / 2));
+      const xh = xEdge(s, fh);                    // hinged ON the portal arch, not a flat plane
+      const hp = skin(xh, v);
+      const ox = xh + s * len, oz = hp.z * 1.22;
+      const oy = yTip - 90 * (1 - Math.cos(v * Math.PI));
+      let x = hp.x + (ox - hp.x) * t, z = hp.z + (oz - hp.z) * t, y = hp.y + (oy - hp.y) * t;
+      y -= 70 * Math.sin(Math.PI * t);            // the fabric's belly between hinge and poles
+      P.push(x * MM, y * MM, z * MM);
+    }
+    for (let i = 0; i < M; i++) for (let j = 0; j < N; j++) {
+      const a = i * (N + 1) + j, b = a + N + 1;
+      I.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+    const ag = new THREE.BufferGeometry();
+    ag.setAttribute("position", new THREE.Float32BufferAttribute(P, 3));
+    ag.setIndex(I); ag.computeVertexNormals();
+    g.add(new THREE.Mesh(ag, awnMat));
+    // outer-edge binding, the two uprights, and their guys
+    const edge = [];
+    for (let j = 0; j <= 12; j++) {
+      const v = -VA + (2 * VA * j) / 12;
+      const fh = Math.abs(Math.sin(v * Math.PI / 2));
+      const hp = skin(xEdge(s, fh), v);
+      edge.push(new THREE.Vector3((xEdge(s, fh) + s * len) * MM,
+        (yTip - 90 * (1 - Math.cos(v * Math.PI))) * MM, hp.z * 1.22 * MM));
+    }
+    tube(edge, 4, red);
+    for (const sv of [-1, 1]) {
+      const vP = sv * VA * 0.92, fP = Math.abs(Math.sin(vP * Math.PI / 2));
+      const hp = skin(xEdge(s, fP), vP);
+      const px = xEdge(s, fP) + s * (len - 60), pz = hp.z * 1.22, py = yTip - 90 * (1 - Math.cos(VA * 0.92 * Math.PI));
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(9 * MM, 9 * MM, py * MM, 10), alu);
+      pole.position.set(px * MM, py / 2 * MM, pz * MM);
+      g.add(pole);
+      guyPts.push(gv(px, py, pz), gv(px + s * 550, 0, pz + Math.sign(pz) * 260));
+      stakeAt(px + s * 550, pz + Math.sign(pz) * 260);
+    }
+    // the portal's own binding, hugging the leaning arch
+    const rim = [];
+    for (let j = 0; j <= 16; j++) {
+      const v = -1 + (2 * j) / 16, fr = Math.abs(Math.sin(v * Math.PI / 2));
+      const p = skin(xEdge(s, fr), v);
+      rim.push(new THREE.Vector3(p.x * MM, (p.y + 6) * MM, p.z * MM));
+    }
+    tube(rim, 4, red);
+  }
+
+  // Guys at the frame feet, out at the manual's ~45 degrees, and their stakes. An OPEN end
+  // has lost its cap -- its anchors moved to the awning poles above, so skip them here.
   for (const [gx, gz] of [[-0.47, 0.3], [-0.47, -0.3], [0.47, 0.3], [0.47, -0.3],
                           [-0.30, 0.98], [-0.30, -0.98], [0.30, 0.98], [0.30, -0.98]]) {
+    if (Math.abs(gx) > 0.4 && ((gx < 0 && openF) || (gx > 0 && openR))) continue;
     const ax = gx * w, az = gz * halfW(gx * w);
     const ay = surfY(ax, az) * 0.55;
     const sx = ax + Math.sign(gx) * 0.5 * ay, sz = az + Math.sign(gz) * 0.9 * ay;
     guyPts.push(gv(ax, ay, az), gv(sx, 0, sz));
-    cyl(g, 4, 5, 22, 8, metal(0x3a3d42, 0.4, 0.6), sx, 11, sz);
+    stakeAt(sx, sz);
   }
   g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(guyPts),
     new THREE.LineBasicMaterial({ color: 0x9aa0a8, transparent: true, opacity: 0.85 })));

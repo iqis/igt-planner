@@ -1305,7 +1305,7 @@ function drawFootprint(g, n) {
   }
   if (p.shell3d === "landlock")
     body = landLockGroup(p.assembled_mm.w, p.assembled_mm.d, p.assembled_mm.h,
-      { fabricTex: chairTex("canvas", CANVAS_TEX, 4, true) });
+      { fabricTex: chairTex("canvas", CANVAS_TEX, 4, true), awning: n.config || "closed" });
   if (body) {
     if (pickable) body.group.traverse(o => {
       if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); }
@@ -1860,6 +1860,7 @@ const hasActions = n => !!n && (isJikaro(n) || isExpandable(n)
   || (n.kind === "prop" && PARTS[n.sku].chair === "cushion")
   || PARTS[n.sku].prop === "takibi"          // the fire pit's bridge / surface / coal bed / base plate
   || PARTS[n.sku].prop === "gs1000"          // the stove's canister
+  || PARTS[n.sku].shell3d === "landlock"     // the 跳ね上げ awnings, either end
   || (n.kind === "ext" && n.host && !isSlide(PARTS[n.sku]))
   || (n.kind === "frame" && n.host));
 
@@ -1904,6 +1905,17 @@ function fillActions(box, n) {
       box.append(chip(c.bay_units ? `${c.name} · ${c.bay_units}U bay` : c.name, cur === key,
         `${c.w_mm}×${c.d_mm}mm` + (c.bay_units ? ` — opens a ${c.bay_units}-Unit bay` : ` — closed, no bay`),
         () => { n.config = key; pruneModules(n); render(); }));
+  }
+  // Land Lock: the 跳ね上げ -- either end panel props open on two uprights as an awning.
+  // One enum, four honest states of one shelter.
+  if (PARTS[n.sku].shell3d === "landlock") {
+    const cur = n.config || "closed";
+    for (const [key, label, hint] of [
+      ["closed", "▣ closed", "both end panels down — the closed shell"],
+      ["front", "◨ front open", "the entrance panel propped as an awning on two uprights"],
+      ["rear", "◧ rear open", "the inner-room end propped open — PDP_2's pitch"],
+      ["both", "◫ both open", "a breezeway: both ends propped"]])
+      box.append(chip(label, cur === key, hint, () => { n.config = key; render(); }));
   }
   // Lounge cushion: round (open) or folded to a half-circle -- a form toggle like the Jikaro's.
   if (n.kind === "prop" && PARTS[n.sku].chair === "cushion") {
@@ -2111,6 +2123,7 @@ function replaceNode(n, sku) {
   if (sku === JIKARO) { n.config = "long_in"; n.bridge = n.bridge || false; }
   else if (expDef(sku)) n.config = expDef(sku).default;
   else if (PARTS[sku].chair === "cushion") n.config = "round";
+  else if (PARTS[sku].shell3d === "landlock") n.config = "closed";
   else { delete n.config; delete n.bridge; }
   if (n.kind === "frame" && !n.leg) n.leg = "CK-114";
   if (n.placements?.length) pruneModules(n);
