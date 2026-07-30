@@ -3,3 +3,4 @@ runs/
 anno/
 __pycache__/
 *.pyc
+*.tmp

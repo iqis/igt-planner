@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>IGT Layout Planner</title>
+<!-- A 4-unit frame from above. Inline so the tab has a face without another request
+     (and without a favicon.ico 404 opening every console session). -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231b1e24'/%3E%3Crect x='5' y='11' width='22' height='10' fill='none' stroke='%23d8813f' stroke-width='2'/%3E%3Cpath d='M10.5 12v8M16 12v8M21.5 12v8' stroke='%23d8813f' stroke-width='1'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 <script type="importmap">
 {
@@ -14,17 +17,23 @@
   }
 }
 </script>
+<!-- Without these, the 1.27MB of three.js is only discovered after app.js arrives and its
+     imports parse -- a full round-trip of nothing, felt on every phone at tailnet distance. -->
+<link rel="modulepreload" href="app.js">
+<link rel="modulepreload" href="vendor/three.module.js">
+<link rel="modulepreload" href="vendor/OrbitControls.js">
+<link rel="modulepreload" href="vendor/RoomEnvironment.js">
+<link rel="modulepreload" href="parts3d.js">
+<link rel="modulepreload" href="materials.js">
 </head>
 <body>
 
 <header>
   <h1>IGT Layout Planner</h1>
-  <!-- The unit / half / datum line used to live here, with "all derived, none published" after it.
-       That was the PROJECT talking about itself: three constants that never change and a claim about
-       how they were arrived at, in the corner of every session, helping nobody lay out a table. The
-       constants are worth knowing once and are in the README and on every part's bench page. What
-       survives is the only thing here anyone ever clicked. -->
-  <a class="benchlink" href="part.html">part bench</a>
+  <!-- The unit / half / datum line used to live here, and after it a link to the part bench.
+       Both were the project talking to its owner. The constants are in the README; the bench is
+       an internal measuring tool that writes annotation files, still answering at /web/part.html
+       for whoever knows to type it -- neither belongs in front of someone laying out a table. -->
   <div class="filebar">
     <button id="filebtn" class="chip" title="layouts — save, open, share, export">▤ layouts</button>
     <button id="sharebtn" class="chip" title="copy a link that carries the whole design">⇗ share</button>
@@ -56,8 +65,10 @@
       <div id="transform" hidden>
         <h3>Position</h3>
         <div class="xform">
-          <label>X <input id="posx" type="number" step="10" inputmode="numeric"><span>mm</span></label>
-          <label>Z <input id="posz" type="number" step="10" inputmode="numeric"><span>mm</span></label>
+          <!-- No inputmode=numeric: coordinates are origin-centred and routinely NEGATIVE, and
+               the digits-only phone pad has no minus key -- type=number picks a keyboard that does. -->
+          <label>X <input id="posx" type="number" step="10"><span>mm</span></label>
+          <label>Z <input id="posz" type="number" step="10"><span>mm</span></label>
           <span class="rot" id="rotread">0°</span>
         </div>
       </div>

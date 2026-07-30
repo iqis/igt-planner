@@ -25,7 +25,7 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
   min-width: 17px; height: 17px; padding: 0 4px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 9px; border: 1.5px solid #fff;
-  background: #2f9bff; color: #fff; font: bold 11px ui-monospace, monospace;
+  background: #2f9bff; color: #fff; font: bold 11px var(--mono);
   box-shadow: 0 1px 5px rgba(0, 0, 0, .55);
 }
 .a3d.pair { background: #d13ad1; }            /* a correspondence half on the model */
@@ -35,7 +35,7 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
 #annoload { margin-bottom: .8rem; gap: .3rem; }
 #annoload label { cursor: pointer; }
 #annourl {
-  flex: 1; min-width: 0; font: .68rem ui-monospace, monospace;
+  flex: 1; min-width: 0; font: .68rem var(--mono);
   padding: .28rem .4rem; border: 1px solid var(--line); border-radius: 3px;
   background: var(--raise); color: var(--ink);
 }
@@ -70,7 +70,7 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
 
 .mk-hook { fill: #ff6b5a; stroke: #14161a; stroke-width: 1; }
 .mk-leg  { fill: #5aa9ff; stroke: #14161a; stroke-width: 1; }
-.mk-lab  { fill: #e6e8ec; font: 8px ui-monospace, monospace; }
+.mk-lab  { fill: #e6e8ec; font: 8px var(--mono); }
 .mk-axis { stroke: #d8813f; stroke-width: 1; stroke-dasharray: 3 3; opacity: .55; }
 .mk-out  { fill: none; stroke: #5fbf8f; stroke-width: 1.4; opacity: .9; }
 
@@ -96,7 +96,7 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
 .thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .thumb .tag {
   position: absolute; left: 0; bottom: 0; right: 0;
-  font: 8px/1.5 ui-monospace, monospace;
+  font: 8px/1.5 var(--mono);
   padding: 1px 3px;
   background: var(--overlay);
   color: var(--dim);
@@ -104,7 +104,7 @@ main.bench { grid-template-columns: 210px 1fr 330px; }
 }
 .thumb .said, .thumb .using {
   position: absolute; top: 2px; left: 2px;
-  font: 8px/1.4 ui-monospace, monospace;
+  font: 8px/1.4 var(--mono);
   padding: 1px 4px;
   border-radius: 2px;
   background: var(--accent); color: var(--on-accent);

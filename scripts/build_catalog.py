@@ -20,8 +20,10 @@ Usage:
 
 import json
 import math
+import os
 import re
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -638,9 +640,21 @@ def main():
         "parts": parts,
     }
     CATALOG.mkdir(parents=True, exist_ok=True)
-    (CATALOG / "igt-catalog.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8"
-    )
+    # tmp + os.replace: the planner fetches this file on every load, so a client arriving
+    # mid-rebuild must see the old catalog or the new one -- never a truncated half.
+    # The retry is Windows: os.replace fails ERROR_SHARING_VIOLATION while serve.py holds
+    # the destination open for a GET, and with no-store on /catalog/ every page load is one.
+    # A serving read lasts milliseconds; dying on the build's last line over it would not.
+    tmp = CATALOG / "igt-catalog.json.tmp"
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
+    for attempt in range(20):
+        try:
+            os.replace(tmp, CATALOG / "igt-catalog.json")
+            break
+        except PermissionError:
+            if attempt == 19:
+                raise
+            time.sleep(0.1)
 
     # Report: the parts that matter most are the ones we could not measure.
     import collections as C

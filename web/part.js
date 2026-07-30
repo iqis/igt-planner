@@ -1026,14 +1026,28 @@ $("theme").onclick = () => {
 // Push a readable snapshot -- points/pairs as mm and px -- to the server, which drops it at
 // anno/<sku>.json, so the marks can be read straight off the disk with no browser round-trip.
 // Defined BEFORE boot: select() calls it, so its state must be initialised first (no TDZ).
-let backendTimer = 0;
+let backendTimer = 0, warnedReadOnly = false;
 function backendSync() {
   clearTimeout(backendTimer);
   backendTimer = setTimeout(() => {
     const b = window.__bench; if (!b) return;
     const body = JSON.stringify({ sku, updated_epoch_ms: performance.timeOrigin + performance.now(),
       anno3d: b.anno3d(), pairs: b.pairs(), photo: b.anno() });
-    fetch("/anno", { method: "POST", headers: { "Content-Type": "application/json" }, body }).catch(() => {});
+    fetch("/anno", { method: "POST", headers: { "Content-Type": "application/json" }, body })
+      .then(r => {
+        // The tailnet server refuses annotation writes by default (serve.py --anno turns
+        // them on). A 403 RESOLVES the fetch, so without this check the marks looked saved
+        // while the disk mirror silently went stale -- say it once, in the corner.
+        if (!r.ok && !warnedReadOnly) {
+          warnedReadOnly = true;
+          const w = document.createElement("div");
+          w.style.cssText = "position:fixed;left:.6rem;bottom:.6rem;z-index:99;padding:.45rem .6rem;" +
+            "background:var(--warn-bg);color:var(--warn-ink);border:1px solid var(--bad);border-radius:5px;font-size:.7rem";
+          w.textContent = "server is read-only — marks stay in this browser; restart with serve.py --anno to write them to disk";
+          document.body.append(w);
+        }
+      })
+      .catch(() => {});
   }, 300);
 }
 

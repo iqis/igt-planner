@@ -25,7 +25,13 @@
   --sunken: #0e1013;      /* photo and thumbnail wells, a step BELOW the panel */
   --overlay: rgba(14, 16, 19, .82);   /* the tag strip laid over a thumbnail */
   --sel-bg: #2a241c;      /* a selected row's accent-tinted fill (part bench) */
-  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+  /* One stack, used everywhere (the font: shorthands below say var(--mono), because a
+     shorthand's own family list would override the inherited one). Consolas is the load-
+     bearing entry: ui-monospace resolves only in Safari, SF Mono / Menlo are macOS, and
+     Cascadia ships with Windows Terminal without registering as a system font -- so a
+     Windows Firefox fell all the way through to Courier New. Roboto/Noto cover Android. */
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, "Roboto Mono", "Noto Sans Mono", monospace;
+  font-family: var(--mono);
 }
 
 /* Light theme. Same structure, a paper-and-ink palette. The 3D scene reads --scene off this
@@ -65,6 +71,10 @@ body {
   background: var(--bg);
   color: var(--ink);
   height: 100vh;
+  /* dvh, where it exists: on iOS Safari 100vh is the LARGE viewport, and with overflow
+     hidden the page can never scroll the toolbar away -- the bottom slice of the app
+     (the build totals) sat permanently behind it. */
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -86,7 +96,7 @@ h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
    margins would SPLIT the free space and push the pair apart instead of grouping them. */
 #groundsel {
   margin-left: auto;
-  font: .68rem ui-monospace, monospace;
+  font: .68rem var(--mono);
   color: var(--dim);
   background: var(--raise);
   border: 1px solid var(--line);
@@ -111,7 +121,7 @@ h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
 }
 #pager .ptab {
   display: inline-flex; align-items: center; gap: .4rem;
-  font: .7rem ui-monospace, monospace;
+  font: .7rem var(--mono);
   color: var(--dim);
   background: var(--panel);
   border: 1px solid var(--line);
@@ -128,7 +138,7 @@ h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
 #pager .pclose { color: var(--faint); font-size: .85rem; line-height: 1; border-radius: 3px; padding: 0 .15rem; }
 #pager .pclose:hover { color: var(--bad); background: var(--raise); }
 #pager .padd {
-  font: .9rem ui-monospace, monospace; color: var(--dim);
+  font: .9rem var(--mono); color: var(--dim);
   background: transparent; border: none; cursor: pointer;
   padding: .2rem .55rem; align-self: center;
 }
@@ -143,6 +153,11 @@ main {
   flex: 1;
   display: grid;
   grid-template-columns: 250px 1fr 330px;
+  /* minmax(0, 1fr), not auto: the implicit auto row sizes to its CONTENT, and the canvas's
+     backing store -- set from a boot-time measurement taken before the pager populated --
+     became that content's min-height. The stage overflowed main by the pager's height and
+     the hint line + view bar lived below the fold on every 900px-tall laptop. */
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
 }
 /* Either side panel folds away to a thin strip, so the viewport can have the room. */
@@ -167,7 +182,7 @@ aside.collapsed > *:not(.panel-toggle) { display: none; }
   top: .45rem;
   width: 16px; height: 26px;
   display: grid; place-items: center;
-  font: .7rem ui-monospace, monospace;
+  font: .7rem var(--mono);
   color: var(--faint);
   background: var(--raise);
   border: 1px solid var(--line);
@@ -221,7 +236,7 @@ h2 {
   width: 100%;
   padding: .38rem .5rem;
   margin-bottom: .6rem;
-  font: .72rem ui-monospace, monospace;
+  font: .72rem var(--mono);
   border: 1px solid var(--line);
   border-radius: 3px;
   background: var(--raise);
@@ -370,7 +385,7 @@ h2 {
   z-index: 4;
 }
 #viewnav button {
-  font: .64rem ui-monospace, monospace;
+  font: .64rem var(--mono);
   text-transform: uppercase; letter-spacing: .04em;
   color: var(--dim);
   background: transparent;
@@ -405,7 +420,7 @@ h2 {
   position: absolute; transform: translate(-50%, -50%);
   display: inline-flex; align-items: center; gap: .3rem;
   padding: .1rem .2rem .1rem .38rem;
-  font: .66rem ui-monospace, monospace;
+  font: .66rem var(--mono);
   color: var(--ink);
   background: var(--panel);
   border: 1px solid var(--line);
@@ -426,7 +441,7 @@ h2 {
   position: absolute; transform: translate(-50%, -50%);
   z-index: 6; pointer-events: none;
   padding: .1rem .35rem;
-  font: .66rem ui-monospace, monospace;
+  font: .66rem var(--mono);
   color: var(--panel); background: var(--accent);
   border-radius: 4px; white-space: nowrap;
   box-shadow: 0 1px 5px var(--shadow);
@@ -444,8 +459,20 @@ h2 {
   #viewnav button { min-width: 44px; min-height: 44px; font-size: .7rem; padding: .4rem; }
   #bandtool { font-size: 1.1rem; }
   #seltools button, #toolpop button, .panel-toggle { min-width: 44px; min-height: 44px; }
-  /* The hint line is a hover instruction on a device with no hover. */
-  #hint { display: none; }
+  /* The other half of the tappable surface -- palette rows, the hook-on menus (which reuse
+     .part for their rows), chips, fold headers, tree rows -- was still 26-29px. The final
+     "pick which board to hook on" tap deserves the same 44px rule as the buttons around it. */
+  .part, .chip, .cathead, .tree-row { min-height: 42px; }
+  /* min-*, not width/height: the base #edgebtn rule sets width/height 26px LATER in the file
+     and a media query adds no specificity, so plain width here would lose the cascade.
+     (The menus' 45vh max-height lives in its own coarse block after their base rules,
+     for the same reason.) */
+  #edgebtn { min-width: 44px; min-height: 44px; }
+  /* The grown view bar spans most of a phone's width; lift the slot bar and the dimension
+     stack clear of it instead of letting it paint over them. The slotbar sits a band ABOVE
+     the stagefoot, because the hint line is now visible on touch and both are centred low. */
+  #slotbar { bottom: 7rem; }
+  .stagefoot { right: .7rem; bottom: 4.6rem; }
 }
 
 /* Fixed layout, or a long part name ("IGT Standing Height 830mm Leg Set") shoves
@@ -476,8 +503,27 @@ h2 {
 .warn.info { border-color: var(--accent); background: var(--info-bg); color: var(--info-ink); }
 
 @media (max-width: 1000px) {
-  main { grid-template-columns: 1fr; grid-template-rows: auto 55vh auto; }
+  /* The collapse rules above carry the same specificity and would re-assert their THREE
+     desktop columns inside this one-column layout -- a panel-toggle press on a phone
+     squeezed the canvas to a 38px sliver between two full-width panels. Same selectors,
+     later in the file, so one column always wins here. */
+  main, main.left-collapsed, main.right-collapsed, main.left-collapsed.right-collapsed {
+    grid-template-columns: 1fr;
+  }
+  /* fr rows, not `auto 55vh auto`: auto split the leftover evenly and handed the palette a
+     136px letterbox over its ~2900px of library. A collapsed panel's row drops to auto so
+     its space goes to the stage instead of a hidden list. */
+  main { grid-template-rows: minmax(0, 1.2fr) minmax(0, 2.2fr) minmax(0, 1fr); }
+  main.left-collapsed  { grid-template-rows: auto minmax(0, 2.2fr) minmax(0, 1fr); }
+  main.right-collapsed { grid-template-rows: minmax(0, 1.2fr) minmax(0, 2.2fr) auto; }
+  main.left-collapsed.right-collapsed { grid-template-rows: auto minmax(0, 1fr) auto; }
+  /* A collapsed aside's only visible child is the absolutely-positioned toggle, which an
+     auto row cannot see -- the row fell to ~1px and overflow:hidden clipped the one control
+     that brings the panel back. The floor keeps the way back on screen. */
+  aside.collapsed { min-height: calc(44px + .9rem); }
   #palette, #bom { border: none; border-top: 1px solid var(--line); }
+  /* Three header rows ("IGT / LAYOUT / PLANNER") spent the height the panels are starving for. */
+  header h1 { white-space: nowrap; font-size: .8rem; }
 }
 
 /* Hover an edge, get a button; press it, get the parts that can hook there. The button is
@@ -494,7 +540,7 @@ h2 {
   transform: translate(-50%, -50%);
   width: 26px; height: 26px;
   display: grid; place-items: center;
-  font: 600 15px/1 ui-monospace, monospace;
+  font: 600 15px/1 var(--mono);
   color: var(--on-accent);
   background: var(--accent);
   border: 2px solid var(--accent-hi);
@@ -547,7 +593,7 @@ h2 {
   display: grid;
   place-items: center;
   width: 28px; height: 28px;
-  font: 14px/1 ui-monospace, monospace;
+  font: 14px/1 var(--mono);
   color: var(--ink);
   background: transparent;
   border: none;
@@ -576,6 +622,11 @@ h2 {
 }
 #toolpop[hidden] { display: none; }
 #toolpop { width: 232px; }
+/* After the base max-heights above, so this one wins on touch: 42px rows in a 210/260px
+   box showed four items; the menus deserve the screen a phone actually has. */
+@media (pointer: coarse) {
+  #edgemenu, #replacemenu, #toolpop { max-height: 45vh; }
+}
 #replacemenu .mhead, #toolpop .mhead {
   font-size: .62rem; letter-spacing: .04em; color: var(--faint);
   padding: .1rem .1rem .3rem; line-height: 1.35;
@@ -657,7 +708,7 @@ h3 {
 .xform label { display: flex; align-items: center; gap: .3rem; font-size: .68rem; color: var(--dim); }
 .xform input {
   width: 3.6rem;
-  font: .7rem ui-monospace, monospace;
+  font: .7rem var(--mono);
   color: var(--ink); background: var(--raise);
   border: 1px solid var(--line); border-radius: 3px;
   padding: .2rem .3rem;
@@ -681,7 +732,7 @@ h3 {
   box-shadow: 0 8px 28px var(--shadow);
 }
 #filemenu .fhead {
-  font: .58rem ui-monospace, monospace;
+  font: .58rem var(--mono);
   text-transform: uppercase; letter-spacing: .08em;
   color: var(--dim);
   padding: .5rem .5rem .25rem;

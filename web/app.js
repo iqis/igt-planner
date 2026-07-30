@@ -1380,6 +1380,12 @@ function drawTable(g, n) {
  *  planner's honest statement of where an extension may go, so they must appear exactly
  *  where the holes are and nowhere else. There is no handle down the long side of a frame,
  *  because there are no holes down the long side of a frame. */
+// A finger is ~9mm of glass, and these volumes are sized in MODEL millimetres: at a phone's
+// default framing the 46mm slab projects to a 15-20px strip -- a precision target at the one
+// interaction the app exists for. On coarse pointers only the HIT volumes grow (and the tab a
+// step, so the promise matches the target); the mouse geometry stays exact.
+const COARSE = matchMedia("(pointer: coarse)").matches;
+
 function drawEdgeHandles() {
   const s = sel();
   if (!s) return;                        // select-first: the add-handles belong to the selection
@@ -1393,7 +1399,7 @@ function drawEdgeHandles() {
           color: 0xd8813f, transparent: true, opacity: 0, depthWrite: false,
         }),
       );
-      m.scale.set(72 * MM, 46 * MM, e.len * MM);
+      m.scale.set((COARSE ? 110 : 72) * MM, (COARSE ? 100 : 46) * MM, e.len * MM);
       m.rotation.y = -angleOf(e.dir);      // local +x points out of the edge
       m.position.set(e.mid.x * MM, (e.mid.y - 12) * MM, e.mid.z * MM);
       m.renderOrder = 2;
@@ -1404,12 +1410,12 @@ function drawEdgeHandles() {
       // A visible tab, so the add-points show the moment you select -- no hovering to discover
       // them. It carries the edge too, so clicking the tab opens the same menu as the slab.
       const tab = new THREE.Mesh(
-        new THREE.SphereGeometry(14 * MM, 18, 12),
+        new THREE.SphereGeometry((COARSE ? 24 : 14) * MM, 18, 12),
         new THREE.MeshStandardMaterial({
           color: 0xf0a463, metalness: 0.1, roughness: 0.4, emissive: 0x7a4310, emissiveIntensity: 0.55,
         }),
       );
-      tab.position.set(e.mid.x * MM, (e.mid.y + 16) * MM, e.mid.z * MM);
+      tab.position.set(e.mid.x * MM, (e.mid.y + (COARSE ? 22 : 16)) * MM, e.mid.z * MM);
       tab.renderOrder = 3;
       tab.userData.edge = e;
       build.add(tab);
@@ -1440,7 +1446,7 @@ function drawSlotHandles() {
           color: 0x5aa9ff, transparent: true, opacity: 0, depthWrite: false,
         }),
       );
-      m.scale.set(HALF * 0.92 * MM, 30 * MM, 300 * MM);
+      m.scale.set(HALF * 0.92 * MM, (COARSE ? 80 : 30) * MM, 300 * MM);
       m.rotation.y = -n.rot;
       m.position.set((n.x + w.x) * MM, (top - 6) * MM, (n.z + w.z) * MM);
       m.renderOrder = 2;
@@ -1555,6 +1561,23 @@ function addGhostFootprint(n) {
 
 function rebuild() {
   clearHoverNode();               // node positions may have moved; drop any stale hover highlight
+  // Object3D.clear() detaches children and disposes NOTHING: every rebuild stranded a whole
+  // scene's worth of GL buffers until the browser happened to GC the wrappers -- sawtooth
+  // memory on a desktop, and on iOS Safari the classic road to a lost WebGL context and a
+  // silently reloaded tab. Geometries and materials here are built fresh each rebuild, so
+  // they are ours to free. The TEXTURES are not: they live in texCache/woodTexCache and are
+  // shared across rebuilds -- material.dispose() leaves a material's maps alone, which is
+  // exactly right.
+  build.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+      // One exception to "maps are shared, leave them": the shelter-footprint label sprite
+      // draws a fresh CanvasTexture every rebuild (parts3d builds it inline, uncached), so
+      // it is ours to free -- and at drag rate it was the one texture that still leaked.
+      if (m.isSpriteMaterial && m.map) m.map.dispose();
+      m.dispose();
+    }
+  });
   build.clear();
   nodeMeshes.length = 0;
   slotMeshes.length = 0;
@@ -2295,6 +2318,25 @@ canvas.addEventListener("pointerdown", e => {
   // Leave the event completely alone: OrbitControls has its own listener on this canvas and reads
   // the raw event. Returning is enough; touching `controls` is what broke it.
   if (e.button !== 0 || e.altKey) return;
+  // A SECOND finger is a pinch, not a second interaction. Every extra touch arrives here as
+  // another pointerdown with button 0, and it used to re-enter the whole handler -- re-aiming
+  // the one shared drag state at whatever it landed on, so a pinch centred on the table
+  // (which is where everyone pinches) yanked furniture between two fingertips. The drag is
+  // abandoned where it stands and the gesture is PARKED until the fingers lift: controls stay
+  // off, because OrbitControls never saw finger 2 (its own pointerdown ran while disabled) --
+  // re-enabling it mid-gesture feeds two alternating fingertips into one stale one-finger
+  // rotation, and the camera whips. Pinches that start on empty ground never disabled it, so
+  // they zoom as they always did; the primary pointerup gives the camera back here.
+  if (!e.isPrimary) {
+    clearTimeout(longPress);
+    const wasDragging = dragNode || dragMod || dragSlide || dragGroup;
+    dragNode = dragMod = dragSlide = dragGroup = null;
+    dragHooked = false;
+    dropHint = null;
+    emptyPress = null;                 // a gesture that grew a second finger is not a click on nothing
+    if (wasDragging) { render(); commitHistory(); }   // a detached part stays put, on the record
+    return;
+  }
   hideModMenu();                      // any press elsewhere dismisses the module menu
   toPtr(e);
   ray.setFromCamera(ptr, camera);
@@ -2416,6 +2458,7 @@ canvas.addEventListener("pointerdown", e => {
 });
 
 canvas.addEventListener("pointermove", e => {
+  if (!e.isPrimary) return;           // finger 1 owns the interaction; see pointerdown
   // Sweeping a rubber band -- just draw it; nothing is selected until you let go.
   if (marquee) {
     const r = canvas.getBoundingClientRect();
@@ -2487,7 +2530,7 @@ canvas.addEventListener("pointermove", e => {
     const start = Math.round((lx + runOf(node) / 2 - (pl.span * HALF) / 2) / HALF);
     if (start !== pl.start && canPlaceAt(node, start, pl.span, pl)) {
       pl.start = start;
-      rebuild(); paint();
+      rebuild(); paintSlots(); paintDimHud();     // the full paint() waits for pointerup, like any drag
     }
     return;
   }
@@ -2501,7 +2544,7 @@ canvas.addEventListener("pointermove", e => {
       const raw = (at.x / MM - host.x) * along.x + (at.z / MM - host.z) * along.z;
       const { lo, hi } = slideBounds(n, host);       // stop AT a neighbour, not through it
       n.slide = Math.max(lo, Math.min(hi, raw));
-      render();
+      renderDragging();
     }
     return;
   }
@@ -2512,15 +2555,20 @@ canvas.addEventListener("pointermove", e => {
   // their spacing is preserved. No detach, no edge snapping -- this is a MOVE of an arrangement you
   // already made, not an attempt to re-hook one part of it.
   if (dragGroup) {
+    let moved = false;
     for (const m of dragGroup) {
-      m.node.x = Math.round((at.x / MM + m.ox) / SNAP) * SNAP;
-      m.node.z = Math.round((at.z / MM + m.oz) / SNAP) * SNAP;
+      const gx = Math.round((at.x / MM + m.ox) / SNAP) * SNAP;
+      const gz = Math.round((at.z / MM + m.oz) / SNAP) * SNAP;
+      if (gx !== m.node.x || gz !== m.node.z) { m.node.x = gx; m.node.z = gz; moved = true; }
     }
-    render();
+    if (moved) renderDragging();                  // still inside the same snap cells -> nothing changed
     return;
   }
   const nx = Math.round((at.x / MM + dragOff.x) / SNAP) * SNAP;
   const nz = Math.round((at.z / MM + dragOff.z) / SNAP) * SNAP;
+  // Inside the same 25mm snap cell as last frame: the scene it would draw is the scene on
+  // screen. The dragMod branch has always had this guard; these branches rebuilt everything.
+  if (nx === dragNode.x && nz === dragNode.z) return;
   // First real move of a hooked node cuts it loose -- from here on it's a free-floating part.
   if (dragHooked && (Math.abs(nx - dragNode.x) > 2 || Math.abs(nz - dragNode.z) > 2)) {
     detachNode(dragNode);
@@ -2532,10 +2580,11 @@ canvas.addEventListener("pointermove", e => {
     dropHint = findDropTarget(dragNode);
     if (!dropHint) snapToNeighbours(dragNode);    // no edge nearby -> fall back to table-edge snapping
   }
-  render();
+  renderDragging();
 });
 
 addEventListener("pointerup", e => {
+  if (!e.isPrimary) return;           // a lifted second finger ends nothing; see pointerdown
   clearTimeout(longPress);
   // A press that landed on NOTHING. Barely moved -> it was a click, and a click on nothing
   // deselects. Travelled -> that was the camera orbiting, and orbiting must not also wipe the
@@ -3421,6 +3470,11 @@ $("palsearch").addEventListener("input", filterPalette);
 // Collapse / expand a library category by clicking its header.
 for (const h of document.querySelectorAll(".cathead"))
   h.addEventListener("click", () => h.closest(".cat").classList.toggle("collapsed"));
+// On a phone the palette is a short window over a very long list; open categories mean the
+// one thing a first-timer must find -- Frames -- starts below the fold. Folded headers make
+// the library a table of contents instead. Search still force-opens matching sections.
+if (COARSE)
+  for (const cat of document.querySelectorAll("#palette .cat")) cat.classList.add("collapsed");
 
 // Fold either side panel away to a thin strip so the viewport gets the room. The renderer has to be
 // told the canvas changed width -- after the grid transition, or it measures the old one.
@@ -3762,7 +3816,22 @@ const bindPos = (id, axis) => $(id).addEventListener("input", () => {
 bindPos("posx", "x");
 bindPos("posz", "z");
 
-function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); paintBlocks(); paintRulers(); }
+// The one instruction line, kept TRUE. The edge handles only exist while something is
+// selected (drawEdgeHandles is select-first), so "hover a table edge" is a lie in exactly
+// the state a first-timer lands in after clicking empty ground. Two states, and touch gets
+// touch words -- the line used to be display:none'd on phones, which left them nothing.
+function paintHint() {
+  const el = $("hint");
+  // Point at the dots only when there ARE dots: a chair, a footprint, or a frame with every
+  // edge taken draws no handles (paint runs after rebuild, so edgeMeshes is this frame's).
+  if (sel() && edgeMeshes.length) el.innerHTML = COARSE
+    ? "tap an <b>orange dot</b> to hook something onto that edge"
+    : "hover a table <b>edge</b> to hook something onto it";
+  else el.innerHTML = COARSE
+    ? "tap a <b>frame</b> — orange dots mark where things hook on"
+    : "click a <b>frame</b> — orange dots mark where things hook on";
+}
+function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); paintBlocks(); paintRulers(); paintHint(); }
 
 // ---------------------------------------------------------------- saving a layout
 //
@@ -3856,6 +3925,9 @@ function loadLayout(doc) {
   if (dropped.length) note(`left out ${dropped.length} part(s) no longer in the catalog: ${dropped.join(", ")}`);
   return dropped;
 }
+// For callers that post their own "opened ..." note over loadLayout's: carry the dropped
+// parts along instead of burying the honest answer to "why is this table missing its burner".
+const droppedSuffix = d => d.length ? ` — left out ${d.join(", ")}, no longer in the catalog` : "";
 
 // ---------------------------------------------------------------- where a layout lives
 //
@@ -3896,13 +3968,20 @@ function note(msg, ms = 3200) {
 // The live scene IS the active page. So a save folds what is on screen back into that page, writes
 // the whole book, and mirrors the active page to the legacy single-scene key -- the mirror keeps the
 // old boot fallback warm, so nothing a page loses can strand the current design.
-let autoTimer = null;
+let autoTimer = null, warnedNoStore = false;
 function autosave() {
   clearTimeout(autoTimer);
   autoTimer = setTimeout(() => {
     commitActivePage();
-    lsPut(LS_PAGES, book);
-    lsPut(LS_SCENE, activePage()?.doc);
+    const a = lsPut(LS_PAGES, book);
+    const b = lsPut(LS_SCENE, activePage()?.doc);
+    // Said ONCE, not every 400ms: a private-mode tab or a full quota fails every write, and
+    // the pager's promise -- "a reload brings back every page" -- is quietly broken the
+    // whole session. An hour of work that was never stored deserves a sentence.
+    if (!(a && b) && !warnedNoStore) {
+      warnedNoStore = true;
+      note("this browser is not keeping your work — use export to save a file", 8000);
+    }
   }, 400);
 }
 
@@ -3927,13 +4006,23 @@ function adoptAsBook(name) {
 }
 function switchPage(id) {
   if (id === book.activeId) return;
+  const prevId = book.activeId;
   commitActivePage();                 // save what's on screen into the page we're leaving
   book.activeId = id;
-  const p = activePage(); if (!p) return;
-  loadLayout(p.doc);                  // loadLayout resets undo + selection: a page opens as its own document
+  const p = activePage(); if (!p) { book.activeId = prevId; return; }
+  let dropped;
+  try { dropped = loadLayout(p.doc); }  // loadLayout resets undo + selection: a page opens as its own document
+  catch (e) {
+    // Boot guards this same call; unguarded here, a page with an unreadable doc threw with
+    // activeId already pointing at it -- and the next autosave folded the OLD page's scene
+    // into the bad page's slot. Point back before anything can commit.
+    book.activeId = prevId;
+    note(`could not open that page: ${e.message}`, 5000);
+    return;
+  }
   lsPut(LS_PAGES, book); lsPut(LS_SCENE, p.doc);
   paintPager();
-  note(`opened "${p.name}"`);
+  note(`opened "${p.name}"${droppedSuffix(dropped)}`);
 }
 function newPage(name) {
   commitActivePage();
@@ -3977,7 +4066,19 @@ function paintPager() {
     name.className = "pname"; name.textContent = p.name;
     tab.append(name);
     tab.onclick = () => switchPage(p.id);
-    tab.ondblclick = () => { const nn = prompt("rename this page:", p.name); if (nn && nn.trim()) renamePage(p.id, nn.trim()); };
+    const rename = () => { const nn = prompt("rename this page:", p.name); if (nn && nn.trim()) renamePage(p.id, nn.trim()); };
+    tab.ondblclick = rename;
+    // Double-tap belongs to the browser on a phone (iOS never delivers the dblclick);
+    // press-and-hold is the touch spelling of the same intent. The contextmenu gate keys on
+    // the SAME touch that armed the timer -- not on COARSE -- so a finger on a laptop
+    // touchscreen doesn't get the rename prompt and the browser menu from one gesture.
+    tab.onpointerdown = ev => {
+      if (ev.pointerType === "mouse") return;
+      tab._lpArmed = true;
+      tab._lp = setTimeout(rename, 500);
+    };
+    tab.onpointerup = tab.onpointercancel = tab.onpointerleave = () => { clearTimeout(tab._lp); tab._lpArmed = false; };
+    tab.oncontextmenu = ev => { if (tab._lpArmed) ev.preventDefault(); };
     // No delete on the last page: a book always has at least one page.
     if (book.pages.length > 1) {
       const x = document.createElement("span");
@@ -4005,8 +4106,27 @@ function saveNamed(name) {
 function openNamed(name) {
   const doc = savedAll()[name];
   if (!doc) return;
-  loadLayout(doc);
-  note(`opened "${name}"`);
+  // Look before we leap -- an unreadable layout must not mint an empty page on its way to
+  // the throw. (A rolled-back app.js reading a newer save is the realistic path here.)
+  try { readLayout(doc); }
+  catch (e) { note(`could not open "${name}": ${e.message}`, 5000); return; }
+  // Opening used to replace the page on screen -- no confirm, no undo (loadLayout clears the
+  // stacks), autosaved over the original 400ms later. "Start over" earned a confirm for less,
+  // and the pages model already holds the right answer: a non-empty page keeps itself and the
+  // layout opens as a NEW page. Only an empty page is worth replacing in place. And browsing
+  // the same saves twice must not grow the book twice: an existing page holding this exact
+  // layout is switched to, not duplicated.
+  const asPage = state.nodes.length > 0;
+  if (asPage) {
+    const docStr = JSON.stringify({ ...doc, name: undefined, at: undefined });
+    const dup = book.pages.find(p => p.name === name
+      && JSON.stringify({ ...p.doc, name: undefined, at: undefined }) === docStr);
+    if (dup) { switchPage(dup.id); return; }
+    newPage(name);
+  }
+  const dropped = loadLayout(doc);
+  if (asPage) { commitActivePage(); lsPut(LS_PAGES, book); lsPut(LS_SCENE, activePage().doc); }
+  note(`opened "${name}"${asPage ? " as a new page" : ""}${droppedSuffix(dropped)}`);
 }
 function deleteNamed(name) {
   const all = savedAll(); delete all[name]; lsPut(LS_SAVED, all); paintFiles();
@@ -4030,7 +4150,15 @@ function importFile() {
   inp.onchange = async () => {
     const f = inp.files?.[0];
     if (!f) return;
-    try { loadLayout(JSON.parse(await f.text())); note(`opened ${f.name}`); }
+    try {
+      const doc = JSON.parse(await f.text());
+      readLayout(doc);                       // look before we leap: no new page for a bad file
+      const asPage = state.nodes.length > 0; // same rule as openNamed -- never cost the page on screen
+      if (asPage) newPage(f.name.replace(/\.json$/i, ""));
+      const dropped = loadLayout(doc);
+      if (asPage) { commitActivePage(); lsPut(LS_PAGES, book); lsPut(LS_SCENE, activePage().doc); }
+      note(`opened ${f.name}${asPage ? " as a new page" : ""}${droppedSuffix(dropped)}`);
+    }
     catch (e) { note(`could not read that file: ${e.message}`, 5000); }
   };
   inp.click();
@@ -4050,21 +4178,36 @@ const pipe = async (bytes, stream) =>
   new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer();
 
 async function shareLink() {
-  const json = new TextEncoder().encode(JSON.stringify(serializeLayout()));
-  const gz = await pipe(json, new CompressionStream("gzip"));
-  const url = `${location.origin}${location.pathname}#d=${b64u(gz)}`;
-  // A link nobody can paste is not a share. Say the number rather than discover it later.
-  if (url.length > 8000) return note(`this layout is too big for a link (${(url.length / 1000).toFixed(1)}k) — export the file instead`, 6000);
-  try { await navigator.clipboard.writeText(url); note(`link copied (${url.length} chars) — it carries the whole design, no server involved`, 5000); }
-  catch { prompt("copy this link:", url); }
+  // The whole body is guarded: on iOS below 16.4 `new CompressionStream` itself throws, and
+  // an unhandled rejection out of a bare async onclick is a button that silently does nothing.
+  try {
+    const json = new TextEncoder().encode(JSON.stringify(serializeLayout()));
+    const gz = await pipe(json, new CompressionStream("gzip"));
+    const url = `${location.origin}${location.pathname}#d=${b64u(gz)}`;
+    // A link nobody can paste is not a share. Say the number rather than discover it later.
+    if (url.length > 8000) return note(`this layout is too big for a link (${(url.length / 1000).toFixed(1)}k) — export the file instead`, 6000);
+    // On a phone, the native share sheet: it IS the platform's "send a link", and its
+    // activation window is far more forgiving than the clipboard's -- which is what
+    // routinely dumped Safari users into the prompt() fallback. If share itself refuses
+    // (double-tap = InvalidStateError, an expired activation = NotAllowedError), fall
+    // THROUGH to the clipboard path rather than report a link that built fine as broken.
+    if (COARSE && navigator.share) {
+      try { await navigator.share({ url }); return; }
+      catch (e) { if (e.name === "AbortError") return; }   // user closed the sheet: done
+    }
+    try { await navigator.clipboard.writeText(url); note(`link copied (${url.length} chars) — it carries the whole design, no server involved`, 5000); }
+    catch { prompt("copy this link:", url); }
+  } catch (e) {
+    note(`this browser could not build a share link (${e.message}) — export a file instead`, 6000);
+  }
 }
 async function fromHash() {
   const m = /[#&]d=([^&]+)/.exec(location.hash);
   if (!m) return false;
   try {
     const raw = await pipe(unb64u(m[1]), new DecompressionStream("gzip"));
-    loadLayout(JSON.parse(new TextDecoder().decode(raw)));
-    note("opened from a shared link — it is yours now; save or export to keep it", 5000);
+    const dropped = loadLayout(JSON.parse(new TextDecoder().decode(raw)));
+    note(`opened from a shared link — it is yours now; save or export to keep it${droppedSuffix(dropped)}`, 6000);
     return true;
   } catch (e) { note(`that link did not decode: ${e.message}`, 5000); return false; }
 }
@@ -4278,6 +4421,12 @@ function render() {
   resolve(); rebuild(); paint();
   if (!(dragNode || dragMod || dragSlide)) commitHistory();   // a drag commits once, on pointerup
 }
+// The DRAG-FRAME render: scene plus the readouts that track the hand -- occupancy, the
+// dimensions HUD, and the selected part's own X/Z. The heavy remainder of paint() (palette,
+// BOM, outliner: hundreds of DOM nodes torn down and rebuilt) deliberately waits for
+// pointerup -- at 60-120 pointermoves a second it was most of the frame, and mid-drag it
+// only changes on a detach, which resolves the moment the hand stops anyway.
+function renderDragging() { resolve(); rebuild(); paintSlots(); paintDimHud(); paintTransform(); }
 
 // ---------------------------------------------------------------- theme
 // Light / dark, persisted. The panels are pure CSS variables; the 3D canvas follows by
@@ -4324,6 +4473,10 @@ function resize() {
   camera.aspect = r.width / r.height;
   camera.updateProjectionMatrix();
 }
+// Observe the STAGE, not the window: the stage changes size for reasons the window never
+// hears about -- the pager filling in at boot, a side panel collapsing -- and a canvas
+// sized from a stale measurement is how the bottom of the app ended up clipped.
+new ResizeObserver(resize).observe($("stage"));
 addEventListener("resize", resize);
 
 (function loop() {
@@ -4336,10 +4489,33 @@ addEventListener("resize", resize);
   renderer.render(scene, camera);
 })();
 
-CAT = await (await fetch("../catalog/igt-catalog.json")).json();
-COLORS = (await (await fetch("../catalog/colors.json")).json()).colors;
-TEXTURES = (await (await fetch("../catalog/textures.json")).json()).textures;
-FRAMES = (await (await fetch("../catalog/frame_fittings.json")).json()).frames;
+// Four files, in parallel, failing LOUDLY. These were four bare serial awaits: a 404 or a
+// half-written catalog rebuild rejected the module's top-level await AFTER the chrome was
+// wired -- full header, empty palette, dead canvas, and nothing telling anyone why. A guest
+// cannot debug that; a sentence can send them back on their way.
+const fetchJson = async path => {
+  const r = await fetch(path);
+  if (!r.ok) throw new Error(`${path} → ${r.status}`);
+  return r.json();
+};
+let catFiles;
+try {
+  catFiles = await Promise.all([
+    fetchJson("../catalog/igt-catalog.json"),
+    fetchJson("../catalog/colors.json"),
+    fetchJson("../catalog/textures.json"),
+    fetchJson("../catalog/frame_fittings.json"),
+  ]);
+} catch (e) {
+  const el = $("note");
+  el.textContent = "the parts catalog did not load — reload the page; if it keeps happening the server is down";
+  el.hidden = false;                       // no timer: this note has nowhere to go
+  throw e;
+}
+CAT = catFiles[0];
+COLORS = catFiles[1].colors;
+TEXTURES = catFiles[2].textures;
+FRAMES = catFiles[3].frames;
 // The rail in cross-section, measured off CK-149. Same for every frame in both
 // families: the collapsible ones have identical footprints (846x496, 1096x496) and
 // differ only in thickness (28 vs 30mm) and weight.
@@ -4407,15 +4583,42 @@ initGround();
 paintFiles();
 
 // WHAT YOU SEE WHEN YOU ARRIVE, most specific first:
-//   a shared link   -- someone sent you a design; it becomes a fresh one-page book to branch from
+//   a shared link   -- someone sent you a design; it lands as a NEW PAGE in your book
 //   your book       -- every page you had, and the one you were on; a reload loses nothing
 //   a legacy scene  -- the single scene from before pages existed, migrated into page 1
 //   a 4-unit frame  -- a blank page is not a starting point
 (async () => {
-  if (await fromHash()) { adoptAsBook("Shared"); return; }
-
   const savedBook = lsGet(LS_PAGES, null);
-  if (savedBook?.pages?.length) {
+  const hasBook = !!savedBook?.pages?.length;
+
+  if (await fromHash()) {
+    // The shared design is on screen. It used to become a fresh one-page book right here --
+    // which OVERWROTE every page the recipient had, and the people most likely to trade
+    // links back and forth are exactly the people with pages to lose. So: a new page in the
+    // existing book. And the hash is stripped, because a payload left in the URL re-ran this
+    // whole branch on every reload -- phones reload background tabs constantly -- resetting
+    // the design to the moment the link was minted.
+    history.replaceState(null, "", location.pathname);
+    if (hasBook) {
+      book = savedBook;
+      pageSeq = Math.max(0, ...book.pages.map(p => p.id)) + 1;
+      // First free EXACT name, not a count: counting /^Shared/ matches minted duplicates
+      // the moment a page was renamed or deleted ("Shared with Ben" inflated it too).
+      const taken = new Set(book.pages.map(p => p.name));
+      let name = "Shared";
+      for (let i = 2; taken.has(name); i++) name = `Shared ${i}`;
+      const id = pageSeq++;
+      book.pages.push({ id, name, doc: serializeLayout() });
+      book.activeId = id;
+      lsPut(LS_PAGES, book); lsPut(LS_SCENE, activePage().doc);
+      paintPager();
+    } else {
+      adoptAsBook("Shared");
+    }
+    return;
+  }
+
+  if (hasBook) {
     book = savedBook;
     pageSeq = Math.max(0, ...book.pages.map(p => p.id)) + 1;
     if (!activePage()) book.activeId = book.pages[0].id;

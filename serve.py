@@ -8,6 +8,7 @@
 import argparse
 import http.server
 import json
+import os
 import re
 import socketserver
 from functools import partial
@@ -19,10 +20,29 @@ SKU_RE = re.compile(r"[A-Za-z0-9._-]{1,40}")
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    # Annotation writes are opt-in. The tailnet instance serves guests, and a guest's
+    # browser POSTing its (empty) marks over the owner's files is not a malice scenario,
+    # it is the default outcome of opening the bench. See do_POST.
+    allow_anno = False
+
     def end_headers(self):
         # The catalog is rebuilt underneath a long-lived tab; a cached copy is a
-        # confusing way to debug a scraper.
-        self.send_header("Cache-Control", "no-store")
+        # confusing way to debug a scraper. That argument covers the DATA -- it was
+        # being applied to the 1.3MB of vendored three.js too, which never changes and
+        # was re-downloaded by every phone on every visit. So: no-store for what
+        # rebuilds, a day for what is frozen, and revalidation for the app files in
+        # between (SimpleHTTPRequestHandler already answers If-Modified-Since with 304,
+        # so an edited app.js still shows up on the next reload).
+        # getattr, because send_error() runs through here too and parse_request() can call
+        # it BEFORE self.path exists (TLS bytes on the plain port, an oversized request
+        # line). Bare self.path turned every such 400 into a dropped connection.
+        p = getattr(self, "path", "").split("?", 1)[0]
+        if p.startswith("/catalog/") or p.startswith("/anno"):
+            self.send_header("Cache-Control", "no-store")
+        elif p.startswith(("/web/vendor/", "/web/tex/", "/web/img/")):
+            self.send_header("Cache-Control", "max-age=86400")
+        else:
+            self.send_header("Cache-Control", "no-cache")
         super().end_headers()
 
     def do_GET(self):
@@ -42,6 +62,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         if self.path.rstrip("/") != "/anno":
             self.send_error(404)
+            return
+        if not self.allow_anno:
+            self.send_error(403, "annotation writes are off -- start serve.py --anno to annotate")
             return
         try:
             n = int(self.headers.get("Content-Length", 0))
@@ -88,7 +111,10 @@ def main():
     # from the tailnet.
     ap.add_argument("--host", default="127.0.0.1",
                     help="interface to bind (default 127.0.0.1; use '' for every interface)")
+    ap.add_argument("--anno", action="store_true",
+                    help="accept POST /anno writes (the part bench). Off by default: the tailnet instance is read-only")
     args = ap.parse_args()
+    Handler.allow_anno = args.anno or os.environ.get("IGT_ANNO") == "1"
 
     try:
         with Server((args.host, args.port), partial(Handler, directory=str(ROOT))) as httpd:
