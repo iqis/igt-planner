@@ -4,9 +4,10 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, flatRect,
          boardFromOutline, grainMaterial } from "./materials.js";
 import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
-         hangRackGroup, clampGroup, screenGroup, postArmGroup, ttaFrameGroup,
+         hangRackGroup, clampGroup, screenGroup, lanternHangerGroup, ttaFrameGroup,
+         boxHangerGroup, sideTrayGroup, cylinderStandGroup,
          ringGroup, caseGroup, railsGroup, plateGroup, gridPlateGroup,
-         slideExtGroup, entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop,
+         slideExtGroup, entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop, lv310Group,
          propGroup, shelterOf } from "./parts3d.js";
 
 /* The bench.
@@ -196,20 +197,30 @@ function benchGeo(p, box) {
     return extIgtGroup(w, d, h, { bayW: c?.bay_w_mm || 500, bayD: c?.bay_d_mm || 360, tex: woodGrain("ext", 2, 2) }).group;
   }
 
+  // Stainless Kitchen Table (LV-310): an open A-frame stand -- worktop at y=0 with the hanger
+  // frame rising above it, everything else hanging below -- not a slab on cylinders.
+  if (sku === "LV-310") return lv310Group(w, d, h, color).group;
+
   if (role === "layout_table" || role === "standalone")
     return tableGroup(w, d, h, 30, color).group;
 
   if (role === "hanger") {
-    if (p.span) return hangRackGroup({ w, d, drop: h, tiers: p.tiers || 1,
-      hasSurface: !!p.has_surface, color, estimated: p.assembled_estimated }).group;
+    // The two rail-hung racks, by NAME: hangRackGroup draws Snow Peak's construction (end
+    // side frames, rail hooks, hung tiers), not a generic hanger, so only these claim it.
+    if (sku === "CK-220" || sku === "CK-230")
+      return hangRackGroup({ w, d, drop: h, tiers: p.tiers || 1,
+        hasSurface: !!p.has_surface, color, estimated: p.assembled_estimated }).group;
     if (sku === "DB-005") return ringGroup(w, d, h, color).group;   // a ring that holds a bag
-    return clampGroup(w, d, h, color).group;                        // CK-020 box hanger
+    if (sku === "CK-020") return boxHangerGroup(w, d, h, color).group;  // the wire bail, not a clamp
+    return clampGroup(w, d, h, color).group;
   }
 
   if (role === "edge_clamp") {
     if (sku === "CK-301") return screenGroup(w, d, h, color).group;    // folding windscreen
-    if (sku === "CK-302" || sku === "CK-305") return postArmGroup(w, d, h, color).group;
-    if (sku === "CK-303") return ttaFrameGroup(w, d, h, color).group;  // a small frame on legs
+    if (sku === "CK-302") return lanternHangerGroup(w, d, h, color).group; // one bent tube
+    if (sku === "CK-304") return sideTrayGroup(w, d, h, color).group;      // the 200mm round tray
+    if (sku === "CK-305") return cylinderStandGroup(w, d, h, color).group; // the cartridge cup
+    if (sku === "CK-303") return ttaFrameGroup(w, d, h, color).group;      // the flat tube ring
     if (sku === "CK-306") return ringGroup(w, d, h, color).group;      // Sierra cup holder
     return clampGroup(w, d, h, color).group;                          // CK-300 unit clamp
   }
@@ -496,11 +507,11 @@ const ROLE_MODEL = {
   extension_table: "tableGroup -- a flat slab with the plan-view photo underlaid in the same frame",
   corner: "tableGroup -- a flat slab whose hook and bracket edges are perpendicular, so it turns the run",
   extension: "slideExtGroup -- a bamboo slab with under-brackets that clip over the rail",
-  layout_table: "tableGroup (ST-050 is modelled as its own octagon)",
+  layout_table: "tableGroup (ST-050 is its own octagon; LV-310 its own A-frame stand)",
   standalone: "tableGroup -- a slab on its own legs",
-  slot_module: "moduleGroup -- a unit-sized box; burners carry a real top texture",
-  hanger: "hangRackGroup / ringGroup / clampGroup, by kind",
-  edge_clamp: "a windscreen / arm / small frame / cup ring / clamp, by SKU",
+  slot_module: "moduleGroup -- a unit-sized box; burners carry a real top texture; GP-040 its own bare wire frame (gp040Group)",
+  hanger: "hangRackGroup / ringGroup / boxHangerGroup / clampGroup, by kind",
+  edge_clamp: "a windscreen / bent-tube lantern pole / flat tube ring / round side tray / cartridge cup / cup ring / clamp, by SKU",
   case: "caseGroup -- a soft case volume",
   rails: "railsGroup -- the rail cross-section, no top",
   joint: "plateGroup -- a small connecting plate (hardware)",

@@ -58,7 +58,12 @@ export const BURNERS = {
   "GS-450R": { flat450: true, hose: true },
   // Its own builder -- an appliance, not a box. Kept here so burnerOf still says "yes, a burner".
   "GS-230":  { gs230: true, heads: 2, knobs: 2, hose: true },
-  "GP-040":  { heads: 1, knobs: 1, mounts: "GS-1000" },
+  // Not a burner but the frame the GS-1000 STANDS IN -- a bare wire outline, its own builder
+  // (gp040Group). The row stays so burnerOf keeps saying "cooking" (the palette keys on it).
+  // `hose` because the stove it carries is liquid-feed: the inverted canister hangs beneath the
+  // table and the flame knob rides a stalk out one long-rail side -- board that side over and
+  // the knob is out of reach.
+  "GP-040":  { gp040: true, hose: true },
   "GS-1000": { heads: 1, knobs: 1 },
   // CK-160 was here as { bbq: true } -- "a grate half and a griddle half". Its MANUAL says
   // otherwise (セット内容: 焼き網 x2, and step 1 is "take the lid off"): there is no griddle, the
@@ -66,6 +71,93 @@ export const BURNERS = {
   // now (bbqBoxGroup) and is no longer a burner.
 };
 export const burnerOf = sku => BURNERS[sku] || BURNERS[sku.replace(/-(US|INT|EC|R)$/i, "")];
+
+/** LI Stove Joint Kit (GP-040; JP IGT剛炎ジョイントフレーム): the 1.5-unit frame that puts the
+ *  GS-1000 in the grid -- and it is nothing but WIRE. The hero (web/img/GP-040.jpg, = JP item
+ *  photo) shows the whole bill of material: a rounded-square rod outline, a centre ring, five
+ *  slender bent runs holding it. It spent its life in burnerGroup's generic branch wearing a
+ *  solid housing, an invented head and a knob; the product has none of them.
+ *
+ *  Measured, against the numbers this part publishes:
+ *  - GAUGE. The hero's rods measure ~5mm, but polished rod on white always measures thin (the
+ *    highlight blows out and the eye keeps the dark core). The published 1,020g does not:
+ *    spread over the ~2.9m of rod the photo shows (outline ~1.41m + ring ~0.69m + arms ~0.8m),
+ *    stainless at 7.9 g/cm3 comes back φ7.5. The in-use shot (JP a001) sides with the weight:
+ *    the arms crossing the rails read pencil-stout, not wire.
+ *  - The OUTLINE IS SQUARE, 362 on a side -- the hero reads square, and 362 is the along-rail
+ *    number the span evidence already pinned (2.90 half-units, 1.5U by its label). The 377
+ *    across is the ENVELOPE: the two stub tips poke ~11mm past the wire on ONE side (the hero
+ *    shows them), so (d - w) / 2 = 7.5 is the square sitting that far off-centre in its own
+ *    envelope. The offset is derived, not styled.
+ *  - The RING is φ227 outside -- 0.43 of the frame diagonal in the hero, same as built. That is
+ *    SMALLER than the stove's 収納時 φ240: the body does not drop through, it STANDS IN it. The
+ *    bowl's base (φ228 at the foot of its taper, gs1000Group's own numbers) lands on the ring
+ *    and the cone under it noses ~2mm in and centres. Seated so, the ゴトク ride ~69mm above the
+ *    tabletop -- which is what a001 shows: wind screen half-proud, pot at hand height. A ring
+ *    the φ240 body passed would sink the stove until its gotoku sat BELOW the table.
+ *  - h=33 is the rim plane to the ring's underside: the ring hangs ~29mm into the bay. The hero
+ *    is shot UPSIDE-DOWN (resting on its outline, ring arched up -- the only stable way to lay
+ *    it); every height here is that photo flipped.
+ *
+ *  The five runs, traced off the hero: TWO near-parallel arms cross UNDER the perimeter 62mm in
+ *  from the two corners of one side, each ending in the poked-out stub; on the opposite side two
+ *  legs converge in a Y whose joined tail elbows up to lie alongside the perimeter near one
+ *  corner, and a single arm does the same near the other. Mostly air, so a faint ghost box
+ *  carries picking (meshTrayGroup's trick). Rim at y = 0, everything hanging below. */
+export function gp040Group(w = 362, d = 377, h = 33) {
+  const g = new THREE.Group();
+  const steel = metal(0xd3d7db, 0.9, 0.25);      // polished rod, the finish burnerGroup's wires wear
+  const gauge = 7.5, r = gauge / 2;              // φ7.5 -- bought by the published 1,020g, above
+  const hw = w / 2, cr = 20;                     // square half-side; corner radius, off the hero
+  const ringR = 110;                             // ring centreline: OD 227.5, ID 212.5 (see above)
+  const z0 = (d - w) / 2;                        // the square, off-centre in its envelope: +7.5
+  const zB = z0 - hw, zF = z0 + hw;              // its stub side and its landing side
+  const rimY = -r;                               // perimeter centreline -- rod TOP at y = 0
+  const ringY = -(h - r);                        // ring centreline -- rod BOTTOM at y = -h
+  const underY = rimY - gauge;                   // an arm crossing UNDER the perimeter rod
+
+  // A faint ghost box, full envelope: it carries picking (dropModule tags only `body`) and
+  // nothing else. The rods are the read.
+  const ghost = box(g, w, h, d, 2,
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(0xd3d7db), transparent: true, opacity: 0.05 }),
+    0, -h / 2, 0);
+
+  // A bent rod swept along its centreline -- meshTrayGroup's idiom, at joint-frame stock.
+  const wire = (pts, closed = false) =>
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0] * MM, p[1] * MM, p[2] * MM)), closed),
+      closed ? 96 : pts.length * 8, r * MM, 10, closed), steel));
+
+  // The rounded-square outline, flat at the rim.
+  wire([[hw, rimY, zB + cr], [hw, rimY, zF - cr], [hw - cr, rimY, zF], [-hw + cr, rimY, zF],
+        [-hw, rimY, zF - cr], [-hw, rimY, zB + cr], [-hw + cr, rimY, zB], [hw - cr, rimY, zB]],
+       true);
+
+  // The ring, centred on the square, hanging at the bottom of the envelope.
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(ringR * MM, r * MM, 10, 64), steel);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.set(0, ringY * MM, z0 * MM);
+  g.add(ring);
+
+  // The two stub arms: off the ring toward the back corners, under the back rod 62mm in from
+  // each corner (17% of the side, measured), tips poked out to the envelope's far edge -- the
+  // 15mm that makes 362 into 377.
+  for (const s of [-1, 1])
+    wire([[s * 78, ringY, z0 - 78], [s * 119, underY, zB], [s * 126, underY - 3, zB - 11]]);
+
+  // The Y: two legs converging toward the far corner, the joined tail elbowed up to lie
+  // alongside the perimeter -- the hero shows it as a doubled rod at the rail.
+  wire([[108.7, ringY, z0 - 17.2], [128, -20, 78], [146, underY, 163.5]]);
+  wire([[-21, ringY, z0 + 108], [62, -20, 140], [146, underY, 163.5]]);
+  wire([[146, underY, 163.5], [142, rimY - 1, zF - 9.5], [112, rimY, zF - gauge]]);
+
+  // The single arm to the fourth corner, same elbow-and-lie-alongside ending.
+  wire([[-78, ringY, z0 + 78], [-99, -18, 135], [-112, underY, 172],
+        [-115, rimY - 1, zF - 9.5], [-88, rimY, zF - gauge]]);
+
+  return { group: g, body: ghost };
+}
+
 
 const metal = (color, m = 0.85, r = 0.35) =>
   new THREE.MeshStandardMaterial({ color: new THREE.Color(color), metalness: m, roughness: r });
@@ -148,23 +240,39 @@ export function burnerGroup(spec, w, d, h, topTex = null) {
     return { group: g, body };
   }
 
+  // The Grill Burner (GS-355 雪峰苑). Its catalog h=175 is the STANDALONE height -- it measures
+  // over the fold-out wire stand the hero shows splayed under the pan -- so hanging the full h
+  // below the rim buried a 175mm slab under the rails that the real module doesn't have. In
+  // the frame the stand folds away and only the drip pan drops in, a shallow ~65mm band (the
+  // hero's pan is a narrow strip against the stand's 175). And the plate does not LIE in the
+  // pan: it RIDES on corner posts with daylight under it, the bright pan rim showing beneath
+  // the black casting from every side (hero; clearest in the JP in-frame shot a004). Flush it
+  // read as a dark tray insert; the air gap is what says grill. Knob at the front-RIGHT
+  // corner -- the hero puts it under the pan's right end, not centred.
+  if (spec.plate) {
+    const panH = 65, lift = 38;             // pan below the rim; the plate's underside above it
+    const body = box(g, w, panH, d, 3, metal(steel, 0.85, 0.35), 0, -panH / 2, 0);
+    box(g, w - 4, 4, d - 4, 1.5, metal(0xaeb4bb, 0.85, 0.35), 0, 2, 0);   // the pan's bright lip
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])                   // the posts it rides on
+      cyl(g, 4, 4, 34, 10, metal(0x63676d, 0.7, 0.4), sx * (w / 2 - 20), 21, sz * (d / 2 - 20));
+    box(g, w - 8, 10, d - 8, 4, metal(dark, 0.3, 0.6), 0, lift + 5, 0);   // the cast plate, aloft
+    for (let i = -2; i <= 2; i++)        // its ridge bars -- the real casting is a herringbone
+      box(g, w - 24, 3, 5, 1, metal(0x1b1e22, 0.2, 0.7), 0, lift + 10, i * (d / 6));
+    cyl(g, 9, 9, 10, 16, metal(0x1c1f24, 0.4, 0.6), w / 2 - 30, -panH * 0.45, d / 2 + 4, Math.PI / 2);
+    return { group: g, body };
+  }
+
   // The stainless housing, dropped in. Rim at y=0, body hanging to -h.
   const body = box(g, w, h, d, 3, metal(steel, 0.85, 0.35), 0, -h / 2, 0);
 
-  if (spec.plate) {
-    box(g, w - 8, 10, d - 8, 4, metal(dark, 0.3, 0.6), 0, 4, 0);
-    for (let i = -2; i <= 2; i++)
-      box(g, w - 24, 3, 5, 1, metal(0x1b1e22, 0.2, 0.7), 0, 9, i * (d / 6));
-  } else {
-    const heads = spec.heads || 1;
-    for (let i = 0; i < heads; i++) {
-      const hx = heads === 1 ? 0 : (i - (heads - 1) / 2) * (w / heads);
-      const r = Math.min(w / heads, d) * 0.32;
-      cyl(g, r, r, 10, 24, metal(dark, 0.5, 0.5), hx, 5, 0);
-      cyl(g, r * 0.5, r * 0.6, 12, 20, metal(0x3a3d42, 0.6, 0.45), hx, 6, 0);
-      for (let a = 0; a < 4; a++)
-        box(g, r * 2.4, 4, 6, 1, metal(steel, 0.9, 0.3), hx, 16, 0, (a * Math.PI) / 4);
-    }
+  const heads = spec.heads || 1;
+  for (let i = 0; i < heads; i++) {
+    const hx = heads === 1 ? 0 : (i - (heads - 1) / 2) * (w / heads);
+    const r = Math.min(w / heads, d) * 0.32;
+    cyl(g, r, r, 10, 24, metal(dark, 0.5, 0.5), hx, 5, 0);
+    cyl(g, r * 0.5, r * 0.6, 12, 20, metal(0x3a3d42, 0.6, 0.45), hx, 6, 0);
+    for (let a = 0; a < 4; a++)
+      box(g, r * 2.4, 4, 6, 1, metal(steel, 0.9, 0.3), hx, 16, 0, (a * Math.PI) / 4);
   }
 
   for (let i = 0; i < (spec.knobs || 0); i++) {
@@ -346,6 +454,94 @@ export function meshTrayGroup(w, d, h, color, { panels = false } = {}) {
 // embeds FLUSH with the work surface" is, in millimetres. Both stainless boxes below are that.
 const RAIL_SPAN = 317;
 const wallSpan = d => Math.min(d, RAIL_SPAN);
+
+/** Waterproof Unit Gear Bag (UG-471 / UG-472): a CLOSED welded-EVA tub that drops into the
+ *  frame -- 本体／EVA生地、PVCメッシュ、ナイロンテープ, the catalogue says, and the photos agree: a
+ *  matte grey soft box, a black zip-top lid faced in PVC mesh, nylon webbing handles. Not a
+ *  stainless bin, which is what the h >= 60 fallthrough had been drawing it as.
+ *
+ *  The two SKUs are ONE bag at two wall heights (110 / 220), and the JP studio shot of the
+ *  pair (a001) shows the whole top assembly is SHARED -- same black zip band, same handles,
+ *  same anchor hardware on both. So everything above the grey is absolute millimetres,
+ *  measured on a001 against the published 360 x 220 face, and only the grey wall stretches:
+ *
+ *    - collar: the black band under the lid reads ~1/6 of the 220 -- 36mm.
+ *    - anchors: each 360-wide face carries two moulded recess plates, ~72 x 36, centred a
+ *      quarter of the width in from each end (+/-90 on 360), tops ~8mm below the collar.
+ *      The webbing ends land ON them.
+ *    - handles: one webbing U per wide face -- up from both recesses, along the top through
+ *      a pale PVC grip sleeve. a001 lays one handle FLAT on the lid, and flat is the state
+ *      drawn here: in the frame the only other place for a strap is dangling down a face
+ *      the rails own (a002, the install photo, shows exactly that), which would clip every
+ *      neighbouring module.
+ *
+ *  The 360 spans the rails the way any 360-deep module does, and the EVA is why the 317
+ *  clear opening is survivable -- the body squashes through; the model keeps the published
+ *  plan. Rim at y = 0 hanging to -h; the lid slab and the flattened straps ride a few mm
+ *  proud of the tabletop, the exception the file header names.
+ *
+ *  The planner hands (w, d) along-rail-first, the bench hands them as published, so the
+ *  build is normalised long-side-along-x and turned to fit the caller. `color` is the body
+ *  EVA, defaulting to the grey colors.json sampled off UG-472's product photo -- the one
+ *  photo of the two where the grey body outweighs the black lid. */
+export function gearBagGroup(w, d, h, { color = 0xa8acac } = {}) {
+  const g = new THREE.Group();
+  const t = new THREE.Group();                     // built 360-along-x, turned to the caller
+  t.rotation.y = w < d ? Math.PI / 2 : 0;
+  g.add(t);
+  const L = Math.max(w, d), S = Math.min(w, d);
+  const COLLAR = 36;                               // the shared black zip band, off a001
+
+  const eva     = metal(color, 0, 0.85);           // welded EVA: no metal in it at all
+  const evaDark = metal(new THREE.Color(color).multiplyScalar(0.86), 0, 0.85);
+  const collar  = metal(0x1d1f22, 0, 0.88);
+  const lidTop  = metal(0x232528, 0, 0.95);        // the PVC-mesh lid face, duller still
+  const webbing = metal(0x141518, 0, 0.9);
+  const zipMat  = metal(0x45484d, 0, 0.8);
+  const sleeve  = metal(0xc6c9cb, 0, 0.5);         // the pale PVC grip wrap
+
+  // The grey tub and the black collar over it, one soft rounded form -- corner radius ~20
+  // is what welded EVA panels pull themselves into. The tub tucks 2mm up behind the collar
+  // so no seam gap opens; the collar runs 1mm proud each side, the lid assembly overhanging
+  // the body the way the photos show.
+  const body = box(t, L, h - COLLAR + 2, S, 20, eva,
+                   0, -(COLLAR - 2) - (h - COLLAR + 2) / 2, 0);
+  box(t, L + 2, COLLAR, S + 2, 12, collar, 0, -COLLAR / 2, 0);
+  // The moulded base tray: a slight flare with its seam ~13mm up, and the foot the bag
+  // stands on -- dropped 1.5 so its underside is not coplanar with the tub's.
+  box(t, L + 3, 13, S + 3, 6, evaDark, 0, -h + 5, 0);
+
+  // The lid: a black slab inset ~11mm all round, its mesh face 2.5mm proud of the rim.
+  box(t, L - 22, 5, S - 22, 2.5, lidTop, 0, 0, 0);
+  // The zip: a thin lighter ring where the lid meets the collar, 8mm in from the edge,
+  // with the slider and its pull hanging at a front corner.
+  for (const s of [-1, 1]) {
+    box(t, L - 13, 1.8, 3, 0.8, zipMat, 0, 1.2, s * (S / 2 - 8));
+    box(t, 3, 1.8, S - 13, 0.8, zipMat, s * (L / 2 - 8), 1.2, 0);
+  }
+  box(t, 6, 3, 5, 1, zipMat, L / 2 - 30, 1.2, S / 2 - 8);
+  box(t, 5, 14, 1.8, 0.8, zipMat, L / 2 - 26, -9, S / 2 + 1.2);
+
+  // The handles, folded flat. Per wide face: two legs up from the recess plates, over the
+  // rim, in across the lid, joined by the top run wearing its grip sleeve. The webbing is
+  // 25mm nylon, drawn 2.6 thick.
+  const AX = L / 4;                                // anchor stations: quarter-width in
+  const AY = COLLAR + 26;                          // recess centres, tops ~8mm under the collar
+  const CROSS = 60;                                // where a folded handle's top run lands
+  for (const s of [-1, 1]) {
+    for (const e of [-1, 1]) {
+      box(t, 72, 36, 2.5, 6, evaDark, e * AX, -AY, s * (S / 2 + 0.5));    // recess plate
+      box(t, 25, AY, 2.6, 1, webbing, e * AX, -AY / 2, s * (S / 2 + 2));  // leg, down the wall
+      box(t, 25, 3, 16, 1.2, webbing, e * AX, 0.5, s * (S / 2 - 6));      // over the rim
+      box(t, 25, 2.6, S / 2 - 74, 1, webbing,                             // in across the lid
+          e * AX, 3.8, s * (S / 2 - 14 + CROSS) / 2);
+    }
+    box(t, L / 2 + 25, 2.6, 25, 1, webbing, 0, 3.8, s * CROSS);           // the top run
+    box(t, 96, 7, 30, 3, sleeve, 0, 4.4, s * CROSS);                      // its grip sleeve
+  }
+  return { group: g, body };
+}
+
 
 /** A module's two rail-side rims: flat strips from the wall out to the published depth `d`, their
  *  top at y = 0 -- the faces that actually carry the part on the frame. */
@@ -543,6 +739,9 @@ export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 12
  *    - TWO wire ゴトク, one per burner (p.11 flips them 180 degrees for HIGH/LOW; this is LOW).
  *    - TWO knobs on the FRONT face, standing proud of it -- what makes the deployed DEPTH 383
  *      against a 360 body.
+ *    - TWO canisters clamped INVERTED under the front deck, one dead under each knob -- the
+ *      液出し (liquid feed) in the product's own name, brass feed valve at the BOTTOM. Not a
+ *      toggle: without its cans this stove is not itself.
  *    - a THREE-panel windscreen: the carry COVER stood up at the back, a wing hinged off each end
  *      swinging forward. Folded, the wings lie inside the cover -- which is why packed width is 500
  *      and deployed width 563: the wings swing out PAST the body.
@@ -585,6 +784,20 @@ export function gs230Group(w = 500, { seat = 360, h = 293, bodyH = 70, lid = fal
     for (const c of [-1, 1]) box(g, 4, 80, 4, 1, metal(steel, 0.9, 0.3), hx + c * 52, -5, 0);
     // the knob, out under its own burner
     cyl(g, 13, 13, 23, 16, metal(0x1c1f24, 0.4, 0.6), hx, -40, seat / 2 + 11.5, Math.PI / 2);
+    // The CANISTER, clamped INVERTED under the deck -- the 液出し of the product's own name,
+    // so it is ALWAYS drawn: the GS-1000's can is 専用容器 bought separately and toggles, but
+    // this stove without its two cans is not itself (the hero mounts both). Measured off the
+    // hero against the 500mm face (152px): body 33px = φ108 -- the φ110-class can gs1000Group
+    // already draws at r=54, NOT a slim bottle -- hung dead under its knob (centres read
+    // ±115 ≈ SPACING/2, a second, independent scale check), top against the pan floor, ~110
+    // of hang. The brass feed valve is at the BOTTOM, under the domed shoulder -- valve-down
+    // is what liquid feed IS; the dark ring above is the socket the can twists up into.
+    const canMat = metal(0xc8ccd0, 0.7, 0.4);
+    const canZ = 150;                       // under the front deck, a little proud of the wall
+    cyl(g, 30, 30, 14, 18, metal(dark, 0.5, 0.5), hx, -bodyH - 5, canZ);       // the socket ring
+    cyl(g, 54, 54, 68, 24, canMat, hx, -bodyH - 46, canZ);                     // the can, base up
+    cyl(g, 54, 34, 22, 24, canMat, hx, -bodyH - 91, canZ);                     // shoulder, now down
+    cyl(g, 7, 7, 10, 10, metal(0xb08a4a, 0.8, 0.35), hx, -bodyH - 107, canZ);  // the brass feed valve
   }
 
   // COVER ON -- the third state, the one the manual never dimensions. The windscreen panel IS the
@@ -639,7 +852,15 @@ export function moduleGroup(p, w, d, h, color, topTex = null, cfg = null) {
   const base = p.sku.replace(/-(US|INT|EC|R)$/i, "");
   if (base === "CK-025") return stainlessBoxGroup(w, d, h, { color });
   if (base === "CK-160") return bbqBoxGroup(w, d, h, { color, surface: cfg || "nets" });
+  // The waterproof gear bags are welded EVA soft tubs with a zip lid, not stainless bins --
+  // and the swatch cannot be trusted for the body: colors.json sampled UG-471 at #282828
+  // because its hero crop is mostly the black lid. The grey EVA is the same on both bags,
+  // so the builder's own sampled default stands and the swatch stays out of it.
+  if (base === "UG-471" || base === "UG-472") return gearBagGroup(w, d, h);
   const bspec = burnerOf(p.sku);
+  // GP-040 is not a burner -- it is the bare wire frame the GS-1000 stands in. Its own shape,
+  // ahead of the generic branches that used to dress it in a housing, a head and a knob.
+  if (bspec?.gp040) return gp040Group(w, d, h);
   // GS-230 is an appliance, and its assembled_mm describes the DEPLOYED envelope (563 over the
   // splayed windscreen, 383 over the knobs) rather than the body -- so the d/h the caller derives
   // cannot be used. It takes only the along-rail width, the one number that is right:
@@ -667,6 +888,121 @@ export function moduleGroup(p, w, d, h, color, topTex = null, cfg = null) {
 
 const ALU_ = 0xc4c8ca;     // brushed aluminium -- standard rails, corner plates, rivets
 const BLK_ = 0x24262a;     // anodised black -- end pieces, the collapsible's side rails
+
+/** Stainless Kitchen Table (LV-310; ステンレスキッチンテーブル): an open A-frame STAND, not the
+ *  solid 1175x545x1100 block the fall-through drew. Its manual (LV-310_manual.pdf) itemises the
+ *  whole part, and the photos confirm each piece:
+ *
+ *    左/右フレーム     two arched tube end frames: straight legs splayed front-back to the full
+ *                    545 (the published depth IS the feet), a broad rounded shoulder over the
+ *                    top, a clamp bracket + thumbscrew on the apex. The apex is NOT the 1100:
+ *                    measured on the on-white hanger-form photo (JP a001) against the published
+ *                    height, the brackets sit at ~930 (+/-15).
+ *    テーブルトップ x2  two IDENTICAL stainless tops -- three panels between folded ~30mm hems
+ *                    (the two joins and the hem edge: a001/a005). Each hangs INSIDE the legs on
+ *                    four connection-piece pins ("オスが内側に来るように", manual p.4), at the
+ *                    published hole ladder 830/660/400/250/120. The kitchen form is the manual's
+ *                    own example -- worktop 830, shelf 250 -- and 830 is the IGT 830-leg datum,
+ *                    which is what "integrates with the Iron Grill Table" is in millimetres
+ *                    (LV-312 inserts a 4-Unit frame at that height; not modelled).
+ *    上フレーム        the hanger U dropped into the two brackets and locked by the thumbscrew.
+ *                    The catalogue's 1100 is ITS bar, not a tabletop, so it tops out at
+ *                    h - 830 above the worktop. The holes along it take the CK-020 / CK-128
+ *                    hangers (manual p.8) -- punched dark, frameGroup's trick.
+ *    下フレーム        a near-ground U along one long side with two 補強バー braces facing
+ *                    outward (manual p.3, 「補強バーが外側を向く」). Schematic the way
+ *                    bbqBoxGroup's linkage is: the members are real, their exact anchor points
+ *                    do not read off any photo.
+ *
+ *  The top depth is DERIVED, not published: at the 830 rung the leg splay leaves ~424mm between
+ *  tube centres, and a top that hangs on inward pins inside that gap is ~405 deep -- which is
+ *  what the photos show (shelf well inboard of the legs at 250, flush against them at 830).
+ *
+ *  Worktop at y = 0 -- the planner's table convention -- legs to -830, hanger to +(h - 830).
+ *  THE CALLER LIFTS THE GROUP BY LV310_TOP, not by the published h. Mostly air, so a faint
+ *  ghost box spans the full published envelope and carries picking (meshTrayGroup's trick). */
+export const LV310_TOP = 830;   // the worktop's rung -- the manual's kitchen example, = IGT 830
+
+export function lv310Group(w, d, h, color) {
+  const g = new THREE.Group();
+  const rise = h - LV310_TOP;                       // the hanger frame's reach above the worktop
+  const tube = metal(0xd2d6da, 0.9, 0.28);          // polished tube -- brighter than the sheet
+  const panel = metal(color, 0.78, 0.44);           // the tops' brushed stainless
+  const seamMat = metal(0x83888e, 0.7, 0.5);        // a panel join, a shade darker
+  const black = metal(0x25272b, 0.1, 0.85);         // アジャスター feet -- the ポリ in the 材質
+
+  // The ghost pick box, full published envelope: picking for a part that is mostly air.
+  const ghost = box(g, w, h, d, 2,
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
+    0, h / 2 - LV310_TOP, 0);
+
+  const strut = (a, b, r, mat) => {
+    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), mat);
+    m.position.copy(va).add(vb).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+    g.add(m); return m;
+  };
+  // A bent tube swept along its centreline -- the arch shoulders and both U-frames are generous
+  // factory bends in every photo, not mitres, so they are swept, not butted.
+  const bent = (pts, r) => g.add(new THREE.Mesh(new THREE.TubeGeometry(
+    new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0] * MM, p[1] * MM, p[2] * MM))),
+    pts.length * 8, r * MM, 10), tube));
+
+  const xa = w / 2 - 55;         // the arch planes: brackets, knobs and feet are the outermost metal
+  const TW = w - 40, TD = 405;   // one tabletop -- it overruns each arch plane by ~25mm (hero)
+  const topZ = TD / 2 + 9.5;     // leg tube centre at the worktop: hem + inward pin
+  const botZ = d / 2 - 14;       // and at the floor: foot caps reach the published 545
+  const legZ = y => topZ + (botZ - topZ) * ((25 - y) / 837);   // the straight leg line
+
+  for (const sx of [-1, 1]) {
+    const X = sx * xa;
+    for (const sz of [-1, 1]) {
+      strut([X, -812, sz * botZ], [X, 25, sz * topZ], 9.5, tube);        // a straight leg
+      cyl(g, 12.5, 14.5, 20, 12, black, X, 10 - LV310_TOP, sz * botZ);   // its adjuster foot
+    }
+    // shoulder-and-apex, one sweep rim to rim: near-flat crown ~190 wide, tube top ~930 abs (a001)
+    bent([[X, 25, topZ], [X, 52, 202], [X, 74, 168], [X, 87, 95], [X, 90, 0],
+          [X, 87, -95], [X, 74, -168], [X, 52, -202], [X, 25, -topZ]], 9.5);
+    box(g, 40, 26, 32, 2, metal(0xc3c8cd, 0.85, 0.35), X, 100, 0);       // the apex bracket
+    const knob = new THREE.Mesh(new THREE.CylinderGeometry(7.5 * MM, 7.5 * MM, 8 * MM, 12),
+      metal(0x2c2f33, 0.4, 0.6));                                        // 上フレーム固定ネジ
+    knob.rotation.z = Math.PI / 2;                                       // axis out along x
+    knob.position.set((X + sx * 26) * MM, 100 * MM, 0);
+    g.add(knob);
+  }
+
+  // 上フレーム: the hanger U dropped into the brackets. Its bar top IS the published height.
+  const barY = rise - 8;
+  bent([[-xa, 108, 0], [-xa, barY - 62, 0], [-xa + 12, barY - 26, 0], [-xa + 48, barY - 6, 0],
+        [-xa + 105, barY, 0], [0, barY, 0], [xa - 105, barY, 0], [xa - 48, barY - 6, 0],
+        [xa - 12, barY - 26, 0], [xa, barY - 62, 0], [xa, 108, 0]], 8);
+  for (const f of [-0.68, -0.24, 0.24, 0.68])       // 上フレーム穴 -- where CK-020/CK-128 drop in
+    cyl(g, 2.2, 2.2, 18, 8, metal(0x0e0f12, 0.2, 0.8), f * xa, barY, 0, Math.PI / 2);
+
+  // One tabletop hung by its top face at ty: a 3mm sheet, the ~30mm hem all round (a005,
+  // edge-on -- the keyhole slots punched in it are sub-8mm and not drawn), and the two joins
+  // where its three panels meet (a001; the manual's 天板 drawing).
+  const topAt = ty => {
+    box(g, TW, 3, TD, 1, panel, 0, ty - 1.5, 0);
+    for (const sz of [-1, 1]) box(g, TW, 28, 2, 0.5, panel, 0, ty - 17, sz * (TD / 2 - 1));
+    for (const sx of [-1, 1]) box(g, 2, 28, TD - 4, 0.5, panel, sx * (TW / 2 - 1), ty - 17, 0);
+    for (const sx of [-1, 1]) box(g, 1.6, 0.7, TD - 8, 0.2, seamMat, sx * TW / 6, ty + 0.05, 0);
+  };
+  topAt(0);                    // the worktop -- the datum this whole builder hangs from
+  topAt(250 - LV310_TOP);      // the SAME physical part again (セット内容: テーブルトップx2), on the 250 rung
+
+  // 下フレーム + 補強バー: the near-ground U along one long side, braces facing outward.
+  const runY = 24 - LV310_TOP, runZ = 188;
+  strut([-(xa - 95), runY, runZ], [xa - 95, runY, runZ], 7.5, tube);
+  for (const sx of [-1, 1]) {
+    strut([sx * (xa - 95), runY, runZ], [sx * xa, runY + 16, legZ(runY + 16)], 7.5, tube);
+    strut([sx * (xa - 330), runY, runZ], [sx * (xa - 25), runY + 8, legZ(runY + 8) - 12], 6, tube);
+  }
+
+  return { group: g, body: ghost };
+}
+
 
 const metalE = (color, m, r, glow = 0x000000) =>
   new THREE.MeshStandardMaterial({
@@ -1253,13 +1589,46 @@ export function coolerGroup(w, d, h, { frame = 0x8a7e76, fabric = 0xa83832 } = {
  *  Ring top at y = 0, legs to -height. */
 export function jikaroGroup({ outer, opening, edge, height, color, ringMat }) {
   const g = new THREE.Group();
-  const thick = 6;
-  const ring = new THREE.Mesh(jikaroRing(outer, opening, edge, thick * MM),
-    ringMat || metalE(color, 0.85, 0.3));
-  g.add(ring);
+  const thick = 6, edgeT = 25;
+  const mat = ringMat || metalE(color, 0.85, 0.3);
+  const R = outer / 2, e = edge / 2, o = opening / 2;
+  // The top is a folded PAN, not a sheet: the a005 side elevation shows a 25mm edge band
+  // (41px against the published 400mm height at 1.63px/mm), and a002 looks straight into
+  // the fold walls lining the fire hole. So: the 6mm deck keeps the y=0 datum, and 2mm
+  // skirts drop to -25 under the outer edge (four straights, four chamfers) and the
+  // hearth edge. Hollow between them -- that cavity is where the wire legs fold away.
+  const ring = new THREE.Mesh(jikaroRing(outer, opening, edge, thick * MM), mat);
+  g.add(ring);                                 // stays children[0]: app.js picks the ring by index
+  const skirtH = edgeT - thick, skirtY = -thick - skirtH / 2;
+  for (const s of [-1, 1]) {
+    box(g, edge, skirtH, 2, 0.5, mat, 0, skirtY, s * (R - 1));      // outer straight sides
+    box(g, 2, skirtH, edge, 0.5, mat, s * (R - 1), skirtY, 0);
+    box(g, opening, skirtH, 2, 0.5, mat, 0, skirtY, s * (o + 1));   // the hearth fold, a002
+    box(g, 2, skirtH, opening, 0.5, mat, s * (o + 1), skirtY, 0);
+  }
+  const cham = (R - e) * Math.SQRT2, cc = (R + e) / 2 - 0.7;        // chamfers, corner to corner
+  for (const [cx, cz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]])
+    box(g, cham, skirtH, 2, 0.5, mat, cx * cc, skirtY, cz * cc, cx * cz > 0 ? Math.PI / 4 : -Math.PI / 4);
   const seams = jikaroSeams(outer, opening, edge, 0x6a7079);
   seams.position.y = 0.4 * MM;
   g.add(seams);
+
+  // The multifunction punching: every panel carries a row of 19 slots at a 22mm pitch on
+  // its 600mm edge, spanning the middle ~400mm (a002, measured against that edge: 34.5px
+  // pitch, 18 clear units plus one washed out, evenly spaced). The 600 edge faces the
+  // HEARTH in the published long-edge-in ring (a001) and faces OUT built short-edge-in
+  // (a002), so the row follows whichever side that edge landed on. Each punching is a
+  // port plus a narrow relief dash; at planner distance one dark inlay per unit is the
+  // read, laid a hair proud of the deck like the seams.
+  const inlay = metal(0x33373d, 0.3, 0.7);
+  const rowAt = opening > edge ? o + 16 : R - 16;   // slots 16mm long, starting 8mm off the fold
+  for (let k = 0; k < 19; k++) {
+    const u = (k - 9) * 22;
+    box(g, 7, 1, 16, 0.4, inlay, u, -0.3, rowAt);
+    box(g, 7, 1, 16, 0.4, inlay, u, -0.3, -rowAt);
+    box(g, 16, 1, 7, 0.4, inlay, rowAt, -0.3, u);
+    box(g, 16, 1, 7, 0.4, inlay, -rowAt, -0.3, u);
+  }
 
   // Eight folding wire legs -- a U-hairpin running ALONG each of the trapezoid's two SHORT
   // (slant) edges: the 285mm sides that join the inner (hole) edge to the outer (flat) edge,
@@ -1269,7 +1638,6 @@ export function jikaroGroup({ outer, opening, edge, height, color, ringMat }) {
   // foot bar with a shallow centre notch (a009). The marks D,E land on the OUTER end of the +x
   // pair of slants, which the octagon's four-fold symmetry repeats to all eight.
   const wire = metalE(color, 0.9, 0.28);
-  const R = outer / 2, e = edge / 2, o = opening / 2;
   const strut = (a, b) => {
     const va = new THREE.Vector3(...a).multiplyScalar(MM);
     const vb = new THREE.Vector3(...b).multiplyScalar(MM);
@@ -1325,37 +1693,110 @@ export function jikaroBridge({ opening, units = 2, tex = null }) {
   return { group: g, body: g.children[0] };
 }
 
-/** A hanging rack that hooks over a frame's rails and drops shelves inside its depth.
- *  Standalone here (its hooks sit at its own depth edges); the planner places it at a slot.
- *  `tiers` shelves, `hasSurface` a solid shelf vs an open rim. Top at y = 0, to -drop.
- *  Returns { group, pick } so the planner can tag the bars. */
+/** The two rail-hung racks (CK-220 hanging rack frame / CK-230 shallow hanging shelf), by
+ *  what their manuals and photos actually show: OPEN construction. The old drawing closed
+ *  each side with a solid full-drop sheet, and under a tabletop the rack read as a cabinet;
+ *  web/img/CK-220.jpg shows daylight everywhere -- flat bar, plates, punched holes.
+ *
+ *  Both hang the same way. A side frame stands at each END (x = +/-w/2), spans the table's
+ *  DEPTH, and lands hooks on the rails. The CK-230 manual's 断面図 draws the hook as a flat
+ *  finger in the panel's own plane laying an arm outward on top of the rail, and counts
+ *  左右合計4か所のフック; CK-220's counts the same four. The rails' lips sit at |z|
+ *  158.5..182.5 (railProfile), so every hook here lives at |z| ~170 and its arm's underside
+ *  lands at -10 -- the measured recess modules rest in. Everything else hangs BETWEEN the
+ *  two side frames; nothing closes the sides.
+ *
+ *      CK-220  セット内容: メインフレーム x2, サイドフレーム x2. Each side frame is a band
+ *              below the rail line (~92mm against the hero's 372, an oblong hand slot
+ *              through it, logo out) with a flat-bar leg dropping from each end and a column
+ *              of フック穴 down the leg. The MAIN frames are bare tier rims -- no floor, the
+ *              trays and boxes hang THROUGH them -- hooked into those holes at 4 corners
+ *              each. Tier tops -150/-340, measured off the hero at ~1px:1mm against the 372;
+ *              372 itself is unpublished, so the translucent "estimated" dress stays.
+ *      CK-230  本体 x1: a perforated base plate whose side panels fold up to 90 degrees,
+ *              each a triangulated plate -- top rail, end posts leaning inward on the way
+ *              down, a V of braces meeting over the shelf's centre (the embossed logo sits
+ *              under that meeting). Published 510 x 354 x 242.
+ *
+ *  Mostly air now, so a faint ghost box carries picking (the meshTrayGroup deal). Top at
+ *  y = 0, hangs to -drop. Returns { group, body }. */
 export function hangRackGroup({ w, d, drop, tiers = 1, hasSurface = false, color, estimated = false }) {
   const g = new THREE.Group();
-  const pick = [];
-  const mat = new THREE.MeshStandardMaterial({
+  const steel = new THREE.MeshStandardMaterial({
     color: new THREE.Color(color), metalness: 0.9, roughness: 0.28,
     transparent: estimated, opacity: estimated ? 0.78 : 1,
   });
-  const bar = (bw, bh, bd, x, y, z) => {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(bw * MM, bh * MM, bd * MM), mat);
-    m.position.set(x * MM, y * MM, z * MM);
-    g.add(m); pick.push(m);
-    return m;
-  };
-  const hookZ = Math.min(d / 2, 203);
-  for (const sz of [-1, 1]) for (const sx of [-0.5, 0.5]) bar(16, 10, 40, sx * (w - 40), 2, sz * hookZ);
-  for (const sx of [-1, 1]) bar(6, drop, d, sx * (w / 2 - 3), -drop / 2, 0);
-  for (let i = 1; i <= tiers; i++) {
-    const y = -(drop * i) / tiers;
-    if (hasSurface) { bar(w - 12, 8, d, 0, y, 0); }
-    else {
-      bar(w - 12, 20, 12, 0, y, d / 2 - 6);
-      bar(w - 12, 20, 12, 0, y, -(d / 2 - 6));
-      bar(12, 20, d, w / 2 - 6, y, 0);
-      bar(12, 20, d, -(w / 2 - 6), y, 0);
-    }
+  const dark = metalE(0x0e0f12, 0.2, 0.8);      // punched holes -- frameGroup's own fake
+  const bar = (bw, bh, bd, x, y, z) => box(g, bw, bh, bd, 1, steel, x, y, z);
+  const px = w / 2 - 2;                         // the side frames' plane, one per end
+
+  // The ghost pick box: the full envelope, faint, and the only mesh the planner tags.
+  const ghost = box(g, w, drop, d, 2,
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
+    0, -drop / 2, 0);
+
+  // Four rail hooks, two per side frame: a riser in the panel's plane, an arm laid outward
+  // over the rail (underside on the -10 lip), a small down-step at the tip. Drawn a hair
+  // thicker than the plates they grow from so the overlaps don't shimmer.
+  const hookZ = Math.min(d / 2 - 8, 170);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    bar(4, 26, 18, sx * px, -17, sz * hookZ);
+    bar(4, 6, 34, sx * px, -7, sz * (hookZ + 12));
+    bar(4, 10, 4, sx * px, -9, sz * (hookZ + 27));
   }
-  return { group: g, pick };
+
+  if (!hasSurface) {
+    // CK-220. The side frame: a full-depth band below the rail line, the hand slot punched
+    // through it (a dark plug a hair proud of both faces), and a leg off each end carrying
+    // the hook-hole column the tier frames adjust on. Open everywhere below the band.
+    for (const sx of [-1, 1]) {
+      bar(3, 92, d, sx * px, -58, 0);
+      box(g, 4.5, 14, 100, 2, dark, sx * px, -58, 0);
+      for (const sz of [-1, 1]) {
+        bar(4, drop - 104, 16, sx * px, -(104 + (drop - 104) / 2), sz * (d / 2 - 9));
+        for (let k = 0; k < 6; k++)
+          cyl(g, 3.2, 3.2, 6, 10, dark, sx * px, -(140 + k * 40), sz * (d / 2 - 9))
+            .rotation.z = Math.PI / 2;
+      }
+    }
+    // The tier rims: flat bar on edge with a narrow flange turned INWARD at the top -- the
+    // ledge the mesh trays' rims rest on in the catalogue shots. The corner hooks into the
+    // leg holes are real but sub-planner-distance, so they are not drawn.
+    for (let i = 0; i < tiers; i++) {
+      const ty = tiers === 1 ? drop - 32 : 150 + (i * (drop - 32 - 150)) / (tiers - 1);
+      for (const sz of [-1, 1]) {
+        bar(w - 10, 20, 4, 0, -(ty + 10), sz * (d / 2 - 8));
+        bar(w - 10, 3, 12, 0, -(ty + 1.5), sz * (d / 2 - 16));
+      }
+      for (const sx of [-1, 1]) bar(4, 20, d - 16, sx * (w / 2 - 5), -(ty + 10), 0);
+    }
+  } else {
+    // CK-230. Side panels: top rail, end posts leaning ~6 degrees inward on the way down
+    // (the taper the photos show), a V of braces to the shelf's centre. All flat strap.
+    const shelfTop = drop - 18;
+    for (const sx of [-1, 1]) {
+      bar(3, 20, d - 16, sx * px, -40, 0);
+      for (const hz of [-110, 0, 110])
+        cyl(g, 2.5, 2.5, 6, 10, dark, sx * px, -40, hz).rotation.z = Math.PI / 2;
+      for (const sz of [-1, 1]) {
+        const run = shelfTop - 50;
+        bar(4, run, 18, sx * px, -(50 + run / 2), sz * (d / 2 - 12)).rotation.x = sz * 0.10;
+        const zT = d / 2 - 27, zB = 12, rise = shelfTop - 14 - 55;
+        bar(4, Math.hypot(rise, zT - zB), 18, sx * px, -(55 + rise / 2), sz * ((zT + zB) / 2))
+          .rotation.x = sz * Math.atan2(zT - zB, rise);
+      }
+      // the black trim strip riding the panel-shelf joint in every CK-230 photo
+      box(g, 6, 10, d - 20, 2, metal(0x1c1e22, 0.1, 0.65), sx * (w / 2 - 4), -(shelfTop - 3), 0);
+    }
+    // The base plate: a shallow pan at the very bottom -- floor, long lips folded DOWN,
+    // and the rows of dash perforations, drawn flush and dark (the through-hole fake).
+    box(g, w - 8, 3, d - 4, 1, steel, 0, -(shelfTop + 1.5), 0);
+    for (const sz of [-1, 1]) bar(w - 8, 18, 3, 0, -(shelfTop + 9), sz * (d / 2 - 3.5));
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++)
+      box(g, 26, 1.2, 5, 0.5, dark,
+        (c - 2 + (r % 2 ? 0.25 : -0.25)) * (w / 6.5), -(shelfTop - 0.3), (r - 1.5) * (d / 4.6));
+  }
+  return { group: g, body: ghost };
 }
 
 // ===========================================================================================
@@ -1363,6 +1804,85 @@ export function hangRackGroup({ w, d, drop, tiers = 1, hasSurface = false, color
 // box, and every one of them was being drawn as one (or crashing). These are honest,
 // low-detail shapes: enough silhouette to tell a lantern pole from a windscreen from a
 // clamp, no invented ornament. All take MILLIMETRES and hang from y = 0.
+// ===========================================================================================
+
+/** IGT Stainless Box Hanger (CK-020): not a clamp -- a long bent WIRE bail. The hero and the
+ *  in-use shot (JP a001, the CK-025 box hanging at a frame end) agree on the topology: two
+ *  small J-hooks curl over the rail, each fixed by a little aluminium joint block (the
+ *  レールジョイント金具 of the materials line -- the two loose blocks in the hero), and one wire
+ *  drops and runs a full-width U out from the table: the shelf the box hangs its rim in. The
+ *  published 340 x 161 x 41 is the whole part -- 340 the span (the hero puts hooks and U
+ *  corners on the same line, ~8mm in from each end), 161 the reach, 41 the shallow drop from
+ *  hook top to wire. ~5mm wire. Mostly air, so a faint ghost box carries picking, the
+ *  meshTrayGroup way. Hooks over the rail at y = 0; rail side -z, the bail reaching +z. */
+export function boxHangerGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const steel = metal(color, 0.9, 0.25);
+  const rw = 2.5;
+  const wire = pts => g.add(new THREE.Mesh(new THREE.TubeGeometry(
+    new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0] * MM, p[1] * MM, p[2] * MM))),
+    pts.length * 8, rw * MM, 6, false), steel));
+  const hx = w / 2 - 8, zR = -(d / 2) + 12;         // hook axes / the rail line
+  // the two J-hooks, curling over the rail and tailing down its far side
+  for (const s of [-1, 1])
+    wire([[s * hx, -26, zR + 14], [s * hx, -2, zR + 9], [s * hx, 6, zR],
+          [s * hx, -1, zR - 8], [s * hx, -14, zR - 9]]);
+  // the bail: ONE wire, hook to hook -- down, kicked out, the full-width U, and back up
+  wire([[-hx, -20, zR + 12], [-hx, -h + 3, zR + 42], [-hx, -h, d / 2 - 22],
+        [-hx + 14, -h, d / 2 - 4], [hx - 14, -h, d / 2 - 4], [hx, -h, d / 2 - 22],
+        [hx, -h + 3, zR + 42], [hx, -20, zR + 12]]);
+  // the aluminium joint blocks, one at each hook, on the rail where a001 puts them
+  const alu = metal(0xc4c8ca, 0.85, 0.35);
+  for (const s of [-1, 1]) box(g, 22, 18, 16, 2, alu, s * (hx - 26), -9, zR + 2);
+  const ghost = box(g, w, h, d, 2,
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
+    0, -h / 2, 0);
+  return { group: g, body: ghost };
+}
+
+/** TTA Side Tray (CK-304): a 200mm round stainless tray, not a clamp. The hero: a flat disc
+ *  with a short rolled edge, and standing in its centre boss the black-sleeved fixing shaft
+ *  (the シリコンゴム of the materials line; JP a002 shows the same shaft dropped through the
+ *  table-edge clip in use -- the clip is mounting, not the read, and is not modelled).
+ *  Measured against the published phi200: boss ~phi36, the capped shaft topping out ~50mm
+ *  over the floor. The published h=28 is dish + boss; the shaft is packed loose and stands
+ *  past it. Lip at y = 0, dish floor at -8, the post rising above -- the burners' exception,
+ *  built in. */
+export function sideTrayGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const R = Math.min(w, d) / 2;
+  const steel = new THREE.MeshStandardMaterial({ color: new THREE.Color(color),
+    metalness: 0.85, roughness: 0.3, side: THREE.DoubleSide });
+  // the dish, lathed: floor, a rise to the lip, and the lip rolled back under itself
+  const prof = [[2, -8], [R - 14, -8], [R - 6, -5], [R - 1.5, -0.5], [R, 0], [R - 3, -2.5]]
+    .map(([px, py]) => new THREE.Vector2(px * MM, py * MM));
+  const dish = new THREE.Mesh(new THREE.LatheGeometry(prof, 48), steel);
+  g.add(dish);
+  cyl(g, 18, 18, 22, 24, metal(color, 0.85, 0.3), 0, 3, 0);            // the centre boss
+  cyl(g, 5, 5, 18, 12, metal(0xc6cacf, 0.85, 0.3), 0, 22, 0);          // the fixing shaft
+  cyl(g, 8, 8, 22, 14, metal(0x17181b, 0.05, 0.75), 0, 32, 0);         // its black sleeve
+  return { group: g, body: dish };
+}
+
+/** TTA Cylinder Stand (CK-305): a plain straight-walled stainless cup, phi67 x 110 -- the
+ *  sleeve a gas cartridge drops into. Nothing else: wall, floor, a thin rolled lip. (The PP
+ *  edge bracket of the materials line is the mounting, not the read, and is not modelled.)
+ *  Satin, not mirror -- the hero's finish. Rim at y = 0, hanging to -h. */
+export function cylinderStandGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const R = Math.min(w, d) / 2;
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(R * MM, R * MM, h * MM, 28, 1, true),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color),
+      metalness: 0.6, roughness: 0.5, side: THREE.DoubleSide }));
+  wall.position.y = -h / 2 * MM;
+  g.add(wall);
+  cyl(g, R - 1, R - 1, 3, 28, metal(color, 0.6, 0.5), 0, -h + 5, 0);   // the floor, up a step
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(R * MM, 1.6 * MM, 8, 36), metal(color, 0.7, 0.4));
+  lip.rotation.x = Math.PI / 2;
+  lip.position.y = -1.6 * MM;
+  g.add(lip);
+  return { group: g, body: wall };
+}
 // ===========================================================================================
 
 /** An edge clamp / hook bracket: a back plate with a jaw that curls over an edge at the top
@@ -1406,50 +1926,77 @@ export function screenGroup(w, d, h, color) {
   return { group: g, body: g.children[0] };
 }
 
-/** A lantern hanger / cylinder stand: a vertical pole with a clamp foot and an arm reaching
- *  out near the top, a small hook at the arm's end. */
-export function postArmGroup(w, d, h, color) {
+/** TTA Lantern Hanger (CK-302): ONE continuous bent line, not a pole with parts bolted on.
+ *  What the photos say: the hero silhouette is bottom shaft -> ~45deg dogleg -> long rise ->
+ *  the crank folded back down against the pole in a narrow triangle; the in-use JP a001/a002
+ *  show the same tube standing in a clamp at the table edge, the dogleg stepping the rise
+ *  clear of it, the crank swung out with a pin for the lantern hook. The manual's set line
+ *  says why one line comes in two pieces -- クランクシャフト + シャフト, socketed.
+ *  Numbers: h=713 is trusted whole. The hero cutout is NOT to scale across -- its stance
+ *  measures ~240mm against its own 713 height, twice the published 116, while the in-use
+ *  a001 shows an offset of ~7 tube widths (~85mm) -- so the published 116 envelope decides
+ *  every x here: dogleg offset, fold, pin. The knees sit at 0.74h/0.86h (45deg over the
+ *  offset the envelope allows; the hero puts them in the same lower third). The disc and
+ *  black-capped pin ~0.26h down are the crank's hook pin and stop, folded home; the PVC of
+ *  the materials line is the grey cap on the bottom tip. Mostly air -> a ghost sliver picks.
+ *  Hangs from y = 0 to -h like the rest of the TTA family. */
+export function lanternHangerGroup(w, d, h, color) {
   const g = new THREE.Group();
-  const mat = metalE(color, 0.85, 0.3);
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(6 * MM, 6 * MM, h * MM, 12), mat);
-  pole.position.set(0, -h / 2 * MM, 0);
-  g.add(pole);
-  const reach = Math.max(w, d, 120);
-  const arm = new THREE.Mesh(new THREE.CylinderGeometry(4 * MM, 4 * MM, reach * MM, 10), mat);
-  arm.rotation.z = Math.PI / 2;
-  arm.position.set(reach / 2 * MM, -20 * MM, 0);
-  g.add(arm);
-  const hook = new THREE.Mesh(new THREE.TorusGeometry(9 * MM, 2.5 * MM, 8, 16, Math.PI * 1.4), mat);
-  hook.position.set(reach * MM, -34 * MM, 0);
-  hook.rotation.x = Math.PI / 2;
-  g.add(hook);
-  // Clamp foot -- how it grips the frame edge.
-  const foot = new THREE.Mesh(roundedBox(26 * MM, 30 * MM, 20 * MM, 2 * MM), mat);
-  foot.position.set(0, (-h + 15) * MM, 0);
-  g.add(foot);
-  return { group: g, body: pole };
+  const steel = metal(color, 0.9, 0.25);
+  const r = Math.min(d, 12) / 2;                        // ~12mm stainless tube
+  const riseX = -(w / 2) + 28, tipX = w / 2 - r;        // rise axis / bottom-shaft axis
+  const kneeB = -0.86 * h, kneeT = kneeB + (tipX - riseX);   // 45deg: rise = run
+  const tube = pts => g.add(new THREE.Mesh(new THREE.TubeGeometry(
+    new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0] * MM, p[1] * MM, p[2] * MM))),
+    pts.length * 10, r * MM, 8, false), steel));
+  // the whole part is this one line: tip, shaft, dogleg, rise, and the crank folding back
+  tube([[tipX, -h + 8, 0], [tipX, kneeB, 0], [riseX, kneeT, 0], [riseX, -22, 0],
+        [riseX - 5, -5, 0], [riseX - 14, -16, 0], [riseX - 19, -0.15 * h, 0],
+        [riseX - 22, -0.24 * h, 0]]);
+  // the crank's hook pin (black grip) and its stop disc, folded home against the pole
+  const pin = new THREE.Mesh(new THREE.CylinderGeometry(3.5 * MM, 3.5 * MM, 40 * MM, 10),
+    metalE(0x2a2c30, 0.2, 0.7));
+  pin.rotation.z = Math.PI / 2;
+  pin.position.set((riseX + 12) * MM, -0.25 * h * MM, 0);
+  g.add(pin);
+  cyl(g, r + 5, r + 5, 4, 16, steel, riseX, -0.27 * h, 0);
+  // the PVC cap on the shaft tip -- the end that drops into the clamp
+  cyl(g, r + 1.5, r + 1.5, 18, 12, metalE(0x6d7175, 0.25, 0.65), tipX, -h + 9, 0);
+  // a faint ghost sliver: a 6mm tube is no picking target
+  const ghost = box(g, w, h, Math.max(d, 30), 2,
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
+    0, -h / 2, 0);
+  return { group: g, body: ghost };
 }
 
-/** A small IGT-style frame on legs (CK-303 TTA Unit Frame): a thin rectangular rim on four
- *  short legs -- a frame you can see through, not a filled box. */
+/** TTA Unit Frame (CK-303): there are no legs. The hero is the part slightly unpacked: a top
+ *  U and a bottom U of ~12mm stainless tube with two long side tubes between them, joined by
+ *  small ferrule sleeves -- assembled it is ONE flat rounded-rect ring, 333 x 480, that
+ *  stands in two TTA Clamp Tools on the table edge ("connect the frame ends into two TTA
+ *  Clamp Tools"). d=12 in assembled_mm is the TUBE, not a plan depth -- the old rim-on-legs
+ *  read of (w,d,h) is what made it a ladder on stilts. Built VERTICAL in x-y, hanging from
+ *  y = 0 like the rest of the TTA family; the four ferrules sit on the side runs where the
+ *  hero shows them (just below the top corners, just above the bottom ones). Mostly air ->
+ *  a faint ghost box carries picking. */
 export function ttaFrameGroup(w, d, h, color) {
   const g = new THREE.Group();
-  const mat = metalE(color, 0.8, 0.4);
-  const t = 10;
-  const rim = (bw, bd, x, z) => {
-    const m = new THREE.Mesh(roundedBox(bw * MM, t * MM, bd * MM, 1 * MM), mat);
-    m.position.set(x * MM, -t / 2 * MM, z * MM);
-    g.add(m);
-  };
-  rim(w, t, 0, d / 2 - t / 2); rim(w, t, 0, -(d / 2 - t / 2));
-  rim(t, d, w / 2 - t / 2, 0); rim(t, d, -(w / 2 - t / 2), 0);
-  const legH = Math.max(h - t, 20);
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(6 * MM, 5 * MM, legH * MM, 12), mat);
-    leg.position.set(sx * (w / 2 - t) * MM, -(t + legH / 2) * MM, sz * (d / 2 - t) * MM);
-    g.add(leg);
-  }
-  return { group: g, body: g.children[0] };
+  const steel = metal(color, 0.9, 0.25);
+  const r = Math.min(d, 12) / 2;                    // the published d=12 IS the tube
+  const R = 35;                                     // corner radius, read off the hero
+  const x1 = w / 2 - r, yT = -r, yB = -(h - r);
+  const pts = [
+    [x1, yB + R, 0], [x1, yT - R, 0], [x1 - R, yT, 0], [-x1 + R, yT, 0],
+    [-x1, yT - R, 0], [-x1, yB + R, 0], [-x1 + R, yB, 0], [x1 - R, yB, 0],
+  ];
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(
+    new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0] * MM, p[1] * MM, p[2] * MM)), true),
+    96, r * MM, 8, true), steel));
+  for (const sx of [-1, 1]) for (const fy of [-0.11 * h, -0.90 * h])   // the ferrule joints
+    cyl(g, r * 1.7, r * 1.7, 26, 12, metal(color, 0.85, 0.3), sx * x1, fy, 0);
+  const ghost = box(g, w, h, Math.max(d, 26), 2,
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
+    0, -h / 2, 0);
+  return { group: g, body: ghost };
 }
 
 /** A ring holder (CK-306 Sierra cup holder): a flat ring with a small clamp tab. */

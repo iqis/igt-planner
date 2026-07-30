@@ -4,7 +4,7 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, grainMaterial } from "./materials.js";
 import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          jikaroGroup, jikaroBridge, hangRackGroup, slideExtGroup,
-         entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop,
+         entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop, lv310Group, LV310_TOP,
          foldingChairGroup, lowBeachChairGroup, campfieldSofaGroup,
          loungeCushionGroup, foldingBenchGroup, bambooShelfGroup,
          takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group,
@@ -1147,16 +1147,17 @@ function drawModules(g, n, top) {
 function drawHangRack(g, n, pl, cx, top) {
   const p = PARTS[pl.sku];
   const a = p.assembled_mm;
-  // Body, side panels, hooks and shelves come from hangRackGroup in parts3d.js -- one rack,
-  // both renderers. It hangs from y=0 to -drop, so place it at the slot centre and the frame
+  // Side frames, hooks and tiers come from hangRackGroup in parts3d.js -- one rack, both
+  // renderers. It hangs from y=0 to -drop, so place it at the slot centre and the frame
   // top. CK-220's assembled height is not published (only packed), so it is drawn a little
-  // translucent to say "estimated".
-  const { group, pick } = hangRackGroup({
+  // translucent to say "estimated". The rack is mostly air now, so picking rides its faint
+  // ghost box (`body`) -- the same deal as the mesh trays.
+  const { group, body } = hangRackGroup({
     w: a.w, d: a.d, drop: a.h, tiers: p.tiers || 1,
     hasSurface: !!p.has_surface, color: swatchOf(p.sku), estimated: p.assembled_estimated,
   });
   group.position.set(cx * MM, top * MM, 0);
-  for (const m of pick) { m.userData.placement = pl; m.userData.node = n; slotMeshes.push(m); }
+  body.userData.placement = pl; body.userData.node = n; slotMeshes.push(body);
   g.add(group);
 }
 
@@ -1283,6 +1284,20 @@ function drawTable(g, n) {
   if (isJikaro(n)) return drawJikaro(g, n);
   if (isConnTable(n)) return drawConnTable(g, n);
   if (isSlide(n.sku ? PARTS[n.sku] : null)) return drawSlideExt(g, n);
+
+  // Stainless Kitchen Table (LV-310): an open A-frame stand -- two hung stainless tops and a
+  // hanger frame -- not the solid block the fall-through drew. The builder hangs everything
+  // from the WORKTOP at y=0 (the manual mounts it at 830, the IGT 830-leg datum), so it is
+  // lifted by LV310_TOP, NOT by its published 1100 -- the 1100 is the hanger bar, which the
+  // builder itself puts at +(h - 830). Mostly air: the faint ghost box carries the pick.
+  if (n.sku === "LV-310") {
+    const f = footprint(n);
+    const built = lv310Group(f.w, f.d, PARTS[n.sku].assembled_mm?.h ?? 1100, swatchOf(n.sku));
+    built.group.position.y = LV310_TOP * MM;
+    built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
+    g.add(built.group);
+    return;
+  }
 
   // The self-contained IGTs with their own fixed folding legs are built part by part
   // (parts3d.js). The builder draws the top at y=0 with the legs hanging below, so lift it to
