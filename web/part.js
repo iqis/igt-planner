@@ -178,7 +178,8 @@ function benchGeo(p, box) {
           family: vs.length === 4 ? "recta" : "hexa" }).group);
     }
     if (p.shell3d === "landlock")   // near-opaque on the bench: the PART is the subject here
-      base.group.add(landLockGroup(p.assembled_mm.w, p.assembled_mm.d, p.assembled_mm.h, { opacity: 0.96 }).group);
+      base.group.add(landLockGroup(p.assembled_mm.w, p.assembled_mm.d, p.assembled_mm.h,
+        { opacity: 0.96, fabricTex: chairTex("canvas", CANVAS_TEX, 4, true) }).group);
     return base.group;
   }
 

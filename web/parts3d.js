@@ -2184,14 +2184,20 @@ export function tarpPitchGroup({ verts, h, color = 0x8a7460, family = "hexa" }) 
  *  darker skirt at grade. Same 0.5 opacity as the tarps, for the same two reasons: the
  *  kitchen lives INSIDE this one, and an opaque 25 square metres would print a shadow-map
  *  blob over half the layout. */
-export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5 } = {}) {
+export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5, fabricTex = null } = {}) {
   const g = new THREE.Group();
   const nPlan = 3, L2 = w / 2, W2 = d / 2;
-  // The massing is a LOAF, not an egg: a long near-level ridge, steep rounded end caps, and
-  // walls that stand nearly plumb before turning into the crown -- superellipse profiles in
-  // both directions, tuned against the hero's silhouette.
+  // The massing is a LOAF with CUT ENDS: a long near-level ridge, walls that stand nearly
+  // plumb under a flat crown -- and end caps that are SLOPED FACES, not round domes (the
+  // PDP side view shows the rear end as a flattish inclined triangle wearing the door).
   const halfW = x => W2 * Math.pow(Math.max(1e-4, 1 - Math.pow(Math.abs(x / L2), nPlan)), 1 / nPlan);
-  const hAt = x => h * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(x / L2), 4.5)), 1 / 1.8);
+  const XF = 0.36 * w;                          // where the level body hands over to the cut end
+  const hBody = x => h * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(x / L2), 4.5)), 1 / 1.8);
+  const hAt = x => {
+    if (Math.abs(x) <= XF) return hBody(x);
+    const t = (Math.abs(x) - XF) / (L2 - XF);   // near-linear ramp: the sloped end face
+    return hBody(XF) * Math.max(0, 1 - Math.pow(t, 1.12));
+  };
   const CS = 2.4;                               // cross-section exponent: plumb-ish walls, flat crown
 
   // WHAT KEEPS IT FROM READING AS BREAD: tensioned fabric is not a smooth solid. The skin
@@ -2231,15 +2237,28 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5 } = 
     return y0 + bumpAt(x, z) * Math.min(1, y0 / 400) * Math.sqrt(Math.max(0, 1 - t * t));
   };
 
-  const brown = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x5d4c3e),
+  // TWO-TONE, per vertex: the identity feature the first passes missed -- an IVORY crown
+  // band runs the ridge between the C-frames (bright in every product shot), brown walls
+  // and brown end caps. Vertex colours on a white material, so one mesh carries both.
+  const IVORY = new THREE.Color(0xa89e8d), BROWN = new THREE.Color(0x5d4c3e);
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true,
+    map: fabricTex || null,                        // the chairs' canvas weave, caller-supplied
     metalness: 0, roughness: 0.9, side: THREE.DoubleSide,
     transparent: opacity < 1, opacity });
-  const NU = 44, NV = 20, pos = [], idx = [];
+  const smooth = (a, b, t) => { const u = Math.max(0, Math.min(1, (t - a) / (b - a))); return u * u * (3 - 2 * u); };
+  const NU = 44, NV = 20, pos = [], col = [], uv = [], idx = [];
+  const cTmp = new THREE.Color();
   for (let iu = 0; iu <= NU; iu++) {
     const x = -L2 + (w * iu) / NU;
     for (let iv = 0; iv <= NV; iv++) {
-      const s = skin(x, -1 + (2 * iv) / NV);
+      const v = -1 + (2 * iv) / NV;
+      const s = skin(x, v);
       pos.push(s.x * MM, s.y * MM, s.z * MM);
+      uv.push((iu / NU) * 12, (iv / NV) * 6);   // weave tiling for the caller's canvas map
+      // crown -> wall by |v| (a RIDGE BAND, not a white roof), fading out over the end caps
+      const wall = Math.max(smooth(0.13, 0.32, Math.abs(v)), smooth(0.84, 0.97, Math.abs(x) / L2));
+      cTmp.copy(IVORY).lerp(BROWN, wall);
+      col.push(cTmp.r, cTmp.g, cTmp.b);
     }
   }
   for (let iu = 0; iu < NU; iu++) for (let iv = 0; iv < NV; iv++) {
@@ -2248,9 +2267,11 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5 } = 
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
   geo.setIndex(idx);
   geo.computeVertexNormals();
-  const shell = new THREE.Mesh(geo, brown);
+  const shell = new THREE.Mesh(geo, skinMat);
   g.add(shell);
 
   // the skirt: a darker band standing at grade, following the plan outline
@@ -2275,10 +2296,22 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5 } = 
   // CROSS over the body, the centre frame bridges the crossing points along the ridge.
   const tube = (pts, r, mat) => g.add(new THREE.Mesh(new THREE.TubeGeometry(
     new THREE.CatmullRomCurve3(pts), pts.length * 4, r * MM, 8, false), mat));
+  // The poles are FACETED: PDP_1's open portal shows the arch as five-odd straight segments
+  // meeting at visible joints, not a smooth curve. So frames draw as strut chains.
+  const seg = (pts, r, mat) => {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, a.distanceTo(b) || MM, 10), mat);
+      m.position.copy(a).add(b).multiplyScalar(0.5);
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+      g.add(m);
+    }
+  };
   const alu = metal(0xc9ccd1, 0.8, 0.35);
   const red = metal(0xa8332e, 0.15, 0.6);
+  const orange = metal(0xc4682a, 0.1, 0.65);      // the crown sleeve tapes read ORANGE (PDP_2)
   const ride = (x, z, lift = 20) => new THREE.Vector3(x * MM, (surfY(x, z) + lift) * MM, z * MM);
-  const arcOver = (xa, za, xb, zb, N = 24) => {   // a pole from ground A over the shell to ground B
+  const arcOver = (xa, za, xb, zb, N = 6) => {    // a faceted pole from ground A over to ground B
     const pts = [];
     for (let i = 0; i <= N; i++) {
       const t = i / N, x = xa + (xb - xa) * t, z = za + (zb - za) * t;
@@ -2288,8 +2321,8 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5 } = 
     }
     return pts;
   };
-  for (const s of [-1, 1]) {                      // C-frames: transverse hoops near the ends,
-    const xc = s * 0.42 * w, NC = 24, cpts = [];  // leaning outward over the end caps
+  for (const s of [-1, 1]) {                      // C-frames: faceted hoops leaning out over the ends
+    const xc = s * 0.42 * w, NC = 6, cpts = [];
     for (let i = 0; i <= NC; i++) {
       const t = i / NC;
       const z = halfW(xc) * Math.cos(t * Math.PI) * 0.98;
@@ -2298,21 +2331,17 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5 } = 
       if (i === 0 || i === NC) q.y = 0;
       cpts.push(q);
     }
-    tube(cpts, 11, alu);
+    seg(cpts, 11, alu);
+    seg(cpts.slice(2, 5).map(p => p.clone().setY(p.y + 8 * MM)), 5, orange);   // crown tape
   }
   for (const s of [-1, 1]) {                      // A-frames: the crossing diagonals of the plan
-    tube(arcOver(-0.30 * w * s, s * 0.94 * halfW(-0.30 * w * s), 0.30 * w * s, s * 0.94 * halfW(0.30 * w * s)), 11, alu);
-    // the red sleeve tape riding each A-frame -- the hero's most visible accent lines
-    const sleeve = [];
-    for (let i = 2; i <= 22; i++) {
-      const t = i / 24, x = -0.30 * w * s + 0.60 * w * s * t;
-      const z = s * 0.94 * halfW(-0.30 * w * s) * (1 - t) - s * 0.94 * halfW(0.30 * w * s) * t;
-      sleeve.push(ride(x, z, 30));
-    }
-    tube(sleeve, 4.5, red);
+    const apts = arcOver(-0.30 * w * s, s * 0.94 * halfW(-0.30 * w * s),
+                         0.30 * w * s, s * 0.94 * halfW(0.30 * w * s), 6);
+    seg(apts, 11, alu);
+    seg(apts.slice(1, 6).map(p => p.clone().setY(p.y + 8 * MM)), 4.5, orange); // its sleeve tape
   }
-  tube([ride(-0.14 * w, 0, 26), ride(0, 0, 26), ride(0.14 * w, 0, 26)], 11, alu);   // centre frame
-  tube([ride(-0.14 * w, 0, 34), ride(0, 0, 34), ride(0.14 * w, 0, 34)], 5, red);    // its red sleeve accent
+  seg([ride(-0.14 * w, 0, 26), ride(0, 0, 26), ride(0.14 * w, 0, 26)], 11, alu);   // centre frame
+  seg([ride(-0.14 * w, 0, 34), ride(0, 0, 34), ride(0.14 * w, 0, 34)], 5, orange); // its tape
 
   // Panel seams: tensioned fabric is SEWN, and the stitch lines are what stop 25 square
   // metres reading as one blown-up loaf. Two horizontal seams per side, full length.
@@ -2365,12 +2394,12 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050, { opacity = 0.5 } = 
   patch(-0.34 * w, -0.10 * w, 0.42, 0.96, darkMat);
   rimLoop(-0.22 * w, 0.12 * w, 0.69, 0.27, 5, red);
   patch(-0.30 * w, -0.14 * w, 0.48, 0.72, meshMat, 12);
-  // The BIG side windows -- one each side, rear-of-middle, tan-bound (the Land Lock's face).
+  // The BIG side windows -- PDP_2 shows them filling most of the wall height, wide
+  // rounded rectangles. One large each side rear-of-middle, one forward on the far side.
   for (const s of [-1, 1]) {
-    patch(0.02 * w, 0.30 * w, s * 0.50, s * 0.88, meshMat);
-    rimLoop(0.16 * w, 0.14 * w, s * 0.69, s * 0.19, 4, tan);
-    // and a smaller front window opposite the door side gets one too
-    if (s < 0) { patch(-0.32 * w, -0.12 * w, s * 0.52, s * 0.86, meshMat); rimLoop(-0.22 * w, 0.10 * w, s * 0.69, s * 0.17, 4, tan); }
+    patch(0.02 * w, 0.32 * w, s * 0.44, s * 0.92, meshMat);
+    rimLoop(0.17 * w, 0.15 * w, s * 0.68, s * 0.22, 4, tan);
+    if (s < 0) { patch(-0.32 * w, -0.10 * w, s * 0.46, s * 0.90, meshMat); rimLoop(-0.21 * w, 0.11 * w, s * 0.68, s * 0.20, 4, tan); }
   }
   // Vent hoods capping each end, just under the ridge line.
   for (const s of [-1, 1]) patch(s * 0.40 * w, s * 0.475 * w, -0.30, 0.30, darkMat, 24);

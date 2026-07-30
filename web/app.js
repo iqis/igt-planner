@@ -1304,7 +1304,8 @@ function drawFootprint(g, n) {
         family: vs.length === 4 ? "recta" : "hexa" });
   }
   if (p.shell3d === "landlock")
-    body = landLockGroup(p.assembled_mm.w, p.assembled_mm.d, p.assembled_mm.h);
+    body = landLockGroup(p.assembled_mm.w, p.assembled_mm.d, p.assembled_mm.h,
+      { fabricTex: chairTex("canvas", CANVAS_TEX, 4, true) });
   if (body) {
     if (pickable) body.group.traverse(o => {
       if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); }
