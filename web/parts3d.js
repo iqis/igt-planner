@@ -715,23 +715,36 @@ export function frameGroup({ w, d, thick, collapsible = false, section, hookHole
     g.add(r); pick.push(r);
   }
   // End pieces -- anodised black on the standard frame; the hook holes live in them.
-  // The coating is MATTE: at metalness 0.55 the env map turned them semi-gloss dark
-  // chrome, and the two-finish identity that tells the families apart went muddy.
-  for (const x of [-(w - endW) / 2, (w - endW) / 2]) {
-    const e = new THREE.Mesh(roundedBox(endW * MM, thick * MM, d * MM, 2 * MM), metalE(endColor, 0.28, 0.62, glow));
-    e.position.set(x * MM, -thick / 2 * MM, 0);
-    g.add(e); pick.push(e);
+  // NOT a full-height block: the photos (CK-149, the in-use a002) show a THIN top plate
+  // capping the rail ends -- slightly proud of the rails, overhanging the end a touch,
+  // a short folded skirt down its outer edge, and OPEN underneath: you see straight
+  // through the frame below it. The airy end is the empty frame's identity, and a solid
+  // 30mm block was the single biggest lie in the shell. Matte, like all the anodising.
+  for (const sx of [-1, 1]) {
+    const xc = sx * ((w - endW) / 2 + 4);              // +4: half of the 8mm overhang past the end
+    const plate = new THREE.Mesh(roundedBox((endW + 8) * MM, 10 * MM, d * MM, 3 * MM),
+      metalE(endColor, 0.28, 0.62, glow));
+    plate.position.set(xc * MM, -3 * MM, 0);           // top at +2: proud of the rails, like the corner plates
+    g.add(plate); pick.push(plate);
+    // The folded outer edge, dropping past the plate -- the cap's short skirt.
+    const skirt = new THREE.Mesh(roundedBox(5 * MM, 16 * MM, d * MM, 2 * MM),
+      metalE(endColor, 0.28, 0.62, glow));
+    skirt.position.set((sx * (w / 2 + 8) - sx * 2.5) * MM, -14 * MM, 0);
+    g.add(skirt);
+    // Two silver rivets in the top face, near the corners (the photos show them plainly).
+    rivetsInto(g, [[xc, -(d / 2 - 14)], [xc, d / 2 - 14]], 3.5, plateColor);
   }
-  // The hook holes in the end pieces, where an extension's wire hooks drop in.
+  // The hook holes in the end pieces, where an extension's wire hooks drop in. They punch
+  // the PLATE now, not a block -- same centres as ever, the measured ones.
   const holes = hookHoles || [
     [-(w / 2 - holeInset), -143.9], [-(w / 2 - holeInset), 143.9],
     [w / 2 - holeInset, -143.9], [w / 2 - holeInset, 143.9],
   ];
   for (const [hx, hz] of holes) {
     const x = Math.sign(hx) * (w / 2 - holeInset);
-    const hole = new THREE.Mesh(new THREE.CylinderGeometry(6 * MM, 6 * MM, (thick + 2) * MM, 10),
+    const hole = new THREE.Mesh(new THREE.CylinderGeometry(6 * MM, 6 * MM, 13 * MM, 10),
       metalE(0x0e0f12, 0.2, 0.8));
-    hole.position.set(x * MM, -thick / 2 * MM, hz * MM);
+    hole.position.set(x * MM, -3 * MM, hz * MM);
     g.add(hole);
   }
   // Corner plates: leg-socket plates on the standard frame, larger fold hinges on the
