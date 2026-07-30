@@ -1905,16 +1905,19 @@ function paintSelTools() {
   toolPop.hidden = true;
   if (!n) { selTools.hidden = true; return; }
   selTools.innerHTML = "";
+  // WORDS, not glyphs. Half this toolbar already spoke -- lock / detach / place / the leg
+  // height -- and the other half was ⧉ ⧉+ ⇄ ⚙, meanings carried only in tooltips no finger
+  // ever sees. One voice now, the one the toolbar already had.
   // A multi-selection gets a compact toolbar: a count, duplicate-all (the free ones), delete-all.
   if (state.selSet.size > 1) {
     const count = document.createElement("span");
     count.className = "count"; count.textContent = `${state.selSet.size} selected`;
     selTools.append(count);
-    selTools.append(toolBtn("⧉", "duplicate all  (Ctrl+D)", "", () => duplicateSelected()));
-    selTools.append(toolBtn("⧉+", "save all of it as one block", "",
+    selTools.append(toolBtn("copy", "duplicate all  (Ctrl+D)", "wide", () => duplicateSelected()));
+    selTools.append(toolBtn("block", "save all of it as one block, kept by name", "wide",
       () => { const name = prompt("name this block:", ""); if (name && name.trim()) saveBlock(name.trim()); }));
     const sep0 = document.createElement("span"); sep0.className = "sep"; selTools.append(sep0);
-    selTools.append(toolBtn("✕", "delete all  (Del)", "danger", () => removeNode(n)));
+    selTools.append(toolBtn("delete", "delete all  (Del)", "wide danger", () => removeNode(n)));
   } else {
     // Placement first: is this thing floating, placed, locked, hooked? -- the leading decision.
     selTools.append(placementBtn(n));
@@ -1922,17 +1925,17 @@ function paintSelTools() {
     if (legAdjustable(n) && PARTS[n.leg])
       selTools.append(toolBtn(`${PARTS[n.leg].height_mm}`, "leg height — sets the standing height", "wide",
         () => openToolPop("legs", n)));
-    if (hasActions(n)) selTools.append(toolBtn("⚙", `${PARTS[n.sku].title_en} — options`, "", () => openToolPop("actions", n)));
+    if (hasActions(n)) selTools.append(toolBtn("options", `${PARTS[n.sku].title_en} — options`, "wide", () => openToolPop("actions", n)));
     if (!n.host) {
-      selTools.append(toolBtn("⟲", "rotate 90°  (R)", "", () => rotateNode(n)));
-      selTools.append(toolBtn("⧉", "duplicate  (Ctrl+D)", "", () => duplicateNode(n)));
+      selTools.append(toolBtn("rotate", "rotate 90°  (R)", "wide", () => rotateNode(n)));
+      selTools.append(toolBtn("copy", "duplicate  (Ctrl+D)", "wide", () => duplicateNode(n)));
       // A block is a duplicate that outlives the session, so its button lives next to duplicate.
-      selTools.append(toolBtn("⧉+", "save as a block — this and everything on it, kept by name", "",
+      selTools.append(toolBtn("block", "save as a block — this and everything on it, kept by name", "wide",
         () => { const name = prompt("name this block:", ""); if (name && name.trim()) saveBlock(name.trim()); }));
     }
-    if (replaceOptions(n).length > 1) selTools.append(toolBtn("⇄", "replace with a similar part", "", () => openReplaceMenu(n)));
+    if (replaceOptions(n).length > 1) selTools.append(toolBtn("swap", "replace with a similar part", "wide", () => openReplaceMenu(n)));
     const sep = document.createElement("span"); sep.className = "sep"; selTools.append(sep);
-    selTools.append(toolBtn("✕", "delete  (Del)", "danger", () => removeNode(n)));
+    selTools.append(toolBtn("delete", "delete  (Del)", "wide danger", () => removeNode(n)));
   }
   selTools.hidden = false;
   followSelTools();
@@ -4436,6 +4439,8 @@ function applyTheme(t) {
   document.documentElement.dataset.theme = t;
   const css = getComputedStyle(document.documentElement);
   const val = (v, d) => css.getPropertyValue(v).trim() || d;
+  // Phone browser chrome follows the panels, not the colour the page happened to load with.
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", val("--bg", "#14161a"));
   scene.background = new THREE.Color(val("--scene", "#14161a"));
   // Grid lines: faint on either ground. Baked into the geometry, so rebuild on change.
   if (t === "light") setGrid(0xc2c7cf, 0xd8dbe1);

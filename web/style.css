@@ -1,4 +1,8 @@
 :root {
+  /* Native widgets follow the theme: without this, the dark UI grew stock-light scrollbars,
+     a white ground-picker dropdown and white number spinners -- the first thing every
+     Windows laptop saw. One declaration themes them all. */
+  color-scheme: dark;
   --bg: #14161a;
   --panel: #1b1e24;
   --raise: #22262d;       /* chips and part rows sit a step above the panel */
@@ -6,11 +10,20 @@
   --line-soft: #23272e;
   --ink: #e6e8ec;
   --dim: #8b93a1;
-  --faint: #5c6472;       /* hints, muted labels */
-  --cell: #262b33;
+  /* 4.5:1 on the panel. The old #5c6472 sat at 2.8:1, and this tier carries the smallest
+     text in the app -- search counts, category counts, every popover's header, the hint. */
+  --faint: #7e8795;
+  --cell: #2e343d;
   --cell-top: #7d5a34;
   --accent: #d8813f;
   --accent-hi: #f0a463;
+  /* The soft washes, as tokens: both were hardcoded rgba of the DARK palette and stayed
+     dark-orange / dark-red when the theme went light. */
+  --accent-soft: rgba(216, 129, 63, .14);
+  --bad-soft: rgba(226, 99, 90, .14);
+  /* Two radii, drawn six ways before: controls sit on --r-ctl, floating panels on --r-pop. */
+  --r-ctl: 4px;
+  --r-pop: 6px;
   --on-accent: #14161a;   /* text/glyph sitting on an accent fill */
   --ok: #5fbf8f;
   --bad: #e2635a;
@@ -37,6 +50,7 @@
 /* Light theme. Same structure, a paper-and-ink palette. The 3D scene reads --scene off this
    root (getComputedStyle) so the canvas follows the panels. */
 :root[data-theme="light"] {
+  color-scheme: light;
   --bg: #f5f6f8;
   --panel: #ffffff;
   --raise: #eceef2;
@@ -44,11 +58,13 @@
   --line-soft: #e7eaef;
   --ink: #1b1e24;
   --dim: #5b6472;
-  --faint: #8a93a1;
-  --cell: #dee2e8;
+  --faint: #6e7785;      /* 4.5:1 on white; #8a93a1 was 3.1:1 */
+  --cell: #ccd2da;
   --cell-top: #cda877;
   --accent: #c2691f;
   --accent-hi: #d8813f;
+  --accent-soft: rgba(194, 105, 31, .12);
+  --bad-soft: rgba(207, 77, 68, .12);
   --on-accent: #ffffff;
   --ok: #2f9e6a;
   --bad: #cf4d44;
@@ -66,6 +82,17 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Quiet scrollbars on the theme's own palette (color-scheme above handles the WebKit
+   defaults; this is the Firefox half, and thinner everywhere it applies). */
+* { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+
+/* One visible focus for keyboard users. The two inputs used to outline:none their focus
+   away, and nothing anywhere declared :focus-visible -- tabbing was flying blind. */
+:where(button, a, input, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent-hi);
+  outline-offset: 1px;
+}
 
 body {
   background: var(--bg);
@@ -100,7 +127,7 @@ h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
   color: var(--dim);
   background: var(--raise);
   border: 1px solid var(--line);
-  border-radius: 5px;
+  border-radius: var(--r-ctl);
   padding: .25rem .4rem;
   cursor: pointer;
 }
@@ -126,7 +153,7 @@ h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
   background: var(--panel);
   border: 1px solid var(--line);
   border-bottom: none;
-  border-radius: 5px 5px 0 0;
+  border-radius: var(--r-ctl) var(--r-ctl) 0 0;
   padding: .3rem .6rem;
   cursor: pointer;
   white-space: nowrap;
@@ -186,7 +213,7 @@ aside.collapsed > *:not(.panel-toggle) { display: none; }
   color: var(--faint);
   background: var(--raise);
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: var(--r-ctl);
   cursor: pointer;
   z-index: 3;
 }
@@ -209,18 +236,18 @@ h2 {
    open (see .searching) so matches are never hidden behind a collapsed section. */
 .cathead { cursor: pointer; user-select: none; display: flex; align-items: baseline; gap: .35rem; }
 .cathead:hover { color: var(--ink); }
-.caret { font-size: .6rem; color: var(--faint); transition: transform .12s; }
+.caret { font-size: .64rem; color: var(--faint); transition: transform .12s; }
 .cat.collapsed .caret { transform: rotate(-90deg); display: inline-block; }
 .cat.collapsed .catbody { display: none; }
 /* Count of parts in the category, right-aligned so the numbers line up down the panel edge. */
-.catcount { margin-left: auto; font-size: .6rem; color: var(--faint);
+.catcount { margin-left: auto; font-size: .64rem; color: var(--faint);
   letter-spacing: .04em; font-variant-numeric: tabular-nums; }
 
 /* Super-group divider: one tier ABOVE the foldable category heads. A label with a rule trailing off
    it, so it reads as a phase of the build, never as another category you can click to collapse. */
 .catgroup {
   display: flex; align-items: center; gap: .55rem;
-  font-size: .58rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+  font-size: .62rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
   color: var(--faint); margin: 1.5rem 0 .8rem;
 }
 .catgroup::after { content: ""; flex: 1; height: 1px; background: var(--line); }
@@ -238,19 +265,19 @@ h2 {
   margin-bottom: .6rem;
   font: .72rem var(--mono);
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: var(--r-ctl);
   background: var(--raise);
   color: var(--ink);
 }
 .search::placeholder { color: var(--faint); }
-.search:focus { outline: none; border-color: var(--accent); }
+.search:focus { border-color: var(--accent); }   /* the global :focus-visible draws the outline */
 
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; }
 .chip {
   padding: .3rem .5rem;
   font-size: .72rem;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: var(--r-ctl);
   background: var(--raise);
   color: var(--ink);
   cursor: pointer;
@@ -268,7 +295,7 @@ h2 {
   padding: .35rem .45rem;
   font-size: .72rem;
   border: 1px solid transparent;
-  border-radius: 3px;
+  border-radius: var(--r-ctl);
   background: var(--raise);
   cursor: pointer;
 }
@@ -284,8 +311,8 @@ h2 {
 .part.caution .sp { color: var(--caution-ink); }
 /* A placed-footprint row: click the name to select (works even when the layer is locked), × to remove. */
 .part .del { color: var(--dim); font-size: .85rem; line-height: 1; flex: none; padding: .1rem .3rem; border-radius: 3px; cursor: pointer; }
-.part .del:hover { color: #e5484d; background: rgba(229, 72, 77, .12); }
-.subhead { font-size: .62rem; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); margin: .55rem 0 .15rem; }
+.part .del:hover { color: var(--bad); background: var(--bad-soft); }
+.subhead { font-size: .64rem; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); margin: .55rem 0 .15rem; }
 
 /* The scene outliner: the placed objects as a tree, nested by what hooks onto what. Click a row to
    select it in the 3D view (and get its floating toolbar); the × removes it and its children. */
@@ -297,7 +324,7 @@ h2 {
   padding: .28rem .35rem;
   font-size: .7rem;
   border: 1px solid transparent;
-  border-radius: 3px;
+  border-radius: var(--r-ctl);
   cursor: pointer;
 }
 .tree-row:hover, .tree-row.hover { background: var(--raise); }
@@ -320,7 +347,7 @@ h2 {
 #marquee {
   position: absolute;
   border: 1px solid var(--accent);
-  background: rgba(216, 129, 63, .12);
+  background: var(--accent-soft);   /* tracks the theme; the fill was the dark accent baked in */
   border-radius: 2px;
   pointer-events: none;
   z-index: 5;
@@ -332,7 +359,9 @@ h2 {
    having to know how tall the column is. */
 .stagefoot {
   position: absolute;
-  bottom: .7rem; left: .7rem; right: 15rem;
+  /* right clears the view bar, which grew words ("select" / "measure") and is ~26rem now --
+     15rem let the hint run underneath it on a narrow window. */
+  bottom: .7rem; left: .7rem; right: 27rem;
   display: flex; flex-direction: column; gap: .3rem;
   align-items: flex-start;
   pointer-events: none;
@@ -352,10 +381,18 @@ h2 {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 2.2rem;
+  bottom: 3.4rem;   /* clear of the view bar's top edge even when the centred bar drifts over it */
   display: flex;
   gap: 2px;
+  /* The same floating-panel ground as the view bar beside it. Bare on the canvas, the empty
+     cells sat at 1.2:1 -- the reading is "n OF N half-slots" and the N was invisible. */
+  padding: 3px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pop);
+  box-shadow: 0 2px 10px var(--shadow);
 }
+#slotbar:empty { display: none; }   /* no frame selected = no bar, not an empty pill */
 .cell {
   width: 26px; height: 10px;
   background: var(--cell);
@@ -380,7 +417,7 @@ h2 {
   padding: 3px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--r-pop);
   box-shadow: 0 3px 12px var(--shadow);
   z-index: 4;
 }
@@ -390,7 +427,7 @@ h2 {
   color: var(--dim);
   background: transparent;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--r-ctl);
   padding: .28rem .45rem;
   cursor: pointer;
 }
@@ -424,12 +461,12 @@ h2 {
   color: var(--ink);
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--r-ctl);
   box-shadow: 0 1px 5px var(--shadow);
   white-space: nowrap;
   pointer-events: none;
 }
-.rlabel .dx { color: var(--dim); font-size: .58rem; }
+.rlabel .dx { color: var(--dim); font-size: .64rem; }
 .rlabel button {
   pointer-events: auto;
   border: none; background: transparent; color: var(--dim);
@@ -443,7 +480,7 @@ h2 {
   padding: .1rem .35rem;
   font: .66rem var(--mono);
   color: var(--panel); background: var(--accent);
-  border-radius: 4px; white-space: nowrap;
+  border-radius: var(--r-ctl); white-space: nowrap;
   box-shadow: 0 1px 5px var(--shadow);
 }
 @media (pointer: coarse) {
@@ -455,7 +492,9 @@ h2 {
    are meant to press gets a 44px box (Apple's number, and the one everyone else copied), and the
    viewport bar comes off the corner where a thumb cannot reach it. Nothing here changes the mouse. */
 @media (pointer: coarse) {
-  #viewnav { right: .5rem; bottom: .5rem; gap: 4px; padding: 4px; }
+  /* The bar grew words; on the narrowest phones it wraps to a second row instead of
+     running off the left edge of the screen. */
+  #viewnav { right: .5rem; bottom: .5rem; gap: 4px; padding: 4px; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 1rem); }
   #viewnav button { min-width: 44px; min-height: 44px; font-size: .7rem; padding: .4rem; }
   #bandtool { font-size: 1.1rem; }
   #seltools button, #toolpop button, .panel-toggle { min-width: 44px; min-height: 44px; }
@@ -522,6 +561,10 @@ h2 {
      that brings the panel back. The floor keeps the way back on screen. */
   aside.collapsed { min-height: calc(44px + .9rem); }
   #palette, #bom { border: none; border-top: 1px solid var(--line); }
+  /* Narrow WINDOWS get the phone treatment too: 27rem of view-bar clearance is wider than
+     the screen here, and it was wrapping the hint one word per line. */
+  .stagefoot { right: .7rem; bottom: 4.6rem; }
+  #slotbar { bottom: 7rem; }
   /* Three header rows ("IGT / LAYOUT / PLANNER") spent the height the panels are starving for. */
   header h1 { white-space: nowrap; font-size: .8rem; }
 }
@@ -559,7 +602,7 @@ h2 {
   padding: .4rem;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--r-pop);
   box-shadow: 0 6px 22px var(--shadow);
   z-index: 6;
   display: flex;
@@ -567,7 +610,7 @@ h2 {
   gap: .25rem;
 }
 #edgemenu .mhead {
-  font-size: .62rem;
+  font-size: .64rem;
   letter-spacing: .04em;
   color: var(--faint);
   padding: .1rem .1rem .25rem;
@@ -585,7 +628,7 @@ h2 {
   padding: 3px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: var(--r-pop);
   box-shadow: 0 4px 16px var(--shadow);
   z-index: 6;
 }
@@ -597,7 +640,7 @@ h2 {
   color: var(--ink);
   background: transparent;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--r-ctl);
   cursor: pointer;
 }
 #seltools button:hover { background: var(--raise); }
@@ -613,7 +656,7 @@ h2 {
   padding: .35rem;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--r-pop);
   box-shadow: 0 8px 26px var(--shadow);
   z-index: 8;
   display: flex;
@@ -628,7 +671,7 @@ h2 {
   #edgemenu, #replacemenu, #toolpop { max-height: 45vh; }
 }
 #replacemenu .mhead, #toolpop .mhead {
-  font-size: .62rem; letter-spacing: .04em; color: var(--faint);
+  font-size: .64rem; letter-spacing: .04em; color: var(--faint);
   padding: .1rem .1rem .3rem; line-height: 1.35;
 }
 #seltools button.wide { width: auto; padding: 0 .4rem; font-size: .68rem; }
@@ -643,7 +686,7 @@ h2 {
   padding: .5rem;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 5px;
+  border-radius: var(--r-pop);
   box-shadow: 0 8px 26px var(--shadow);
   z-index: 7;
   pointer-events: none;
@@ -670,7 +713,7 @@ h2 {
   padding: .3rem;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--r-pop);
   box-shadow: 0 6px 22px var(--shadow);
   z-index: 8;
   display: flex;
@@ -678,13 +721,13 @@ h2 {
   gap: .2rem;
 }
 #modmenu .mhead {
-  font-size: .62rem; color: var(--faint);
+  font-size: .64rem; color: var(--faint);
   padding: .15rem .3rem .25rem; line-height: 1.3;
 }
 #modmenu .act {
   display: flex; align-items: center; gap: .4rem;
   padding: .35rem .45rem; font-size: .72rem;
-  border: 1px solid transparent; border-radius: 3px;
+  border: 1px solid transparent; border-radius: var(--r-ctl);
   background: var(--raise); cursor: pointer;
 }
 #modmenu .act:hover { border-color: var(--accent); }
@@ -710,10 +753,10 @@ h3 {
   width: 3.6rem;
   font: .7rem var(--mono);
   color: var(--ink); background: var(--raise);
-  border: 1px solid var(--line); border-radius: 3px;
+  border: 1px solid var(--line); border-radius: var(--r-ctl);
   padding: .2rem .3rem;
 }
-.xform input:focus { outline: none; border-color: var(--accent); }
+.xform input:focus { border-color: var(--accent); }
 .xform span { color: var(--faint); }
 .xform .rot { margin-left: auto; color: var(--dim); }
 
@@ -728,11 +771,11 @@ h3 {
   padding: 4px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--r-pop);
   box-shadow: 0 8px 28px var(--shadow);
 }
 #filemenu .fhead {
-  font: .58rem var(--mono);
+  font: .64rem var(--mono);
   text-transform: uppercase; letter-spacing: .08em;
   color: var(--dim);
   padding: .5rem .5rem .25rem;
@@ -740,7 +783,7 @@ h3 {
 #filemenu .frow {
   display: flex; align-items: baseline; gap: .5rem;
   padding: .38rem .5rem;
-  border-radius: 5px;
+  border-radius: var(--r-ctl);
   cursor: pointer;
   font-size: .78rem;
 }
@@ -761,7 +804,7 @@ h3 {
   font-size: .8rem; line-height: 1;
   padding: 0 .2rem;
 }
-.fdel:hover { color: var(--danger, #d2534a); }
+.fdel:hover { color: var(--bad); }   /* was var(--danger, …) — a variable defined nowhere, so the fallback always won */
 .hint.pad { padding: .5rem; line-height: 1.5; display: block; }
 
 #note[hidden] { display: none; }
@@ -775,7 +818,7 @@ h3 {
   font-size: .74rem;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--r-pop);
   box-shadow: 0 4px 16px var(--shadow);
 }
 @media (pointer: coarse) {
