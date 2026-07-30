@@ -9,7 +9,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          loungeCushionGroup, foldingBenchGroup, bambooShelfGroup,
          takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group,
          propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox, burnerOf,
-         tarpPitchGroup, landLockGroup } from "./parts3d.js";
+         tarpPitchGroup, landLockGroup, pentaTarpGroup } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -1298,9 +1298,14 @@ function drawFootprint(g, n) {
   let body = null;
   if (p.shelter_type === "tarp") {
     const vs = shelterVerts(p.geometry);
-    if (vs.length === 4 || vs.length === 6)
-      body = tarpPitchGroup({ verts: vs, h: p.assembled_mm.h,
-        color: COLORS[n.sku]?.color_hex || 0x8a7460,
+    const color = COLORS[n.sku]?.color_hex || 0x8a7460;
+    const pitchH = Number(n.config) || p.assembled_mm.h;   // the chosen Wing Pole, or the set's
+    // 4 = recta's roof pitch; 6 and 8 = the hexa swoop (the Octa is a hexa with clipped
+    // tips -- the midpoint-splice path handles its ridge); 5 = the Penta's one-pole wedge.
+    if (vs.length === 5)
+      body = pentaTarpGroup({ verts: vs, h: pitchH, color });
+    else if (vs.length >= 4 && vs.length <= 8)
+      body = tarpPitchGroup({ verts: vs, h: pitchH, color,
         family: vs.length === 4 ? "recta" : "hexa" });
   }
   if (p.shell3d === "landlock")
@@ -1861,6 +1866,7 @@ const hasActions = n => !!n && (isJikaro(n) || isExpandable(n)
   || PARTS[n.sku].prop === "takibi"          // the fire pit's bridge / surface / coal bed / base plate
   || PARTS[n.sku].prop === "gs1000"          // the stove's canister
   || PARTS[n.sku].shell3d === "landlock"     // the 跳ね上げ awnings, either end
+  || PARTS[n.sku].shelter_type === "tarp"    // wing-pole length -- a tarp pitches on any of them
   || (n.kind === "ext" && n.host && !isSlide(PARTS[n.sku]))
   || (n.kind === "frame" && n.host));
 
@@ -1905,6 +1911,19 @@ function fillActions(box, n) {
       box.append(chip(c.bay_units ? `${c.name} · ${c.bay_units}U bay` : c.name, cur === key,
         `${c.w_mm}×${c.d_mm}mm` + (c.bay_units ? ` — opens a ${c.bay_units}-Unit bay` : ` — closed, no bay`),
         () => { n.config = key; pruneModules(n); render(); }));
+  }
+  // A tarp's pitch height IS its pole: the Wing Pole retails in five lengths (280/240/210/
+  // 170/140cm, 60+70cm sections), and the set's published height is just the pole it ships
+  // with. Same interaction as a frame's legs -- pick the pole, the whole pitch follows.
+  if (PARTS[n.sku].shelter_type === "tarp") {
+    const pub = PARTS[n.sku].assembled_mm.h;
+    box.append(chip(`set pole · ${pub}mm`, !n.config,
+      "the height the set ships to — its own pole", () => { delete n.config; render(); }));
+    for (const mm of [2800, 2400, 2100, 1700, 1400]) {
+      if (Math.abs(mm - pub) < 60) continue;     // the set pole already covers this rung
+      box.append(chip(`${mm / 10}cm`, n.config === mm,
+        `pitched on ${mm / 10}cm Wing Poles`, () => { n.config = mm; render(); }));
+    }
   }
   // Land Lock: the 跳ね上げ -- either end panel props open on two uprights as an awning.
   // One enum, four honest states of one shelter.

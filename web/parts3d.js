@@ -2176,6 +2176,94 @@ export function tarpPitchGroup({ verts, h, color = 0x8a7460, family = "hexa" }) 
   return { group: g, body };
 }
 
+/** The Penta (STP-381): the ONE-POLE wedge. Its whole pitch is a fan -- the apex vertex
+ *  rides a single pole at the published height, the other four corners stake to the ground,
+ *  and the fabric falls from the point in one sweep. Same catenary language as the hexa
+ *  (edges bow inward and lift between anchors), one pole, two guys past the apex. */
+export function pentaTarpGroup({ verts, h, color = 0x8a7460 }) {
+  const g = new THREE.Group();
+  // the apex is the lone vertex on the symmetry axis; the perimeter chain is the rest,
+  // walked in ring order from one apex-adjacent corner around to the other
+  const xs = verts.map(v => v[0]), zs = verts.map(v => v[1]);
+  const ext = a => Math.max(...a) - Math.min(...a);
+  const ax = ext(xs) >= ext(zs) ? 0 : 1, perp = 1 - ax;
+  let ai = 0;
+  for (let i = 0; i < verts.length; i++) if (Math.abs(verts[i][perp]) < 1) ai = i;
+  const apex = verts[ai];
+  const chain = [];
+  for (let k = 1; k < verts.length; k++) chain.push(verts[(ai + k) % verts.length]);
+
+  const membrane = new THREE.MeshStandardMaterial({ color: new THREE.Color(color),
+    metalness: 0, roughness: 0.85, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+  const trimMat = metal(0xa8382e, 0.15, 0.6);
+  const V3 = (x, y, z) => new THREE.Vector3(x * MM, y * MM, z * MM);
+
+  // the boundary sweep: apex -> corners -> apex, heights apex=h, ground corners 30mm
+  const nodes = [{ v: apex, y: h }, ...chain.map(v => ({ v, y: 30 })), { v: apex, y: h }];
+  const segLen = []; let L = 0;
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const a = nodes[i].v, b = nodes[i + 1].v;
+    segLen.push(Math.hypot(b[0] - a[0], b[1] - a[1])); L += segLen[i];
+  }
+  const E = t => {
+    let s = t * L, i = 0;
+    while (i < segLen.length - 1 && s > segLen[i]) s -= segLen[i++];
+    const lt = segLen[i] ? s / segLen[i] : 0;
+    const a = nodes[i], b = nodes[i + 1];
+    const p = [a.v[0] + (b.v[0] - a.v[0]) * lt, a.v[1] + (b.v[1] - a.v[1]) * lt];
+    let y = a.y + (b.y - a.y) * lt;
+    const arc = Math.sin(Math.PI * lt);
+    y += 0.05 * segLen[i] * arc;                // edges lift a touch between anchors
+    const cx = (apex[0]) * 0.3, cz = (apex[1]) * 0.3;   // bow toward the tarp's own middle
+    const dx = p[0] - cx, dz = p[1] - cz, dl = Math.hypot(dx, dz) || 1;
+    const bow = 0.06 * segLen[i] * arc;
+    return { x: p[0] - (dx / dl) * bow, z: p[1] - (dz / dl) * bow, y };
+  };
+  const NU = 40, NV = 8, pos = [], idx = [];
+  for (let iu = 0; iu <= NU; iu++) {
+    const e = E(iu / NU);
+    for (let iv = 0; iv <= NV; iv++) {
+      const v = iv / NV;
+      let x = apex[0] + (e.x - apex[0]) * v, z = apex[1] + (e.z - apex[1]) * v;
+      let y = h + (e.y - h) * v;
+      y -= 0.04 * Math.hypot(e.x - apex[0], e.z - apex[1]) * Math.sin(Math.PI * v) * Math.sin(Math.PI * (iu / NU));
+      pos.push(x * MM, y * MM, z * MM);
+    }
+  }
+  for (let iu = 0; iu < NU; iu++) for (let iv = 0; iv < NV; iv++) {
+    const a = iu * (NV + 1) + iv, b = a + NV + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, membrane);
+  g.add(mesh);
+  const trimPts = [];
+  for (let i = 0; i <= 48; i++) { const e = E(i / 48); trimPts.push(V3(e.x, e.y, e.z)); }
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(trimPts), 96, 3.5 * MM, 6, false), trimMat));
+
+  // the one pole, its two guys running on past the apex, and a stake at every corner
+  const alu = metal(0xc9ccd1, 0.8, 0.35);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(12 * MM, 12 * MM, h * MM, 12), alu);
+  pole.position.set(apex[0] * MM, h / 2 * MM, apex[1] * MM);
+  g.add(pole);
+  const guyPts = [];
+  const dirA = [Math.sign(apex[0] || 0), Math.sign(apex[1] || 0)];
+  for (const side of [-1, 1]) {
+    const sx = apex[0] + dirA[0] * 0.5 * h + side * (perp === 0 ? 0.3 * h : 0),
+          sz = apex[1] + dirA[1] * 0.5 * h + side * (perp === 1 ? 0.3 * h : 0);
+    guyPts.push(V3(apex[0], h, apex[1]), V3(sx, 0, sz));
+    cyl(g, 4, 5, 22, 8, metal(0x3a3d42, 0.4, 0.6), sx, 11, sz);
+  }
+  for (const c of chain) cyl(g, 4, 5, 22, 8, metal(0x3a3d42, 0.4, 0.6), c[0], 11, c[1]);
+  g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(guyPts),
+    new THREE.LineBasicMaterial({ color: 0x9aa0a8, transparent: true, opacity: 0.85 })));
+
+  return { group: g, body: mesh };
+}
+
 /** Land Lock (TP-671R): the flagship 2-room shell, STANDING. The published 6250x4050x2050
  *  envelope shapes the loft; the manual's frame plan (TP-671R_manual.pdf p.5) names what the
  *  hero photo shows: two A-FRAMES crossing over the body, two C-FRAMES rounding the ends,

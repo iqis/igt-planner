@@ -8,7 +8,8 @@ import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
          boxHangerGroup, sideTrayGroup, cylinderStandGroup,
          ringGroup, caseGroup, railsGroup, plateGroup, gridPlateGroup, grillNetGroup,
          slideExtGroup, entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop, lv310Group,
-         propGroup, shelterOf, shelterVerts, tarpPitchGroup, landLockGroup } from "./parts3d.js";
+         propGroup, shelterOf, shelterVerts, tarpPitchGroup, landLockGroup,
+         pentaTarpGroup } from "./parts3d.js";
 
 /* The bench.
  *
@@ -172,9 +173,11 @@ function benchGeo(p, box) {
     const base = shelterOf(p, sku);
     if (p.shelter_type === "tarp") {
       const vs = shelterVerts(p.geometry);
-      if (vs.length === 4 || vs.length === 6)
-        base.group.add(tarpPitchGroup({ verts: vs, h: p.assembled_mm.h,
-          color: COLORS[sku]?.color_hex || 0x8a7460,
+      const color = COLORS[sku]?.color_hex || 0x8a7460;
+      if (vs.length === 5)
+        base.group.add(pentaTarpGroup({ verts: vs, h: p.assembled_mm.h, color }).group);
+      else if (vs.length >= 4 && vs.length <= 8)
+        base.group.add(tarpPitchGroup({ verts: vs, h: p.assembled_mm.h, color,
           family: vs.length === 4 ? "recta" : "hexa" }).group);
     }
     if (p.shell3d === "landlock")   // near-opaque on the bench: the PART is the subject here
