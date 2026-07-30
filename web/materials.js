@@ -191,6 +191,29 @@ export function railProfile(length, thickness, section, outward = 1) {
   s.closePath();
 
   const g = new THREE.ExtrudeGeometry(s, { depth: length, bevelEnabled: false });
+
+  // The recess only reads as a DROP if the eye gets a depth cue. This renderer has no AO
+  // pass (nothing screen-space at phone budget), so at iso distance the seam between a
+  // flush module and the rail top vanished and the whole drop-in system -- three
+  // iterations of seat geometry -- was invisible. Even CK-149's flat catalog hero shows
+  // the rebate as a darker line down each rail's inner edge. So the crease is BAKED:
+  // every vertex on the seat's floor line (the ledge, and the foot of its step) carries
+  // a ~20% darker vertex colour, white everywhere else, and interpolation does the rest
+  // -- the step wall fades dark at its foot to light at its top, the ledge sits in
+  // permanent contact shadow, zero per-frame cost. The step's TOP corner (y = t/2) stays
+  // white on purpose: darken it and the whole flat top picks up a sideways gradient.
+  // Matched in shape space, so this runs BEFORE the rotations below. The attribute is
+  // inert until a material opts in with vertexColors -- the two rail materials do, and
+  // opting in without the attribute would render black, which is why it is written here,
+  // on every rail, and not at the call sites.
+  const pos = g.attributes.position;
+  const shade = new Float32Array(pos.count * 3).fill(1);
+  const seatY = t / 2 - recess, stepX = w / 2 - seatW, eps = recess * 0.1;
+  for (let i = 0; i < pos.count; i++) {
+    if (pos.getX(i) >= stepX - eps && Math.abs(pos.getY(i) - seatY) <= eps)
+      shade[i * 3] = shade[i * 3 + 1] = shade[i * 3 + 2] = 0.8;
+  }
+  g.setAttribute("color", new THREE.BufferAttribute(shade, 3));
   // ExtrudeGeometry runs from z=0 to z=+depth, so it must be centred BEFORE the axis
   // swap -- otherwise the rail hangs off one end of the frame by its whole length,
   // which is exactly what it did.

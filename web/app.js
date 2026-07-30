@@ -1042,7 +1042,15 @@ function drawFrame(g, n) {
   for (const m of pick) { m.userData.node = n; nodeMeshes.push(m); }
   g.add(shell);
 
-  // Legs: tapered tube with a foot, the way they actually are.
+  // Legs: a straight tube with a black adjuster foot -- measured, not styled. The leg heroes
+  // (web/img/CK-112.jpg, CK-113.jpg, CK-114.jpg) hold one diameter end to end -- CK-113's tube
+  // scans 22-23px across its whole 588px length -- so a drawn taper would be invented, and with
+  // four-plus legs under every table a non-parallel silhouette shows at iso framing. The foot
+  // is the height adjuster in CK-112's JP detail shots: a black sleeve on the tube, a shade
+  // narrower at the waist, then a wider knurled cap rounded at the bottom -- ~33mm of black in
+  // all, barely wider than the tube. No socket collar at the top: the assembled shots
+  // (CK-150LOW.jpg, CK-149's JP gallery) show the tube meeting the frame's underside clean and
+  // constant-width to the last pixel before the rail, so none is drawn.
   // The legs go in the sockets, and the sockets were measured off the frame's underside:
   // CK-149's are at x=+/-347, z=+/-207.5. The old code put them 40mm in from each edge --
   // right by luck in z, 36mm out in x.
@@ -1067,19 +1075,32 @@ function drawFrame(g, n) {
       const jointX = Math.sign(loc.x);
       spots = spots.filter(([lx]) => Math.sign(lx) !== jointX);
     }
+    const FOOT = 33, WAIST = 16, CAP = 12;   // the black stack, off CK-113's hero at 1.12mm/px
     for (const [lx, lz] of spots) {
       const shaft = stock(
-        new THREE.CylinderGeometry(LEG_R * MM, LEG_R * 0.82 * MM, h * MM, 16),
+        new THREE.CylinderGeometry(LEG_R * MM, LEG_R * MM, (h - FOOT) * MM, 16),
         new THREE.Color(legColorOf(n)), 0.85, 0.3,
       );
-      shaft.position.set(lx, h / 2, lz).multiplyScalar(MM);
+      shaft.position.set(lx, (h + FOOT) / 2, lz).multiplyScalar(MM);
       g.add(shaft);
-      const foot = stock(
-        new THREE.CylinderGeometry(LEG_R * 1.25 * MM, LEG_R * 1.35 * MM, 12 * MM, 16),
+      // the adjuster's waist, a shade narrower than the tube (21.5px against the tube's 23)
+      const waist = stock(
+        new THREE.CylinderGeometry(LEG_R * 0.93 * MM, LEG_R * 0.93 * MM, WAIST * MM, 14),
         0x2a2d31, 0.1, 0.85,
       );
-      foot.position.set(lx, 6, lz).multiplyScalar(MM);
-      g.add(foot);
+      waist.position.set(lx, FOOT - WAIST / 2, lz).multiplyScalar(MM);
+      g.add(waist);
+      // the knurled cap, barely wider than the tube (27px against 23), rounded off underneath
+      const cap = stock(
+        new THREE.CylinderGeometry(LEG_R * 1.18 * MM, LEG_R * 1.18 * MM, CAP * MM, 14),
+        0x2a2d31, 0.1, 0.85,
+      );
+      cap.position.set(lx, 7 + CAP / 2, lz).multiplyScalar(MM);
+      g.add(cap);
+      const tip = stock(new THREE.SphereGeometry(LEG_R * 1.18 * MM, 12, 8), 0x2a2d31, 0.1, 0.85);
+      tip.scale.y = 0.45;
+      tip.position.set(lx, 7, lz).multiplyScalar(MM);
+      g.add(tip);
     }
   }
 
@@ -1320,7 +1341,9 @@ function drawTable(g, n) {
   const si = selfIgt(n.sku);
   if (si) {
     const f = footprint(n), tp = topOf(n);
-    const built = (n.sku === "CK-180" ? slimIgtGroup : entryIgtGroup)(f.w, f.d, tp);
+    const built = n.sku === "CK-180"
+      ? slimIgtGroup(f.w, f.d, tp, { tex: woodGrain("teak", 1, 2, TEAK_GRAIN) })   // the same grain instance its top wears
+      : entryIgtGroup(f.w, f.d, tp);
     built.group.position.y = tp * MM;
     built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(built.group);
@@ -1328,7 +1351,10 @@ function drawTable(g, n) {
     const cells = occupancy(n), skip = [];
     for (let i = 0; i < cells.length; i++) if (cells[i]) skip.push(i);
     const teak = si.top === "teak";
+    // Entry tops are a half / one-unit / half / one-unit from the left (CK-080R's plan shot);
+    // the Slim's teak really is one panel per half-unit, so it takes no pieces split.
     const top = igtWoodTop({ units: si.units, color: teak ? 0xffffff : 0xd8bd86,
+      pieces: teak ? null : [1, 2, 1, 2],
       skip, d: f.d, tex: teak ? woodGrain("teak", 1, 2, TEAK_GRAIN) : woodGrain("tile", 1, 2) });
     top.group.position.y = tp * MM;
     top.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });

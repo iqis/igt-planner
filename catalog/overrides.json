@@ -357,7 +357,7 @@
     "d": 630,
     "h": 749
    },
-   "seat_h_mm": 330,
+   "seat_h_mm": 420,
    "price": {
     "us": 21995,
     "jp": null,
@@ -373,7 +373,7 @@
     "us": "https://www.snowpeak.com/products/take-bamboo-chair-short-lv-085",
     "jp": null
    },
-   "reason": "Take! Bamboo Chair (LV-085): the signature Snow Peak chair -- natural BAMBOO X-legs, a slim aluminium seat frame + back posts, a draped cream cotton-canvas seat & back. The hard one (curves approximated with straight tubes). 549x630x749, ~330 seat. chair type 'take'."
+   "reason": "Take! Bamboo Chair (LV-085): the signature Snow Peak chair -- a butterfly-chair cream canvas bucket hung from two continuous bamboo scissor battens per side, thin alu lateral scissor X's front and rear. 549x630x749, seat 420 (JP spec sheet). chair type 'take'."
   },
   "SDE-002RH": {
    "role": "shelter",

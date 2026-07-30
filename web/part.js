@@ -6,7 +6,7 @@ import { materialFor, roundedBox, boardMaterial, flatRect,
 import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
          hangRackGroup, clampGroup, screenGroup, lanternHangerGroup, ttaFrameGroup,
          boxHangerGroup, sideTrayGroup, cylinderStandGroup,
-         ringGroup, caseGroup, railsGroup, plateGroup, gridPlateGroup,
+         ringGroup, caseGroup, railsGroup, plateGroup, gridPlateGroup, grillNetGroup,
          slideExtGroup, entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop, lv310Group,
          propGroup, shelterOf } from "./parts3d.js";
 
@@ -184,9 +184,12 @@ function benchGeo(p, box) {
   if (sku === "CK-080R" || sku === "CK-080R-EC" || sku === "CK-180") {
     const si = (CAT.layout?.self_igt || {})[sku] || { units: 3, top: sku === "CK-180" ? "teak" : "bamboo" };
     const wrap = new THREE.Group();
-    wrap.add((sku === "CK-180" ? slimIgtGroup : entryIgtGroup)(w, d, h).group);
+    wrap.add((sku === "CK-180"
+      ? slimIgtGroup(w, d, h, { tex: woodGrain("teak", 1, 2, TEAK_GRAIN) })   // the same grain instance its top wears
+      : entryIgtGroup(w, d, h)).group);
     const teak = si.top === "teak";
     wrap.add(igtWoodTop({ units: si.units, color: teak ? 0xffffff : 0xd8bd86,
+      pieces: teak ? null : [1, 2, 1, 2],   // the Entry's real piece split -- see igtWoodTop
       skip: [], d, tex: teak ? woodGrain("teak", 1, 2, TEAK_GRAIN) : woodGrain("tile", 1, 2) }).group);
     return wrap;
   }
@@ -221,7 +224,7 @@ function benchGeo(p, box) {
     if (sku === "CK-304") return sideTrayGroup(w, d, h, color).group;      // the 200mm round tray
     if (sku === "CK-305") return cylinderStandGroup(w, d, h, color).group; // the cartridge cup
     if (sku === "CK-303") return ttaFrameGroup(w, d, h, color).group;      // the flat tube ring
-    if (sku === "CK-306") return ringGroup(w, d, h, color).group;      // Sierra cup holder
+    if (sku === "CK-306") return ringGroup(w, d, h, color, { clamp: true }).group;  // Sierra cup holder -- ring + clamp barrel
     return clampGroup(w, d, h, color).group;                          // CK-300 unit clamp
   }
 
@@ -234,9 +237,10 @@ function benchGeo(p, box) {
   if (role === "joint") return plateGroup(w, d, h, color).group;
   if (role === "frame_hook") return clampGroup(w, d, h, color).group;  // CK-175 connection hook
 
-  // A grill / griddle plate (S-029HA): a ridged slab, not a box.
+  // Thin grill accessories: S-029HA is an open woven NET (its hero is see-through --
+  // grillNetGroup); solid cast plates (S-029HD) keep the ridged slab.
   if (role === "accessory" && !moduleGroup(p, w, d, h, color) && h < 40)
-    return gridPlateGroup(w, d, h, color).group;
+    return (sku === "S-029HA" ? grillNetGroup(w, d, h, color) : gridPlateGroup(w, d, h, color)).group;
 
   // Slot modules, storage boxes, gear bags, burners, mesh trays -- moduleGroup knows them.
   const mod = moduleGroup(p, w, d, h, color, burnerTop(sku));
@@ -320,7 +324,12 @@ function drawPart() {
   const r = Math.max(box.w, box.d) * MM;
   camera.far = r * 20;
   camera.updateProjectionMatrix();
-  controls.target.set(0, -thick / 2 * MM, 0);
+  // Aim at what was actually BUILT, not at the slot-module convention. Boards hang from
+  // y = 0 downward and -thick/2 was right for them -- but a chair STANDS, 0 up to +760,
+  // and the old fixed target left every standing prop sailing out the top of the frame.
+  const built = new THREE.Box3().setFromObject(stage);
+  if (!built.isEmpty()) built.getCenter(controls.target);
+  else controls.target.set(0, -thick / 2 * MM, 0);
 }
 
 // ---------------------------------------------------------------- views
@@ -336,7 +345,8 @@ let view = "top";
 function setView(v) {
   view = v;
   const box = PARTS[sku].assembled_mm;
-  const r = Math.max(box.w, box.d, 400) * MM * 3.2;
+  // Height counts toward the framing radius, or a 760mm chair gets a 550mm camera orbit.
+  const r = Math.max(box.w, box.d, box.h || 0, 400) * MM * 3.2;
   const [x, y, z] = CAM[v]();
   const L = Math.hypot(x, y, z);
   // Looking straight up or down, `up` must not be the axis you are looking along, or
@@ -344,7 +354,8 @@ function setView(v) {
   // BOTH plan views come out with +x right and +z down -- the frame the photo pane uses.
   camera.up.set(0, 0, v === "top" || v === "bottom" ? -1 : 1);
   if (v !== "top" && v !== "bottom") camera.up.set(0, 1, 0);
-  camera.position.set((x / L) * r, (y / L) * r + controls.target.y, (z / L) * r);
+  camera.position.set((x / L) * r + controls.target.x, (y / L) * r + controls.target.y,
+    (z / L) * r + controls.target.z);
   controls.update();
   paintChrome();
 }
@@ -518,7 +529,7 @@ const ROLE_MODEL = {
   rail_joint: "plateGroup -- a small connecting plate (hardware)",
   frame_hook: "clampGroup -- a small hook",
   leg: "not a surface -- shown at its height only",
-  accessory: "gridPlateGroup for thin grills, else moduleGroup, else an honest flat slab",
+  accessory: "grillNetGroup for the woven S-029HA net; gridPlateGroup for solid thin plates; else moduleGroup, else an honest flat slab",
   storage: "moduleGroup -- a box sized in units",
   set: "not modelled as one object (it is a bundle)",
   excluded: "not modelled",
