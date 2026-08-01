@@ -1,0 +1,13 @@
+#!/bin/sh
+# Run the smoke test before every push; a red smoke blocks the push.
+# Skips (with a warning) if the dev deps were never installed on this clone.
+cd "$(git rev-parse --show-toplevel)" || exit 1
+if [ ! -d node_modules/puppeteer-core ]; then
+  echo "pre-push: smoke test SKIPPED (run 'npm install' once to enable it)" >&2
+  exit 0
+fi
+echo "pre-push: running smoke test..." >&2
+node scripts/smoke.mjs || {
+  echo "pre-push: smoke test FAILED — push blocked. (git push --no-verify to override)" >&2
+  exit 1
+}

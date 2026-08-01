@@ -28,6 +28,9 @@ import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
 
 const MM = 0.001;
 const $ = id => document.getElementById(id);
+// On-demand rendering: the loop at the bottom draws only when this is up (or the camera moves).
+window.__benchDirty = true;
+const benchDirty = () => { window.__benchDirty = true; };
 
 const CAT = await (await fetch("../catalog/igt-catalog.json")).json();
 const COLORS = (await (await fetch("../catalog/colors.json")).json()).colors;
@@ -55,11 +58,11 @@ const texCache = {};
 const textureOf = (sku, key = "file") => {
   const path = TEXTURES[sku]?.[key];
   if (!path) return null;
-  if (!texCache[path]) texCache[path] = texLoader.load(path);
+  if (!texCache[path]) texCache[path] = texLoader.load(path, benchDirty);
   return texCache[path];
 };
 // The sliding extension's own bamboo, rectified from its top-view photo and cropped to grain.
-const loadTex = path => (texCache[path] ??= texLoader.load(path));
+const loadTex = path => (texCache[path] ??= texLoader.load(path, benchDirty));
 const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
 // Dedicated grain instances for the self-IGT wood tops (own tiling, kept off the shared cache).
 const WOOD_GRAIN = "tex/CK-116TR_grain.jpg";   // clean bamboo crop, no printed logo
@@ -67,7 +70,7 @@ const TEAK_GRAIN = "tex/CK-180_teak.jpg";       // real teak, from the CK-180 ph
 const woodTexCache = {};
 function woodGrain(key, rx, ry, path = WOOD_GRAIN) {
   if (woodTexCache[key]) return woodTexCache[key];
-  const t = texLoader.load(path);
+  const t = texLoader.load(path, benchDirty);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = THREE.SRGBColorSpace;
   t.repeat.set(rx, ry);
@@ -80,7 +83,7 @@ function woodGrain(key, rx, ry, path = WOOD_GRAIN) {
 const CANVAS_TEX = "tex/canvas.jpg", MESH_ALPHA = "tex/chair_mesh.png";
 function chairTex(key, path, rep, srgb) {
   if (woodTexCache[key]) return woodTexCache[key];
-  const t = texLoader.load(path);
+  const t = texLoader.load(path, benchDirty);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   if (srgb) t.colorSpace = THREE.SRGBColorSpace;
   t.repeat.set(rep, rep);
@@ -274,6 +277,7 @@ function benchGeo(p, box) {
 }
 
 function drawPart() {
+  benchDirty();                 // a rebuilt stage is one that needs drawing
   stage.clear();
   const p = PARTS[sku];
   const box = p.assembled_mm;
@@ -374,6 +378,7 @@ function setView(v) {
   camera.position.set((x / L) * r + controls.target.x, (y / L) * r + controls.target.y,
     (z / L) * r + controls.target.z);
   controls.update();
+  benchDirty();
   paintChrome();
 }
 
@@ -1036,12 +1041,17 @@ function resize() {
   renderer.setSize(r.width, r.height, false);
   camera.aspect = r.width / r.height;
   camera.updateProjectionMatrix();
+  benchDirty();
 }
 addEventListener("resize", resize);
 
+// On-demand, like the planner: draw when the camera moves, a rebuild asks, or a texture
+// lands -- an idle bench tab costs nothing.
 (function loop() {
   requestAnimationFrame(loop);
-  controls.update();
+  const moved = controls.update();
+  if (!(window.__benchDirty || moved)) return;
+  window.__benchDirty = false;
   renderer.render(scene, camera);
   anno3dPlace();          // keep the 3D-point labels glued to the model as it orbits
   pairModelLabels();      // ...and the model halves of the correspondences
@@ -1054,6 +1064,7 @@ function applyTheme(t) {
   const bg = getComputedStyle(document.documentElement).getPropertyValue("--scene").trim() || "#14161a";
   scene.background = new THREE.Color(bg);
   $("theme").textContent = t === "light" ? "☀" : "☾";
+  benchDirty();
 }
 applyTheme(localStorage.getItem("igt-theme") || "dark");
 $("theme").onclick = () => {

@@ -4,3 +4,4 @@ anno/
 __pycache__/
 *.pyc
 *.tmp
+node_modules

@@ -102,8 +102,21 @@ seeing.
 ## Layout
 
 ```
-scripts/     the five build steps above
+scripts/     the five build steps above, plus smoke.mjs (below)
 catalog/     committed output: grid.json, igt-catalog.json, overrides.json
 web/         the three.js planner (vendored three.js, no build)
 data/        raw fetches and timestamped archives (gitignored)
 ```
+
+## Smoke test
+
+```sh
+npm install     # once -- puppeteer-core only, drives the Chrome already installed
+npm run smoke   # ~15s: boot, place, hook, undo, share round-trip, bench dispatch,
+                # zero console errors, and the on-demand renderer actually idling
+```
+
+The app itself still has no build step and no runtime dependencies; `package.json` exists
+solely for this. A `pre-push` hook runs it and blocks a red push — on a fresh clone,
+`cp scripts/hooks/pre-push .git/hooks/` — and it skips politely when `node_modules` is
+absent.

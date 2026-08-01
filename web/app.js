@@ -40,17 +40,28 @@ const isSlide = p => p?.attach === "slide_in";
 const $ = id => document.getElementById(id);
 
 let CAT, GRID, LAYOUT, CONN, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAMES, HOOKABLE, SLIDE_IN, SECTION;
+
+// ---- on-demand rendering ------------------------------------------------------------------------
+// The rAF loop at the bottom only DRAWS when something asked for it: scene changes raise
+// this flag (rebuild does it for everyone), the camera raises it by moving (OrbitControls'
+// update() says so), a running tween keeps it up, and an async texture arrival raises it so
+// wood grain never pops in a frame late. An idle planner renders nothing -- which on a
+// phone is the difference between a warm pocket and a dead battery.
+let needsRender = true;
+const invalidate = () => { needsRender = true; };
+const renderStats = { frames: 0 };               // the smoke test reads this: idle must not spin
+
 const texLoader = new THREE.TextureLoader();
 const texCache = {};
 const textureOf = (sku, key = "file") => {
   const path = TEXTURES[sku]?.[key];
   if (!path) return null;
-  if (!texCache[path]) texCache[path] = texLoader.load(path);
+  if (!texCache[path]) texCache[path] = texLoader.load(path, invalidate);
   return texCache[path];
 };
 // The sliding extension's own bamboo, perspective-rectified from its top-view photo (the US
 // hero) and cropped to a clean grain -- so it wears its real surface, not a borrowed one.
-const loadTex = path => (texCache[path] ??= texLoader.load(path));
+const loadTex = path => (texCache[path] ??= texLoader.load(path, invalidate));
 const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
 // Dedicated grain instances for the self-IGT wood tops, keyed by tile shape. Kept OUT of the
 // shared cache so their tiling (repeat) does not fight the sliding extension, which draws the
@@ -61,7 +72,7 @@ const STEEL_TEX = "tex/brushed_steel.jpg";      // brushed stainless (拉丝) fo
 const woodTexCache = {};
 function woodGrain(key, rx, ry, path = WOOD_GRAIN) {
   if (woodTexCache[key]) return woodTexCache[key];
-  const t = texLoader.load(path);
+  const t = texLoader.load(path, invalidate);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = THREE.SRGBColorSpace;
   t.repeat.set(rx, ry);
@@ -74,7 +85,7 @@ const steelTex = () => woodGrain("steel", 3, 1, STEEL_TEX);
 const CANVAS_TEX = "tex/canvas.jpg", MESH_ALPHA = "tex/chair_mesh.png";
 function chairTex(key, path, rep, srgb) {
   if (woodTexCache[key]) return woodTexCache[key];
-  const t = texLoader.load(path);
+  const t = texLoader.load(path, invalidate);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   if (srgb) t.colorSpace = THREE.SRGBColorSpace;
   t.repeat.set(rep, rep);
@@ -790,6 +801,7 @@ camera.position.set(1.6, 1.5, 2.1);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.target.set(0, 0.35, 0);
+controls.addEventListener("change", invalidate);   // any camera input wakes the renderer
 // The scroll wheel already dollies, so the middle button is free -- and PAN is what you actually
 // reach for. Right pans too: on a canvas where the left button is spoken for, one obvious way to
 // pan beats a clever one. (Right-CLICK still opens a module's menu -- OrbitControls only pans on a
@@ -980,6 +992,7 @@ function setGround(key) {
   const BOUNCE = { grass: 0x25301c, wood: 0x4a3c28, gravel: 0x353533, sand: 0x74644c };
   hemi.groundColor.set(BOUNCE[key] || 0x33383f);
   renderer.shadowMap.needsUpdate = true;
+  invalidate();
   const sel = $("groundsel");
   if (sel && sel.value !== key) sel.value = key;
 }
@@ -1609,6 +1622,7 @@ function addSelBox(g, n) {
 // box + the accent row); this is the soft, no-commitment one that lets you see which is which.
 let hoverNodeId = null, hoverBox = null;
 function showHoverBox(n) {
+  invalidate();                           // the box comes and goes without a rebuild
   if (hoverBox) { scene.remove(hoverBox); hoverBox.geometry.dispose(); hoverBox.material.dispose(); hoverBox = null; }
   if (!n || n.id === state.sel) return;   // the selected object already wears its own box
   const f = footprint(n), h = selTop(n), pad = 14;
@@ -1668,6 +1682,7 @@ function addGhostFootprint(n) {
 }
 
 function rebuild() {
+  invalidate();                   // a rebuilt scene is, by definition, one that needs drawing
   clearHoverNode();               // node positions may have moved; drop any stale hover highlight
   // Object3D.clear() detaches children and disposes NOTHING: every rebuild stranded a whole
   // scene's worth of GL buffers until the browser happened to GC the wrappers -- sawtooth
@@ -1808,6 +1823,7 @@ function paintHover() {
   for (const m of slotHandleMeshes)
     m.material.opacity = hover?.isSlot && m.userData.slot.node.id === hover.node.id
       && m.userData.slot.start === hover.start ? 0.3 : 0;
+  invalidate();   // opacities changed in place -- no rebuild saw it
 }
 
 /** Keep the button glued to its edge while the camera orbits. */
@@ -2626,7 +2642,7 @@ canvas.addEventListener("pointermove", e => {
 
   // Drafting a measurement: track the ground point under the cursor so followRulers can draw the
   // live preview line. No render() -- the overlay redraws itself every frame in the loop.
-  if (rulerTool && rulerDraft) { const at = hitPlane(0); if (at) rulerHover = groundSnap(at); return; }
+  if (rulerTool && rulerDraft) { const at = hitPlane(0); if (at) { rulerHover = groundSnap(at); invalidate(); } return; }
 
   if (!dragNode && !dragMod && !dragSlide) {
     const hit = ray.intersectObjects(edgeMeshes, false)[0];
@@ -4644,6 +4660,7 @@ function applyTheme(t) {
   if (t === "light") setGrid(0xc2c7cf, 0xd8dbe1);
   else setGrid(0x2b3038, 0x21252b);
   $("theme").textContent = t === "light" ? "☀" : "☾";   // sun / moon
+  invalidate();
 }
 function initTheme() {
   applyTheme(localStorage.getItem(THEME_KEY) || "dark");
@@ -4675,6 +4692,7 @@ function resize() {
   renderer.setSize(r.width, r.height, false);
   camera.aspect = r.width / r.height;
   camera.updateProjectionMatrix();
+  invalidate();
 }
 // Observe the STAGE, not the window: the stage changes size for reasons the window never
 // hears about -- the pager filling in at boot, a side panel collapsing -- and a canvas
@@ -4684,8 +4702,12 @@ addEventListener("resize", resize);
 
 (function loop() {
   requestAnimationFrame(loop);
+  const tweening = !!camTween;                   // read BEFORE stepping: the last step nulls it
   stepCamTween();
-  controls.update();
+  const moved = controls.update();               // true while orbiting or while damping settles
+  if (!(needsRender || tweening || moved)) return;
+  needsRender = false;
+  renderStats.frames++;
   followHover();
   followSelTools();
   followRulers();
@@ -4778,7 +4800,8 @@ window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
   serializeLayout, readLayout, loadLayout, saveNamed, openNamed, savedAll, blocksAll,
   saveBlock, addBlock, shareLink, exportFile,
   newPage, switchPage, deletePage, renamePage, pages: () => book,
-  top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); } };
+  renderStats, invalidate,
+  top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); invalidate(); } };
 
 resize();
 initTheme();
