@@ -9,7 +9,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          loungeCushionGroup, foldingBenchGroup, bambooShelfGroup,
          takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group,
          propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox, burnerOf,
-         tarpPitchGroup, landLockGroup, pentaTarpGroup } from "./parts3d.js";
+         tarpPitchGroup, landLockGroup, pentaTarpGroup, figureGroup } from "./parts3d.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -178,9 +178,18 @@ const isExpandable = n => !!expDef(n?.sku);
 // lifts out per half-unit so IGT units drop in.
 const selfIgt = sku => (LAYOUT.self_igt || {})[sku];
 
+// A scale figure's height is per-NODE (config = mm, else the record's median); everything
+// about its box follows from it, including the seated knees-forward depth.
+const figH = n => Number(n.config) || PARTS[n.sku].assembled_mm.h;
+
 function footprintOf(sku, kind, node) {
   const p = PARTS[sku];
   if (kind === "footprint") { const b = shelterBBox(shelterVerts(p.geometry)); return { w: b.w, d: b.d }; }
+  if (p.role === "figure" && node) {
+    const h = figH(node);
+    return node.pose === "sit" ? { w: Math.round(h * .28), d: Math.round(h * .42) }
+                               : { w: Math.round(h * .28), d: Math.round(h * .17) };
+  }
   if (kind === "frame") return { w: 250 * p.units + overhead(), d: p.assembled_mm?.d ?? 496 };
   if (sku === JIKARO && node) {
     const c = jikaroCfg(node);
@@ -221,6 +230,8 @@ function topOf(n, depth = 0) {
   // snap them to the datum -- they line up with any 400mm table and join via a connection hook, not
   // a height adjuster.
   if (selfIgt(n.sku)) return LAYOUT.datum_height_mm;
+  if (PARTS[n.sku].role === "figure")
+    return n.pose === "sit" ? Math.round(420 + figH(n) * .30) : figH(n);
   return PARTS[n.sku].height_mm ?? PARTS[n.sku].assembled_mm?.h ?? LAYOUT.datum_height_mm;
 }
 
@@ -1268,6 +1279,14 @@ function drawSlideExt(g, n) {
  *  a table but never connected to the IGT grid -- no hooks, no bay, no legs. */
 function drawProp(g, n) {
   const p = PARTS[n.sku];
+  // The scale figures bypass propGroup: they have no catalog record for it to key on, and
+  // their whole state -- height and pose -- is per-NODE, which is this function's half.
+  if (p.role === "figure") {
+    const built = figureGroup(figH(n), { toddler: p.figure === "toddler", pose: n.pose || "stand" });
+    built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
+    g.add(built.group);
+    return;
+  }
   // WHICH builder, and the part's own colours, come from propGroup in parts3d.js -- shared with the
   // bench, because "two sources of truth for which shape" is how the bench ended up drawing a stove
   // as a burner disc. Everything passed in here is per-NODE state, which is the only part of this
@@ -1581,6 +1600,7 @@ function drawSlotHandles() {
 
 // The top of a selected object, in mm -- where its bounding box ends and the action toolbar floats.
 function selTop(n) {
+  if (n.kind === "prop" && PARTS[n.sku].role === "figure") return topOf(n);
   return n.kind === "prop" ? (PARTS[n.sku].assembled_mm?.h || 800)
     : n.kind === "footprint" ? 30
     : topOf(n) + 8;
@@ -1883,6 +1903,7 @@ const hasActions = n => !!n && (isJikaro(n) || isExpandable(n)
   || PARTS[n.sku].prop === "gs1000"          // the stove's canister
   || PARTS[n.sku].shell3d === "landlock"     // the 跳ね上げ awnings, either end
   || PARTS[n.sku].shelter_type === "tarp"    // wing-pole length -- a tarp pitches on any of them
+  || PARTS[n.sku].role === "figure"          // a figure's height and pose
   || (n.kind === "ext" && n.host && !isSlide(PARTS[n.sku]))
   || (n.kind === "frame" && n.host));
 
@@ -1951,6 +1972,27 @@ function fillActions(box, n) {
       ["rear", "◧ rear open", "the inner-room end propped open — PDP_2's pitch"],
       ["both", "◫ both open", "a breezeway: both ends propped"]])
       box.append(chip(label, cur === key, hint, () => { n.config = key; render(); }));
+  }
+  // A scale figure: pose first, then height. The heights are honest rungs -- 5cm steps for the
+  // adult, WHO growth-standard medians by age for the toddler -- and the default chip returns
+  // to the record's median. The point of the popover is to set the REAL person's numbers.
+  if (PARTS[n.sku].role === "figure") {
+    const p = PARTS[n.sku];
+    box.append(chip("standing", n.pose !== "sit", "on its feet", () => { delete n.pose; render(); }));
+    box.append(chip("seated", n.pose === "sit",
+      "sitting at camp-chair height (420mm). A toddler's feet dangle — that is the honest geometry.",
+      () => { n.pose = "sit"; render(); }));
+    const sep = document.createElement("span"); sep.className = "sep"; box.append(sep);
+    const pub = p.assembled_mm.h;
+    box.append(chip(`${pub / 10}cm · median`, !n.config,
+      p.figure === "toddler" ? "the WHO median for age two" : "a median adult — the default",
+      () => { delete n.config; render(); }));
+    const rungs = p.figure === "toddler"
+      ? [["~1y", 750], ["~18m", 820], ["~3y", 960], ["~4y", 1030], ["~5y", 1100]]
+      : [1500, 1550, 1600, 1650, 1750, 1800, 1850, 1900].map(mm => [`${mm / 10}cm`, mm]);
+    for (const [label, mm] of rungs)
+      box.append(chip(p.figure === "toddler" ? `${label} · ${mm / 10}cm` : label, n.config === mm,
+        `${mm / 10}cm tall`, () => { n.config = mm; render(); }));
   }
   // Lounge cushion: round (open) or folded to a half-circle -- a form toggle like the Jikaro's.
   if (n.kind === "prop" && PARTS[n.sku].chair === "cushion") {
@@ -2893,7 +2935,7 @@ const HOOKS_ON = new Set(["extension_table", "corner"]);
 // A sliding extension is a hooked node too (it hangs off a host edge, is not dragged), so it
 // is kind "ext" -- but a rail-only one, offered on long edges and drawn as a cantilever.
 const kindOf = p => (p.role === "frame" ? "frame"
-  : p.role === "seating" || p.role === "hearth" ? "prop"   // a chair, or the fire pit: placed, not connected
+  : p.role === "seating" || p.role === "hearth" || p.role === "figure" ? "prop"   // placed, not connected
   : p.role === "shelter" ? "footprint"            // a tent/tarp ground outline -- a scale reference
   : (HOOKS_ON.has(p.role) || isSlide(p)) ? "ext" : "table");
 
@@ -3443,6 +3485,7 @@ const CAT_WORDS = {
   leg: "leg height", slot_module: "module burner stove tray box grill accessory", hanger: "hanging rack shelf",
   layout_table: "table", standalone: "table igt", seating: "chair bench seat stool furniture",
   shelter: "tent tarp shelter shell footprint",
+  figure: "person people human scale figure adult child kid toddler",
 };
 const searchKey = p => `${p.sku} ${p.title_en || ""} ${CAT_WORDS[p.role] || p.role || ""}`.toLowerCase();
 
@@ -3567,6 +3610,19 @@ function paintPalette() {
     }
   }
 
+  // The scale figures -- the planner's own measuring stick. Two rows, because "an adult" and
+  // "a toddler" are different canons, not different heights of one shape.
+  const figs = $("figures");
+  if (figs) {
+    figs.innerHTML = "";
+    for (const p of BY_ROLE.figure)
+      figs.append(partRow(p, () => addNode(p.sku), false,
+        `${p.sku} — not a product: a scale figure for reading sizes. Adds standing at `
+        + `${p.assembled_mm.h / 10}cm (a published median); select it to set the real `
+        + `person's height, or sit it down.`,
+        `${p.assembled_mm.h / 10}cm`));
+  }
+
   const n = sel();
 
   // The slot modules, BROWSABLE AT LAST. They used to exist only in the selected-frame box --
@@ -3630,8 +3686,10 @@ function filterPalette() {
   const q = ($("palsearch").value || "").trim().toLowerCase();
   $("palette").classList.toggle("searching", !!q);
   let shown = 0;
-  for (const id of ["add", "extensions", "tables", "seating", "shelters", "legs", "modules"]) {
-    const host = $(id); if (!host) continue;
+  // Every parts container in the palette, enumerated LIVE -- the hand-kept id list this used
+  // to walk still said "tables, legs, modules" years after those ids died, which silently took
+  // Cooking, the trays, the racks and both freestanding sections out of search entirely.
+  for (const host of document.querySelectorAll("#palette .parts")) {
     for (const el of host.children) {
       const searchable = el.dataset.search != null;
       const match = !q || (searchable && el.dataset.search.includes(q));
@@ -3687,6 +3745,7 @@ function bomLines() {
   const lines = [];
   for (const n of state.nodes) {
     if (n.kind === "footprint") continue;   // a shelter is a size reference, not part of the IGT bill
+    if (PARTS[n.sku].role === "figure") continue;   // and a person is not for sale
     lines.push({ sku: n.sku, node: n });
     // A set is two legs. A frame stands on four -- unless it shares a CK-175 joint, in which
     // case the continuation drops the pair at the joined end and stands on two.
@@ -4064,7 +4123,7 @@ function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); pa
 const SAVE_V = 1;
 // Everything a node carries that is a DECISION. Anything absent from a node is simply left out.
 const INTENT = ["sku", "host", "edge", "leg", "legFinish", "floating", "locked", "step", "slide",
-                "config", "sharedJoint", "bridge", "surface", "coal", "base", "canister", "placements"];
+                "config", "sharedJoint", "bridge", "surface", "coal", "base", "canister", "pose", "placements"];
 
 /** The scene as a plain object -- intent only. `sel` is not saved: a selection is not a design. */
 function serializeLayout(nodes = state.nodes) {
@@ -4751,6 +4810,19 @@ CONN = CAT.layout.connections || { interfaces: {}, hosts: {}, guests: {}, adapte
 HALF = GRID.half_unit_mm;
 PARTS = Object.fromEntries(CAT.parts.map(p => [p.sku, p]));
 
+// The scale figures. NOT catalog parts -- no product page, no price, no weight -- so they are
+// registered here rather than in overrides.json: a catalog entry would be an invented product,
+// and the BOM skips them for the same reason. The default heights are published medians (a CDC
+// adult mid-point, the WHO growth standard at age two); the options popover exists to replace
+// them with the real family's numbers.
+const FIGURES = [
+  { sku: "FIG-ADULT", title_en: "Scale figure — adult", role: "figure", figure: "adult",
+    assembled_mm: { w: 460, d: 290, h: 1700 } },
+  { sku: "FIG-CHILD", title_en: "Scale figure — toddler", role: "figure", figure: "toddler",
+    assembled_mm: { w: 240, d: 150, h: 870 } },
+];
+for (const f of FIGURES) PARTS[f.sku] = f;
+
 for (const p of CAT.parts) {
   if (p.role !== "frame") continue;
   const rails = `${p.sku}-1`;
@@ -4790,6 +4862,7 @@ BY_ROLE = {
     .sort((a, b) => (a.shelter_type || "").localeCompare(b.shelter_type || "") || a.title_en.localeCompare(b.title_en)),
   unsourced: inScope.filter(p => hookRoles(p) && !HOOKABLE.includes(p)),
 };
+BY_ROLE.figure = FIGURES;
 
 
 // A way in from the console. Being able to put the camera straight overhead is how you

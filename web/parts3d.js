@@ -3443,6 +3443,90 @@ export function gs1000Group(w = GS1000.span, d = GS1000.span, h = GS1000.h, { ca
   return { group: g, body };
 }
 
+// ---------------------------------------------------------------- the scale figure
+//
+// Not a product -- the planner's own measuring stick, so it is built here with the props but
+// never enters the catalog. The style is the architectural scale figure: matte, faceless,
+// capsule-limbed. It must read as a UNIT OF HEIGHT, never as a person modelled; detail would
+// be invention, and the one thing this figure asserts -- how tall -- is the caller's number.
+//
+// Proportions are the classic head-count canons: an adult stands ~7.5 heads, a two-year-old
+// ~4.5 -- which is WHY toddlers look the way they do, so the canon is the whole difference
+// between the two figures. `pose` is "stand" or "sit". Seated hips ride at `seatH` (a camp
+// chair by default); shins hang toward the ground and stop at their OWN length, so a toddler's
+// feet dangling off an adult-height seat is the honest geometry, not a bug.
+export function figureGroup(hMm, { toddler = false, pose = "stand", seatH = 420 } = {}) {
+  const g = new THREE.Group();
+  const H = hMm;
+  const mat = new THREE.MeshStandardMaterial({ color: 0x9a948b, metalness: 0, roughness: 0.62 });
+
+  // A limb: a capsule whose sphere ENDS sit exactly on the two joints. Millimetres in.
+  const bone = (ax, ay, az, bx, by, bz, r) => {
+    const a = new THREE.Vector3(ax, ay, az), b = new THREE.Vector3(bx, by, bz);
+    const d = b.clone().sub(a);
+    const m = new THREE.Mesh(new THREE.CapsuleGeometry(r * MM, d.length() * MM, 4, 14), mat);
+    m.position.copy(a.add(b).multiplyScalar(0.5 * MM));
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+    g.add(m);
+    return m;
+  };
+
+  // The canon, as fractions of STANDING height.
+  const P = toddler
+    ? { headR: .110, hip: .46, sho: .74, shoW: .115, hipW: .065, armR: .042, legR: .055,
+        torsoR: .120, flat: .62, wristY: .42, thigh: .21, shin: .19, foot: .13 }
+    : { headR: .066, hip: .52, sho: .81, shoW: .105, hipW: .056, armR: .027, legR: .038,
+        torsoR: .100, flat: .55, wristY: .44, thigh: .245, shin: .245, foot: .135 };
+
+  const hipY = pose === "sit" ? seatH : P.hip * H;
+  const shoY = hipY + (P.sho - P.hip) * H;
+  const hipX = P.hipW * H, shoX = P.shoW * H;
+
+  // Torso: one vertical capsule, flattened front-to-back, with a shoulder girdle across it --
+  // so the figure is wider at the shoulders than it is deep, which is most of "reads as human".
+  const body = bone(0, hipY - .02 * H, 0, 0, shoY - .02 * H, 0, P.torsoR * H);
+  body.scale.z = P.flat;
+  bone(-shoX, shoY, 0, shoX, shoY, 0, P.armR * H * 1.25);
+
+  // Head + neck. The crown lands at EXACTLY the stated height when standing: the head/neck
+  // block always spans (1 - sho) of H above the shoulders, seated or not. The slight vertical
+  // stretch shortens the visible neck -- to almost nothing on the toddler, as in life.
+  const headR = P.headR * H;
+  const headTopY = shoY + (1 - P.sho) * H;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(headR * MM, 20, 16), mat);
+  head.scale.y = 1.08;
+  head.position.set(0, (headTopY - headR * 1.08) * MM, 0);
+  g.add(head);
+  cyl(g, .030 * H, .036 * H, .06 * H, 12, mat, 0, shoY + .02 * H, 0);
+
+  if (pose !== "sit") {
+    for (const s of [-1, 1]) {
+      bone(s * hipX, hipY, 0, s * hipX * 1.12, .05 * H, 0, P.legR * H);
+      bone(s * hipX * 1.12, .026 * H, -.02 * H,
+           s * hipX * 1.12, .026 * H, P.foot * H - .02 * H, .026 * H);
+      bone(s * (shoX + .012 * H), shoY - .01 * H, 0,
+           s * (shoX + .030 * H), P.wristY * H, .012 * H, P.armR * H);
+    }
+  } else {
+    const kneeZ = P.thigh * H;
+    const ankleY = Math.max(hipY - P.shin * H, .026 * H);       // the ground, or a dangle
+    const footY = Math.max(ankleY - .02 * H, .026 * H);
+    for (const s of [-1, 1]) {
+      bone(s * hipX, hipY, 0, s * hipX * 1.06, hipY, kneeZ, P.legR * H);
+      bone(s * hipX * 1.06, hipY, kneeZ,
+           s * hipX * 1.06, ankleY, kneeZ + .01 * H, P.legR * H * .9);
+      bone(s * hipX * 1.06, footY, kneeZ + .01 * H,
+           s * hipX * 1.06, footY, kneeZ + .01 * H + P.foot * H * .8, .026 * H);
+      bone(s * shoX, shoY, 0,
+           s * (shoX + .01 * H), shoY - .17 * H, .04 * H, P.armR * H);
+      bone(s * (shoX + .01 * H), shoY - .17 * H, .04 * H,
+           s * hipX * 1.2, hipY + .02 * H, kneeZ * .72, P.armR * H * .9);
+    }
+  }
+
+  return { group: g, body };
+}
+
 // ---------------------------------------------------------------- WHICH builder a part uses
 //
 // The shapes moved into this file long ago; the CHOOSING did not. `PROP_BUILDERS` stayed behind in

@@ -123,6 +123,23 @@ try {
   });
   check("undo unwinds", undone === true);
 
+  // the scale figure: places from its palette row, takes a pose and a height, and NEVER
+  // lands on the bill -- it is a measuring stick, not a product
+  const figured = await page.evaluate(() => {
+    const app = window.__igt;
+    const row = [...document.querySelectorAll("#figures .part")]
+      .find(x => x.querySelector(".nm").textContent.includes("adult"));
+    if (!row) return "no figure row";
+    const before = document.querySelectorAll("#bomtable tr").length;
+    row.click();
+    const fig = app.state.nodes[app.state.nodes.length - 1];
+    if (fig.sku !== "FIG-ADULT") return "figure not added";
+    fig.pose = "sit"; fig.config = 1850; app.render();
+    const after = document.querySelectorAll("#bomtable tr").length;
+    return after === before || `bill grew ${before} -> ${after}`;
+  });
+  check("a scale figure stays off the bill", figured === true, String(figured));
+
   // share round-trip: serialize -> gzip -> #d= -> reload -> the design arrives as a new page
   const shared = await page.evaluate(async () => {
     const app = window.__igt;
@@ -141,12 +158,15 @@ try {
     count: window.__igt.state.nodes.length,
     hash: location.hash,
     pages: JSON.parse(localStorage.getItem("igt.pages")).pages.length,
+    fig: (() => { const f = window.__igt.state.nodes.find(n => n.sku === "FIG-ADULT");
+                  return f ? `${f.pose}/${f.config}` : "missing"; })(),
   }));
   check("share link round-trips", after.count === shared.count,
     `${after.count} vs ${shared.count} nodes`);
   check("shared design lands as a NEW page", after.pages === shared.pages + 1,
     `${shared.pages} -> ${after.pages}`);
   check("the hash is stripped after landing", after.hash === "", after.hash);
+  check("the figure's pose and height survive the link", after.fig === "sit/1850", after.fig);
 
   check("planner console is clean", errors.length === 0, errors.slice(0, 3).join(" | "));
   await page.close();
