@@ -42,7 +42,10 @@ two operational steps remain, both the owner's (below).
 ## Parked, in priority order
 
 - ~~Human figure for scale~~ — DONE 2026-08-02 (`41ca460`), see note at top.
-- **Layout → PNG export** (S–M) — the family-group-chat loop. Now the front of the queue.
+- ~~Layout → PNG export~~ — DONE 2026-08-02 (`26b7c47`): the "photo" button composes a plate
+  (hero view + ortho plan with scale bar + grouped bill + carry weight); phone → share sheet,
+  desktop → download. Smoke = 19 checks.
+- **Heat-clearance rule** is now the front of the queue.
 - **Heat-clearance rule** from the manuals (M) — the gas-exit rule's sibling.
 - **Real campsite pads** from the campground data (M, cross-project design chat first).
 - **Tents/shells bodies** — needs owner resources (photogrammetry of owned tents, or an
