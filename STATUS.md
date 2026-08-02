@@ -1,4 +1,8 @@
 # Status — 2026-08-02, end of the launch/modeling phase
+> **2026-08-02 post-wrap:** the parked queue's #1 shipped — **scale figures** (adult ~7.5-head
+> / toddler ~4.5-head canons, standing/seated, height chips off published medians, BOM-exempt,
+> pose in INTENT; smoke 18 checks). Also fixed: palette search had silently dropped every
+> section added after the original id list (Cooking/trays/racks/freestanding). `41ca460`.
 
 **Verdict: ready to share with family over the tailnet.** The code side of launch is done;
 two operational steps remain, both the owner's (below).
@@ -37,8 +41,8 @@ two operational steps remain, both the owner's (below).
 
 ## Parked, in priority order
 
-- **Human figure for scale** (S) — the biggest read-the-layout win still on the table.
-- **Layout → PNG export** (S–M) — the family-group-chat loop.
+- ~~Human figure for scale~~ — DONE 2026-08-02 (`41ca460`), see note at top.
+- **Layout → PNG export** (S–M) — the family-group-chat loop. Now the front of the queue.
 - **Heat-clearance rule** from the manuals (M) — the gas-exit rule's sibling.
 - **Real campsite pads** from the campground data (M, cross-project design chat first).
 - **Tents/shells bodies** — needs owner resources (photogrammetry of owned tents, or an
