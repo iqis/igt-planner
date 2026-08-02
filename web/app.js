@@ -4593,6 +4593,184 @@ $("filebtn").onclick = e => {
   fileMenu.hidden = false;
 };
 $("sharebtn").onclick = shareLink;
+
+// ---------------------------------------------------------------- the PNG export
+//
+// A share LINK needs the recipient to open the planner; a PICTURE lands in the family group
+// chat as itself. So the export is a plate, not a screenshot: the view you composed, an
+// orthographic plan with a scale bar (the one view that says where things ARE), and the bill
+// with the carry weight -- one image that answers "what is this" with no planner in sight.
+//
+// The heavy lifting reuses the live renderer: resize the drawing buffer, render, copy the
+// pixels out, restore -- all synchronous, so the screen never paints an in-between state.
+// The selection is cleared for the shot (an outline is UI, not design) and put back before
+// any DOM repaints could notice; rulers stay, because a measurement is authored content.
+async function exportPng({ deliver = true } = {}) {
+  try {
+    if (!state.nodes.length) { note("nothing to photograph — the page is empty"); return null; }
+    const css = getComputedStyle(document.documentElement);
+    const v = (name, d) => css.getPropertyValue(name).trim() || d;
+    const MONO = v("--mono", "monospace");
+    const INK = v("--ink", "#e6e8ec"), LINE = v("--line", "#2b3038");
+
+    // Two extents, two jobs. The PLAN frames everything, footprints included -- it must show
+    // the tarp. The "layout" NUMBER counts only the furniture, because that is what the word
+    // means everywhere else in the app (the dims HUD) -- under a 5.7m tarp, "layout 5.70 m"
+    // would be the tarp talking over the table.
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    let fx0 = Infinity, fx1 = -Infinity, fz0 = Infinity, fz1 = -Infinity;
+    for (const n of state.nodes) {
+      const a = aabb(n);
+      x0 = Math.min(x0, a.x0); x1 = Math.max(x1, a.x1);
+      z0 = Math.min(z0, a.z0); z1 = Math.max(z1, a.z1);
+      if (n.kind === "footprint") continue;
+      fx0 = Math.min(fx0, a.x0); fx1 = Math.max(fx1, a.x1);
+      fz0 = Math.min(fz0, a.z0); fz1 = Math.max(fz1, a.z1);
+    }
+
+    // ---- capture, at export resolution, selection hidden
+    const keepSel = state.sel, keepSet = state.selSet;
+    state.sel = null; state.selSet = new Set();
+    rebuild();
+
+    const heroW = 1560, heroH = 1170, planW = 640;
+    const grab = (cam, w, h) => {
+      renderer.setSize(w, h, false);
+      if (cam.isPerspectiveCamera) { cam.aspect = w / h; cam.updateProjectionMatrix(); }
+      renderer.render(scene, cam);
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(renderer.domElement, 0, 0, w, h);
+      return c;
+    };
+    const hero = grab(camera, heroW, heroH);
+
+    // The plan: straight down, orthographic, contain-fit with symmetric padding. Fog off --
+    // it is distance-based, and from 14m up it would grey the whole floor.
+    const pad = 350;
+    const spanX = (x1 - x0) + 2 * pad, spanZ = (z1 - z0) + 2 * pad;
+    const planH = Math.max(320, Math.min(640, Math.round(planW * spanZ / spanX)));
+    const mmPerPx = Math.max(spanX / planW, spanZ / planH);
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    const ortho = new THREE.OrthographicCamera(
+      -planW * mmPerPx / 2 * MM, planW * mmPerPx / 2 * MM,
+      planH * mmPerPx / 2 * MM, -planH * mmPerPx / 2 * MM, 0.01, 60);
+    ortho.position.set(cx * MM, 14, cz * MM);
+    ortho.up.set(0, 0, -1);
+    ortho.lookAt(cx * MM, 0, cz * MM);
+    const fog = scene.fog;
+    scene.fog = null;
+    const plan = grab(ortho, planW, planH);
+    scene.fog = fog;
+
+    state.sel = keepSel; state.selSet = keepSet;
+    rebuild();
+    resize();   // puts the drawing buffer and the camera's aspect back to the stage's
+
+    // ---- the bill, grouped the way paintBOM groups it
+    const rows = new Map();
+    let grams = 0;
+    for (const l of bomLines()) {
+      const p = PARTS[l.sku];
+      if (!p) continue;
+      grams += p.weight_g || 0;
+      const r = rows.get(l.sku) || { p, n: 0 };
+      r.n++;
+      rows.set(l.sku, r);
+    }
+    const bill = [...rows.values()];
+
+    // ---- compose the plate
+    const M = 48, GAP = 36, HEAD = 108;
+    const W = M + heroW + GAP + planW + M;
+    const H = M + HEAD + heroH + 96;
+    const out = document.createElement("canvas");
+    out.width = W; out.height = H;
+    const ctx = out.getContext("2d");
+    ctx.fillStyle = v("--bg", "#14161a");
+    ctx.fillRect(0, 0, W, H);
+    const faint = (a, fn) => { ctx.globalAlpha = a; fn(); ctx.globalAlpha = 1; };
+    const frame = (x, y, w, h) => { ctx.strokeStyle = LINE; ctx.lineWidth = 2; ctx.strokeRect(x - 1, y - 1, w + 2, h + 2); };
+
+    // header: the page's name, and the date it was true
+    ctx.fillStyle = INK;
+    ctx.font = `600 44px ${MONO}`;
+    ctx.fillText(activePage()?.name || "IGT layout", M, M + 46);
+    ctx.font = `26px ${MONO}`;
+    faint(.55, () => {
+      const date = new Date().toISOString().slice(0, 10);
+      ctx.fillText(date, W - M - ctx.measureText(date).width, M + 44);
+      ctx.fillText("IGT LAYOUT PLANNER", M, M + 84);
+    });
+
+    const top = M + HEAD;
+    ctx.drawImage(hero, M, top);
+    frame(M, top, heroW, heroH);
+    ctx.font = `28px ${MONO}`;
+    if (fx1 > fx0) faint(.7, () => ctx.fillText(
+      `layout ${((fx1 - fx0) / 1000).toFixed(2)} × ${((fz1 - fz0) / 1000).toFixed(2)} m`, M, top + heroH + 52));
+
+    const rx = M + heroW + GAP;
+    ctx.drawImage(plan, rx, top);
+    frame(rx, top, planW, planH);
+    // scale bar: a metre (or half of one, if the plan is tight) in the plan's own scale
+    const barMm = 1000 / mmPerPx > planW * .6 ? 500 : 1000;
+    const barPx = barMm / mmPerPx;
+    const by = top + planH + 34;
+    ctx.strokeStyle = INK; ctx.lineWidth = 2;
+    faint(.7, () => {
+      ctx.beginPath();
+      ctx.moveTo(rx, by - 6); ctx.lineTo(rx, by);
+      ctx.lineTo(rx + barPx, by); ctx.lineTo(rx + barPx, by - 6);
+      ctx.stroke();
+      ctx.font = `24px ${MONO}`;
+      ctx.fillText(barMm === 1000 ? "1 m" : "0.5 m", rx + barPx + 14, by + 2);
+    });
+
+    // the bill: what you'd carry to make the picture true
+    let ly = by + 64;
+    ctx.font = `600 26px ${MONO}`;
+    faint(.55, () => ctx.fillText("BUILD", rx, ly));
+    ly += 40;
+    ctx.font = `26px ${MONO}`;
+    const fit = s => {
+      while (ctx.measureText(s).width > planW && s.length > 4) s = s.slice(0, -2);
+      return ctx.measureText(s).width > planW - 4 ? s.slice(0, -1) + "…" : s;
+    };
+    const maxRows = Math.floor((H - M - 40 - ly) / 36);
+    for (const { p, n } of bill.slice(0, bill.length > maxRows ? maxRows - 1 : maxRows)) {
+      ctx.fillText(fit(`${n > 1 ? "×" + n + " " : ""}${p.title_en}`), rx, ly);
+      ly += 36;
+    }
+    if (bill.length > maxRows) {
+      faint(.55, () => ctx.fillText(`+ ${bill.length - (maxRows - 1)} more`, rx, ly));
+      ly += 36;
+    }
+    ly += 10;
+    const kg = grams / 1000;
+    ctx.font = `600 28px ${MONO}`;
+    ctx.fillText(`you carry ${kg.toFixed(1)} kg · ${(kg * 2.20462).toFixed(1)} lb`, rx, ly);
+
+    // ---- deliver: the share sheet on a phone (it IS "send to the group chat"), a file elsewhere
+    const blob = await new Promise(r => out.toBlob(r, "image/png"));
+    if (!deliver) return blob;
+    const fname = `igt-${(activePage()?.name || "layout").replace(/[^\w-]+/g, "_")}-`
+      + `${new Date().toISOString().slice(0, 10)}.png`;
+    const file = new File([blob], fname, { type: "image/png" });
+    if (COARSE && navigator.canShare?.({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); return blob; }
+      catch (e) { if (e.name === "AbortError") return blob; }   // cancelled IS an answer
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    note(`saved ${fname}`);
+    return blob;
+  } catch (e) { note(`photo failed — ${e.message}`, 5000); return null; }
+}
+$("pngbtn").onclick = () => exportPng();
 addEventListener("pointerdown", e => { if (!fileMenu.hidden && !fileMenu.contains(e.target)) fileMenu.hidden = true; }, true);
 
 // ---------------------------------------------------------------- the blocks shelf
@@ -4873,7 +5051,7 @@ window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
   serializeLayout, readLayout, loadLayout, saveNamed, openNamed, savedAll, blocksAll,
   saveBlock, addBlock, shareLink, exportFile,
   newPage, switchPage, deletePage, renamePage, pages: () => book,
-  renderStats, invalidate,
+  renderStats, invalidate, exportPng,
   top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); invalidate(); } };
 
 resize();

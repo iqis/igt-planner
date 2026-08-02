@@ -140,6 +140,20 @@ try {
   });
   check("a scale figure stays off the bill", figured === true, String(figured));
 
+  // the PNG plate: composes to a real image, and the screen comes back at its own size
+  const png = await page.evaluate(async () => {
+    const app = window.__igt;
+    const before = { w: app.renderStats && document.getElementById("canvas").width };
+    const blob = await app.exportPng({ deliver: false });
+    const after = document.getElementById("canvas").width;
+    if (!blob) return "no blob";
+    if (blob.type !== "image/png") return `type ${blob.type}`;
+    if (blob.size < 30000) return `only ${blob.size} bytes`;
+    if (after !== before.w) return `canvas left at ${after}, was ${before.w}`;
+    return true;
+  });
+  check("the photo plate composes", png === true, String(png));
+
   // share round-trip: serialize -> gzip -> #d= -> reload -> the design arrives as a new page
   const shared = await page.evaluate(async () => {
     const app = window.__igt;
