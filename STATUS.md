@@ -45,7 +45,12 @@ two operational steps remain, both the owner's (below).
 - ~~Layout → PNG export~~ — DONE 2026-08-02 (`26b7c47`): the "photo" button composes a plate
   (hero view + ortho plan with scale bar + grouped bill + carry weight); phone → share sheet,
   desktop → download. Smoke = 19 checks.
-- **Heat-clearance rule** is now the front of the queue.
+- **Heat-clearance rule** — MINED 2026-08-02/03, **implementation on hold by owner**. All seven
+  burner/fire manuals read (scans → fitz → images); clauses + the 4-rule proposal live in
+  `data/heat-clauses-2026-08-02.json` (local-only). The headline: clearance scales with output
+  (GS-450R/355 = 1m up/30cm around; GS-1000 = 2m/1m; GS-230 & charcoal = never under anything
+  flammable), tents are a CO red-line, CK-160 charcoal explicitly bans wood boards/gas devices
+  as IGT neighbours. When the go comes, start from the JSON's `proposed_rules` block.
 - **Heat-clearance rule** from the manuals (M) — the gas-exit rule's sibling.
 - **Real campsite pads** from the campground data (M, cross-project design chat first).
 - **Tents/shells bodies** — needs owner resources (photogrammetry of owned tents, or an
