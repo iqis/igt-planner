@@ -1,15 +1,20 @@
-# Register the keepalive as a Scheduled Task. NEEDS AN ELEVATED SHELL -- Register-ScheduledTask
-# returns "Access is denied" otherwise, which is the one step here that cannot be automated from an
-# ordinary session.
+# Register the keepalive as a Scheduled Task. No elevation needed:
 #
-#   Right-click PowerShell -> Run as administrator, then:
 #     powershell -ExecutionPolicy Bypass -File V:\projects\igt-planner\scripts\install-task.ps1
+#
+# The "NEEDS AN ELEVATED SHELL" note that sat here from 2026-07-23 to 2026-08-25 was a
+# misreading, and it cost a month of the planner being down. Register-ScheduledTask said
+# "Access is denied" because a bare -AtLogOn trigger means "when ANY user logs on" -- a
+# machine-wide trigger, which does need admin. Scoped with -User it installs from an
+# ordinary session. The error names the operation, not the offending argument.
+#
+# Install the server task first:  install-serve-task.ps1
 #
 # Everything else is already in place and survives a reboot on its own: `tailscale serve` keeps its
 # config in tailscaled's state. This task is only about serve.py itself coming back.
 
 $ErrorActionPreference = "Stop"
-$name = "IgtPlannerServe"
+$name = "IgtPlannerKeepalive"
 $script = "V:\projects\igt-planner\scripts\serve-keepalive.ps1"
 
 if (Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue) {
@@ -17,13 +22,17 @@ if (Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue) {
   Write-Output "removed the existing task first"
 }
 
-$action = New-ScheduledTaskAction -Execute "powershell.exe" `
-  -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$script`""
+# runhidden, per house policy: powershell -WindowStyle Hidden still allocates the console
+# first and flashes. The keepalive is short-lived, so the job object it brings is harmless
+# here -- the SERVER is started via Start-ScheduledTask, outside this process tree.
+$action = New-ScheduledTaskAction -Execute "V:\projects\tools\runhidden\runhidden.exe" `
+  -Argument "/name:$name powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$script`""
 
 # AtLogOn AND a repeat, which is the lesson WslKeepAlive paid for: a lone AtLogOn fired once, the
 # process was killed 19 days later, and nothing ever noticed. The repeat is what makes it a keepalive
 # rather than a starter.
-$atLogon = New-ScheduledTaskTrigger -AtLogOn
+$me = "$env:USERDOMAIN\$env:USERNAME"
+$atLogon = New-ScheduledTaskTrigger -AtLogOn -User $me
 # No -RepetitionDuration. [TimeSpan]::MaxValue serialises to P99999999DT23H59M59S and the Task
 # Scheduler rejects it outright; omitting it is "forever", and it is exactly what WslKeepAlive on
 # this machine already does (repeat=PT10M, duration empty). Copy what works here rather than invent.

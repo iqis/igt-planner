@@ -29,19 +29,29 @@ function Test-Serving {
 
 if (Test-Serving) { exit 0 }
 
-$py = (Get-Command python -ErrorAction SilentlyContinue).Source
-if (-not $py) { $py = "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe" }
-if (-not (Test-Path $py)) { throw "no python found" }
+$serveTask = 'IgtPlannerServe'
+$task = Get-ScheduledTask -TaskName $serveTask -ErrorAction SilentlyContinue
+if (-not $task) {
+  throw "$serveTask is not registered. Run: powershell -File $PSScriptRoot\install-serve-task.ps1"
+}
 
-# pythonw, not python: a console window on every logon is how a helpful thing becomes an annoying one.
-$pyw = $py -replace 'python\.exe$', 'pythonw.exe'
-if (-not (Test-Path $pyw)) { $pyw = $py }
+# Ask the SCHEDULER to start it, do not start it here. Every task on this box runs under
+# runhidden.exe, which since 2026-08-24 puts everything it spawns into a Job Object with
+# JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE -- a Start-Process here would die the moment this
+# script exits, while this task still returned 0. That silence killed :8796 for a day.
+#
+# MultipleInstances IgnoreNew means a stale Running instance makes Start a silent no-op,
+# so clear it first: we already know it is not serving.
+if ((Get-ScheduledTask -TaskName $serveTask).State -eq 'Running') {
+  Stop-ScheduledTask -TaskName $serveTask -ErrorAction SilentlyContinue
+  Start-Sleep -Milliseconds 700
+}
+Start-ScheduledTask -TaskName $serveTask
 
-Start-Process -FilePath $pyw `
-  -ArgumentList @("$Root\serve.py", "--port", "$Port") `
-  -WorkingDirectory $Root `
-  -WindowStyle Hidden
-
-Start-Sleep -Seconds 2
-if (Test-Serving) { Write-Output "igt-planner serving on 127.0.0.1:$Port" }
-else { throw "started python but nothing is listening on $Port" }
+$up = $false
+foreach ($i in 1..10) {
+  Start-Sleep -Milliseconds 800
+  if (Test-Serving) { $up = $true; break }
+}
+if ($up) { Write-Output "igt-planner serving on 127.0.0.1:$Port" }
+else { throw "started $serveTask but nothing is listening on $Port" }
