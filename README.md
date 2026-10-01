@@ -1,4 +1,6 @@
-# IGT Layout Planner
+# Siqi's IGT Planner
+
+![Siqi's IGT Planner — a Snow Peak IGT layout in 3D](web/og.png)
 
 **[igt.iqis.app](https://igt.iqis.app)** — plan a Snow Peak **Iron Grill Table** (IGT) setup
 in 3D, to the millimetre, and know it will actually go together.

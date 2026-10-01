@@ -3926,7 +3926,7 @@ async function exportPng({ deliver = true, layout = "plate", aspect = "4:3", sca
     faint(.55, () => {
       const date = new Date().toISOString().slice(0, 10);
       ctx.fillText(date, W - M - ctx.measureText(date).width, M + 44);
-      ctx.fillText("IGT Layout Planner · igt.iqis.app", M, M + 84);
+      ctx.fillText("Siqi's IGT Planner · igt.iqis.app", M, M + 84);
     });
 
     const top = M + HEAD;
@@ -4176,7 +4176,7 @@ function openPhotoCard(btn) {
 function aiPrompt(withDesign) {
   const doc = JSON.stringify(serializeLayout());
   const lines = [
-    "I'm planning a Snow Peak IGT (Iron Grill Table) camp-kitchen setup with the IGT Layout Planner.",
+    "I'm planning a Snow Peak IGT (Iron Grill Table) camp-kitchen setup with Siqi's IGT Planner.",
     `First read ${PUBLIC_SITE}/llms.txt — it explains the layout format and the rules — and use the parts catalog at ${PUBLIC_SITE}/catalog/igt-catalog.json.`,
   ];
   if (withDesign) lines.push("", "Here is my current design (planner layout JSON):", "```json", doc, "```");

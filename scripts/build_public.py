@@ -54,7 +54,7 @@ AI_PAGE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IGT Planner with AI</title>
+<title>Siqi's IGT Planner — with AI</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="description" content="Design a Snow Peak IGT layout with your own AI agent; the planner's open rules check it.">
@@ -85,7 +85,7 @@ th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(-
 </style>
 </head>
 <body>
-<nav><b>IGT Planner</b><a href="./">Open the planner</a><a href="https://github.com/iqis/igt-planner">Source</a><a href="/llms.txt">llms.txt</a></nav>
+<nav><b>Siqi's IGT Planner</b><a href="./">Open the planner</a><a href="https://github.com/iqis/igt-planner">Source</a><a href="/llms.txt">llms.txt</a></nav>
 <main>
 {{BODY}}
 </main>
