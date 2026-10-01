@@ -5024,7 +5024,7 @@ function applyTheme(t) {
   invalidate();
 }
 function initTheme() {
-  applyTheme(localStorage.getItem(THEME_KEY) || "dark");
+  applyTheme(localStorage.getItem(THEME_KEY) || "light");   // light first: the cleaner face; dark stays one click away
   $("theme").onclick = () => {
     const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
     localStorage.setItem(THEME_KEY, next);

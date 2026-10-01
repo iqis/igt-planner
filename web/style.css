@@ -22,8 +22,8 @@
   --accent-soft: rgba(216, 129, 63, .14);
   --bad-soft: rgba(226, 99, 90, .14);
   /* Two radii, drawn six ways before: controls sit on --r-ctl, floating panels on --r-pop. */
-  --r-ctl: 4px;
-  --r-pop: 6px;
+  --r-ctl: 6px;
+  --r-pop: 10px;
   --on-accent: #14161a;   /* text/glyph sitting on an accent fill */
   --ok: #5fbf8f;
   --bad: #e2635a;
@@ -44,18 +44,25 @@
      Cascadia ships with Windows Terminal without registering as a system font -- so a
      Windows Firefox fell all the way through to Courier New. Roboto/Noto cover Android. */
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, "Roboto Mono", "Noto Sans Mono", monospace;
-  font-family: var(--mono);
+  /* The UI face. Monospace everywhere read as a terminal, not a design tool; it is kept for the
+     NUMBERS (mm, part numbers, coordinates) where columns should line up, and the words get a
+     system sans -- Segoe UI Variable on Windows 11, SF on Apple, Roboto/Noto on Android, and the
+     Japanese UI faces so a JP title doesn't drop to a fallback serif. No web font: nothing to fetch. */
+  --sans: system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue",
+    "Noto Sans", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif;
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Light theme. Same structure, a paper-and-ink palette. The 3D scene reads --scene off this
    root (getComputedStyle) so the canvas follows the panels. */
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f5f6f8;
+  --bg: #f7f8fa;
   --panel: #ffffff;
-  --raise: #eceef2;
-  --line: #d5d9e0;
-  --line-soft: #e7eaef;
+  --raise: #f1f3f6;
+  --line: #e2e5ea;
+  --line-soft: #eef0f3;
   --ink: #1b1e24;
   --dim: #5b6472;
   --faint: #6e7785;      /* 4.5:1 on white; #8a93a1 was 3.1:1 */
@@ -74,8 +81,8 @@
   --info-ink: #8a5a1f;
   --caution: #c08a2e;
   --caution-ink: #8f6716;
-  --shadow: rgba(24, 34, 54, .16);
-  --scene: #e9ebee;
+  --shadow: rgba(16, 24, 40, .10);
+  --scene: #eef0f3;
   --sunken: #e4e7ea;
   --overlay: rgba(245, 246, 248, .86);
   --sel-bg: #f6ecda;
@@ -111,12 +118,14 @@ header {
   display: flex;
   align-items: baseline;
   gap: 1rem;
-  padding: .7rem 1rem;
+  align-items: center;
+  padding: .6rem 1rem;
+  background: var(--panel);
   border-bottom: 1px solid var(--line);
   flex: none;
 }
-h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
-.disclaimer { font-size: .64rem; color: var(--faint); white-space: nowrap; }
+h1 { font-size: 1rem; font-weight: 650; letter-spacing: -.01em; }
+.disclaimer { font-size: .72rem; color: var(--faint); white-space: nowrap; }
 @media (max-width: 700px) { .disclaimer { display: none; } }
 /* The one thing anyone ever clicked in the old header line. */
 .benchlink { font-size: .72rem; color: var(--dim); text-decoration: underline; text-underline-offset: 3px; }
@@ -125,12 +134,12 @@ h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
    margins would SPLIT the free space and push the pair apart instead of grouping them. */
 #groundsel {
   margin-left: auto;
-  font: .68rem var(--mono);
+  font: .78rem var(--sans);
   color: var(--dim);
-  background: var(--raise);
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--r-ctl);
-  padding: .25rem .4rem;
+  padding: .32rem .5rem;
   cursor: pointer;
 }
 #groundsel:hover { color: var(--ink); }
@@ -143,31 +152,30 @@ h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
   display: flex;
   align-items: stretch;
   gap: 3px;
-  padding: .3rem .7rem 0;
+  padding: 0 .7rem;
   border-bottom: 1px solid var(--line);
-  background: var(--bg);
+  background: var(--panel);
   overflow-x: auto;
 }
 #pager .ptab {
   display: inline-flex; align-items: center; gap: .4rem;
-  font: .7rem var(--mono);
+  font: .78rem var(--sans);
   color: var(--dim);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-bottom: none;
-  border-radius: var(--r-ctl) var(--r-ctl) 0 0;
-  padding: .3rem .6rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: .4rem .7rem .35rem;
   cursor: pointer;
   white-space: nowrap;
   max-width: 220px;
 }
-#pager .ptab:hover { color: var(--ink); background: var(--raise); }
-#pager .ptab.on { color: var(--ink); box-shadow: inset 0 2px 0 var(--accent); }
+#pager .ptab:hover { color: var(--ink); }
+#pager .ptab.on { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
 #pager .pname { overflow: hidden; text-overflow: ellipsis; }
 #pager .pclose { color: var(--faint); font-size: .85rem; line-height: 1; border-radius: 3px; padding: 0 .15rem; }
 #pager .pclose:hover { color: var(--bad); background: var(--raise); }
 #pager .padd {
-  font: .9rem var(--mono); color: var(--dim);
+  font: 1rem var(--sans); color: var(--dim);
   background: transparent; border: none; cursor: pointer;
   padding: .2rem .55rem; align-self: center;
 }
@@ -181,7 +189,7 @@ h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
 main {
   flex: 1;
   display: grid;
-  grid-template-columns: 250px 1fr 330px;
+  grid-template-columns: 280px 1fr 330px;
   /* minmax(0, 1fr), not auto: the implicit auto row sizes to its CONTENT, and the canvas's
      backing store -- set from a boot-time measurement taken before the pager populated --
      became that content's min-height. The stage overflowed main by the pager's height and
@@ -191,12 +199,12 @@ main {
 }
 /* Either side panel folds away to a thin strip, so the viewport can have the room. */
 main.left-collapsed  { grid-template-columns: 22px 1fr 330px; }
-main.right-collapsed { grid-template-columns: 250px 1fr 22px; }
+main.right-collapsed { grid-template-columns: 280px 1fr 22px; }
 main.left-collapsed.right-collapsed { grid-template-columns: 22px 1fr 22px; }
 
 aside {
   overflow-y: auto;
-  padding: .8rem;
+  padding: 1rem;
   background: var(--panel);
   position: relative;
 }
@@ -211,9 +219,9 @@ aside.collapsed > *:not(.panel-toggle) { display: none; }
   top: .45rem;
   width: 16px; height: 26px;
   display: grid; place-items: center;
-  font: .7rem var(--mono);
+  font: .75rem var(--sans);
   color: var(--faint);
-  background: var(--raise);
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--r-ctl);
   cursor: pointer;
@@ -226,31 +234,35 @@ aside.collapsed .panel-toggle { left: 50%; transform: translateX(-50%); right: a
 
 section { margin-bottom: 1.1rem; }
 h2 {
-  font-size: .68rem;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--dim);
-  margin-bottom: .45rem;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: .5rem;
 }
-.hint { text-transform: none; letter-spacing: 0; color: var(--faint); }
+.hint { font-weight: 400; color: var(--faint); font-size: .74rem; }
 
 /* Collapsible library categories. Click a header to fold it; during a search every body is forced
    open (see .searching) so matches are never hidden behind a collapsed section. */
 .cathead { cursor: pointer; user-select: none; display: flex; align-items: baseline; gap: .35rem; }
+/* One line per head: the name holds, the hint after it gives way with an ellipsis. Wrapping put
+   "Hook-on / boards" over two lines beside a two-line hint -- four lines of label for one list. */
+.cathead { white-space: nowrap; }
+.cathead .hint { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cathead .catcount { flex: none; }
 .cathead:hover { color: var(--ink); }
-.caret { font-size: .64rem; color: var(--faint); transition: transform .12s; }
+.caret { font-size: .7rem; color: var(--faint); transition: transform .12s; }
 .cat.collapsed .caret { transform: rotate(-90deg); display: inline-block; }
 .cat.collapsed .catbody { display: none; }
 /* Count of parts in the category, right-aligned so the numbers line up down the panel edge. */
-.catcount { margin-left: auto; font-size: .64rem; color: var(--faint);
-  letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.catcount { margin-left: auto; font-size: .72rem; font-weight: 400; color: var(--faint);
+  font-variant-numeric: tabular-nums; }
 
 /* Super-group divider: one tier ABOVE the foldable category heads. A label with a rule trailing off
    it, so it reads as a phase of the build, never as another category you can click to collapse. */
 .catgroup {
   display: flex; align-items: center; gap: .55rem;
-  font-size: .62rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
-  color: var(--faint); margin: 1.5rem 0 .8rem;
+  font-size: .72rem; font-weight: 500;
+  color: var(--faint); margin: 1.6rem 0 .7rem;
 }
 .catgroup::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .catgroup:first-of-type { margin-top: .35rem; }
@@ -258,54 +270,54 @@ h2 {
 #palette.searching .catbody { display: block; }
 #palette.searching .cat.empty { display: none; }   /* hide categories with no match while searching */
 #palette.searching .catgroup { display: none; }     /* the results view is a flat list -- no phase labels */
-.searchcount { font-size: .64rem; color: var(--faint); margin: -.3rem 0 .5rem; }
+.searchcount { font-size: .72rem; color: var(--faint); margin: -.3rem 0 .6rem; }
 
 /* Find a part by name or number -- used in both the planner palette and the bench list. */
 .search {
   width: 100%;
-  padding: .38rem .5rem;
-  margin-bottom: .6rem;
-  font: .72rem var(--mono);
+  padding: .5rem .65rem;
+  margin-bottom: .7rem;
+  font: .82rem var(--sans);
   border: 1px solid var(--line);
   border-radius: var(--r-ctl);
-  background: var(--raise);
+  background: var(--panel);
   color: var(--ink);
 }
 .search::placeholder { color: var(--faint); }
 .search:focus { border-color: var(--accent); }   /* the global :focus-visible draws the outline */
 
-.chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+.chips { display: flex; flex-wrap: wrap; gap: .35rem; }
 .chip {
-  padding: .3rem .5rem;
-  font-size: .72rem;
+  padding: .32rem .6rem;
+  font: .78rem var(--sans);
   border: 1px solid var(--line);
   border-radius: var(--r-ctl);
-  background: var(--raise);
+  background: var(--panel);
   color: var(--ink);
   cursor: pointer;
 }
-.chip:hover { border-color: var(--accent); }
+.chip:hover { background: var(--raise); }
 .chip.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 .chip.dead { opacity: .35; cursor: not-allowed; }
-.chip.dead:hover { border-color: var(--line); }
+.chip.dead:hover { background: var(--panel); }
 
-.parts { display: flex; flex-direction: column; gap: .25rem; }
+.parts { display: flex; flex-direction: column; gap: 1px; }
 .part {
   display: flex;
   align-items: center;
-  gap: .5rem;
-  padding: .35rem .45rem;
-  font-size: .72rem;
+  gap: .6rem;
+  padding: .42rem .5rem;
+  font-size: .82rem;
   border: 1px solid transparent;
   border-radius: var(--r-ctl);
-  background: var(--raise);
+  background: transparent;
   cursor: pointer;
 }
-.part:hover { border-color: var(--accent); }
-.part.on { border-color: var(--accent); }
-.part .sw { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.part:hover { background: var(--raise); }
+.part.on { background: var(--accent-soft); }
+.part .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08); }
 .part .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.part .sp { color: var(--dim); font-size: .66rem; flex: none; }
+.part .sp { color: var(--faint); font: .72rem var(--mono); flex: none; }
 .part.dead { opacity: .35; cursor: not-allowed; }
 /* The manual lists specific hosts and this one is not among them -- but the whitelist may
    simply predate it (the collapsible frames are omitted yet fit). A caution, not a block. */
@@ -314,7 +326,7 @@ h2 {
 /* A placed-footprint row: click the name to select (works even when the layer is locked), × to remove. */
 .part .del { color: var(--dim); font-size: .85rem; line-height: 1; flex: none; padding: .1rem .3rem; border-radius: 3px; cursor: pointer; }
 .part .del:hover { color: var(--bad); background: var(--bad-soft); }
-.subhead { font-size: .64rem; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); margin: .55rem 0 .15rem; }
+.subhead { font-size: .72rem; font-weight: 500; color: var(--faint); margin: .6rem 0 .2rem; }
 
 /* The scene outliner: the placed objects as a tree, nested by what hooks onto what. Click a row to
    select it in the 3D view (and get its floating toolbar); the × removes it and its children. */
@@ -323,23 +335,22 @@ h2 {
   display: flex;
   align-items: center;
   gap: .4rem;
-  padding: .28rem .35rem;
-  font-size: .7rem;
+  padding: .38rem .45rem;
+  font-size: .8rem;
   border: 1px solid transparent;
   border-radius: var(--r-ctl);
   cursor: pointer;
 }
 .tree-row:hover, .tree-row.hover { background: var(--raise); }
-.tree-row.hover { border-color: var(--line); }
-.tree-row.on { border-color: var(--accent); background: var(--sel-bg); }
+.tree-row.on { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
 .tree-row .tw { color: var(--faint); flex: none; width: 1em; text-align: center; }
-.tree-row .sw { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.tree-row .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
 .tree-row .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-row.module .nm { color: var(--dim); }
 .tree-row .del { color: var(--faint); font-size: .82rem; line-height: 1; flex: none; padding: 0 .25rem; border-radius: 3px; opacity: 0; }
 .tree-row:hover .del { opacity: 1; }
 .tree-row .del:hover { color: var(--bad); background: var(--warn-bg); }
-.tree-empty { font-size: .68rem; color: var(--faint); padding: .3rem .1rem; }
+.tree-empty { font-size: .76rem; color: var(--faint); padding: .3rem .1rem; }
 
 #stage { position: relative; min-width: 0; }
 #canvas { width: 100%; height: 100%; display: block; }
@@ -370,7 +381,8 @@ h2 {
 }
 #dimhud[hidden] { display: none; }
 #dimhud {
-  font-size: .66rem;
+  font-size: .74rem;
+  font-variant-numeric: tabular-nums;
   color: var(--dim);
   pointer-events: none;
   line-height: 1.5;
@@ -405,7 +417,7 @@ h2 {
 .cell.over { background: var(--bad); }
 
 #hint {
-  font-size: .66rem;
+  font-size: .74rem;
   color: var(--faint);
 }
 
@@ -416,21 +428,20 @@ h2 {
   right: .7rem; bottom: .7rem;
   display: flex;
   gap: 2px;
-  padding: 3px;
+  padding: 4px;
   background: var(--panel);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-soft);
   border-radius: var(--r-pop);
-  box-shadow: 0 3px 12px var(--shadow);
+  box-shadow: 0 4px 18px var(--shadow);
   z-index: 4;
 }
 #viewnav button {
-  font: .64rem var(--mono);
-  text-transform: uppercase; letter-spacing: .04em;
+  font: .76rem var(--sans);
   color: var(--dim);
   background: transparent;
   border: none;
   border-radius: var(--r-ctl);
-  padding: .28rem .45rem;
+  padding: .32rem .55rem;
   cursor: pointer;
 }
 #viewnav button:hover { background: var(--raise); color: var(--ink); }
@@ -518,25 +529,26 @@ h2 {
 
 /* Fixed layout, or a long part name ("IGT Standing Height 830mm Leg Set") shoves
    the price column clean out of the panel. */
-#bomtable { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .72rem; }
-#bomtable td { padding: .3rem .2rem; border-bottom: 1px solid var(--line-soft); }
+#bomtable { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .8rem; }
+#bomtable td { padding: .42rem .2rem; border-bottom: 1px solid var(--line-soft); }
 /* The count column. The BOM no longer deletes -- the scene tree above it already does, and one
    object with two delete buttons in one panel is a panel nobody re-read. */
 #bomtable .qty { color: var(--dim); width: 1.9rem; text-align: right; padding-right: .3rem; white-space: nowrap; }
 #bomtable .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#bomtable .p { text-align: right; color: var(--dim); white-space: nowrap; width: 3.4rem; }
+#bomtable .p { text-align: right; color: var(--dim); white-space: nowrap; width: 3.8rem; font-variant-numeric: tabular-nums; }
 
-#totals { margin-top: .7rem; font-size: .72rem; }
+#totals { margin-top: .8rem; font-size: .8rem; font-variant-numeric: tabular-nums; }
 #totals .row { display: flex; justify-content: space-between; padding: .2rem 0; }
 #totals .row.big { border-top: 1px solid var(--line); margin-top: .3rem; padding-top: .4rem; }
-#totals .note { color: var(--faint); font-size: .66rem; margin-top: .5rem; line-height: 1.45; }
+#totals .note { color: var(--faint); font-size: .74rem; margin-top: .6rem; line-height: 1.5; }
 
 #warnings { margin-bottom: .6rem; }
 .warn {
-  font-size: .69rem;
-  padding: .4rem .5rem;
-  margin-bottom: .3rem;
-  border-left: 2px solid var(--bad);
+  font-size: .76rem;
+  padding: .5rem .65rem;
+  margin-bottom: .4rem;
+  border-radius: var(--r-ctl);
+  border-left: 3px solid var(--bad);
   background: var(--warn-bg);
   color: var(--warn-ink);
   line-height: 1.4;
@@ -568,7 +580,7 @@ h2 {
   .stagefoot { right: .7rem; bottom: 4.6rem; }
   #slotbar { bottom: 7rem; }
   /* Three header rows ("IGT / LAYOUT / PLANNER") spent the height the panels are starving for. */
-  header h1 { white-space: nowrap; font-size: .8rem; }
+  header h1 { white-space: nowrap; font-size: .9rem; }
 }
 
 /* Hover an edge, get a button; press it, get the parts that can hook there. The button is
@@ -612,8 +624,7 @@ h2 {
   gap: .25rem;
 }
 #edgemenu .mhead {
-  font-size: .64rem;
-  letter-spacing: .04em;
+  font-size: .74rem;
   color: var(--faint);
   padding: .1rem .1rem .25rem;
   line-height: 1.35;
@@ -629,16 +640,16 @@ h2 {
   gap: 2px;
   padding: 3px;
   background: var(--panel);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-soft);
   border-radius: var(--r-pop);
-  box-shadow: 0 4px 16px var(--shadow);
+  box-shadow: 0 6px 24px var(--shadow);
   z-index: 6;
 }
 #seltools button {
   display: grid;
   place-items: center;
-  width: 28px; height: 28px;
-  font: 14px/1 var(--mono);
+  width: 30px; height: 30px;
+  font: 14px/1 var(--sans);
   color: var(--ink);
   background: transparent;
   border: none;
@@ -648,7 +659,7 @@ h2 {
 #seltools button:hover { background: var(--raise); }
 #seltools button.danger:hover { background: var(--warn-bg); color: var(--warn-ink); }
 #seltools .sep { width: 1px; background: var(--line); margin: 4px 1px; }
-#seltools .count { font-size: .66rem; color: var(--dim); padding: 0 .5rem; align-self: center; white-space: nowrap; }
+#seltools .count { font-size: .76rem; color: var(--dim); padding: 0 .5rem; align-self: center; white-space: nowrap; }
 
 #replacemenu, #toolpop {
   position: absolute;
@@ -673,10 +684,10 @@ h2 {
   #edgemenu, #replacemenu, #toolpop { max-height: 45vh; }
 }
 #replacemenu .mhead, #toolpop .mhead {
-  font-size: .64rem; letter-spacing: .04em; color: var(--faint);
+  font-size: .74rem; color: var(--faint);
   padding: .1rem .1rem .3rem; line-height: 1.35;
 }
-#seltools button.wide { width: auto; padding: 0 .4rem; font-size: .68rem; }
+#seltools button.wide { width: auto; padding: 0 .55rem; font-size: .78rem; }
 
 /* A menu row carries only a swatch, a name and a span. Passing over it opens this card
    beside the menu with the thumbnail and the numbers that would not fit -- name, sku,
@@ -692,7 +703,7 @@ h2 {
   box-shadow: 0 8px 26px var(--shadow);
   z-index: 7;
   pointer-events: none;
-  font-size: .68rem;
+  font-size: .76rem;
 }
 #preview img {
   width: 100%;
@@ -705,7 +716,7 @@ h2 {
 #preview .pv-name { color: var(--ink); font-weight: 600; line-height: 1.3; margin-bottom: .2rem; }
 #preview .pv-row { display: flex; justify-content: space-between; gap: .5rem; color: var(--dim); padding: .08rem 0; }
 #preview .pv-row b { color: var(--ink); font-weight: 600; }
-#preview .pv-sku { color: var(--faint); }
+#preview .pv-sku { color: var(--faint); font-family: var(--mono); }
 
 /* Right-click / long-press a placed module: a little action menu at the pointer. */
 #modmenu[hidden] { display: none; }
@@ -723,16 +734,16 @@ h2 {
   gap: .2rem;
 }
 #modmenu .mhead {
-  font-size: .64rem; color: var(--faint);
+  font-size: .74rem; color: var(--faint);
   padding: .15rem .3rem .25rem; line-height: 1.3;
 }
 #modmenu .act {
   display: flex; align-items: center; gap: .4rem;
-  padding: .35rem .45rem; font-size: .72rem;
+  padding: .42rem .5rem; font-size: .8rem;
   border: 1px solid transparent; border-radius: var(--r-ctl);
-  background: var(--raise); cursor: pointer;
+  background: transparent; cursor: pointer;
 }
-#modmenu .act:hover { border-color: var(--accent); }
+#modmenu .act:hover { background: var(--raise); }
 #modmenu .act.on { border-color: var(--accent); background: var(--sel-bg); font-weight: 600; }
 #modmenu .act.del:hover { background: var(--warn-bg); color: var(--warn-ink); border-color: var(--bad); }
 
@@ -741,20 +752,20 @@ h2 {
 #hint b { color: var(--accent); font-weight: 600; }
 a { color: var(--accent); }
 h3 {
-  font-size: .64rem; letter-spacing: .08em; text-transform: uppercase;
+  font-size: .74rem; font-weight: 500;
   color: var(--faint); margin: .6rem 0 .3rem;
 }
 .selbox { border-top: 1px solid var(--line); padding-top: .8rem; }
-#selname { text-transform: none; letter-spacing: 0; color: var(--accent); }
+#selname { color: var(--accent); font-weight: 600; }
 
 /* Numeric placement of the selected free object. */
 #transform[hidden] { display: none; }
 .xform { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-.xform label { display: flex; align-items: center; gap: .3rem; font-size: .68rem; color: var(--dim); }
+.xform label { display: flex; align-items: center; gap: .3rem; font-size: .76rem; color: var(--dim); }
 .xform input {
-  width: 3.6rem;
-  font: .7rem var(--mono);
-  color: var(--ink); background: var(--raise);
+  width: 3.9rem;
+  font: .76rem var(--mono);
+  color: var(--ink); background: var(--panel);
   border: 1px solid var(--line); border-radius: var(--r-ctl);
   padding: .2rem .3rem;
 }
@@ -777,8 +788,7 @@ h3 {
   box-shadow: 0 8px 28px var(--shadow);
 }
 #filemenu .fhead {
-  font: .64rem var(--mono);
-  text-transform: uppercase; letter-spacing: .08em;
+  font: 600 .74rem var(--sans);
   color: var(--dim);
   padding: .5rem .5rem .25rem;
 }
@@ -787,14 +797,14 @@ h3 {
   padding: .38rem .5rem;
   border-radius: var(--r-ctl);
   cursor: pointer;
-  font-size: .78rem;
+  font-size: .84rem;
 }
 #filemenu .frow:hover { background: var(--raise); }
-#filemenu .fsub { margin-left: auto; font-size: .64rem; color: var(--dim); }
+#filemenu .fsub { margin-left: auto; font-size: .72rem; color: var(--dim); }
 /* The true thing about localStorage, where the word "save" is -- not in a help page nobody opens. */
 #filemenu .fnote {
   padding: .5rem;
-  font-size: .64rem; line-height: 1.45;
+  font-size: .74rem; line-height: 1.5;
   color: var(--dim);
   border-top: 1px solid var(--line);
   margin-top: .25rem;
@@ -816,12 +826,12 @@ h3 {
   transform: translateX(-50%);
   z-index: 12;
   max-width: min(70ch, 90%);
-  padding: .45rem .8rem;
-  font-size: .74rem;
+  padding: .5rem .9rem;
+  font-size: .8rem;
   background: var(--panel);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-soft);
   border-radius: var(--r-pop);
-  box-shadow: 0 4px 16px var(--shadow);
+  box-shadow: 0 6px 24px var(--shadow);
 }
 @media (pointer: coarse) {
   #filemenu .frow { padding: .7rem .5rem; }
