@@ -4241,6 +4241,11 @@ function openAiCard(btn) {
   });
 }
 
+// About. A click on the backdrop (the dialog element itself, outside its box) closes it too.
+const infoModal = $("infomodal");
+$("infobtn").onclick = () => { closeCard(); infoModal.showModal(); };
+infoModal.addEventListener("click", e => { if (e.target === infoModal) infoModal.close(); });
+$("infomodal").querySelector(".iclose").innerHTML = icon("x");
 $("sharebtn").onclick = e => { e.stopPropagation(); openShareCard(e.currentTarget); };
 $("pngbtn").onclick = e => { e.stopPropagation(); openPhotoCard(e.currentTarget); };
 // The AI link stays a real link (middle-click, open in new tab still go to the guide); a plain click
@@ -4490,6 +4495,7 @@ for (const [id, html] of [
   ["filebtn", `${icon("folder")}<span>layouts</span>`], ["sharebtn", `${icon("share")}<span>share</span>`],
   ["pngbtn", `${icon("camera")}<span>photo</span>`],
   ["undo", icon("undo")], ["redo", icon("redo")], ["edgebtn", icon("plus", 15)],
+  ["infobtn", icon("info")],
   ["bandtool", `${icon("select")}<span>select</span>`], ["rulertool", `${icon("ruler")}<span>measure</span>`],
 ]) { const el = $(id); if (el) el.innerHTML = html; }
 { const fit = document.querySelector('#viewnav [data-view="fit"]'); if (fit) fit.innerHTML = `${icon("fit")}<span>fit</span>`; }

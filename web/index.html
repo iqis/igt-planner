@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#14161a">
 <title>IGT Layout Planner</title>
-<!-- A 4-unit frame from above. Inline so the tab has a face without another request
-     (and without a favicon.ico 404 opening every console session). -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231b1e24'/%3E%3Crect x='5' y='11' width='22' height='10' fill='none' stroke='%232563eb' stroke-width='2'/%3E%3Cpath d='M10.5 12v8M16 12v8M21.5 12v8' stroke='%232563eb' stroke-width='1'/%3E%3C/svg%3E">
+<!-- A 4-unit frame from above with a flame in its bay (web/favicon.svg); icon-180.png is the
+     full-bleed home-screen version. Declared, so no favicon.ico 404 opens every console session. -->
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
 <link rel="stylesheet" href="style.css">
 <script type="importmap">
 {
@@ -50,12 +51,73 @@
     <a class="hlink ai" href="https://igt.iqis.app/web/ai" title="design with your own AI agent — the planner's rules check its work">✦ Use with AI</a>
     <a class="hlink gh" href="https://github.com/iqis/igt-planner" title="source on GitHub — MIT licensed" aria-label="source on GitHub"><svg viewBox="0 0 16 16" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
   </nav>
+  <button id="infobtn" class="chip" title="about, getting started, keys" aria-label="about">i</button>
   <button id="theme" class="chip" title="light / dark theme">☾</button>
 </header>
 <!-- The layouts menu. localStorage is a cache, so the panel says so where the word "save" is. -->
 <div id="filemenu" hidden></div>
 <!-- The header cards (AI, photo, share): one popover, rebuilt for whichever button opened it. -->
 <div id="popcard" hidden></div>
+<!-- About: what this is, how to start, the keys, where the data comes from, what is kept where. A native
+     <dialog>: Esc, focus trapping and the backdrop come with it. -->
+<dialog id="infomodal" aria-labelledby="infotitle">
+  <form method="dialog" class="ihead">
+    <h2 id="infotitle">IGT Layout Planner</h2>
+    <button class="iclose" value="close" aria-label="close" title="close (Esc)">×</button>
+  </form>
+  <div class="ibody">
+    <p class="ilead">Plan a Snow Peak <b>Iron Grill Table</b> setup in 3D, to the millimetre — and know it will
+      actually go together. Every part sits where its real hooks, brackets and slots put it, and the
+      planner tells you what doesn't fit, what the manuals forbid, and what the whole kit weighs.</p>
+
+    <h3>Getting started</h3>
+    <ol>
+      <li><b>Pick a frame</b> from the library on the left (or start from the one already there).</li>
+      <li><b>Click a frame</b> in the view: blue dots mark every edge something can hook onto, and the
+        slots inside take burners and trays. Click a dot to see what fits there.</li>
+      <li><b>Read the Build panel</b> on the right: the parts you'd carry, their weight, and anything to fix.</li>
+    </ol>
+    <p>Each tab is its own design, with its own scene. <b>Share</b> sends a link that carries the whole
+      design; <b>Photo</b> makes a picture of it; <b>Use with AI</b> lets your own assistant design one.</p>
+
+    <h3>Keys</h3>
+    <div class="ikeys">
+      <span><kbd>Ctrl</kbd> <kbd>Z</kbd></span><span>undo</span>
+      <span><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></span><span>redo</span>
+      <span><kbd>Del</kbd></span><span>delete the selection</span>
+      <span><kbd>Ctrl</kbd> <kbd>D</kbd></span><span>duplicate</span>
+      <span><kbd>R</kbd></span><span>rotate 90°</span>
+      <span><kbd>F</kbd></span><span>frame the selection, or fit everything</span>
+      <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>0</kbd></span><span>top · front · side · iso view</span>
+      <span><kbd>B</kbd></span><span>box select</span>
+      <span><kbd>M</kbd></span><span>measure</span>
+      <span><kbd>Ctrl</kbd> <kbd>F</kbd> or <kbd>/</kbd></span><span>search the parts</span>
+      <span><kbd>Shift</kbd> + click</span><span>add to the selection</span>
+      <span>drag · right-drag · scroll</span><span>turn · pan · zoom</span>
+    </div>
+
+    <h3>Your designs</h3>
+    <p>Everything stays <b>in this browser</b>: no account, no server copy, no tracking. Clearing the
+      site's data clears your pages — use <b>layouts → export</b> to keep a file. A share link carries
+      the design inside the link itself.</p>
+
+    <h3>The data</h3>
+    <p>Dimensions, weights, the 250mm unit grid and the attachment rules are compiled from Snow Peak's
+      public product pages and assembly manuals; every derived rule cites its source. Where the planner
+      cannot confirm something it says so rather than guess. This is an independent project, <b>not
+      affiliated with Snow Peak</b>; product names are used only to say what each part is.</p>
+
+    <h3>Open source</h3>
+    <p>MIT licensed — <a href="https://github.com/iqis/igt-planner" target="_blank" rel="noopener">source on GitHub</a>.
+      Found a part that's wrong, or a combination it should allow?
+      <a href="https://github.com/iqis/igt-planner/issues" target="_blank" rel="noopener">Open an issue</a>.</p>
+    <p class="icredits">Built with <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> (MIT),
+      icons from <a href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a> (ISC) and
+      <a href="https://simpleicons.org" target="_blank" rel="noopener">Simple Icons</a> (CC0),
+      QR codes by <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">qrcode-generator</a> (MIT).
+      “QR Code” is a registered trademark of DENSO WAVE.</p>
+  </div>
+</dialog>
 
 <!-- Pages: a strip of tabs, each a whole independent design. The active one is what's on the canvas;
      the rest wait in localStorage. New / rename (double-click) / delete live on the tabs themselves. -->
@@ -71,8 +133,6 @@
     <input id="palsearch" class="search" type="search" placeholder="search: name, CK-149, 2u, 日本語" autocomplete="off">
     <div id="searchcount" class="searchcount" hidden></div>
     <div class="chips" id="undobar">
-      <button id="undo" class="chip" title="undo — Ctrl+Z" disabled>↶ undo</button>
-      <button id="redo" class="chip" title="redo — Ctrl+Shift+Z" disabled>↷ redo</button>
       <button id="foldall" class="chip" title="fold every category / open them all">⊟ fold all</button>
     </div>
 
@@ -175,11 +235,18 @@
 
   <div id="stage">
     <canvas id="canvas"></canvas>
-    <!-- The scene: where this page is set. On the view it changes, saved with the page. -->
-    <label id="scenechip" title="where this page is set — a plain ground, or a place with a horizon. Saved with the page.">
-      <span class="scico"></span>
-      <select id="groundsel"></select>
-    </label>
+    <!-- Top-left of the view: undo / redo where the work is (they hid as two small icons in the parts
+         panel), and the scene -- where this page is set, saved with the page. -->
+    <div id="viewtop">
+      <div class="vgroup">
+        <button id="undo" title="undo  (Ctrl+Z)" aria-label="undo" disabled>undo</button>
+        <button id="redo" title="redo  (Ctrl+Shift+Z)" aria-label="redo" disabled>redo</button>
+      </div>
+      <label id="scenechip" title="where this page is set — a plain ground, or a place with a horizon. Saved with the page.">
+        <span class="scico"></span>
+        <select id="groundsel"></select>
+      </label>
+    </div>
     <!-- Rubber-band select: drag on empty ground to sweep up everything inside. -->
     <div id="marquee" hidden></div>
     <div id="slotbar" title="half-slot occupancy of the selected frame"></div>

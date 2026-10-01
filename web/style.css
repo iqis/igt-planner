@@ -179,8 +179,20 @@ h1 { font-size: 1rem; font-weight: 650; letter-spacing: -.01em; }
 }
 /* The scene picker rides on the view, top-left: a floating pill like the view bar's, so it reads as a
    control OF the picture. The select inside keeps native behaviour (keyboard, phone wheel picker). */
+#viewtop { position: absolute; top: .7rem; left: .7rem; z-index: 4; display: flex; gap: .5rem; align-items: stretch; }
+#viewtop .vgroup {
+  display: inline-flex; padding: 2px; gap: 2px;
+  background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--r-pop);
+  box-shadow: 0 4px 18px var(--shadow);
+}
+#viewtop .vgroup button {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 32px;
+  border: none; background: none; color: var(--ink); border-radius: var(--r-ctl); cursor: pointer; padding: .3rem .45rem;
+}
+#viewtop .vgroup button:hover:not(:disabled) { background: var(--raise); }
+#viewtop .vgroup button:disabled { color: var(--faint); opacity: .5; cursor: default; }
+@media (pointer: coarse) { #viewtop .vgroup button { min-width: 44px; min-height: 40px; } }
 #scenechip {
-  position: absolute; top: .7rem; left: .7rem; z-index: 4;
   display: inline-flex; align-items: center; gap: .35rem;
   padding: 2px 2px 2px .55rem;
   background: var(--panel); color: var(--dim);
@@ -734,7 +746,7 @@ h2 {
 }
 /* Header chips, view bar, page tabs: icon + word in a row. */
 .chip, #viewnav button, #edgebtn { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; }
-#undo, #redo, #foldall, #theme { padding: .32rem .45rem; }
+#foldall, #theme, #infobtn { padding: .32rem .45rem; }
 #pager .pclose, #pager .padd, .del, .fdel, .rlabel button { display: inline-flex; align-items: center; justify-content: center; }
 
 /* A menu row carries only a swatch, a name and a span. Passing over it opens this card
@@ -985,3 +997,29 @@ h3 {
 .wgroup.check .witem { border-left-color: var(--caution); }
 .wgroup.added .witem { border-left-color: var(--accent); }
 .wgroup.note .witem { color: var(--dim); }
+
+/* ---- about ------------------------------------------------------------------------------------- */
+#infomodal {
+  margin: auto;          /* the global * { margin: 0 } reset strips the dialog's own centring */
+  width: min(560px, calc(100vw - 24px)); max-height: min(80vh, 760px);
+  padding: 0; border: 1px solid var(--line-soft); border-radius: var(--r-pop);
+  background: var(--panel); color: var(--ink); box-shadow: 0 24px 60px var(--shadow);
+  font: .84rem/1.55 var(--sans);
+}
+#infomodal::backdrop { background: rgba(10, 14, 22, .38); }
+#infomodal[open] { display: flex; flex-direction: column; }
+.ihead { display: flex; align-items: center; justify-content: space-between; padding: .9rem 1.1rem .5rem; }
+.ihead h2 { font-size: 1.05rem; font-weight: 650; margin: 0; color: var(--ink); }
+.iclose { display: inline-flex; border: none; background: none; color: var(--dim); cursor: pointer; padding: .25rem; border-radius: var(--r-ctl); }
+.iclose:hover { background: var(--raise); color: var(--ink); }
+.ibody { overflow-y: auto; padding: 0 1.1rem 1.1rem; }
+.ibody p { margin: .4rem 0; color: var(--ink); }
+.ibody .ilead { color: var(--dim); }
+.ibody h3 { font-size: .8rem; font-weight: 650; color: var(--ink); margin: 1.1rem 0 .3rem; }
+.ibody ol { margin: .2rem 0 .4rem 1.2rem; padding: 0; }
+.ibody li { margin: .25rem 0; }
+.ibody a { color: var(--accent); }
+.ikeys { display: grid; grid-template-columns: max-content 1fr; gap: .3rem 1rem; align-items: center; font-size: .8rem; color: var(--dim); }
+.ikeys > span:nth-child(odd) { color: var(--ink); white-space: nowrap; }
+kbd { font: .72rem var(--mono); padding: .05rem .35rem; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--raise); color: var(--ink); }
+.icredits { font-size: .74rem; color: var(--faint) !important; margin-top: .8rem !important; }

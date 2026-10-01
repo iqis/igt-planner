@@ -55,6 +55,8 @@ AI_PAGE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>IGT Planner with AI</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
 <meta name="description" content="Design a Snow Peak IGT layout with your own AI agent; the planner's open rules check it.">
 <style>
 :root { color-scheme: light dark; --bg: #f7f8fa; --panel: #fff; --ink: #1b1e24; --dim: #5b6472;
