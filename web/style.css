@@ -1146,7 +1146,7 @@ body.compact.land #slotbar { bottom: 3.6rem; }
 .brand { display: inline-flex; align-items: center; gap: .55rem; letter-spacing: 0; text-transform: none; }
 .brand img { display: block; flex: none; }
 .bname { display: flex; flex-direction: column; line-height: 1.05; }
-.bname small { font-size: .68em; font-weight: 500; color: var(--dim); }
+.bname small { font-size: .6em; font-weight: 500; color: var(--dim); }
 .bname > span { font-weight: 650; letter-spacing: -.01em; }
 header h1.brand { font-size: 1.02rem; }
 body.compact header h1.brand { font-size: .95rem; gap: .45rem; }

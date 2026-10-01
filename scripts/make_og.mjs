@@ -49,7 +49,7 @@ try {
     .lock { display: flex; align-items: center; gap: 22px; }
     .lock svg { width: 92px; height: 92px; flex: none; }
     .name { display: flex; flex-direction: column; line-height: 1.02; }
-    .name small { font-size: 30px; font-weight: 500; opacity: .72; }
+    .name small { font-size: 25px; font-weight: 500; opacity: .7; }
     .name b { font-size: 60px; font-weight: 650; letter-spacing: -.01em; }
     .tag { font-size: 30px; line-height: 1.35; color: rgba(255,255,255,.9); max-width: 520px; }
     .url { font-size: 22px; color: rgba(255,255,255,.62); letter-spacing: .02em; }
