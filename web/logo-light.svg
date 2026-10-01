@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The favicon's light twin, for the header and About in light mode: same frame and flame on a
+       pale tile, rails in ink instead of white. The tab icon stays favicon.svg. -->
+  <rect width="32" height="32" rx="7" fill="#eef2f8"/>
+  <rect x=".5" y=".5" width="31" height="31" rx="6.5" fill="none" stroke="#172033" stroke-opacity=".14"/>
+  <rect x="4.6" y="9.2" width="22.8" height="13.6" rx="1.6" fill="none" stroke="#334155" stroke-width="2.2"/>
+  <rect x="3.6" y="8.7" width="3.4" height="14.6" rx="1.1" fill="#2563eb"/>
+  <rect x="25" y="8.7" width="3.4" height="14.6" rx="1.1" fill="#2563eb"/>
+  <path d="M16 10.4c2.7 2.9 4.5 5 4.5 7.6a4.5 4.5 0 0 1-9 0c0-1.7.8-3 1.9-4.1.2 1.5.9 2.4 1.8 2.5-.2-2.1 0-4.1.8-6z" fill="#f26a1b"/>
+  <path d="M16.2 15.4c1.1 1.3 1.8 2.2 1.8 3.2a2 2 0 0 1-4 0c0-.9.7-1.8 2.2-3.2z" fill="#ffc266"/>
+</svg>

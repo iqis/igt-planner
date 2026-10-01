@@ -10,6 +10,7 @@
 // Millimetres and radians throughout, like the rest of the planner.
 
 import { burnerOf, BBQ_SURFACE_SKUS, shelterVerts, shelterBBox, GROUND_HIP } from "./partsdata.js";
+import EN from "./i18n/en.js";   // the English sentences of warnings(), so they live in one place
 
 export const FRAME_THICK = 30;
 // The rail's inner recess is ~10mm deep, and a flat module's edge drops into it as its
@@ -1142,13 +1143,18 @@ export function readLayout(doc) {
  *  One sentence each: the planner folds these into a panel, and an agent reads them as a list. */
 export function warnings() {
   const out = [];
-  const add = (cat, text) => out.push({ level: cat === "problem" ? "warn" : "info", cat, text });
-  const name = n => PARTS[n.sku].title_en;
+  // add(cat, key, parts, vals): `parts` are SKUs (named in English here, in the viewer's language by the
+  // planner), `vals` are numbers and words. `text` is the English sentence an agent reads.
+  const add = (cat, key, parts = {}, vals = {}) => {
+    const names = Object.fromEntries(Object.entries(parts).map(([k, sku]) => [k, PARTS[sku]?.title_en || sku]));
+    const text = (EN[key] || key).replace(/\{(\w+)\}/g, (m, k) => (k in names ? names[k] : k in vals ? vals[k] : m));
+    out.push({ level: cat === "problem" ? "warn" : "info", cat, key, parts, vals, text });
+  };
 
   // A board dragged off its host and not yet dropped onto another edge.
   for (const n of state.nodes)
     if (n.kind === "ext" && n.host == null)
-      add("problem", `${name(n)} is detached — a hook-on board can't stand alone. Drag it onto an edge, or delete it.`);
+      add("problem", "w.detached", { a: n.sku });
 
   // Height changes between touching tables, judged on the HEIGHTS -- which rung of the leg ladder each
   // top is at -- not on which leg a node carries: a slide-in board has no leg of its own and used to be
@@ -1156,10 +1162,10 @@ export function warnings() {
   for (const [a, b] of steps()) {
     const hi = topOf(a) >= topOf(b) ? a : b, lo = hi === a ? b : a;
     const H = topOf(hi), L = topOf(lo), rH = rungAt(H), rL = rungAt(L);
-    const pair = `${name(hi)} ↔ ${name(lo)}`;
-    if (rH >= 0 && rL >= 0 && rL - rH === 1) add("added", `Height Adjuster (CK-151) for ${pair}: ${H} → ${L}mm.`);
-    else if (rH >= 0 && rL >= 0) add("problem", `${pair}: ${H} vs ${L}mm is ${rL - rH} steps — a Height Adjuster bridges only one.`);
-    else add("check", `${pair}: ${H} vs ${L}mm is off the leg ladder — a Height Adjuster may not fit.`);
+    const ab = { a: hi.sku, b: lo.sku }, hl = { h: H, l: L };
+    if (rH >= 0 && rL >= 0 && rL - rH === 1) add("added", "w.step.added", ab, hl);
+    else if (rH >= 0 && rL >= 0) add("problem", "w.step.toomany", ab, { ...hl, n: rL - rH });
+    else add("check", "w.step.offladder", ab, hl);
   }
 
   // The datum is the reason the fire-side tables specify low legs: they are all 400mm, and so is the
@@ -1170,14 +1176,14 @@ export function warnings() {
       const p = PARTS[m.sku];
       if (p.role !== "layout_table" || !p.requires_leg) continue;
       if (n.leg !== p.requires_leg)
-        add("problem", `${p.title_en} is ${p.height_mm}mm — the frame beside it needs the ${PARTS[p.requires_leg].title_en}.`);
+        add("problem", "w.datum", { a: m.sku, leg: p.requires_leg }, { h: p.height_mm });
     }
   }
 
   for (const n of state.nodes) {
     if (n.kind !== "frame") continue;
     const used = occupancy(n).filter(Boolean).length;
-    if (used === slotsOf(n)) add("note", `${name(n)} is full (${used}/${slotsOf(n)} half-slots).`);
+    if (used === slotsOf(n)) add("note", "w.full", { a: n.sku }, { used, slots: slotsOf(n) });
   }
 
   // GAS NEEDS AN EXIT. The burners feed from OUTSIDE the frame: the GS-450R's manual pins the hose to
@@ -1196,18 +1202,17 @@ export function warnings() {
         const off = slideOffset(m, n), bw = railW(PARTS[m.sku]);
         if (off - bw / 2 < x1 && off + bw / 2 > x0) sides.add(m.edge);
       }
-      const pn = PARTS[pl.sku].title_en;
-      if (sides.size >= 2) add("problem", `${pn}: boards cover both long rails — its gas line has no way out.`);
-      else if (sides.size === 1) add("note", `${pn}: one long rail is covered — the gas line leaves by the other.`);
+      if (sides.size >= 2) add("problem", "w.gas.blocked", { a: pl.sku });
+      else if (sides.size === 1) add("note", "w.gas.one", { a: pl.sku });
     }
   }
 
   // A frame joined at a BOARD-scale port (a rail joint, or a board's bracket) can't lean on that joint.
   for (const n of state.nodes) {
     if (n.kind !== "frame" || !n.host || !boardScalePort(n)) continue;
-    const where = n.rail ? "a rail joint" : "a board's bracket";
-    if (n.sharedJoint) add("problem", `${name(n)} joins via ${where}, which can't bear a frame — give it back its four legs.`);
-    else add("note", `${name(n)} joins via ${where}, so it keeps its own four legs.`);
+    const where = n.rail ? "rail" : "bracket";
+    if (n.sharedJoint) add("problem", `w.board.shared.${where}`, { a: n.sku });
+    else add("note", `w.board.legs.${where}`, { a: n.sku });
   }
 
   // What the MANUALS say about a pairing: blacklisted -> forbidden; not on a whitelist that may simply
@@ -1219,9 +1224,8 @@ export function warnings() {
     const key = guest.sku + ">" + hostSku;
     if (seen.has(key)) return;
     seen.add(key);
-    const g = PARTS[guest.sku].title_en, h = PARTS[hostSku]?.title_en || hostSku;
-    if (c.level === "blocked") add("problem", `${g} must not go on ${h}: ${c.why}`);
-    else add("check", `${g} on ${h}: not on its manual's list — likely fine, the list may predate it.`);
+    if (c.level === "blocked") add("problem", "w.compat.blocked", { g: guest.sku, h: hostSku }, { why: c.why });
+    else add("check", "w.compat.unlisted", { g: guest.sku, h: hostSku });
   };
   for (const n of state.nodes) {
     if (n.kind === "frame") for (const pl of n.placements) flag(PARTS[pl.sku], n.sku);
@@ -1230,15 +1234,15 @@ export function warnings() {
 
   // Frame to FRAME only: two end pieces butting is what eats the 99mm.
   for (const n of state.nodes.filter(n => n.kind === "frame" && n.host && byId(n.host)?.kind === "frame"))
-    add("note", `${name(byId(n.host))} + ${name(n)} joined end to end — the ~99mm seam takes no module.`);
+    add("note", "w.joined", { a: byId(n.host).sku, b: n.sku });
 
   // What the run does: a corner turns it 90°, an angle extension 60° -- measured off the plan views.
   const turns = state.nodes.filter(n => n.kind === "ext" && (TEXTURES[n.sku]?.turn ?? 0) !== 0);
   if (turns.length) {
     const total = turns.reduce((a, n) => a + TEXTURES[n.sku].turn, 0);
     const parts = turns.map(n => `${TEXTURES[n.sku].turn > 0 ? "+" : ""}${TEXTURES[n.sku].turn}°`);
-    const sum = `${total > 0 ? "+" : ""}${total}°`;
-    add("note", `The run turns ${turns.length > 1 ? `${parts.join(" ")} = ${sum}` : sum}${Math.abs(total) === 360 ? " — it closes." : "."}`);
+    const sum = `${total > 0 ? "+" : ""}${total}°`, list = parts.join(" ");
+    add("note", Math.abs(total) === 360 ? "w.turns.closed" : turns.length > 1 ? "w.turns.multi" : "w.turns.one", {}, { list, sum });
   }
   return out;
 }

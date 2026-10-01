@@ -1145,6 +1145,9 @@ body.compact.land #slotbar { bottom: 3.6rem; }
 /* ---- the logo: mark + a small "Siqi's" over IGT Planner -------------------------------------------- */
 .brand { display: inline-flex; align-items: center; gap: .55rem; letter-spacing: 0; text-transform: none; }
 .brand img { display: block; flex: none; }
+/* The logo follows the theme: a dark tile in dark mode, a pale one in light. */
+.brand img.logo-l, :root[data-theme="light"] .brand img.logo-d { display: none; }
+:root[data-theme="light"] .brand img.logo-l { display: block; }
 .bname { display: flex; flex-direction: column; line-height: 1.05; }
 .bname small { font-size: .6em; font-weight: 500; color: var(--dim); }
 .bname > span { font-weight: 650; letter-spacing: -.01em; }

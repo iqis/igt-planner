@@ -116,6 +116,8 @@ const swatchOf = sku => COLORS[sku]?.color_hex || "#8a929c";
 // A part's name in the interface's language. Official names exist in English (US store) and Japanese
 // (JP store) only -- see i18n.js -- so Japanese shows the JP name and every other language the English.
 const nameOf = p => (getLang() === "ja" && p?.title_jp) ? p.title_jp : (p?.title_en ?? "");
+// t() for keys that may have no entry (a catalog config name): the catalog's own English then.
+const tOr = (key, fallback, vars) => { const v = t(key, vars); return v === key ? fallback : v; };
 
 // Legs are aluminium: SILVER by default, every one of them. Black exists as a FINISH -- CK-109 and
 // CK-112 sample pure black in Snow Peak's own photos, so black-anodised legs are real -- but which
@@ -1449,8 +1451,7 @@ function setHover(e) {
   hidePreview();
   btn.hidden = !e;
   if (e) {
-    btn.title = e.isSlot ? "add a unit accessory to this slot"
-      : `hook an extension onto the ${nameOf(PARTS[e.node.sku])}`;
+    btn.title = e.isSlot ? t("edge.slot.tip") : t("edge.hook.tip", { name: nameOf(PARTS[e.node.sku]) });
     followHover();
   }
   paintHover();
@@ -1500,15 +1501,14 @@ const hasActions = n => !!n && (isJikaro(n) || isExpandable(n)
 function fillLegs(box, n) {
   for (const p of BY_ROLE.leg)
     box.append(chip(`${p.height_mm}mm`, n.leg === p.sku,
-      n.kind === "ext" ? "an extension is flush with what it hooks to — it takes the same legs, so "
-        + "this sets them for the whole run" : nameOf(p),
+      n.kind === "ext" ? t("legs.run.tip") : nameOf(p),
       () => setLeg(n, p.sku)));
   // Finish is independent of height: legs are silver by default, black is a variant some SKUs ship in.
   // A hooked run shares one finish, the same way it shares its height.
   const sep = document.createElement("span"); sep.className = "sep"; box.append(sep);
   const fin = n.legFinish || "silver";
-  box.append(chip("silver", fin === "silver", "aluminium silver — the default finish", () => setLegFinish(n, "silver")));
-  box.append(chip("black", fin === "black", "black-anodised — a variant finish (CK-109 / CK-112 ship this way)", () => setLegFinish(n, "black")));
+  box.append(chip(t("legs.silver"), fin === "silver", t("legs.silver.tip"), () => setLegFinish(n, "silver")));
+  box.append(chip(t("legs.black"), fin === "black", t("legs.black.tip"), () => setLegFinish(n, "black")));
 }
 
 /** Everything this particular part can be configured into. */
@@ -1517,24 +1517,23 @@ function fillActions(box, n) {
     // The Jikaro is four trapezoids, and which way round they go is the whole table:
     // 1120mm with a 600mm fire hole, or 885mm with a 365mm one. Not a finish option.
     for (const [key, c] of Object.entries(LAYOUT.tables[JIKARO].configs))
-      box.append(chip(c.name, n.config === key,
-        `${c.outer_mm}mm across, ${c.opening_mm}mm fire opening, four ${c.edge_mm}mm edges to hook to`,
+      box.append(chip(tOr(`cfg.jikaro.${key}`, c.name), n.config === key,
+        t("jik.cfg.tip", { outer: c.outer_mm, opening: c.opening_mm, edge: c.edge_mm }),
         () => { n.config = key; pruneModules(n); render(); }));
     // The optional bridge across the fire opening -> an IGT bay. Units + SKU follow the assembly.
     const jc = jikaroCfg(n);
     box.append(chip(
-      n.bridge ? `bridge ✓ ${jc.bridge_units}U · ${jc.bridge_sku}` : `+ bridge (${jc.bridge_units}U)`,
+      n.bridge ? t("jik.bridge.on", { u: jc.bridge_units, sku: jc.bridge_sku }) : t("jik.bridge.off", { u: jc.bridge_units }),
       !!n.bridge,
-      n.bridge ? `${jc.bridge_units}-Unit bridge (${jc.bridge_sku}) across the ${jc.opening_mm}mm opening — click to remove`
-               : `lay the optional ${jc.bridge_units}-Unit bridge (${jc.bridge_sku}) across the ${jc.opening_mm}mm opening to make an IGT bay`,
+      t(n.bridge ? "jik.bridge.on.tip" : "jik.bridge.off.tip", { u: jc.bridge_units, sku: jc.bridge_sku, opening: jc.opening_mm }),
       () => { n.bridge = !n.bridge; pruneModules(n); render(); }));
   }
   // Expandable table (CK-090): slide the two tops together or apart. Open exposes the IGT bay.
   if (isExpandable(n)) {
     const e = expDef(n.sku), cur = n.config || e.default;
     for (const [key, c] of Object.entries(e.configs))
-      box.append(chip(c.bay_units ? `${c.name} · ${c.bay_units}U bay` : c.name, cur === key,
-        `${c.w_mm}×${c.d_mm}mm` + (c.bay_units ? ` — opens a ${c.bay_units}-Unit bay` : ` — closed, no bay`),
+      box.append(chip(c.bay_units ? t("exp.bay", { name: tOr(`cfg.exp.${key}`, c.name), u: c.bay_units }) : tOr(`cfg.exp.${key}`, c.name), cur === key,
+        t(c.bay_units ? "exp.open.tip" : "exp.closed.tip", { w: c.w_mm, d: c.d_mm, u: c.bay_units }),
         () => { n.config = key; pruneModules(n); render(); }));
   }
   // A tarp's pitch height IS its pole: the Wing Pole retails in five lengths (280/240/210/
@@ -1542,12 +1541,12 @@ function fillActions(box, n) {
   // with. Same interaction as a frame's legs -- pick the pole, the whole pitch follows.
   if (PARTS[n.sku].shelter_type === "tarp") {
     const pub = PARTS[n.sku].assembled_mm.h;
-    box.append(chip(`set pole · ${pub}mm`, !n.config,
-      "the height the set ships to — its own pole", () => { delete n.config; render(); }));
+    box.append(chip(t("tarp.setpole", { mm: pub }), !n.config,
+      t("tarp.setpole.tip"), () => { delete n.config; render(); }));
     for (const mm of [2800, 2400, 2100, 1700, 1400]) {
       if (Math.abs(mm - pub) < 60) continue;     // the set pole already covers this rung
       box.append(chip(`${mm / 10}cm`, n.config === mm,
-        `pitched on ${mm / 10}cm Wing Poles`, () => { n.config = mm; render(); }));
+        t("tarp.pole.tip", { cm: mm / 10 }), () => { n.config = mm; render(); }));
     }
   }
   // Land Lock: the 跳ね上げ -- either end panel props open on two uprights as an awning.
@@ -1555,10 +1554,10 @@ function fillActions(box, n) {
   if (PARTS[n.sku].shell3d === "landlock") {
     const cur = n.config || "closed";
     for (const [key, label, hint] of [
-      ["closed", "▣ closed", "both end panels down — the closed shell"],
-      ["front", "◨ front open", "the entrance panel propped as an awning on two uprights"],
-      ["rear", "◧ rear open", "the inner-room end propped open — PDP_2's pitch"],
-      ["both", "◫ both open", "a breezeway: both ends propped"]])
+      ["closed", `▣ ${t("ll.closed")}`, t("ll.closed.tip")],
+      ["front", `◨ ${t("ll.front")}`, t("ll.front.tip")],
+      ["rear", `◧ ${t("ll.rear")}`, t("ll.rear.tip")],
+      ["both", `◫ ${t("ll.both")}`, t("ll.both.tip")]])
       box.append(chip(label, cur === key, hint, () => { n.config = key; render(); }));
   }
   // A scale figure: pose first, then height. The heights are honest rungs -- 5cm steps for the
@@ -1566,31 +1565,30 @@ function fillActions(box, n) {
   // to the record's median. The point of the popover is to set the REAL person's numbers.
   if (PARTS[n.sku].role === "figure") {
     const p = PARTS[n.sku];
-    box.append(chip("standing", !n.pose, "on its feet", () => { delete n.pose; render(); }));
-    box.append(chip("seated", n.pose === "sit",
-      "sitting at camp-chair height (420mm). A toddler's feet dangle — that is the honest geometry.",
+    box.append(chip(t("fig.stand"), !n.pose, t("fig.stand.tip"), () => { delete n.pose; render(); }));
+    box.append(chip(t("fig.sit"), n.pose === "sit", t("fig.sit.tip"),
       () => { n.pose = "sit"; render(); }));
-    box.append(chip("on the ground", n.pose === "ground",
-      p.figure === "toddler" ? "sitting on the ground, legs out in front" : "sitting cross-legged on the ground",
+    box.append(chip(t("fig.ground"), n.pose === "ground",
+      t(p.figure === "toddler" ? "fig.ground.child.tip" : "fig.ground.tip"),
       () => { n.pose = "ground"; render(); }));
     const sep = document.createElement("span"); sep.className = "sep"; box.append(sep);
     const pub = p.assembled_mm.h;
-    box.append(chip(`${pub / 10}cm · median`, !n.config,
-      p.figure === "toddler" ? "the WHO median for age two" : "a median adult — the default",
+    box.append(chip(t("fig.median", { cm: pub / 10 }), !n.config,
+      t(p.figure === "toddler" ? "fig.median.child.tip" : "fig.median.tip"),
       () => { delete n.config; render(); }));
     const rungs = p.figure === "toddler"
       ? [["~1y", 750], ["~18m", 820], ["~3y", 960], ["~4y", 1030], ["~5y", 1100]]
       : [1500, 1550, 1600, 1650, 1750, 1800, 1850, 1900].map(mm => [`${mm / 10}cm`, mm]);
     for (const [label, mm] of rungs)
       box.append(chip(p.figure === "toddler" ? `${label} · ${mm / 10}cm` : label, n.config === mm,
-        `${mm / 10}cm tall`, () => { n.config = mm; render(); }));
+        t("fig.tall", { cm: mm / 10 }), () => { n.config = mm; render(); }));
   }
   // Lounge cushion: round (open) or folded to a half-circle -- a form toggle like the Jikaro's.
   if (n.kind === "prop" && PARTS[n.sku].chair === "cushion") {
     const cur = n.config || "round";
     for (const [key, label, hint] of [
-      ["round", "◯ round", "the open round pad"],
-      ["folded", "◗ folded", "folded in half to a half-circle (doubled thickness) for seating"]])
+      ["round", `◯ ${t("cush.round")}`, t("cush.round.tip")],
+      ["folded", `◗ ${t("cush.folded")}`, t("cush.folded.tip")]])
       box.append(chip(label, cur === key, hint, () => { n.config = key; render(); }));
   }
   // The Takibi's options. NOT one enum: four independent decisions on one fire pit -- the bridge,
@@ -1598,22 +1596,18 @@ function fillActions(box, n) {
   // ever a node: the bridge's own manual forbids standing it alone, the coal bed has no legs (it
   // wedges in the taper), and the base plate's position IS the Takibi's footprint.
   if (PARTS[n.sku].prop === "takibi") {
-    box.append(chip(n.bridge ? "bridge ✓ ST-032GBR" : "+ grill bridge", !!n.bridge,
-      "ST-032GBR hooks over the rim and carries the cooking surface. Its manual: only stable ON the "
-      + "Takibi L — so it's a setting here, never its own thing on the ground.",
+    box.append(chip(n.bridge ? t("tak.bridge.on") : t("tak.bridge.off"), !!n.bridge, t("tak.bridge.tip"),
       () => { n.bridge = !n.bridge; if (!n.bridge) delete n.surface; render(); }));
     if (n.bridge) for (const [key, label, sku, hint] of [
-      [null, "— bare", null, "the bridge with nothing on it"],
-      ["net", "▦ grill net", "ST-032MAR", "焼アミ Pro.L — a 484×352 stainless net, the same net the CK-160 takes"],
-      ["halves", "▤▤ two half nets", "S-029HA", "339×206 half nets ×2 — also cross-listed on the CK-160"],
-      ["plate", "▬ griddle", "GR-006", "鉄板 — a 500×330 black-steel griddle; its 500 IS the CK-160's 500"]])
+      [null, `— ${t("tak.bare")}`, null, t("tak.bare.tip")],
+      ["net", `▦ ${t("tak.net")}`, "ST-032MAR", t("tak.net.tip")],
+      ["halves", `▤▤ ${t("tak.halves")}`, "S-029HA", t("tak.halves.tip")],
+      ["plate", `▬ ${t("tak.plate")}`, "GR-006", t("tak.plate.tip")]])
       box.append(chip(label, (n.surface || null) === key, sku ? `${sku} — ${hint}` : hint,
         () => { n.surface = key; render(); }));
-    box.append(chip(n.coal ? "coal bed ✓ ST-032S" : "+ coal bed", !!n.coal,
-      "炭床Pro.L — a 310×310 casting that wedges 64mm down the taper and raises the burn floor",
+    box.append(chip(n.coal ? t("tak.coal.on") : t("tak.coal.off"), !!n.coal, t("tak.coal.tip"),
       () => { n.coal = !n.coal; render(); }));
-    box.append(chip(n.base ? "base plate ✓ ST-032BP" : "+ base plate", !!n.base,
-      "ベースプレートL — 450×450×9 of black steel on the ground, catching ash and keeping the heat off the grass",
+    box.append(chip(n.base ? t("tak.base.on") : t("tak.base.off"), !!n.base, t("tak.base.tip"),
       () => { n.base = !n.base; render(); }));
   }
   // The GS-1000's canister. drawProp has read `n.canister` since the stove landed and NOTHING ever
@@ -1623,10 +1617,7 @@ function fillActions(box, n) {
   // you happened to bring. And "LI" is LIQUID INJECTION -- it hangs UPSIDE DOWN under the burner,
   // which is why the legs make a cage instead of a tripod.
   if (PARTS[n.sku].prop === "gs1000")
-    box.append(chip(n.canister ? "canister ✓" : "+ canister", !!n.canister,
-      "専用容器 (GP-250S / GP-500S / GP-500BL), mounted INVERTED under the burner — bought separately, "
-      + "not part of the stove's 1,800g. Its size has no source in the catalog: it is proportioned "
-      + "off the manual drawing, and it is the least trustworthy shape on this part.",
+    box.append(chip(n.canister ? t("gs.can.on") : t("gs.can.off"), !!n.canister, t("gs.can.tip"),
       () => { n.canister = !n.canister; render(); }));
   // Height adjuster: a hooked board sits flush with its host, or drops ONE rung of the ladder
   // (830->660->400->300) via a CK-151. One step per adjuster -- lower still means chaining.
@@ -1635,20 +1626,17 @@ function fillActions(box, n) {
     const room = Math.min(1, stepRoom(hostLeg));
     for (let s = 0; s <= room; s++) {
       const leg = legAtStep(hostLeg, s);
-      box.append(chip(s === 0 ? `⇥ ${legMm(hostLeg)}mm` : `↓ ${legMm(leg)}mm +adj`, (n.step || 0) === s,
-        s === 0 ? "flush — the same height as what it hooks to"
-                : `one step down (${legMm(hostLeg)}→${legMm(leg)}mm) with an IGT Height Adjuster (CK-151)`,
+      box.append(chip(s === 0 ? `⇥ ${legMm(hostLeg)}mm` : t("step.down", { mm: legMm(leg) }), (n.step || 0) === s,
+        s === 0 ? t("step.flush.tip") : t("step.down.tip", { from: legMm(hostLeg), to: legMm(leg) }),
         () => setStep(n, s)));
     }
   }
   // A frame joined to another with a CK-175 can keep its own four legs (what the one connection
   // photo shows) OR share the joint and drop the pair at the joined end. The user chooses.
   if (n.kind === "frame" && n.host) {
-    box.append(chip("4 legs", !n.sharedJoint,
-      "keep its own four legs — both frames legged at the joint (the connection photo)",
+    box.append(chip(t("joint.four"), !n.sharedJoint, t("joint.four.tip"),
       () => { n.sharedJoint = false; render(); }));
-    box.append(chip("2 legs · shared joint", !!n.sharedJoint,
-      "drop the two legs at the joined end and share the host's",
+    box.append(chip(t("joint.two"), !!n.sharedJoint, t("joint.two.tip"),
       () => { n.sharedJoint = true; render(); }));
   }
 }
@@ -1658,8 +1646,7 @@ function openToolPop(which, n) {
   toolPop.innerHTML = "";
   const head = document.createElement("div");
   head.className = "mhead";
-  head.textContent = which === "legs" ? t("tool.height.tip")
-                                      : `${nameOf(PARTS[n.sku])} — options`;
+  head.textContent = which === "legs" ? t("tool.height.tip") : t("tool.options.tip", { name: nameOf(PARTS[n.sku]) });
   toolPop.append(head);
   const box = document.createElement("div");
   box.className = "chips";
@@ -1685,7 +1672,7 @@ function placementBtn(n) {
   if (n.host != null)
     return toolBtn(ib("detach", t("tool.detach")), t("tool.detach.tip"), "ib",
       () => { detachNode(n); n.floating = true; n.locked = false; selectOnly(n.id); render();
-              note("pulled off — drag it where you want, then lock it"); });
+              note(t("note.detached")); });
   const fixed = !!n.locked;
   return toolBtn(fixed ? ib("unlock", t("tool.unlock")) : (n.floating ? ib("anchor", t("tool.place")) : ib("lock", t("tool.lock"))),
     fixed ? t("tool.unlock.tip")
@@ -1773,7 +1760,7 @@ function openReplaceMenu(n) {
   replaceMenu.innerHTML = "";
   const head = document.createElement("div");
   head.className = "mhead";
-  head.textContent = `replace ${nameOf(PARTS[n.sku])} with:`;
+  head.textContent = t("swap.head", { name: nameOf(PARTS[n.sku]) });
   replaceMenu.append(head);
   for (const p of replaceOptions(n)) {
     if (p.sku === n.sku) continue;
@@ -1847,13 +1834,14 @@ function showModMenu(node, pl, clientX, clientY) {
     for (const [key, [label, hint]] of Object.entries(cfg.options)) {
       const row = document.createElement("div");
       row.className = "act" + (cur === key ? " on" : "");
-      row.textContent = label; row.title = hint;
+      const base = pl.sku.replace(/-(US|INT|EC|R)$/i, "");
+      row.textContent = tOr(`mod.${base}.${key}`, label); row.title = tOr(`mod.${base}.${key}.tip`, hint);
       row.onclick = () => { pl.config = key; hideModMenu(); render(); };
       modmenu.append(row);
     }
   }
   const del = document.createElement("div");
-  del.className = "act del"; del.innerHTML = `${icon("trash", 14)} remove from frame`;
+  del.className = "act del"; del.innerHTML = `${icon("trash", 14)} ${t("mod.remove")}`;
   del.onclick = () => { removePlacement(node, pl); hideModMenu(); };
   modmenu.append(del);
   const sr = $("stage").getBoundingClientRect();
@@ -1877,9 +1865,9 @@ function showPreview(p, rowEl, why = "") {
     + `<div class="pv-name">${nameOf(p)}</div>`
     + ((getLang() === "ja" ? p.title_en : p.title_jp) ? `<div class="pv-jp">${getLang() === "ja" ? p.title_en : p.title_jp}</div>` : "")
     + `<div class="pv-row"><span class="pv-sku">${p.sku}</span></div>`
-    + (a ? `<div class="pv-row"><span>size</span><b>${a.w}×${a.d}×${a.h}mm</b></div>` : "")
-    + (span ? `<div class="pv-row"><span>span</span><b>${span}</b></div>` : "")
-    + (p.weight_g ? `<div class="pv-row"><span>weight</span><b>${(p.weight_g / 1000).toFixed(2)}kg</b></div>` : "")
+    + (a ? `<div class="pv-row"><span>${t("card.size")}</span><b>${a.w}×${a.d}×${a.h}mm</b></div>` : "")
+    + (span ? `<div class="pv-row"><span>${t("card.span")}</span><b>${span}</b></div>` : "")
+    + (p.weight_g ? `<div class="pv-row"><span>${t("card.weight")}</span><b>${(p.weight_g / 1000).toFixed(2)}kg</b></div>` : "")
     + (why ? `<div class="pv-why">${why}</div>` : "");
   const img = preview.querySelector("img");
   if (img) img.onerror = () => { img.style.visibility = "hidden"; };
@@ -1928,20 +1916,12 @@ function paintMenu() {
   menu.innerHTML = "";
   const head = document.createElement("div");
   head.className = "mhead";
-  head.textContent = hover.at === "opening"
-    ? `into the ring — the ${Math.round(hover.opening)}mm opening the fire ring is built around. `
-      + `The pit stands on the GROUND on its own feet; the ring only surrounds it — and moves it.`
-    : hover.rail
-    ? "onto the LONG rail — a board hooks on (via a rail joint), a sliding extension grips it and tiles"
-    : hover.node.kind === "frame"
-      ? "the frame's end: a board hooks into the holes, or another frame joins with a CK-175"
-      : isJikaro(hover.node)
-        ? `one of the fire ring's four outer edges (${Math.round(hover.len)}mm) — at the `
-          + `400mm datum, so it takes low legs`
-        : isConnTable(hover.node)
-          ? "the Connection Table's edge — an IGT extension hooks on here (two hole pitches, for tables and accessories)"
-          : "this board's far edge — the next extension hooks into its brackets and carries the run on, "
-            + "at the same height on its own legs";
+  head.textContent = hover.at === "opening" ? t("edge.opening", { mm: Math.round(hover.opening) })
+    : hover.rail ? t("edge.rail")
+    : hover.node.kind === "frame" ? t("edge.frame")
+    : isJikaro(hover.node) ? t("edge.jikaro", { mm: Math.round(hover.len) })
+    : isConnTable(hover.node) ? t("edge.conn")
+    : t("edge.board");
   menu.append(head);
 
   // The host for a manual whitelist is the ROOT frame -- a corner's manual lists the frames
@@ -1980,7 +1960,7 @@ function paintSlotMenu() {
   const free = freeBlock(n, start)?.len ?? 0;
   const head = document.createElement("div");
   head.className = "mhead";
-  head.textContent = `${free / 2}u free here — a unit accessory that fits`;
+  head.textContent = t("slot.head", { u: free / 2 });
   menu.append(head);
 
   const list = guestsFor(SLOT_IFACES);   // slot modules + hanging racks, from connections.guests
@@ -2008,7 +1988,7 @@ function paintSlotMenu() {
   if (!offered) {
     const none = document.createElement("div");
     none.className = "mhead";
-    none.textContent = "nothing in the catalog fits the space left here.";
+    none.textContent = t("slot.none");
     menu.append(none);
   }
 }
@@ -2703,7 +2683,7 @@ function paintRulers() {
       el.className = "rlabel";
       const txt = document.createElement("span");
       const del = document.createElement("button");
-      del.innerHTML = icon("x", 12); del.title = "remove this measurement";
+      del.innerHTML = icon("x", 12); del.title = t("ruler.remove");
       del.onclick = ev => { ev.stopPropagation(); removeRuler(r.id); };
       el.append(txt, del);
       el._txt = txt;
@@ -2924,19 +2904,18 @@ function paintPalette() {
     // Lock toggle. Locked = the footprints are a backdrop: only the SELECTED one is draggable, the
     // rest are click-through so a big translucent tarp can't steal a click meant for the furniture
     // on top of it. Unlocked = every footprint picks normally.
-    shel.append(chip(state.shelterLock ? "🔒 layer locked" : "🔓 layer editable", state.shelterLock,
-      state.shelterLock ? "footprints are click-through — only the selected one drags. Click to unlock all."
-                        : "every footprint is selectable and draggable. Click to lock the layer.",
+    shel.append(chip(t(state.shelterLock ? "shel.locked" : "shel.editable"), state.shelterLock,
+      t(state.shelterLock ? "shel.locked.tip" : "shel.editable.tip"),
       () => { state.shelterLock = !state.shelterLock; render(); }));
     // The catalog: setup-size footprints (vestibule/canopy included -- NOT the inner mat).
     for (const p of BY_ROLE.shelter)
       shel.append(partRow(p, () => addNode(p.sku), false,
-        `${p.sku} — ${p.shelter_type || "shelter"} footprint (setup size, vestibule/canopy included), laid flat as a size reference.`));
+        t("shel.row.tip", { sku: p.sku })));
     // Already placed: a list that selects OR deletes even while the layer is locked.
     const placed = state.nodes.filter(n => n.kind === "footprint");
     if (placed.length) {
       const hdr = document.createElement("div");
-      hdr.className = "subhead"; hdr.textContent = `placed · ${placed.length}`;
+      hdr.className = "subhead"; hdr.textContent = t("shel.placed", { n: placed.length });
       shel.append(hdr);
       for (const n of placed) {
         const row = document.createElement("div");
@@ -2947,11 +2926,11 @@ function paintPalette() {
         const nm = document.createElement("span");
         nm.className = "nm";
         nm.textContent = nameOf(PARTS[n.sku]) || n.sku;
-        nm.title = "select this footprint (works even when the layer is locked)";
+        nm.title = t("shel.select.tip");
         nm.onclick = () => { state.sel = n.id; render(); };
         const del = document.createElement("span");
         del.className = "del"; del.innerHTML = icon("x", 12);
-        del.title = "remove this footprint";
+        del.title = t("shel.remove");
         del.onclick = (e) => { e.stopPropagation(); removeNode(n); };
         row.append(sw, nm, del);
         shel.append(row);
@@ -3175,7 +3154,7 @@ for (const b of document.querySelectorAll(".panel-toggle")) {
     const on = b.closest("aside").classList.toggle("collapsed");
     mainEl.classList.toggle(`${side}-collapsed`, on);
     b.textContent = (side === "left") === !on ? "‹" : "›";
-    b.title = `${on ? "expand" : "collapse"} the ${side === "left" ? "parts" : "build"} panel`;
+    b.title = t(`panel.${on ? "expand" : "collapse"}.${side}`);
     setTimeout(resize, 170);
   };
 }
@@ -3252,6 +3231,11 @@ const WARN_CATS = [
   ["problem", t("warn.problem")], ["check", t("warn.check")], ["added", t("warn.added")], ["note", t("warn.note")],
 ];
 let warnOpen = false;
+// A message in the viewer's language: its template, with part names in that language too.
+const warnText = w => !w.key ? w.text : t(w.key, {
+  ...w.vals,
+  ...Object.fromEntries(Object.entries(w.parts || {}).map(([k, sku]) => [k, PARTS[sku] ? nameOf(PARTS[sku]) : sku])),
+});
 function paintWarnings() {
   const w = $("warnings"); w.innerHTML = "";
   const all = warnings();
@@ -3274,9 +3258,9 @@ function paintWarnings() {
     const g = document.createElement("div");
     g.className = `wgroup ${cat}`;
     g.innerHTML = `<div class="wghead">${label}</div>`;
-    for (const { text } of items) {
+    for (const w of items) {
       const d = document.createElement("div");
-      d.className = "witem"; d.textContent = text; g.append(d);
+      d.className = "witem"; d.textContent = warnText(w); g.append(d);
     }
     box.append(g);
   }
@@ -3324,7 +3308,7 @@ function paintOutliner() {
   const roots = state.nodes.filter(n => n.host == null);
   if (!roots.length) {
     const e = document.createElement("div");
-    e.className = "tree-empty"; e.textContent = "nothing placed yet";
+    e.className = "tree-empty"; e.textContent = t("tree.empty");
     host.append(e);
     lastTreeSel = null;
     return;
@@ -3345,7 +3329,7 @@ function paintDimHud() {
   if (objs.length) {
     let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
     for (const n of objs) { const a = aabb(n); x0 = Math.min(x0, a.x0); x1 = Math.max(x1, a.x1); z0 = Math.min(z0, a.z0); z1 = Math.max(z1, a.z1); }
-    overall = `layout <b>${((x1 - x0) / 1000).toFixed(2)} × ${((z1 - z0) / 1000).toFixed(2)} m</b>`;
+    overall = `${t("hud.layout")} <b>${((x1 - x0) / 1000).toFixed(2)} × ${((z1 - z0) / 1000).toFixed(2)} m</b>`;
   }
   const n = sel();
   let selLine = "";
@@ -3400,12 +3384,12 @@ function loadLayout(doc) {
   selectOnly(null);
   undoStack.length = 0; redoStack.length = 0;      // a new document has no past
   render();
-  if (dropped.length) note(`left out ${dropped.length} part(s) no longer in the catalog: ${dropped.join(", ")}`);
+  if (dropped.length) note(t("note.leftout", { n: dropped.length, list: dropped.join(", ") }));
   return dropped;
 }
 // For callers that post their own "opened ..." note over loadLayout's: carry the dropped
 // parts along instead of burying the honest answer to "why is this table missing its burner".
-const droppedSuffix = d => d.length ? ` — left out ${d.join(", ")}, no longer in the catalog` : "";
+const droppedSuffix = d => d.length ? t("note.droppedsuffix", { list: d.join(", ") }) : "";
 
 // ---------------------------------------------------------------- where a layout lives
 //
@@ -3458,7 +3442,7 @@ function autosave() {
     // whole session. An hour of work that was never stored deserves a sentence.
     if (!(a && b) && !warnedNoStore) {
       warnedNoStore = true;
-      note("this browser is not keeping your work — use export to save a file", 8000);
+      note(t("note.nostore"), 8000);
     }
   }, 400);
 }
@@ -3495,12 +3479,12 @@ function switchPage(id) {
     // activeId already pointing at it -- and the next autosave folded the OLD page's scene
     // into the bad page's slot. Point back before anything can commit.
     book.activeId = prevId;
-    note(`could not open that page: ${e.message}`, 5000);
+    note(t("note.pagefail", { err: e.message }), 5000);
     return;
   }
   lsPut(LS_PAGES, book); lsPut(LS_SCENE, p.doc);
   paintPager();
-  note(`opened "${p.name}"${droppedSuffix(dropped)}`);
+  note(t("note.openedpage", { name: p.name }) + droppedSuffix(dropped));
 }
 function newPage(name) {
   commitActivePage();
@@ -3513,7 +3497,7 @@ function newPage(name) {
   paintPager();
 }
 function deletePage(id) {
-  if (book.pages.length <= 1) { note("this is the only page — can't delete it"); return; }
+  if (book.pages.length <= 1) { note(t("note.onlypage")); return; }
   const idx = book.pages.findIndex(p => p.id === id);
   if (idx < 0) return;
   const wasActive = id === book.activeId;
@@ -3539,7 +3523,7 @@ function paintPager() {
   for (const p of book.pages) {
     const tab = document.createElement("button");
     tab.className = "ptab" + (p.id === book.activeId ? " on" : "");
-    tab.title = "open · double-click to rename";
+    tab.title = t("page.tab.tip");
     const name = document.createElement("span");
     name.className = "pname"; name.textContent = p.name;
     tab.append(name);
@@ -3561,7 +3545,7 @@ function paintPager() {
     if (book.pages.length > 1) {
       const x = document.createElement("span");
       x.className = "pclose"; x.innerHTML = icon("x", 12); x.title = t("page.delete");
-      x.onclick = ev => { ev.stopPropagation(); if (confirm(`Delete page "${p.name}"? This can't be undone.`)) deletePage(p.id); };
+      x.onclick = ev => { ev.stopPropagation(); if (confirm(t("page.deleteq", { name: p.name }))) deletePage(p.id); };
       tab.append(x);
     }
     el.append(tab);
@@ -3577,8 +3561,8 @@ const savedAll = () => lsGet(LS_SAVED, {});
 function saveNamed(name) {
   const all = savedAll();
   all[name] = { ...serializeLayout(), name, at: new Date().toISOString() };
-  if (!lsPut(LS_SAVED, all)) return note("could not save -- browser storage is full");
-  note(`saved "${name}" — in this browser only; use export to keep it`);
+  if (!lsPut(LS_SAVED, all)) return note(t("note.full"));
+  note(t("note.saved", { name }));
   paintFiles();
 }
 function openNamed(name) {
@@ -3587,7 +3571,7 @@ function openNamed(name) {
   // Look before we leap -- an unreadable layout must not mint an empty page on its way to
   // the throw. (A rolled-back app.js reading a newer save is the realistic path here.)
   try { readLayout(doc); }
-  catch (e) { note(`could not open "${name}": ${e.message}`, 5000); return; }
+  catch (e) { note(t("note.openfail", { name, err: e.message }), 5000); return; }
   // Opening used to replace the page on screen -- no confirm, no undo (loadLayout clears the
   // stacks), autosaved over the original 400ms later. "Start over" earned a confirm for less,
   // and the pages model already holds the right answer: a non-empty page keeps itself and the
@@ -3604,7 +3588,7 @@ function openNamed(name) {
   }
   const dropped = loadLayout(doc);
   if (asPage) { commitActivePage(); lsPut(LS_PAGES, book); lsPut(LS_SCENE, activePage().doc); }
-  note(`opened "${name}"${asPage ? " as a new page" : ""}${droppedSuffix(dropped)}`);
+  note(t(asPage ? "note.openednew" : "note.openedpage", { name }) + droppedSuffix(dropped));
 }
 function deleteNamed(name) {
   const all = savedAll(); delete all[name]; lsPut(LS_SAVED, all); paintFiles();
@@ -3620,7 +3604,7 @@ function exportFile() {
   a.download = `igt-layout-${doc.at.slice(0, 19).replace(/[:T]/g, "-")}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
-  note("exported — that file is the copy git can see");
+  note(t("note.exported"));
 }
 function importFile() {
   const inp = document.createElement("input");
@@ -3635,9 +3619,9 @@ function importFile() {
       if (asPage) newPage(f.name.replace(/\.json$/i, ""));
       const dropped = loadLayout(doc);
       if (asPage) { commitActivePage(); lsPut(LS_PAGES, book); lsPut(LS_SCENE, activePage().doc); }
-      note(`opened ${f.name}${asPage ? " as a new page" : ""}${droppedSuffix(dropped)}`);
+      note(t(asPage ? "note.openednew" : "note.openedpage", { name: f.name }) + droppedSuffix(dropped));
     }
-    catch (e) { note(`could not read that file: ${e.message}`, 5000); }
+    catch (e) { note(t("note.readfail", { err: e.message }), 5000); }
   };
   inp.click();
 }
@@ -3690,9 +3674,9 @@ async function fromHash() {
     const json = plain ? decodeURIComponent(plain[1])
       : new TextDecoder().decode(await pipe(unb64u(m[1]), new DecompressionStream("gzip")));
     const dropped = loadLayout(JSON.parse(json));
-    note(`opened from a shared link — it is yours now; save or export to keep it${droppedSuffix(dropped)}`, 6000);
+    note(t("note.fromlink") + droppedSuffix(dropped), 6000);
     return true;
-  } catch (e) { note(`that link did not decode: ${e.message}`, 5000); return false; }
+  } catch (e) { note(t("note.badlink", { err: e.message }), 5000); return false; }
 }
 
 // ---- blocks: the reusable half -------------------------------------------------------------------
@@ -3718,8 +3702,8 @@ function saveBlock(name) {
   for (const o of doc.nodes) if (o.x !== undefined) { o.x -= ox; o.z -= oz; }
   const all = blocksAll();
   all[name] = { ...doc, name, at: new Date().toISOString() };
-  if (!lsPut(LS_BLOCKS, all)) return note("could not save -- browser storage is full");
-  note(`block "${name}" saved — ${nodes.length} part(s)`);
+  if (!lsPut(LS_BLOCKS, all)) return note(t("note.full"));
+  note(t("note.blocksaved", { name, n: nodes.length }));
   paint();
 }
 function deleteBlock(name) { const all = blocksAll(); delete all[name]; lsPut(LS_BLOCKS, all); paint(); }
@@ -3729,7 +3713,7 @@ function addBlock(name) {
   const doc = blocksAll()[name];
   if (!doc) return;
   const { nodes, dropped } = readLayout(doc);
-  if (!nodes.length) return note(`block "${name}" has nothing left in the catalog`);
+  if (!nodes.length) return note(t("note.blockempty", { name }));
   const remap = new Map();
   for (const n of nodes) remap.set(n.id, state.nextId++);
   const at = freeSpot();
@@ -3742,7 +3726,7 @@ function addBlock(name) {
   state.selSet = new Set(nodes.filter(n => n.host == null).map(n => n.id));
   state.sel = [...state.selSet].pop() ?? null;
   render();
-  if (dropped.length) note(`dropped ${dropped.join(", ")} — no longer in the catalog`);
+  if (dropped.length) note(t("note.dropped", { list: dropped.join(", ") }));
 }
 /** Somewhere the new arrival will not land inside what is already built. */
 function freeSpot() {
@@ -3787,7 +3771,7 @@ function paintFiles() {
     const r = row(n, `${(all[n].nodes || []).length} parts · ${at}`, () => openNamed(n));
     const x = document.createElement("button");
     x.className = "fdel"; x.innerHTML = icon("x", 12); x.title = t("files.forget");
-    x.onclick = e => { e.stopPropagation(); if (confirm(`forget "${n}"?`)) deleteNamed(n); };
+    x.onclick = e => { e.stopPropagation(); if (confirm(t("files.forgetq", { name: n }))) deleteNamed(n); };
     r.append(x);
   }
   if (names.length) {
@@ -3825,10 +3809,10 @@ $("filebtn").onclick = e => {
 const VIEW_SIZES = { "4:3": [1600, 1200], "1:1": [1400, 1400], "3:4": [1200, 1600], "4:5": [1280, 1600], "16:9": [1920, 1080] };
 async function exportPng({ deliver = true, layout = "plate", aspect = "4:3", scale = 1, to = "download" } = {}) {
   try {
-    if (!state.nodes.length) { note("nothing to photograph — the page is empty"); return null; }
+    if (!state.nodes.length) { note(t("note.emptypage")); return null; }
     const css = getComputedStyle(document.documentElement);
     const v = (name, d) => css.getPropertyValue(name).trim() || d;
-    const MONO = v("--mono", "monospace"), SANS = v("--sans", "sans-serif");
+    const MONO = v("--mono", "monospace"), SANS = v("--sans", "sans-serif");   // --sans follows :lang()
     const INK = v("--ink", "#e6e8ec"), LINE = v("--line", "#2b3038");
 
     // Two extents, two jobs. The PLAN frames everything, footprints included -- it must show
@@ -3921,7 +3905,7 @@ async function exportPng({ deliver = true, layout = "plate", aspect = "4:3", sca
     // header: the page's name, and the date it was true
     ctx.fillStyle = INK;
     ctx.font = `600 44px ${SANS}`;
-    ctx.fillText(activePage()?.name || "IGT layout", M, M + 46);
+    ctx.fillText(activePage()?.name || t("plate.untitled"), M, M + 46);
     ctx.font = `26px ${SANS}`;
     faint(.55, () => {
       const date = new Date().toISOString().slice(0, 10);
@@ -3934,7 +3918,7 @@ async function exportPng({ deliver = true, layout = "plate", aspect = "4:3", sca
     frame(M, top, heroW, heroH);
     ctx.font = `28px ${MONO}`;
     if (fx1 > fx0) faint(.7, () => ctx.fillText(
-      `layout ${((fx1 - fx0) / 1000).toFixed(2)} × ${((fz1 - fz0) / 1000).toFixed(2)} m`, M, top + heroH + 52));
+      `${t("hud.layout")} ${((fx1 - fx0) / 1000).toFixed(2)} × ${((fz1 - fz0) / 1000).toFixed(2)} m`, M, top + heroH + 52));
 
     const rx = M + heroW + GAP;
     ctx.drawImage(plan, rx, top, planW, planH);
@@ -3956,7 +3940,7 @@ async function exportPng({ deliver = true, layout = "plate", aspect = "4:3", sca
     // the bill: what you'd carry to make the picture true
     let ly = by + 64;
     ctx.font = `600 26px ${SANS}`;
-    faint(.55, () => ctx.fillText("Build", rx, ly));
+    faint(.55, () => ctx.fillText(t("bom.title"), rx, ly));
     ly += 40;
     ctx.font = `26px ${SANS}`;
     const fit = s => {
@@ -3969,15 +3953,15 @@ async function exportPng({ deliver = true, layout = "plate", aspect = "4:3", sca
       ly += 36;
     }
     if (bill.length > maxRows) {
-      faint(.55, () => ctx.fillText(`+ ${bill.length - (maxRows - 1)} more`, rx, ly));
+      faint(.55, () => ctx.fillText(t("plate.more", { n: bill.length - (maxRows - 1) }), rx, ly));
       ly += 36;
     }
     ly += 10;
     const kg = grams / 1000;
     ctx.font = `600 28px ${SANS}`;
-    ctx.fillText(`you carry ${kg.toFixed(1)} kg · ${(kg * 2.20462).toFixed(1)} lb`, rx, ly);
+    ctx.fillText(`${t("bom.carry")} ${kg.toFixed(1)} kg · ${(kg * 2.20462).toFixed(1)} lb`, rx, ly);
     return await deliverPng(out, { deliver, to });
-  } catch (e) { note(`photo failed — ${e.message}`, 5000); return null; }
+  } catch (e) { note(t("note.photofail", { err: e.message }), 5000); return null; }
 }
 
 /** Hand a finished canvas over: as a blob (deliver:false), a download, the clipboard, or the share
@@ -3992,7 +3976,7 @@ async function deliverPng(canvas, { deliver = true, to = "download" } = {}) {
     const file = new File([blob], fname, { type: "image/png" });
     if (to === "copy") {
       await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-      note("picture copied — paste it anywhere");
+      note(t("note.piccopied"));
       return blob;
     }
     if (to === "share" && navigator.canShare?.({ files: [file] })) {
@@ -4004,9 +3988,9 @@ async function deliverPng(canvas, { deliver = true, to = "download" } = {}) {
     a.download = fname;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    note(`saved ${fname}`);
+    note(t("note.savedfile", { name: fname }));
     return blob;
-  } catch (e) { note(`photo failed — ${e.message}`, 5000); return null; }
+  } catch (e) { note(t("note.photofail", { err: e.message }), 5000); return null; }
 }
 addEventListener("pointerdown", e => { if (!fileMenu.hidden && !fileMenu.contains(e.target)) fileMenu.hidden = true; }, true);
 
@@ -4073,8 +4057,8 @@ async function makeShareUrl() {
   } catch { return null; }
 }
 async function copyText(text, what) {
-  try { await navigator.clipboard.writeText(text); note(`${what} copied`); return true; }
-  catch { prompt(`copy this ${what}:`, text); return false; }
+  try { await navigator.clipboard.writeText(text); note(t("note.copied", { what })); return true; }
+  catch { prompt(t("note.copythis", { what }), text); return false; }
 }
 // Where a link can go. `max` = the service's limit on text + link, where it has one that bites.
 const SOCIAL = [
@@ -4316,7 +4300,7 @@ function paintBlocks() {
   if (!names.length) {
     const d = document.createElement("div");
     d.className = "hint pad";
-    d.textContent = "Select a table you have set up and press ⧉ block on its toolbar. It comes back here with its modules on it.";
+    d.textContent = t("blocks.empty");
     host.append(d);
     return;
   }
@@ -4328,8 +4312,8 @@ function paintBlocks() {
                 + `<span class="hint">${(all[n].nodes || []).length}</span>`;
     b.onclick = () => addBlock(n);
     const x = document.createElement("button");
-    x.className = "fdel"; x.innerHTML = icon("x", 12); x.title = "forget this block";
-    x.onclick = e => { e.stopPropagation(); if (confirm(`forget block "${n}"?`)) deleteBlock(n); };
+    x.className = "fdel"; x.innerHTML = icon("x", 12); x.title = t("blocks.forget");
+    x.onclick = e => { e.stopPropagation(); if (confirm(t("blocks.forgetq", { name: n }))) deleteBlock(n); };
     b.append(x);
     host.append(b);
   }
@@ -4522,7 +4506,7 @@ try {
   ]);
 } catch (e) {
   const el = $("note");
-  el.textContent = "the parts catalog did not load — reload the page; if it keeps happening the server is down";
+  el.textContent = t("note.catalogfail");
   el.hidden = false;                       // no timer: this note has nowhere to go
   throw e;
 }
@@ -4616,7 +4600,7 @@ paintFiles();
     pageSeq = Math.max(0, ...book.pages.map(p => p.id)) + 1;
     if (!activePage()) book.activeId = book.pages[0].id;
     try { loadLayout(activePage().doc); }
-    catch (e) { note(`could not open that page: ${e.message}`, 5000); loadLayout({ app: "igt-planner", v: SAVE_V, nodes: [] }); }
+    catch (e) { note(t("note.pagefail", { err: e.message }), 5000); loadLayout({ app: "igt-planner", v: SAVE_V, nodes: [] }); }
     paintPager();
     return;
   }
