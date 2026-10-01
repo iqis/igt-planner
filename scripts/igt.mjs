@@ -25,7 +25,7 @@ core.loadCatalog({
 
 const args = process.argv.slice(2);
 const flag = (name, dflt) => { const i = args.indexOf(name); return i < 0 ? dflt : args.splice(i, 2)[1]; };
-const site = flag("--site", "https://igt.gardenplace.cc/web/");
+const site = flag("--site", "https://igt.iqis.app/web/");
 const role = flag("--role", "");
 const [cmd, arg] = args;
 const out = v => process.stdout.write(JSON.stringify(v, null, 2) + "\n");

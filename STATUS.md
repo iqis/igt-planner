@@ -4,7 +4,7 @@
 > pose in INTENT; smoke 18 checks). Also fixed: palette search had silently dropped every
 > section added after the original id list (Cooking/trays/racks/freestanding). `41ca460`.
 
-> **2026-09-30: PUBLIC at https://igt.gardenplace.cc** (no login). `py scripts/build_public.py &&
+> **2026-09-30: PUBLIC at https://igt.iqis.app** (no login; igt.gardenplace.cc 301s there via a redirect rule in that zone). `py scripts/build_public.py &&
 > npx wrangler deploy` -- Workers static assets (wrangler steered new Pages projects there), custom
 > domain via `wrangler.jsonc`. The public build ships NO Snow Peak photo: grains drawn by
 > `web/proctex.js` at each photo's mean colour, plan-view decals and hover thumbnails dropped, bench

@@ -5,5 +5,10 @@
   "name": "igt-planner",
   "compatibility_date": "2026-09-30",
   "assets": { "directory": "./dist" },
-  "routes": [{ "pattern": "igt.gardenplace.cc", "custom_domain": true }]
+  // igt.iqis.app is the home; igt.gardenplace.cc stays bound only so its redirect rule (in the
+  // gardenplace.cc zone, 301 -> igt.iqis.app, path and hash kept) has a proxied host to run on.
+  "routes": [
+    { "pattern": "igt.iqis.app", "custom_domain": true },
+    { "pattern": "igt.gardenplace.cc", "custom_domain": true }
+  ]
 }
