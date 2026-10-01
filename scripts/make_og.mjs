@@ -38,7 +38,7 @@ try {
   });
 
   // 2. the card
-  const mark = readFileSync(join(ROOT, "web/favicon.svg"), "utf8");
+  const mark = readFileSync(join(ROOT, "web/logo-dark.svg"), "utf8");
   const card = await b.newPage(); await card.setViewport({ width: 1200, height: 630 });
   await card.setContent(`<!doctype html><html><head><style>
     body { margin: 0; width: 1200px; height: 630px; overflow: hidden; font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; }

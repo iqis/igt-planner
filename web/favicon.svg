@@ -1,12 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- A 4-unit IGT frame from above (rails, the two end pieces in the app's blue) with a burner's
-       flame in its bay. The faint rim keeps the tile's edge visible on a dark tab bar.
+  <!-- The tab icon: a 4-unit IGT frame from above with a burner's flame in its bay. It follows the
+       browser's light or dark scheme (the tab bar's colour, not the page's toggle); a browser that
+       ignores the media query (Safari) keeps the dark tile, which reads on either bar.
+       The header uses logo-dark.svg / logo-light.svg, switched by the page theme.
        No double hyphen in here: it is illegal inside an XML comment and breaks the whole file. -->
-  <rect width="32" height="32" rx="7" fill="#172033"/>
-  <rect x=".5" y=".5" width="31" height="31" rx="6.5" fill="none" stroke="#fff" stroke-opacity=".16"/>
-  <rect x="4.6" y="9.2" width="22.8" height="13.6" rx="1.6" fill="none" stroke="#e6e8ec" stroke-width="2.2"/>
-  <rect x="3.6" y="8.7" width="3.4" height="14.6" rx="1.1" fill="#5b8def"/>
-  <rect x="25" y="8.7" width="3.4" height="14.6" rx="1.1" fill="#5b8def"/>
-  <path d="M16 10.4c2.7 2.9 4.5 5 4.5 7.6a4.5 4.5 0 0 1-9 0c0-1.7.8-3 1.9-4.1.2 1.5.9 2.4 1.8 2.5-.2-2.1 0-4.1.8-6z" fill="#ff7a2e"/>
-  <path d="M16.2 15.4c1.1 1.3 1.8 2.2 1.8 3.2a2 2 0 0 1-4 0c0-.9.7-1.8 2.2-3.2z" fill="#ffd38a"/>
+  <style>
+    .tile { fill: #172033 } .rim { stroke: #fff; stroke-opacity: .16 } .rail { stroke: #e6e8ec }
+    .end { fill: #5b8def } .fire { fill: #ff7a2e } .core { fill: #ffd38a }
+    @media (prefers-color-scheme: light) {
+      .tile { fill: #eef2f8 } .rim { stroke: #172033; stroke-opacity: .14 } .rail { stroke: #334155 }
+      .end { fill: #2563eb } .fire { fill: #f26a1b } .core { fill: #ffc266 }
+    }
+  </style>
+  <rect class="tile" width="32" height="32" rx="7"/>
+  <rect class="rim" x=".5" y=".5" width="31" height="31" rx="6.5" fill="none"/>
+  <rect class="rail" x="4.6" y="9.2" width="22.8" height="13.6" rx="1.6" fill="none" stroke-width="2.2"/>
+  <rect class="end" x="3.6" y="8.7" width="3.4" height="14.6" rx="1.1"/>
+  <rect class="end" x="25" y="8.7" width="3.4" height="14.6" rx="1.1"/>
+  <path class="fire" d="M16 10.4c2.7 2.9 4.5 5 4.5 7.6a4.5 4.5 0 0 1-9 0c0-1.7.8-3 1.9-4.1.2 1.5.9 2.4 1.8 2.5-.2-2.1 0-4.1.8-6z"/>
+  <path class="core" d="M16.2 15.4c1.1 1.3 1.8 2.2 1.8 3.2a2 2 0 0 1-4 0c0-.9.7-1.8 2.2-3.2z"/>
 </svg>
