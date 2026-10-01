@@ -216,6 +216,25 @@ try {
   const plainGot = await page.evaluate(() => window.__igt.state.nodes.map(n => n.sku).join(","));
   check("a plain #layout= link opens", plainGot === "CK-149", plainGot);
 
+  // the scene belongs to the PAGE: set the beach here, a new page is bare grid, coming back is the beach;
+  // it is undoable, and it is in the saved doc (so a shared link carries it)
+  const sceneRun = await page.evaluate(() => {
+    const app = window.__igt, sel = document.getElementById("groundsel");
+    const pick = v => { sel.value = v; sel.dispatchEvent(new Event("change")); };
+    const here = app.pages().activeId;
+    pick("beach");
+    const doc = app.serializeLayout().scene;
+    app.newPage("scene test");
+    const fresh = sel.value;
+    app.switchPage(here);
+    const back = sel.value;
+    pick("night");
+    document.getElementById("undo").click();
+    return { doc, fresh, back, undone: sel.value };
+  });
+  check("the scene goes with the page", sceneRun.doc === "beach" && sceneRun.fresh === "grid"
+    && sceneRun.back === "beach" && sceneRun.undone === "beach", JSON.stringify(sceneRun));
+
   // part search: words in any order, part numbers without punctuation, spans, typos, JP titles
   const search = await page.evaluate(() => {
     const top = q => {

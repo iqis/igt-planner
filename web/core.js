@@ -44,7 +44,7 @@ export let CAT, GRID, LAYOUT, CONN, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAM
 //
 // Modelling the hooked ones as free nodes that happen to be adjacent is what kept the
 // corner from turning: adjacency has no handedness, and a corner is nothing but handedness.
-export const state = { nodes: [], sel: null, nextId: 1, shelterLock: true, selSet: new Set(), rulers: [] };
+export const state = { nodes: [], sel: null, nextId: 1, shelterLock: true, selSet: new Set(), rulers: [], scene: "grid" };
 export let rulerSeq = 1;   // ids for measurements -- their own counter, reassigned fresh on load
 export const nextRulerId = () => rulerSeq++;
 
@@ -1073,6 +1073,10 @@ export function serializeLayout(nodes = state.nodes) {
   // save, never when serializeLayout is asked for a subset (a saved block is parts, not annotations).
   if (nodes === state.nodes && state.rulers.length)
     doc.rulers = state.rulers.map(r => ({ a: { x: r.a.x, z: r.a.z }, b: { x: r.b.x, z: r.b.z } }));
+  // The SCENE -- a ground or a place -- belongs to the design too: this page is on the beach, that one
+  // in the meadow, and a shared link should arrive where it was set. Whole-scene saves only, like the
+  // rulers; absent means the bare grid, so every older file reads the same as it always did.
+  if (nodes === state.nodes && state.scene && state.scene !== "grid") doc.scene = state.scene;
   return doc;
 }
 
@@ -1111,7 +1115,9 @@ export function readLayout(doc) {
   const rulers = (doc.rulers || [])
     .filter(r => r?.a && r?.b)
     .map(r => ({ id: rulerSeq++, a: { x: +r.a.x || 0, z: +r.a.z || 0 }, b: { x: +r.b.x || 0, z: +r.b.z || 0 } }));
-  return { nodes, nextId, dropped: [...new Set(dropped)], rulers };
+  // The scene is passed through as a name; the planner checks it against what it can draw.
+  const scene = typeof doc.scene === "string" ? doc.scene : "grid";
+  return { nodes, nextId, dropped: [...new Set(dropped)], rulers, scene };
 }
 
 

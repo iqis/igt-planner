@@ -100,6 +100,10 @@ four-unit frame has 8 half-slots, numbered 0–7 from the `end-x` end. `span` is
 `span` in the catalog (a one-unit burner is 2); `start` is the first half-slot it covers.
 Modules must not overlap or run off the end.
 
+**Scene** (optional, top level): `"scene": "meadow"` sets the page in a place — `meadow`,
+`forest`, `beach`, `desert`, `night` — or on a plain ground — `grass`, `wood`, `gravel`,
+`sand`. Leave it out for the bare measuring grid. It changes nothing about what is buildable.
+
 **You do not add** leg sets for hooked boards, rail joints, connection hooks or height
 adjusters — the bill adds them, because they follow from the layout.
 

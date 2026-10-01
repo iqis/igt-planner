@@ -231,8 +231,9 @@ setGrid(0x2b3038, 0x21252b);
 // to ship: it stays as self-contained as the rest of the planner. Choosing a real surface HIDES the
 // grid (see setGround): the grid is graph paper for reading distances off the bare floor, and it reads
 // as litter once there is grass or wood under it -- the ruler tool is there when you actually need a
-// measurement. The choice is a PREFERENCE like the theme -- one per browser, not part of a design, so
-// it lives in its own localStorage key and never travels in a shared link.
+// measurement. The choice belongs to the PAGE (state.scene, in the layout doc): it was once a browser-wide
+// preference like the theme, until places made it part of the design -- this page is on the beach, that
+// one in the meadow -- so now it switches with the tab and travels in a shared link.
 function groundCanvas(draw) {
   const c = document.createElement("canvas");
   c.width = c.height = 512;
@@ -311,7 +312,7 @@ const GROUNDS = {
   gravel: { name: "Gravel", make: makeGravelTexture, repeat: 8, rough: 0.95 },
   sand:   { name: "Sand",   make: makeSandTexture,   repeat: 7, rough: 0.9 },
 };
-const LS_GROUND = "igt.ground";
+const LS_GROUND = "igt.ground";   // LEGACY: the scene was once browser-wide; read once at boot to migrate
 const groundTexCache = {};
 let groundMesh = null;
 function groundTexture(key) {
@@ -538,10 +539,13 @@ function applyPlaceLight(name) {   // not `key`: that is the sun (the Directiona
   return true;
 }
 
-function setGround(key) {
+/** Set the scene. It belongs to the PAGE (state.scene, saved in its doc, carried by a shared link),
+ *  not to the browser: `record` false is for loading a doc / undo, where it is already the record. */
+function setGround(key, { record = true } = {}) {
   if (!GROUNDS[key] && !PLACES[key]) key = "grid";
+  const changed = state.scene !== key;
   currentGround = key;
-  try { localStorage.setItem(LS_GROUND, key); } catch {}
+  state.scene = key;
   if (groundMesh) { scene.remove(groundMesh); groundMesh.material.dispose(); groundMesh.geometry.dispose(); groundMesh = null; }
   if (grid) grid.visible = key === "grid";            // graph paper only on the bare floor
   const place = PLACES[key];
@@ -574,6 +578,7 @@ function setGround(key) {
   invalidate();
   const sel = $("groundsel");
   if (sel && sel.value !== key) sel.value = key;
+  if (record && changed) commitHistory();            // undoable, and autosaved into the page like any edit
 }
 
 // Metal cannot look like metal with nothing to reflect. Without an environment map a
@@ -3343,8 +3348,9 @@ function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); pa
 
 /** Put a read layout on screen. */
 function loadLayout(doc) {
-  const { nodes, nextId, dropped, rulers } = readLayout(doc);
+  const { nodes, nextId, dropped, rulers, scene } = readLayout(doc);
   state.nodes = nodes; state.nextId = nextId; state.rulers = rulers;
+  setGround(scene, { record: false });
   selectOnly(null);
   undoStack.length = 0; redoStack.length = 0;      // a new document has no past
   render();
@@ -3971,7 +3977,7 @@ function paintBlocks() {
 // steps back, Shift-Ctrl-Z (or Ctrl-Y) redoes.
 const undoStack = [], redoStack = [];
 let restoring = false;
-const snapshot = () => JSON.stringify({ nodes: state.nodes, nextId: state.nextId, rulers: state.rulers });
+const snapshot = () => JSON.stringify({ nodes: state.nodes, nextId: state.nextId, rulers: state.rulers, scene: state.scene });
 function commitHistory() {
   if (restoring) return;
   const s = snapshot();
@@ -3985,6 +3991,7 @@ function commitHistory() {
 function restoreHistory(json) {
   const s = JSON.parse(json);
   state.nodes = s.nodes; state.nextId = s.nextId; state.rulers = s.rulers || [];
+  if ((s.scene || "grid") !== state.scene) setGround(s.scene || "grid", { record: false });
   for (const id of [...state.selSet]) if (!byId(id)) state.selSet.delete(id);   // drop vanished ids
   if (!byId(state.sel)) state.sel = [...state.selSet].pop() ?? null;
   restoring = true; render(); restoring = false;   // render without pushing a fresh snapshot
@@ -4100,7 +4107,7 @@ function initGround() {
   }
   sel.onchange = () => setGround(sel.value);
   // Textures are generated lazily on first pick, so an empty canvas costs nothing until it is used.
-  setGround(localStorage.getItem(LS_GROUND) || "grid");
+  setGround(state.scene || "grid", { record: false });   // the page that loads next sets the real one
 }
 
 // ---------------------------------------------------------------- boot
@@ -4181,6 +4188,19 @@ paintFiles();
 (async () => {
   const savedBook = lsGet(LS_PAGES, null);
   const hasBook = !!savedBook?.pages?.length;
+
+  // The scene used to be ONE browser-wide choice (igt.ground). It belongs to each page now, so whatever
+  // was set is carried onto every saved page that has none -- once -- and nobody's meadow vanishes in
+  // the upgrade. The old key goes after.
+  let legacyGround = null;
+  try { legacyGround = localStorage.getItem(LS_GROUND); } catch {}
+  if (legacyGround) {
+    if (legacyGround !== "grid" && hasBook) {
+      for (const pg of savedBook.pages) if (pg.doc && !pg.doc.scene) pg.doc.scene = legacyGround;
+      lsPut(LS_PAGES, savedBook);
+    }
+    try { localStorage.removeItem(LS_GROUND); } catch {}
+  }
 
   if (await fromHash()) {
     // The shared design is on screen. It used to become a fresh one-page book right here --
