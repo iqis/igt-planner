@@ -1,12 +1,31 @@
-# igt-planner
+# IGT Layout Planner
 
-A configurator for the Snow Peak **Iron Grill Table** (IGT) system — the camp-kitchen
-equivalent of IKEA's PAX planner. Drop modules into a frame, see it in 3D, get a bill of
-materials with the build's weight and its price in three regions.
+**[igt.iqis.app](https://igt.iqis.app)** — plan a Snow Peak **Iron Grill Table** (IGT) setup
+in 3D, to the millimetre, and know it will actually go together.
+
+Frames, hook-on boards, corners, slide-in extensions, burners, trays, the Jikaro fire ring,
+chairs, tarps: drop them in and the planner works out where each one *really* ends up —
+from the measured hooks and brackets, not from bounding boxes — and tells you what doesn't
+fit, what the manuals forbid, and what the whole kit weighs. Nothing to install, no account;
+designs live in your browser and travel as links.
+
+**[✦ Use it with your own AI](docs/AI.md)** — the rules engine (`web/core.js`) has no DOM
+and no three.js, so Claude, ChatGPT or any agent can design a layout and have the planner's
+own rules check it: from a chat window (it writes a link), from a terminal
+(`node scripts/igt.mjs evaluate`), or from code. The same guide is served to agents at
+[igt.iqis.app/llms.txt](https://igt.iqis.app/llms.txt).
 
 ```sh
-py serve.py            # -> http://localhost:8795/web/
+git clone https://github.com/iqis/igt-planner && cd igt-planner
+py serve.py --port 8795            # -> http://localhost:8795/web/  (any static server works)
+node scripts/igt.mjs example       # the rules from a terminal, no browser
 ```
+
+Vanilla JavaScript and vendored three.js: no build step, no runtime dependencies.
+MIT licensed. An independent project, **not affiliated with Snow Peak**; product names are
+used only to say what each part is.
+
+What follows is how it was built — where the numbers come from, and why they can be trusted.
 
 ## Why this is tractable
 
@@ -65,7 +84,7 @@ py scripts/build_catalog.py     # join + classify             -> catalog/igt-cat
 
 ### It does not crawl what is already being crawled
 
-[`snowpeak-sale-watch`](../tools/snowpeak-sale-watch) already fetches all ~2,100 JP product
+A separate price tracker (`snowpeak-sale-watch`, not part of this repo) already fetches all ~2,100 JP product
 pages, plus the US and UK catalogs, **every day** — and was throwing the JP spec table
 away. It now keeps it, so this project *parses* the dimensional data instead of re-crawling
 for it:
@@ -89,9 +108,8 @@ Vanilla three.js, vendored — no build step, no CDN, works offline. It reads
   first free run of half-slots. Drag a placed module along the rail — it snaps to the
   125mm grid and refuses to overlap.
 - The occupancy bar under the table is the grid itself: one cell per half-slot.
-- The BOM prices the build in **US / JP / UK**. The reference build (4-unit frame + Bamboo
-  Regular + Flat Burner + 830mm legs) fills 8/8 half-slots and comes out **11.8 kg, $570 US,
-  $392 JP (−31%)** — the same numbers `build_catalog.py` produces on the command line.
+- The bill lists what you carry, including the parts the layout implies but nobody places by
+  hand (leg sets, rail joints, connection hooks, height adjusters), with the total weight.
 
 Modules are drawn at their **own width, centred in the slots they claim**, never stretched
 to fill them. That is the whole point of carrying real millimetres: a tray built 5mm
@@ -104,7 +122,8 @@ seeing.
 ```
 scripts/     the five build steps above, plus smoke.mjs (below)
 catalog/     committed output: grid.json, igt-catalog.json, overrides.json
-web/         the three.js planner (vendored three.js, no build)
+web/         the planner: core.js (the rules, no DOM) + app.js (the 3D app, vendored three.js)
+docs/AI.md   how to drive it from your own agent (also served as /llms.txt)
 data/        raw fetches and timestamped archives (gitignored)
 ```
 

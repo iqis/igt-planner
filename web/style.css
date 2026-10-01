@@ -130,10 +130,18 @@ h1 { font-size: 1rem; font-weight: 650; letter-spacing: -.01em; }
 /* The one thing anyone ever clicked in the old header line. */
 .benchlink { font-size: .72rem; color: var(--dim); text-decoration: underline; text-underline-offset: 3px; }
 .benchlink:hover { color: var(--accent); }
-/* Ground picker + theme cluster to the right. Only #groundsel carries margin-left:auto -- two auto
-   margins would SPLIT the free space and push the pair apart instead of grouping them. */
+/* Links + ground picker + theme cluster to the right. Only .hlinks carries margin-left:auto -- two auto
+   margins would SPLIT the free space and push the group apart instead of grouping them. */
+.hlinks { margin-left: auto; display: flex; gap: .35rem; align-items: center; }
+.hlink {
+  font-size: .78rem; color: var(--dim); text-decoration: none; white-space: nowrap;
+  padding: .32rem .6rem; border-radius: var(--r-ctl); border: 1px solid transparent;
+}
+.hlink:hover { color: var(--ink); background: var(--raise); }
+.hlink.ai { color: var(--accent); border-color: var(--accent); font-weight: 600; }
+.hlink.ai:hover { background: var(--accent-soft); color: var(--accent); }
+@media (max-width: 700px) { .hlink:not(.ai) { display: none; } }
 #groundsel {
-  margin-left: auto;
   font: .78rem var(--sans);
   color: var(--dim);
   background: var(--panel);

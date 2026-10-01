@@ -24,6 +24,7 @@ import re
 import shutil
 from pathlib import Path
 
+import markdown
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -47,6 +48,48 @@ HEADERS = """\
   Referrer-Policy: strict-origin-when-cross-origin
 """
 REDIRECTS = "/  /web/  302\n"
+
+AI_PAGE = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IGT Planner with AI</title>
+<meta name="description" content="Design a Snow Peak IGT layout with your own AI agent; the planner's open rules check it.">
+<style>
+:root { color-scheme: light dark; --bg: #f7f8fa; --panel: #fff; --ink: #1b1e24; --dim: #5b6472;
+  --line: #e2e5ea; --code: #f1f3f6; --accent: #c2691f;
+  --sans: system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI", Roboto, "Noto Sans", "Hiragino Sans", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace; }
+@media (prefers-color-scheme: dark) { :root { --bg: #14161a; --panel: #1b1e24; --ink: #e6e8ec; --dim: #8b93a1;
+  --line: #2b3038; --code: #22262d; --accent: #e08a45; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--sans); }
+nav { position: sticky; top: 0; display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; align-items: center; padding: .7rem 1rem;
+  background: var(--panel); border-bottom: 1px solid var(--line); font-size: .9rem; }
+nav b { font-weight: 650; } nav a { color: var(--dim); text-decoration: none; } nav a:hover { color: var(--ink); }
+main { max-width: 760px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+h1 { font-size: 1.8rem; line-height: 1.2; letter-spacing: -.01em; margin: .5rem 0 1rem; }
+h2 { font-size: 1.15rem; margin: 2.2rem 0 .6rem; }
+a { color: var(--accent); }
+code { font: .88em var(--mono); background: var(--code); padding: .1em .3em; border-radius: 4px; }
+pre { background: var(--code); padding: .9rem 1rem; border-radius: 8px; overflow-x: auto; line-height: 1.45; }
+pre code { background: none; padding: 0; }
+blockquote { margin: 1rem 0; padding: .8rem 1rem; background: var(--panel); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent); border-radius: 8px; }
+blockquote p { margin: .3rem 0; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; display: block; overflow-x: auto; }
+th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+</style>
+</head>
+<body>
+<nav><b>IGT Planner</b><a href="./">Open the planner</a><a href="https://github.com/iqis/igt-planner">Source</a><a href="/llms.txt">llms.txt</a></nav>
+<main>
+{{BODY}}
+</main>
+</body>
+</html>
+"""
 
 
 def mean_rgb(path):
@@ -83,6 +126,13 @@ def main():
     if n1 != 1 or n2 != 1:
         raise SystemExit("build.js no longer has the lines this script rewrites")
     (DIST / "web" / "build.js").write_text(build, encoding="utf-8")
+
+    # The AI entry: ONE source (docs/AI.md), two forms -- llms.txt at the site root for agents, and a
+    # rendered page for people, linked from the planner's header.
+    ai_md = (ROOT / "docs" / "AI.md").read_text(encoding="utf-8")
+    (DIST / "llms.txt").write_text(ai_md, encoding="utf-8")
+    body = markdown.markdown(ai_md, extensions=["fenced_code", "tables"])
+    (DIST / "web" / "ai.html").write_text(AI_PAGE.replace("{{BODY}}", body), encoding="utf-8")
 
     (DIST / "_headers").write_text(HEADERS, encoding="utf-8")
     (DIST / "_redirects").write_text(REDIRECTS, encoding="utf-8")
