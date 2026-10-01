@@ -57,11 +57,12 @@
 <main>
   <aside id="palette">
     <button class="panel-toggle" data-panel="left" title="collapse the parts panel">‹</button>
-    <input id="palsearch" class="search" type="search" placeholder="search name, part # or category" autocomplete="off">
+    <input id="palsearch" class="search" type="search" placeholder="search: name, CK-149, 2u, 日本語" autocomplete="off">
     <div id="searchcount" class="searchcount" hidden></div>
     <div class="chips" id="undobar">
       <button id="undo" class="chip" title="undo — Ctrl+Z" disabled>↶ undo</button>
       <button id="redo" class="chip" title="redo — Ctrl+Shift+Z" disabled>↷ redo</button>
+      <button id="foldall" class="chip" title="fold every category / open them all">⊟ fold all</button>
     </div>
 
     <!-- Shown at the TOP the moment something is selected (in the 3D view or here), so the

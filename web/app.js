@@ -3508,6 +3508,9 @@ function partRow(p, fn, dead, why, badge) {
     + `<span class="sp">${badge ?? (s ? s / 2 + "u" : "")}</span>`;
   el.title = why || `${p.sku} — ${p.title_en}`;
   el.dataset.search = searchKey(p);
+  el.dataset.sku = p.sku;
+  el.dataset.name = p.title_en || "";
+  if (p.title_jp) el.dataset.jp = p.title_jp;
   if (!dead) { el.onclick = () => fn(p); previewOnHover(el, p.sku); }
   return el;
 }
@@ -3692,39 +3695,139 @@ function paintCatCounts() {
 // Find a part by name, number or category: hide the rows that don't match, show a hit count, and
 // while searching force every category open and drop the ones with no match, so the list becomes
 // just the results. Runs after every repaint so the filter survives re-renders.
+//
+// What a query can be (learned from igtplanner.com's panel, plus the Japanese names only we carry):
+//   - WORDS, each of which must land somewhere -- "bamboo long" finds "Bamboo IGT Table Long";
+//     the old whole-string substring test needed the words adjacent and in order.
+//   - a PART NUMBER with or without its punctuation -- "ck149", "gs 450".
+//   - a SPAN -- "2u", "0.5u", "1 unit" -- matched against the badge the row shows.
+//   - the CATEGORY's own heading -- "cooking", "trays" -- which brings the whole section.
+//   - a slightly MISSPELLED name -- "flat brner" -- by an in-order letter match, kept tight so a
+//     short query can't match everything.
+//   - KATAKANA / KANJI from the JP title -- "焚火", "フラット" -- NFKC folds half-width forms.
+// Matches are ranked inside each section: exact part number, then words at the start of a name,
+// then anywhere in it, then category words, then the misspelling match.
+const fold = s => (s || "").normalize("NFKC").toLowerCase();
+const alnum = s => s.replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff]/g, "");
+const UNIT_RE = /(\d*\.?\d+)\s*(?:u|units?)(?![a-z])/g;
+
+function parseQuery(raw) {
+  let q = fold(raw).trim();
+  const units = [];
+  q = q.replace(UNIT_RE, (_, n) => { units.push(parseFloat(n)); return " "; });
+  q = q.replace(/\bhalf[- ]units?\b/g, () => { units.push(0.5); return " "; });
+  return { units, words: q.split(/\s+/).filter(Boolean) };
+}
+
+// In-order letters of w inside s, held to a tight spread so "brnr" finds "burner" but "ab" finds nothing.
+function looseScore(s, w) {
+  if (w.length < 3) return 0;
+  let best = 0;
+  for (let start = s.indexOf(w[0]); start !== -1; start = s.indexOf(w[0], start + 1)) {
+    let i = start, ok = true;
+    for (const ch of w.slice(1)) { i = s.indexOf(ch, i + 1); if (i === -1) { ok = false; break; } }
+    if (!ok) break;
+    const spread = i - start + 1;
+    if (spread <= w.length * 1.6 + 1) best = Math.max(best, 60 - (spread - w.length) * 6);
+  }
+  return best;
+}
+
+function wordScore(doc, w) {
+  const wa = alnum(w);
+  if (wa && doc.sku === wa) return 1000;
+  let sc = 0;
+  if (wa.length >= 2 && doc.sku.includes(wa)) sc = Math.max(sc, 400);
+  const at = doc.name.indexOf(w);
+  if (at !== -1) sc = Math.max(sc, at === 0 || /[\s(/-]/.test(doc.name[at - 1]) ? 300 : 200);
+  if (doc.jp && doc.jp.includes(w)) sc = Math.max(sc, 250);
+  if (!sc && doc.words.includes(w)) sc = CAT_HIT;
+  if (!sc) sc = looseScore(doc.name, w);
+  return sc;
+}
+// A category-word hit is the WEAK kind: "burner" is one of the words on every slot module, so
+// counted alongside real name hits it buried the four burners under every tray and box. It only
+// counts for a word that no row matches by name, number or JP title ("cooking", "seat").
+const CAT_HIT = 100;
+
+function rowDoc(el, catText) {
+  const d = el.dataset;
+  return {
+    sku: alnum(fold(d.sku || "")),
+    name: fold(d.name || d.search || ""),
+    jp: fold(d.jp || ""),
+    words: `${fold(d.search || "")} ${catText}`,
+    unit: parseFloat((el.querySelector(".sp")?.textContent || "").replace(/u$/, "")),
+  };
+}
+
 function filterPalette() {
-  const q = ($("palsearch").value || "").trim().toLowerCase();
-  $("palette").classList.toggle("searching", !!q);
+  const { units, words } = parseQuery($("palsearch").value || "");
+  const q = units.length + words.length > 0;
+  $("palette").classList.toggle("searching", q);
   let shown = 0;
   // Every parts container in the palette, enumerated LIVE -- the hand-kept id list this used
   // to walk still said "tables, legs, modules" years after those ids died, which silently took
   // Cooking, the trays, the racks and both freestanding sections out of search entirely.
-  for (const host of document.querySelectorAll("#palette .parts")) {
+  const hosts = [...document.querySelectorAll("#palette .parts")];
+  const rows = [];                                     // [el, per-word scores] for every candidate
+  for (const host of hosts) {
+    const catText = fold(host.closest(".cat")?.querySelector(".cathead")?.textContent || "");
+    [...host.children].forEach((el, i) => { if (el._ord == null) el._ord = i; });
+    if (!q) continue;
     for (const el of host.children) {
-      const searchable = el.dataset.search != null;
-      const match = !q || (searchable && el.dataset.search.includes(q));
-      el.style.display = match ? "" : "none";
-      if (q && match && searchable) shown++;
+      if (el.dataset.search == null) continue;
+      const doc = rowDoc(el, catText);
+      if (units.length && !units.includes(doc.unit)) continue;
+      rows.push([el, words.map(w => wordScore(doc, w))]);
     }
+  }
+  const strong = words.map((_, i) => rows.some(([, sc]) => sc[i] > CAT_HIT));
+  for (const host of hosts) for (const el of host.children) { el._score = 0; el.style.display = q ? "none" : ""; }
+  for (const [el, sc] of rows) {
+    if (sc.some((v, i) => !v || (strong[i] && v <= CAT_HIT))) continue;
+    el._score = 1 + sc.reduce((a, v) => a + v, 0);
+    el.style.display = "";
+    shown++;
+  }
+  for (const host of hosts) {
+    const kids = [...host.children];
+    // Best first while searching; the catalogue's own order back the moment the query clears.
+    const order = q ? [...kids].sort((a, b) => b._score - a._score || a._ord - b._ord)
+                    : [...kids].sort((a, b) => a._ord - b._ord);
+    if (order.some((el, i) => el !== host.children[i])) host.append(...order);
   }
   for (const cat of document.querySelectorAll("#palette .cat")) {
     const hit = [...cat.querySelectorAll("[data-search]")].some(el => el.style.display !== "none");
-    cat.classList.toggle("empty", !!q && !hit);
+    cat.classList.toggle("empty", q && !hit);
   }
   const cnt = $("searchcount");
   cnt.hidden = !q;
-  if (q) cnt.textContent = `${shown} match${shown === 1 ? "" : "es"}`;
+  if (q) cnt.textContent = shown ? `${shown} match${shown === 1 ? "" : "es"}` : "no match — try a part number, “2u”, or fewer words";
 }
 $("palsearch").addEventListener("input", filterPalette);
 
 // Collapse / expand a library category by clicking its header.
 for (const h of document.querySelectorAll(".cathead"))
   h.addEventListener("click", () => h.closest(".cat").classList.toggle("collapsed"));
+// One switch for the lot: fold if anything is open, else open everything.
+function paintFoldAll() {
+  const anyOpen = [...document.querySelectorAll("#palette .cat")].some(c => !c.classList.contains("collapsed"));
+  $("foldall").textContent = anyOpen ? "⊟ fold all" : "⊞ open all";
+}
+$("foldall").onclick = () => {
+  const cats = [...document.querySelectorAll("#palette .cat")];
+  const fold = cats.some(c => !c.classList.contains("collapsed"));
+  for (const c of cats) c.classList.toggle("collapsed", fold);
+  paintFoldAll();
+};
+for (const h of document.querySelectorAll(".cathead")) h.addEventListener("click", paintFoldAll);
 // On a phone the palette is a short window over a very long list; open categories mean the
 // one thing a first-timer must find -- Frames -- starts below the fold. Folded headers make
 // the library a table of contents instead. Search still force-opens matching sections.
 if (COARSE)
   for (const cat of document.querySelectorAll("#palette .cat")) cat.classList.add("collapsed");
+paintFoldAll();
 
 // Fold either side panel away to a thin strip so the viewport gets the room. The renderer has to be
 // told the canvas changed width -- after the grid transition, or it measures the old one.
@@ -4855,6 +4958,17 @@ addEventListener("keydown", e => {
   const k = (e.key || "").toLowerCase();
   if ((e.ctrlKey || e.metaKey) && k === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); redo(); return; }
+  // Ctrl+F (and "/") is the part search, as in any library panel; Esc in the box clears it.
+  if (((e.ctrlKey || e.metaKey) && k === "f") || (k === "/" && !/^(input|textarea|select)$/i.test(e.target?.tagName || ""))) {
+    e.preventDefault();
+    const box = $("palsearch");
+    if ($("palette").classList.contains("collapsed")) document.querySelector('.panel-toggle[data-panel="left"]')?.click();
+    box.focus(); box.select();
+    return;
+  }
+  if (k === "escape" && e.target?.id === "palsearch" && e.target.value) {
+    e.target.value = ""; filterPalette(); return;
+  }
   // Single-key actions on the selection -- but never while typing in the search box.
   if (/^(input|textarea|select)$/i.test(e.target?.tagName || "")) return;
   const n = sel();

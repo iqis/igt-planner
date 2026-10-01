@@ -186,6 +186,25 @@ try {
   check("the hash is stripped after landing", after.hash === "", after.hash);
   check("the figure's pose and height survive the link", after.fig === "sit/1850", after.fig);
 
+  // part search: words in any order, part numbers without punctuation, spans, typos, JP titles
+  const search = await page.evaluate(() => {
+    const top = q => {
+      const box = document.getElementById("palsearch");
+      box.value = q; box.dispatchEvent(new Event("input"));
+      const hit = [...document.querySelectorAll("#palette .parts > [data-search]")]
+        .find(e => e.style.display !== "none" && e.offsetParent !== null);
+      return hit?.dataset.sku || "";
+    };
+    const got = { "bamboo long": top("bamboo long"), ck149: top("ck149"), "0.5u": top("0.5u"),
+      "flat brner": top("flat brner"), "焚火": top("焚火") };
+    top("");
+    return got;
+  });
+  check("part search ranks the right part first",
+    search["bamboo long"].startsWith("CK-117") && search.ck149 === "CK-149" && search["0.5u"].startsWith("CK-2")
+      && search["flat brner"].startsWith("GS-450R") && search["焚火"].startsWith("ST-032"),
+    JSON.stringify(search));
+
   check("planner console is clean", errors.length === 0, errors.slice(0, 3).join(" | "));
   if (PUBLIC) {
     const photos = await page.evaluate(() => performance.getEntriesByType("resource").map(e => e.name)
