@@ -273,6 +273,12 @@ try {
       && search["flat brner"].startsWith("GS-450R") && search["焚火"].startsWith("ST-032"),
     JSON.stringify(search));
 
+  // the favicon really decodes as an image (an XML slip -- "--" in a comment -- once broke it silently)
+  const favOk = await page.evaluate(() => new Promise(res => {
+    const i = new Image(); i.onload = () => res(i.naturalWidth > 0); i.onerror = () => res(false); i.src = "favicon.svg";
+  }));
+  check("the favicon decodes", favOk);
+
   check("planner console is clean", errors.length === 0, errors.slice(0, 3).join(" | "));
   if (PUBLIC) {
     const photos = await page.evaluate(() => performance.getEntriesByType("resource").map(e => e.name)
