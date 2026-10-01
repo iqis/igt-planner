@@ -63,6 +63,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     { i: 1, sku: "CK-150", leg: "CK-114", x: 0, z: 0, rot: 0, placements: [{ sku: "GS-355", span: 2, start: 7 }] },
     { i: 2, sku: "LV-077GY", host: 1, edge: "end+x" }] });
   check("core: a bad layout says why", !bad.buildable && bad.problems.length >= 2, JSON.stringify(bad.problems));
+  // the 400mm datum: a frame on the Low leg (CK-112) meets the Jikaro FLUSH -- no step, no warning
+  const jik = core.evaluate({ app: "igt-planner", v: 1, nodes: [
+    { i: 1, sku: "ST-050", x: 0, z: 0, rot: 0, config: "long_in" },
+    { i: 2, sku: "CK-902", leg: "CK-112", host: 1, edge: "jik+x" }] });
+  check("core: Low-leg frame is flush with the Jikaro", jik.buildable && !jik.problems.length
+    && jik.nodes.every(n => n.top_mm === 400), JSON.stringify({ p: jik.problems, tops: jik.nodes.map(n => n.top_mm) }));
 }
 
 // ---- server up ----------------------------------------------------------------------------------

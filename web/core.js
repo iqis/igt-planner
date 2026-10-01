@@ -136,12 +136,17 @@ export const footprint = n => footprintOf(n.sku, n.kind, n);
  *  OR OTHER EXTENSION", a whole chain inherits the frame's height, all the way down.
  */
 export function topOf(n, depth = 0) {
-  if (n.kind === "frame") return (PARTS[n.leg]?.height_mm ?? 0) + FRAME_THICK;
+  // A leg set is named for the TABLE HEIGHT it gives, not its own length: CK-112 "400mm" is 410mm of
+  // tube, CK-114 "830mm" is 840 -- the extra 10mm goes up into the frame's corner sockets. So a frame
+  // on the Low leg stands at exactly 400, flush with the Jikaro, the Connection Table and every other
+  // datum table, which is the whole premise of the 400mm datum (layout.json). Adding the frame's 30mm
+  // on top put it at 430 and flagged "different heights" on the very pairing the system is built for.
+  if (n.kind === "frame") return PARTS[n.leg]?.height_mm ?? 0;
   if (n.kind === "ext") {
     const h = byId(n.host);
     // Flush with the host, MINUS any height-adjuster step (n.step rungs down the ladder).
     if (h && depth < 16) return topOf(h, depth + 1) - stepDropMm(hostLegOf(h), n.step || 0);
-    return (PARTS[n.leg]?.height_mm ?? 0) + (PARTS[n.sku].assembled_mm?.h ?? 25);
+    return PARTS[n.leg]?.height_mm ?? PARTS[n.sku].assembled_mm?.h ?? 25;   // a loose board on its own legs: the leg's named height
   }
   // Self-contained IGTs stand at the datum by design; Slim's 408mm is within tolerance of 400, so
   // snap them to the datum -- they line up with any 400mm table and join via a connection hook, not
@@ -1236,7 +1241,9 @@ export function warnings() {
   // Two frames end to end. Their end pieces butt -- 49.4mm each, so the joint eats 99mm --
   // and the unit grid does NOT carry across it. Nothing can be placed spanning the seam,
   // and the planner shows that by giving each frame its own slots, but say it out loud.
-  const joined = state.nodes.filter(n => n.kind === "frame" && n.host);
+  // Frame to FRAME only: two end pieces butting is what eats the 99mm. A frame on the Jikaro or the
+  // Connection Table meets a table edge, not a second end piece, so none of this applies there.
+  const joined = state.nodes.filter(n => n.kind === "frame" && n.host && byId(n.host)?.kind === "frame");
   for (const n of joined) {
     const h = byId(n.host);
     add(`${PARTS[h.sku].title_en} + ${PARTS[n.sku].title_en} joined end to end with an `
