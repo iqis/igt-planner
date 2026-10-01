@@ -4,6 +4,8 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, grainMaterial } from "./materials.js";
 import { PUBLIC, GRAIN_MEANS } from "./build.js";
 import { proceduralGrain } from "./proctex.js";
+import { icon, brand } from "./icons.js";
+import qrcode from "./vendor/qrcode.mjs";
 import {
   BY_ROLE, CAT, COLORS, CONN, CONN_TABLE, EDGE_IFACES, EDGE_KEYS, FIGURES,
   FRAMES, FRAME_HOOK, FRAME_THICK, GRID, HALF, HEIGHT_LADDER, HOLE_INSET, HOOKABLE,
@@ -153,6 +155,9 @@ camera.position.set(1.6, 1.5, 2.1);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.target.set(0, 0.35, 0);
+// Never under the ground: a layout is looked at from above or level with it, and below the horizon
+// there is only the underside of a floor plane. Level (the front/side presets) is still allowed.
+controls.maxPolarAngle = Math.PI / 2 - 0.01;
 controls.maxDistance = 18;   // a place's horizon is painted 24m out; never back the camera through it
 controls.addEventListener("change", invalidate);   // any camera input wakes the renderer
 // The scroll wheel already dollies, so the middle button is free -- and PAN is what you actually
@@ -1459,12 +1464,18 @@ btn.onclick = openMenu;
 // ---- The selected object's floating action toolbar --------------------------------------------
 // Delete / duplicate / replace / rotate, right at the object, so acting on a selection never means
 // crossing the screen to a side panel. It tracks the object as the camera orbits (followSelTools).
-function toolBtn(glyph, title, cls, onClick) {
+function toolBtn(content, title, cls, onClick) {
   const b = document.createElement("button");
-  b.textContent = glyph; b.title = title; if (cls) b.className = cls;
+  b.innerHTML = content; b.title = title; if (cls) b.className = cls;
   b.onclick = ev => { ev.stopPropagation(); onClick(); };
   return b;
 }
+
+// An icon button's content: the icon, and its word in a .lbl span. The word is hidden on a mouse
+// (the icon + its tooltip carry it) and SHOWN on touch, where no tooltip is ever seen -- the finding
+// that once turned this toolbar into words was about bare Unicode glyphs, which meant nothing on their
+// own. Real icons for the universal verbs, a word beside the ones that are not (class "keep").
+const ib = (name, label) => `${icon(name)}<span class="lbl">${label}</span>`;
 
 // ---- The selected object's OWN controls, in the viewport ----------------------------------------
 // Leg height and part options used to sit in the left panel, which meant leaving the object to change
@@ -1664,18 +1675,18 @@ function openToolPop(which, n) {
  *  "detach" says a thing no padlock does. */
 function placementBtn(n) {
   if (n.host != null && n.rail)
-    return toolBtn(n.locked ? "unlock" : "lock",
-      n.locked ? "unlock — free to slide along the rail" : "lock the slide position so it can't move", "wide",
+    return toolBtn(n.locked ? ib("unlock", "unlock") : ib("lock", "lock"),
+      n.locked ? "unlock — free to slide along the rail" : "lock the slide position so it can't move", "ib",
       () => { n.locked = !n.locked; render(); });
   if (n.host != null)
-    return toolBtn("detach", "pull it off — float it free to move or re-hook onto another edge", "wide",
+    return toolBtn(ib("detach", "detach"), "pull it off — float it free to move or re-hook onto another edge", "ib",
       () => { detachNode(n); n.floating = true; n.locked = false; selectOnly(n.id); render();
               note("pulled off — drag it where you want, then lock it"); });
   const fixed = !!n.locked;
-  return toolBtn(fixed ? "unlock" : (n.floating ? "place" : "lock"),
+  return toolBtn(fixed ? ib("unlock", "unlock") : (n.floating ? ib("anchor", "place") : ib("lock", "lock")),
     fixed ? "unlock — float it to move it again"
       : (n.floating ? "place it — lock it down where it sits" : "lock it in place so a stray drag can't move it"),
-    "wide",
+    n.floating && !fixed ? "ib keep" : "ib",
     () => { if (fixed) { n.locked = false; n.floating = true; } else { n.locked = true; n.floating = false; } render(); });
 }
 
@@ -1685,37 +1696,37 @@ function paintSelTools() {
   toolPop.hidden = true;
   if (!n) { selTools.hidden = true; return; }
   selTools.innerHTML = "";
-  // WORDS, not glyphs. Half this toolbar already spoke -- lock / detach / place / the leg
-  // height -- and the other half was ⧉ ⧉+ ⇄ ⚙, meanings carried only in tooltips no finger
-  // ever sees. One voice now, the one the toolbar already had.
+  // ICONS, with their words where they must speak: on touch every label shows; on a mouse the
+  // universal verbs (rotate, copy, delete...) are icons with tooltips, and the decisions that are
+  // not universal -- place, the leg height -- keep their word.
   // A multi-selection gets a compact toolbar: a count, duplicate-all (the free ones), delete-all.
   if (state.selSet.size > 1) {
     const count = document.createElement("span");
     count.className = "count"; count.textContent = `${state.selSet.size} selected`;
     selTools.append(count);
-    selTools.append(toolBtn("copy", "duplicate all  (Ctrl+D)", "wide", () => duplicateSelected()));
-    selTools.append(toolBtn("block", "save all of it as one block, kept by name", "wide",
+    selTools.append(toolBtn(ib("copy", "copy"), "duplicate all  (Ctrl+D)", "ib", () => duplicateSelected()));
+    selTools.append(toolBtn(ib("block", "block"), "save all of it as one block, kept by name", "ib",
       () => { const name = prompt("name this block:", ""); if (name && name.trim()) saveBlock(name.trim()); }));
     const sep0 = document.createElement("span"); sep0.className = "sep"; selTools.append(sep0);
-    selTools.append(toolBtn("delete", "delete all  (Del)", "wide danger", () => removeNode(n)));
+    selTools.append(toolBtn(ib("trash", "delete"), "delete all  (Del)", "ib danger", () => removeNode(n)));
   } else {
     // Placement first: is this thing floating, placed, locked, hooked? -- the leading decision.
     selTools.append(placementBtn(n));
     // This part's OWN controls, at the part: height, then whatever it can be configured into.
     if (legAdjustable(n) && PARTS[n.leg])
-      selTools.append(toolBtn(`${PARTS[n.leg].height_mm}`, "leg height — sets the standing height", "wide",
+      selTools.append(toolBtn(`${icon("height")}<span class="num">${PARTS[n.leg].height_mm}</span>`, "leg height — sets the standing height", "ib keep",
         () => openToolPop("legs", n)));
-    if (hasActions(n)) selTools.append(toolBtn("options", `${PARTS[n.sku].title_en} — options`, "wide", () => openToolPop("actions", n)));
+    if (hasActions(n)) selTools.append(toolBtn(ib("options", "options"), `${PARTS[n.sku].title_en} — options`, "ib", () => openToolPop("actions", n)));
     if (!n.host) {
-      selTools.append(toolBtn("rotate", "rotate 90°  (R)", "wide", () => rotateNode(n)));
-      selTools.append(toolBtn("copy", "duplicate  (Ctrl+D)", "wide", () => duplicateNode(n)));
+      selTools.append(toolBtn(ib("rotate", "rotate"), "rotate 90°  (R)", "ib", () => rotateNode(n)));
+      selTools.append(toolBtn(ib("copy", "copy"), "duplicate  (Ctrl+D)", "ib", () => duplicateNode(n)));
       // A block is a duplicate that outlives the session, so its button lives next to duplicate.
-      selTools.append(toolBtn("block", "save as a block — this and everything on it, kept by name", "wide",
+      selTools.append(toolBtn(ib("block", "block"), "save as a block — this and everything on it, kept by name", "ib",
         () => { const name = prompt("name this block:", ""); if (name && name.trim()) saveBlock(name.trim()); }));
     }
-    if (replaceOptions(n).length > 1) selTools.append(toolBtn("swap", "replace with a similar part", "wide", () => openReplaceMenu(n)));
+    if (replaceOptions(n).length > 1) selTools.append(toolBtn(ib("swap", "swap"), "replace with a similar part", "ib", () => openReplaceMenu(n)));
     const sep = document.createElement("span"); sep.className = "sep"; selTools.append(sep);
-    selTools.append(toolBtn("delete", "delete  (Del)", "wide danger", () => removeNode(n)));
+    selTools.append(toolBtn(ib("trash", "delete"), "delete  (Del)", "ib danger", () => removeNode(n)));
   }
   selTools.hidden = false;
   followSelTools();
@@ -1834,7 +1845,7 @@ function showModMenu(node, pl, clientX, clientY) {
     }
   }
   const del = document.createElement("div");
-  del.className = "act del"; del.textContent = "× remove from frame";
+  del.className = "act del"; del.innerHTML = `${icon("trash", 14)} remove from frame`;
   del.onclick = () => { removePlacement(node, pl); hideModMenu(); };
   modmenu.append(del);
   const sr = $("stage").getBoundingClientRect();
@@ -2684,7 +2695,7 @@ function paintRulers() {
       el.className = "rlabel";
       const txt = document.createElement("span");
       const del = document.createElement("button");
-      del.textContent = "×"; del.title = "remove this measurement";
+      del.innerHTML = icon("x", 12); del.title = "remove this measurement";
       del.onclick = ev => { ev.stopPropagation(); removeRuler(r.id); };
       el.append(txt, del);
       el._txt = txt;
@@ -2931,7 +2942,7 @@ function paintPalette() {
         nm.title = "select this footprint (works even when the layer is locked)";
         nm.onclick = () => { state.sel = n.id; render(); };
         const del = document.createElement("span");
-        del.className = "del"; del.textContent = "×";
+        del.className = "del"; del.innerHTML = icon("x", 12);
         del.title = "remove this footprint";
         del.onclick = (e) => { e.stopPropagation(); removeNode(n); };
         row.append(sw, nm, del);
@@ -3130,7 +3141,8 @@ for (const h of document.querySelectorAll(".cathead"))
 // One switch for the lot: fold if anything is open, else open everything.
 function paintFoldAll() {
   const anyOpen = [...document.querySelectorAll("#palette .cat")].some(c => !c.classList.contains("collapsed"));
-  $("foldall").textContent = anyOpen ? "⊟ fold all" : "⊞ open all";
+  $("foldall").innerHTML = anyOpen ? icon("fold") : icon("unfold");
+  $("foldall").title = anyOpen ? "fold every category" : "open every category";
 }
 $("foldall").onclick = () => {
   const cats = [...document.querySelectorAll("#palette .cat")];
@@ -3225,12 +3237,40 @@ function paintBOM() {
     <div class="row"><span></span><b class="alt">${(kg * 2.20462).toFixed(1)} lb</b></div>`;
 }
 
+// The messages, folded. They used to be a wall above the bill -- ten paragraphs for one layout -- so
+// they sit behind a one-line summary now (closed by default, remembered while you work), grouped the
+// way you act on them: what to fix, what to check, what was added for you, and plain notes.
+const WARN_CATS = [
+  ["problem", "to fix"], ["check", "to check"], ["added", "added for you"], ["note", "notes"],
+];
+let warnOpen = false;
 function paintWarnings() {
   const w = $("warnings"); w.innerHTML = "";
-  for (const { level, text } of warnings()) {
-    const d = document.createElement("div");
-    d.className = level === "warn" ? "warn" : "warn info"; d.textContent = text; w.append(d);
+  const all = warnings();
+  if (!all.length) return;
+  const box = document.createElement("details");
+  box.className = "warnbox";
+  box.open = warnOpen;
+  box.ontoggle = () => { warnOpen = box.open; };
+  const sum = document.createElement("summary");
+  sum.innerHTML = WARN_CATS.map(([cat, label]) => {
+    const n = all.filter(x => x.cat === cat).length;
+    return n ? `<span class="wc ${cat}"><i></i>${n} ${label}</span>` : "";
+  }).join("");
+  box.append(sum);
+  for (const [cat, label] of WARN_CATS) {
+    const items = all.filter(x => x.cat === cat);
+    if (!items.length) continue;
+    const g = document.createElement("div");
+    g.className = `wgroup ${cat}`;
+    g.innerHTML = `<div class="wghead">${label}</div>`;
+    for (const { text } of items) {
+      const d = document.createElement("div");
+      d.className = "witem"; d.textContent = text; g.append(d);
+    }
+    box.append(g);
   }
+  w.append(box);
 }
 
 // The scene outliner: placed objects as a tree, nested by host-guest -- a hooked board sits under
@@ -3254,7 +3294,7 @@ function treeRow(n, depth, { module = false, pl = null } = {}) {
   row.onmouseenter = () => setHoverNode(n.id);           // light up the object in the 3D view
   row.onmouseleave = () => { if (hoverNodeId === n.id) setHoverNode(null); };
   const del = document.createElement("span");
-  del.className = "del"; del.textContent = "×";
+  del.className = "del"; del.innerHTML = icon("x", 12);
   del.title = module ? "remove this module" : "remove this object (and anything on it)";
   del.onclick = e => { e.stopPropagation(); module ? removePlacement(n, pl) : removeNode(n); };
   row.append(del);
@@ -3514,14 +3554,14 @@ function paintPager() {
     // No delete on the last page: a book always has at least one page.
     if (book.pages.length > 1) {
       const x = document.createElement("span");
-      x.className = "pclose"; x.textContent = "×"; x.title = "delete this page";
+      x.className = "pclose"; x.innerHTML = icon("x", 12); x.title = "delete this page";
       x.onclick = ev => { ev.stopPropagation(); if (confirm(`Delete page "${p.name}"? This can't be undone.`)) deletePage(p.id); };
       tab.append(x);
     }
     el.append(tab);
   }
   const add = document.createElement("button");
-  add.className = "padd"; add.textContent = "+"; add.title = "new page — a fresh, independent design";
+  add.className = "padd"; add.innerHTML = icon("plus", 15); add.title = "new page — a fresh, independent design";
   add.onclick = () => newPage();
   el.append(add);
 }
@@ -3740,7 +3780,7 @@ function paintFiles() {
     const at = (all[n].at || "").slice(0, 10);
     const r = row(n, `${(all[n].nodes || []).length} parts · ${at}`, () => openNamed(n));
     const x = document.createElement("button");
-    x.className = "fdel"; x.textContent = "×"; x.title = "forget this one";
+    x.className = "fdel"; x.innerHTML = icon("x", 12); x.title = "forget this one";
     x.onclick = e => { e.stopPropagation(); if (confirm(`forget "${n}"?`)) deleteNamed(n); };
     r.append(x);
   }
@@ -3761,7 +3801,6 @@ $("filebtn").onclick = e => {
   fileMenu.style.top = `${r.bottom + 6}px`;
   fileMenu.hidden = false;
 };
-$("sharebtn").onclick = shareLink;
 
 // ---------------------------------------------------------------- the PNG export
 //
@@ -3774,12 +3813,16 @@ $("sharebtn").onclick = shareLink;
 // pixels out, restore -- all synchronous, so the screen never paints an in-between state.
 // The selection is cleared for the shot (an outline is UI, not design) and put back before
 // any DOM repaints could notice; rulers stay, because a measurement is authored content.
-async function exportPng({ deliver = true } = {}) {
+// Options (the photo card sets them): `layout` "plate" (view + plan + bill) or "view" (the 3D view
+// alone, for posting); `aspect` of a view-only shot; `scale` 1 or 2 (pixels, not layout); `to`
+// "download" | "copy" | "share". deliver:false just returns the blob (the smoke test uses that).
+const VIEW_SIZES = { "4:3": [1600, 1200], "1:1": [1400, 1400], "3:4": [1200, 1600], "4:5": [1280, 1600], "16:9": [1920, 1080] };
+async function exportPng({ deliver = true, layout = "plate", aspect = "4:3", scale = 1, to = "download" } = {}) {
   try {
     if (!state.nodes.length) { note("nothing to photograph — the page is empty"); return null; }
     const css = getComputedStyle(document.documentElement);
     const v = (name, d) => css.getPropertyValue(name).trim() || d;
-    const MONO = v("--mono", "monospace");
+    const MONO = v("--mono", "monospace"), SANS = v("--sans", "sans-serif");
     const INK = v("--ink", "#e6e8ec"), LINE = v("--line", "#2b3038");
 
     // Two extents, two jobs. The PLAN frames everything, footprints included -- it must show
@@ -3802,7 +3845,9 @@ async function exportPng({ deliver = true } = {}) {
     state.sel = null; state.selSet = new Set();
     rebuild();
 
-    const heroW = 1560, heroH = 1170, planW = 640;
+    const viewOnly = layout === "view";
+    const [heroW, heroH] = viewOnly ? (VIEW_SIZES[aspect] || VIEW_SIZES["4:3"]) : [1560, 1170];
+    const planW = 640;
     const grab = (cam, w, h) => {
       renderer.setSize(w, h, false);
       if (cam.isPerspectiveCamera) { cam.aspect = w / h; cam.updateProjectionMatrix(); }
@@ -3812,7 +3857,12 @@ async function exportPng({ deliver = true } = {}) {
       c.getContext("2d").drawImage(renderer.domElement, 0, 0, w, h);
       return c;
     };
-    const hero = grab(camera, heroW, heroH);
+    const hero = grab(camera, heroW * scale, heroH * scale);
+    if (viewOnly) {
+      state.sel = keepSel; state.selSet = keepSet;
+      rebuild(); resize();
+      return await deliverPng(hero, { deliver, to });
+    }
 
     // The plan: straight down, orthographic, contain-fit with symmetric padding. Fog off --
     // it is distance-based, and from 14m up it would grey the whole floor.
@@ -3829,7 +3879,7 @@ async function exportPng({ deliver = true } = {}) {
     ortho.lookAt(cx * MM, 0, cz * MM);
     const fog = scene.fog;
     scene.fog = null;
-    const plan = grab(ortho, planW, planH);
+    const plan = grab(ortho, planW * scale, planH * scale);
     scene.fog = fog;
 
     state.sel = keepSel; state.selSet = keepSet;
@@ -3854,8 +3904,9 @@ async function exportPng({ deliver = true } = {}) {
     const W = M + heroW + GAP + planW + M;
     const H = M + HEAD + heroH + 96;
     const out = document.createElement("canvas");
-    out.width = W; out.height = H;
+    out.width = W * scale; out.height = H * scale;
     const ctx = out.getContext("2d");
+    ctx.scale(scale, scale);    // lay out in 1x units; every pixel is drawn at `scale`
     ctx.fillStyle = v("--bg", "#14161a");
     ctx.fillRect(0, 0, W, H);
     const faint = (a, fn) => { ctx.globalAlpha = a; fn(); ctx.globalAlpha = 1; };
@@ -3863,24 +3914,24 @@ async function exportPng({ deliver = true } = {}) {
 
     // header: the page's name, and the date it was true
     ctx.fillStyle = INK;
-    ctx.font = `600 44px ${MONO}`;
+    ctx.font = `600 44px ${SANS}`;
     ctx.fillText(activePage()?.name || "IGT layout", M, M + 46);
-    ctx.font = `26px ${MONO}`;
+    ctx.font = `26px ${SANS}`;
     faint(.55, () => {
       const date = new Date().toISOString().slice(0, 10);
       ctx.fillText(date, W - M - ctx.measureText(date).width, M + 44);
-      ctx.fillText("IGT LAYOUT PLANNER", M, M + 84);
+      ctx.fillText("IGT Layout Planner · igt.iqis.app", M, M + 84);
     });
 
     const top = M + HEAD;
-    ctx.drawImage(hero, M, top);
+    ctx.drawImage(hero, M, top, heroW, heroH);
     frame(M, top, heroW, heroH);
     ctx.font = `28px ${MONO}`;
     if (fx1 > fx0) faint(.7, () => ctx.fillText(
       `layout ${((fx1 - fx0) / 1000).toFixed(2)} × ${((fz1 - fz0) / 1000).toFixed(2)} m`, M, top + heroH + 52));
 
     const rx = M + heroW + GAP;
-    ctx.drawImage(plan, rx, top);
+    ctx.drawImage(plan, rx, top, planW, planH);
     frame(rx, top, planW, planH);
     // scale bar: a metre (or half of one, if the plan is tight) in the plan's own scale
     const barMm = 1000 / mmPerPx > planW * .6 ? 500 : 1000;
@@ -3898,10 +3949,10 @@ async function exportPng({ deliver = true } = {}) {
 
     // the bill: what you'd carry to make the picture true
     let ly = by + 64;
-    ctx.font = `600 26px ${MONO}`;
-    faint(.55, () => ctx.fillText("BUILD", rx, ly));
+    ctx.font = `600 26px ${SANS}`;
+    faint(.55, () => ctx.fillText("Build", rx, ly));
     ly += 40;
-    ctx.font = `26px ${MONO}`;
+    ctx.font = `26px ${SANS}`;
     const fit = s => {
       while (ctx.measureText(s).width > planW && s.length > 4) s = s.slice(0, -2);
       return ctx.measureText(s).width > planW - 4 ? s.slice(0, -1) + "…" : s;
@@ -3917,16 +3968,28 @@ async function exportPng({ deliver = true } = {}) {
     }
     ly += 10;
     const kg = grams / 1000;
-    ctx.font = `600 28px ${MONO}`;
+    ctx.font = `600 28px ${SANS}`;
     ctx.fillText(`you carry ${kg.toFixed(1)} kg · ${(kg * 2.20462).toFixed(1)} lb`, rx, ly);
+    return await deliverPng(out, { deliver, to });
+  } catch (e) { note(`photo failed — ${e.message}`, 5000); return null; }
+}
 
-    // ---- deliver: the share sheet on a phone (it IS "send to the group chat"), a file elsewhere
-    const blob = await new Promise(r => out.toBlob(r, "image/png"));
+/** Hand a finished canvas over: as a blob (deliver:false), a download, the clipboard, or the share
+ *  sheet. "share" falls back to a download where the browser cannot share files. */
+async function deliverPng(canvas, { deliver = true, to = "download" } = {}) {
+  try {
+
+    const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
     if (!deliver) return blob;
     const fname = `igt-${(activePage()?.name || "layout").replace(/[^\w-]+/g, "_")}-`
       + `${new Date().toISOString().slice(0, 10)}.png`;
     const file = new File([blob], fname, { type: "image/png" });
-    if (COARSE && navigator.canShare?.({ files: [file] })) {
+    if (to === "copy") {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      note("picture copied — paste it anywhere");
+      return blob;
+    }
+    if (to === "share" && navigator.canShare?.({ files: [file] })) {
       try { await navigator.share({ files: [file] }); return blob; }
       catch (e) { if (e.name === "AbortError") return blob; }   // cancelled IS an answer
     }
@@ -3939,8 +4002,254 @@ async function exportPng({ deliver = true } = {}) {
     return blob;
   } catch (e) { note(`photo failed — ${e.message}`, 5000); return null; }
 }
-$("pngbtn").onclick = () => exportPng();
 addEventListener("pointerdown", e => { if (!fileMenu.hidden && !fileMenu.contains(e.target)) fileMenu.hidden = true; }, true);
+
+// ---------------------------------------------------------------- the header cards: AI, photo, share
+//
+// Each of these used to be one blind action -- a link out, a file dropped, a link copied. They open a
+// card now, at the button, with the choices that action actually has: which AI, which picture, which
+// place to send it. One popover, rebuilt per card; a click outside or Esc closes it.
+const card = $("popcard");
+let cardOwner = null;
+function openCard(btn, build) {
+  if (cardOwner === btn && !card.hidden) { closeCard(); return; }
+  fileMenu.hidden = true;
+  card.innerHTML = "";
+  build(card);
+  card.hidden = false;
+  const r = btn.getBoundingClientRect(), w = card.offsetWidth;
+  card.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.right - w))}px`;
+  card.style.top = `${r.bottom + 6}px`;
+  cardOwner = btn;
+}
+function closeCard() { card.hidden = true; cardOwner = null; }
+addEventListener("pointerdown", e => {
+  if (!card.hidden && !card.contains(e.target) && !cardOwner?.contains(e.target)) closeCard();
+}, true);
+addEventListener("keydown", e => { if (e.key === "Escape" && !card.hidden) closeCard(); });
+
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const cardHead = (title, sub) => el("div", "chead", `<b>${title}</b>${sub ? `<span>${sub}</span>` : ""}`);
+function cardBtn(html, onClick, cls = "") {
+  const b = el("button", `cbtn ${cls}`, html);
+  b.onclick = onClick;
+  return b;
+}
+/** A segmented choice: [label, value] pairs; remembers its pick per browser under `key`. */
+function segmented(key, options, fallback, onChange) {
+  let cur = fallback;
+  try { cur = localStorage.getItem(key) || fallback; } catch {}
+  if (!options.some(([, v]) => v === cur)) cur = fallback;
+  const box = el("div", "seg");
+  for (const [label, value] of options) {
+    const b = el("button", value === cur ? "on" : "", label);
+    b.onclick = () => {
+      cur = value;
+      try { localStorage.setItem(key, value); } catch {}
+      for (const x of box.children) x.classList.toggle("on", x === b);
+      onChange?.(value);
+    };
+    box.append(b);
+  }
+  box.value = () => cur;
+  return box;
+}
+const PUBLIC_SITE = "https://igt.iqis.app";
+
+// ---- share ----------------------------------------------------------------------------------------
+/** The page as a link: gzipped JSON in the hash. Null where the browser cannot compress. */
+async function makeShareUrl() {
+  try {
+    const json = new TextEncoder().encode(JSON.stringify(serializeLayout()));
+    const gz = await pipe(json, new CompressionStream("gzip"));
+    return `${location.origin}${location.pathname}#d=${b64u(gz)}`;
+  } catch { return null; }
+}
+async function copyText(text, what) {
+  try { await navigator.clipboard.writeText(text); note(`${what} copied`); return true; }
+  catch { prompt(`copy this ${what}:`, text); return false; }
+}
+// Where a link can go. `max` = the service's limit on text + link, where it has one that bites.
+const SOCIAL = [
+  ["x", "X", (u, t) => `https://x.com/intent/post?text=${encodeURIComponent(t)}&url=${encodeURIComponent(u)}`],
+  ["facebook", "Facebook", u => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}`],
+  ["reddit", "Reddit", (u, t) => `https://www.reddit.com/submit?url=${encodeURIComponent(u)}&title=${encodeURIComponent(t)}`],
+  ["whatsapp", "WhatsApp", (u, t) => `https://wa.me/?text=${encodeURIComponent(`${t} ${u}`)}`],
+  ["line", "LINE", u => `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(u)}`],
+  ["telegram", "Telegram", (u, t) => `https://t.me/share/url?url=${encodeURIComponent(u)}&text=${encodeURIComponent(t)}`],
+];
+async function openShareCard(btn) {
+  const url = await makeShareUrl();
+  openCard(btn, c => {
+    c.append(cardHead("Share this page", "the link carries the whole design — no account, no server"));
+    if (!url) { c.append(el("p", "cnote", "This browser cannot build a share link. Export the file from layouts instead.")); return; }
+    if (url.length > 8000) c.append(el("p", "cnote warn", `This design makes a ${(url.length / 1000).toFixed(1)}k link — too long for some apps. Export the file if it will not paste.`));
+    const row = el("div", "crow");
+    const field = el("input", "cfield"); field.readOnly = true; field.value = url;
+    field.onfocus = () => field.select();
+    row.append(field, cardBtn(`${icon("copy")}<span>Copy</span>`, () => copyText(url, "link"), "primary"));
+    c.append(row);
+    const title = `My Snow Peak IGT layout — ${activePage()?.name || "a design"}`;
+    const grid = el("div", "cgrid");
+    for (const [key, label, make, max] of SOCIAL) {
+      const href = make(url, title);
+      const tooLong = max && (title.length + 1 + url.length) > max;
+      const a = el("a", `csocial${tooLong ? " dead" : ""}`, `${brand(key, 18)}<span>${label}</span>`);
+      if (tooLong) a.title = `${label} allows ${max} characters — this link is ${url.length}`;
+      else { a.href = href; a.target = "_blank"; a.rel = "noopener"; }
+      grid.append(a);
+    }
+    // WeChat has no web share: the link becomes a QR code -- scan it with WeChat, open it on the phone,
+    // forward it from there. Xiaohongshu posts are pictures and links in them do not click: so the
+    // caption (with the link) goes on the clipboard and the photo card opens set to its 3:4.
+    const qrBox = el("div", "cqr");
+    qrBox.hidden = true;
+    const wechat = cardBtn(`${brand("wechat", 18)}<span>WeChat</span>`, () => {
+      if (!qrBox.hidden) { qrBox.hidden = true; return; }
+      const qr = qrcode(0, "L");
+      qr.addData(url);
+      qr.make();
+      qrBox.innerHTML = qr.createSvgTag({ cellSize: 3, margin: 2, scalable: true })
+        + `<p>用微信「扫一扫」，在手机上打开这个设计，再转发给朋友或群聊。</p>`
+        + (url.length > 1200 ? `<p class="warn">这个设计的链接很长，二维码会比较密——扫不出来的话，把屏幕放大一点。</p>` : "");
+      qrBox.hidden = false;
+    }, "csocial");
+    const xhs = cardBtn(`${brand("xiaohongshu", 18)}<span>小红书</span>`, async () => {
+      await copyText(`${title}
+${url}`, "caption with the link");
+      try { localStorage.setItem("igt.photo.layout", "view"); localStorage.setItem("igt.photo.aspect", "3:4"); } catch {}
+      openPhotoCard($("pngbtn"));
+      note("文案和链接已复制 — 导出 3:4 图片后发小红书，把文案粘贴进去", 6000);
+    }, "csocial");
+    grid.append(wechat, xhs);
+    const mail = el("a", "csocial", `${icon("mail", 18)}<span>Email</span>`);
+    mail.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(url)}`;
+    grid.append(mail);
+    if (navigator.share) grid.append(cardBtn(`${icon("share", 18)}<span>More…</span>`,
+      () => navigator.share({ title, url }).catch(() => {}), "csocial"));
+    c.append(grid, qrBox);
+    const foot = el("div", "cfoot");
+    foot.append(cardBtn(`${icon("camera")}<span>Send a picture instead</span>`, () => openPhotoCard($("pngbtn")), "link"));
+    c.append(foot);
+  });
+}
+
+// ---- photo ----------------------------------------------------------------------------------------
+function openPhotoCard(btn) {
+  openCard(btn, c => {
+    c.append(cardHead("Photo of this page", "a picture that lands in a chat as itself"));
+    const shape = el("div", "cfield-row");
+    const layoutSeg = segmented("igt.photo.layout", [["Plate", "plate"], ["View only", "view"]], "plate",
+      v => { shape.hidden = v !== "view"; hint.textContent = HINTS[v]; });
+    const HINTS = {
+      plate: "the view as you framed it, a to-scale plan, and the parts with what they weigh",
+      view: "just the 3D view as you framed it — scene and all, for posting",
+    };
+    const aspectSeg = segmented("igt.photo.aspect", [["4:3", "4:3"], ["1:1", "1:1"], ["3:4", "3:4"], ["4:5", "4:5"], ["16:9", "16:9"]], "4:3");
+    const scaleSeg = segmented("igt.photo.scale", [["Standard", "1"], ["Large ×2", "2"]], "1");
+    const field = (label, ctl) => { const r = el("div", "cfield-row"); r.append(el("label", "", label), ctl); return r; };
+    c.append(field("Layout", layoutSeg));
+    shape.append(el("label", "", "Shape"), aspectSeg);
+    shape.hidden = layoutSeg.value() !== "view";
+    c.append(shape, field("Size", scaleSeg));
+    const hint = el("p", "cnote", HINTS[layoutSeg.value()]);
+    c.append(hint);
+    const go = to => { closeCard(); exportPng({ layout: layoutSeg.value(), aspect: aspectSeg.value(), scale: +scaleSeg.value(), to }); };
+    const acts = el("div", "crow end");
+    if (navigator.canShare && COARSE) acts.append(cardBtn(`${icon("share")}<span>Share</span>`, () => go("share")));
+    if (window.ClipboardItem && navigator.clipboard?.write) acts.append(cardBtn(`${icon("clipboard")}<span>Copy</span>`, () => go("copy")));
+    acts.append(cardBtn(`${icon("download")}<span>Download</span>`, () => go("download"), "primary"));
+    c.append(acts);
+  });
+}
+
+// ---- use with AI ----------------------------------------------------------------------------------
+// The planner runs no model. These buttons open the person's OWN assistant with the prompt filled in
+// -- and, if they like, this page's design inside it -- and the box below takes back what it writes.
+function aiPrompt(withDesign) {
+  const doc = JSON.stringify(serializeLayout());
+  const lines = [
+    "I'm planning a Snow Peak IGT (Iron Grill Table) camp-kitchen setup with the IGT Layout Planner.",
+    `First read ${PUBLIC_SITE}/llms.txt — it explains the layout format and the rules — and use the parts catalog at ${PUBLIC_SITE}/catalog/igt-catalog.json.`,
+  ];
+  if (withDesign) lines.push("", "Here is my current design (planner layout JSON):", "```json", doc, "```");
+  lines.push("", "Ask me what I want to build or change. Then write the layout JSON and give me a link:",
+    `${PUBLIC_SITE}/web/#layout= followed by the URL-encoded JSON.`);
+  return lines.join("\n");
+}
+/** Read whatever an assistant handed back: layout JSON (bare or fenced), a #layout= link, or a #d= link. */
+async function parseAiReply(text) {
+  const t = text.trim();
+  let m = /#(?:.*&)?layout=([^&\s]+)/.exec(t);
+  if (m) return JSON.parse(decodeURIComponent(m[1]));
+  m = /#(?:.*&)?d=([A-Za-z0-9_-]+)/.exec(t);
+  if (m) return JSON.parse(new TextDecoder().decode(await pipe(unb64u(m[1]), new DecompressionStream("gzip"))));
+  const fenced = /```(?:json)?\s*([\s\S]*?)```/.exec(t);
+  const body = fenced ? fenced[1] : t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1);
+  return JSON.parse(body);
+}
+/** Open a layout document as a NEW page (never costing the one on screen), and say what happened. */
+function openDocAsPage(doc, name) {
+  readLayout(doc);                         // throws on a document the planner would refuse
+  const asPage = state.nodes.length > 0;
+  if (asPage) newPage(name);
+  const dropped = loadLayout(doc);
+  if (asPage) { commitActivePage(); lsPut(LS_PAGES, book); lsPut(LS_SCENE, activePage().doc); }
+  note(`opened ${name}${asPage ? " as a new page" : ""}${droppedSuffix(dropped)}`);
+}
+function openAiCard(btn) {
+  openCard(btn, c => {
+    c.append(cardHead("Design with your own AI",
+      "describe the setup; your assistant writes the layout and the planner's rules check it. Nothing is sent from here."));
+    const inc = el("label", "ccheck");
+    const box = el("input"); box.type = "checkbox"; box.checked = state.nodes.length > 0;
+    inc.append(box, document.createTextNode(" include this page's design, so it can build on it"));
+    c.append(inc);
+    const LIMIT = 7000;   // a prefilled-chat URL much longer than this gets cut by some browsers
+    const prompt = () => {
+      let p = aiPrompt(box.checked);
+      if (p.length > LIMIT) { p = aiPrompt(false); note("this design is too big to fit in a link — copy the prompt instead"); }
+      return p;
+    };
+    const open = url => window.open(url, "_blank", "noopener");
+    const acts = el("div", "crow");
+    acts.append(
+      cardBtn(`${brand("claude")}<span>Open in Claude</span>`, () => open(`https://claude.ai/new?q=${encodeURIComponent(prompt())}`)),
+      cardBtn(`${icon("chat")}<span>Open in ChatGPT</span>`, () => open(`https://chatgpt.com/?q=${encodeURIComponent(prompt())}`)),
+    );
+    c.append(acts);
+    c.append(cardBtn(`${icon("copy")}<span>Copy the prompt — for any other assistant</span>`,
+      () => copyText(aiPrompt(box.checked), "prompt"), "link"));
+
+    c.append(el("div", "csep"));
+    c.append(cardHead("Got a layout back?", "paste the JSON or the link your assistant gave you"));
+    const area = el("textarea", "carea");
+    area.placeholder = '{ "app": "igt-planner", ... }   or   https://igt.iqis.app/web/#layout=…';
+    c.append(area);
+    const row = el("div", "crow end");
+    row.append(cardBtn(`${icon("plus")}<span>Open as a new page</span>`, async () => {
+      try { openDocAsPage(await parseAiReply(area.value), "From AI"); closeCard(); }
+      catch (e) { note(`that did not read as a layout — ${e.message}`, 5000); }
+    }, "primary"));
+    c.append(row);
+
+    const links = el("div", "cfoot");
+    links.innerHTML = `<a href="${PUBLIC_SITE}/web/ai" target="_blank" rel="noopener">How it works</a>`
+      + `<a href="${PUBLIC_SITE}/llms.txt" target="_blank" rel="noopener">llms.txt</a>`
+      + `<a href="https://github.com/iqis/igt-planner/blob/main/docs/AI.md#option-b--an-agent-that-can-run-commands" target="_blank" rel="noopener">Run it in a terminal</a>`;
+    c.append(links);
+  });
+}
+
+$("sharebtn").onclick = e => { e.stopPropagation(); openShareCard(e.currentTarget); };
+$("pngbtn").onclick = e => { e.stopPropagation(); openPhotoCard(e.currentTarget); };
+// The AI link stays a real link (middle-click, open in new tab still go to the guide); a plain click
+// opens the card instead.
+document.querySelector(".hlink.ai").addEventListener("click", e => {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+  e.preventDefault(); e.stopPropagation(); openAiCard(e.currentTarget);
+});
+
 
 // ---------------------------------------------------------------- the blocks shelf
 function paintBlocks() {
@@ -3964,7 +4273,7 @@ function paintBlocks() {
                 + `<span class="hint">${(all[n].nodes || []).length}</span>`;
     b.onclick = () => addBlock(n);
     const x = document.createElement("button");
-    x.className = "fdel"; x.textContent = "×"; x.title = "forget this block";
+    x.className = "fdel"; x.innerHTML = icon("x", 12); x.title = "forget this block";
     x.onclick = e => { e.stopPropagation(); if (confirm(`forget block "${n}"?`)) deleteBlock(n); };
     b.append(x);
     host.append(b);
@@ -4078,7 +4387,7 @@ function applyTheme(t) {
   // Grid lines: faint on either ground. Baked into the geometry, so rebuild on change.
   if (t === "light") setGrid(0xc2c7cf, 0xd8dbe1);
   else setGrid(0x2b3038, 0x21252b);
-  $("theme").textContent = t === "light" ? "☀" : "☾";   // sun / moon
+  $("theme").innerHTML = icon(t === "light" ? "sun" : "moon");
   applyPlaceLight(currentGround);                     // a place outranks the studio light
   invalidate();
 }
@@ -4174,6 +4483,17 @@ window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
   newPage, switchPage, deletePage, renamePage, pages: () => book,
   renderStats, invalidate, exportPng,
   top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); invalidate(); } };
+
+// The fixed buttons' icons. index.html keeps plain words in them, so a page that never ran this
+// still says what each one is.
+for (const [id, html] of [
+  ["filebtn", `${icon("folder")}<span>layouts</span>`], ["sharebtn", `${icon("share")}<span>share</span>`],
+  ["pngbtn", `${icon("camera")}<span>photo</span>`],
+  ["undo", icon("undo")], ["redo", icon("redo")], ["edgebtn", icon("plus", 15)],
+  ["bandtool", `${icon("select")}<span>select</span>`], ["rulertool", `${icon("ruler")}<span>measure</span>`],
+]) { const el = $(id); if (el) el.innerHTML = html; }
+{ const fit = document.querySelector('#viewnav [data-view="fit"]'); if (fit) fit.innerHTML = `${icon("fit")}<span>fit</span>`; }
+{ const sc = document.querySelector("#scenechip .scico"); if (sc) sc.innerHTML = icon("scene"); }
 
 resize();
 initTheme();

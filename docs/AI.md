@@ -123,7 +123,9 @@ adjusters — the bill adds them, because they follow from the layout.
 
 ```
 buildable   true when no problem is a "warn"
-problems    [{level: "warn" | "info", text}] — warn = will not stand / will not fit / forbidden
+problems    [{level, cat, text}] — level "warn" = will not stand / will not fit / forbidden;
+            cat: problem | check (unconfirmed, e.g. a manual that predates the part) |
+                 added (a part the bill now carries) | note
 extent      overall width and depth in mm
 bill        {lines: [{sku, name, qty, weight_g, auto}], total_weight_kg} — auto = added by the rules
 nodes       per node: resolved x/z/rotation, top height, footprint, modules, and

@@ -144,7 +144,6 @@ h1 { font-size: 1rem; font-weight: 650; letter-spacing: -.01em; }
 .hlink.ai { color: var(--accent); border-color: var(--accent); font-weight: 600; }
 .hlink.ai:hover { background: var(--accent-soft); color: var(--accent); }
 .hlink.gh { display: inline-flex; padding: .3rem .4rem; }
-@media (max-width: 700px) { .scenepick span { display: none; } }
 #groundsel {
   margin: .25rem 0;
   max-width: 10rem;      /* "Alpine meadow" fits; on a phone it must leave the tabs their room */
@@ -178,7 +177,18 @@ h1 { font-size: 1rem; font-weight: 650; letter-spacing: -.01em; }
   gap: 3px;
   overflow-x: auto;
 }
-.scenepick { flex: none; display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--faint); }
+/* The scene picker rides on the view, top-left: a floating pill like the view bar's, so it reads as a
+   control OF the picture. The select inside keeps native behaviour (keyboard, phone wheel picker). */
+#scenechip {
+  position: absolute; top: .7rem; left: .7rem; z-index: 4;
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: 2px 2px 2px .55rem;
+  background: var(--panel); color: var(--dim);
+  border: 1px solid var(--line-soft); border-radius: var(--r-pop);
+  box-shadow: 0 4px 18px var(--shadow);
+}
+#scenechip:hover { color: var(--ink); }
+#scenechip select { border: none; background: transparent; margin: 0; padding: .3rem .4rem; color: var(--ink); font-weight: 500; }
 #pager .ptab {
   display: inline-flex; align-items: center; gap: .4rem;
   font: .78rem var(--sans);
@@ -710,6 +720,22 @@ h2 {
   padding: .1rem .1rem .3rem; line-height: 1.35;
 }
 #seltools button.wide { width: auto; padding: 0 .55rem; font-size: .78rem; }
+/* Icon buttons. The word rides in .lbl: hidden on a mouse unless the button is "keep"; always shown on
+   touch (no tooltip ever reaches a finger). */
+.ico { display: block; flex: none; }
+#seltools button.ib { width: auto; min-width: 30px; padding: 0 .45rem; display: inline-flex; align-items: center; justify-content: center; gap: .3rem; font-size: .78rem; }
+#seltools button.ib .lbl { display: none; }
+#seltools button.ib.keep .lbl { display: inline; }
+#seltools button .num { font-variant-numeric: tabular-nums; }
+/* Touch: the word UNDER the icon, small -- seven icon+word pairs side by side ran off a phone. */
+@media (pointer: coarse) {
+  #seltools button.ib { flex-direction: column; gap: 1px; padding: 3px 4px; font-size: .62rem; line-height: 1.1; }
+  #seltools button.ib .lbl { display: inline; }
+}
+/* Header chips, view bar, page tabs: icon + word in a row. */
+.chip, #viewnav button, #edgebtn { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; }
+#undo, #redo, #foldall, #theme { padding: .32rem .45rem; }
+#pager .pclose, #pager .padd, .del, .fdel, .rlabel button { display: inline-flex; align-items: center; justify-content: center; }
 
 /* A menu row carries only a swatch, a name and a span. Passing over it opens this card
    beside the menu with the thumbnail and the numbers that would not fit -- name, sku,
@@ -864,3 +890,98 @@ h3 {
 
 /* The pound line: the same number, quieter, because it is the same number. */
 #totals .row b.alt { color: var(--dim); font-weight: 400; }
+
+/* ---- the header cards (AI, photo, share) ------------------------------------------------------- */
+#popcard[hidden] { display: none; }
+#popcard {
+  position: fixed; z-index: 20;
+  width: min(380px, calc(100vw - 16px));
+  padding: .9rem;
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-pop);
+  box-shadow: 0 12px 36px var(--shadow);
+  display: flex; flex-direction: column; gap: .65rem;
+  font-size: .82rem;
+}
+.chead { display: flex; flex-direction: column; gap: .15rem; }
+.chead b { font-size: .9rem; font-weight: 650; }
+.chead span { color: var(--dim); font-size: .76rem; line-height: 1.45; }
+.cnote { color: var(--dim); font-size: .76rem; line-height: 1.45; margin: 0; }
+.cnote.warn { color: var(--warn-ink); }
+.crow { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+.crow.end { justify-content: flex-end; }
+.cbtn {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font: .8rem var(--sans); color: var(--ink);
+  padding: .45rem .7rem; border-radius: var(--r-ctl);
+  border: 1px solid var(--line); background: var(--panel); cursor: pointer;
+}
+.cbtn:hover { background: var(--raise); }
+.cbtn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.cbtn.primary:hover { background: var(--accent-hi); }
+.cbtn.link { border: none; background: none; padding: .2rem 0; color: var(--accent); }
+.cbtn.link:hover { text-decoration: underline; background: none; }
+.cfield { flex: 1; min-width: 0; font: .76rem var(--mono); color: var(--dim);
+  padding: .45rem .55rem; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--raise); }
+.cgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; }
+.csocial {
+  display: flex; flex-direction: column; align-items: center; gap: .3rem;
+  padding: .55rem .2rem; border-radius: var(--r-ctl); border: 1px solid var(--line-soft);
+  color: var(--ink); text-decoration: none; font: .7rem var(--sans); background: var(--panel); cursor: pointer;
+}
+.csocial:hover { background: var(--raise); }
+.csocial.dead { opacity: .35; cursor: not-allowed; }
+.cfield-row { display: flex; align-items: center; gap: .6rem; }
+.cfield-row[hidden] { display: none; }
+.cfield-row > label { width: 3.6rem; flex: none; color: var(--dim); font-size: .76rem; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-ctl); overflow: hidden; }
+.seg button { font: .76rem var(--sans); color: var(--dim); background: var(--panel); border: none;
+  padding: .35rem .6rem; cursor: pointer; border-right: 1px solid var(--line-soft); }
+.seg button:last-child { border-right: none; }
+.seg button.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.ccheck { display: flex; align-items: center; gap: .3rem; color: var(--dim); font-size: .76rem; cursor: pointer; }
+.csep { height: 1px; background: var(--line-soft); margin: .2rem 0; }
+.carea { width: 100%; min-height: 4.5rem; resize: vertical; font: .74rem var(--mono); color: var(--ink);
+  padding: .5rem; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--raise); }
+.cfoot { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .76rem; }
+.cfoot a { color: var(--dim); text-decoration: none; } .cfoot a:hover { color: var(--accent); }
+
+/* The corner read-outs sit on the scene, and a place puts grass or a sunset behind them -- a text-shadow
+   was enough on the bare grid, not on a meadow. A soft pill of the panel colour carries them anywhere. */
+#dimhud:not([hidden]), #hint {
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  padding: .15rem .45rem; border-radius: var(--r-ctl);
+  text-shadow: none;
+}
+.cqr[hidden] { display: none; }
+.cqr { display: flex; flex-direction: column; align-items: center; gap: .4rem; padding: .6rem;
+  border: 1px solid var(--line-soft); border-radius: var(--r-ctl); background: #fff; color: #333; }
+.cqr svg { width: 200px; height: 200px; }
+.cqr p { margin: 0; font-size: .74rem; line-height: 1.45; text-align: center; color: #555; }
+.cqr p.warn { color: #9c342c; }
+
+/* ---- the build messages, folded and grouped ------------------------------------------------------ */
+.warnbox { border: 1px solid var(--line-soft); border-radius: var(--r-ctl); margin-bottom: .7rem; }
+.warnbox > summary {
+  list-style: none; cursor: pointer; user-select: none;
+  display: flex; flex-wrap: wrap; gap: .3rem .8rem; align-items: center;
+  padding: .45rem .6rem; font-size: .76rem; color: var(--dim);
+}
+.warnbox > summary::-webkit-details-marker { display: none; }
+.warnbox > summary::after { content: "▾"; margin-left: auto; color: var(--faint); transition: transform .12s; }
+.warnbox:not([open]) > summary::after { transform: rotate(-90deg); }
+.warnbox > summary:hover { color: var(--ink); }
+.wc { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; }
+.wc i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+.wc.problem { color: var(--bad); font-weight: 600; } .wc.problem i { background: var(--bad); }
+.wc.check i { background: var(--caution); }
+.wc.added i { background: var(--accent); }
+.wgroup { padding: .2rem .6rem .5rem; border-top: 1px solid var(--line-soft); }
+.wghead { font-size: .7rem; font-weight: 600; color: var(--faint); margin: .35rem 0 .25rem; }
+.wgroup.problem .wghead { color: var(--bad); }
+.witem { font-size: .76rem; line-height: 1.45; padding: .2rem 0 .2rem .6rem; border-left: 2px solid var(--line); color: var(--ink); margin-bottom: .25rem; }
+.wgroup.problem .witem { border-left-color: var(--bad); }
+.wgroup.check .witem { border-left-color: var(--caution); }
+.wgroup.added .witem { border-left-color: var(--accent); }
+.wgroup.note .witem { color: var(--dim); }

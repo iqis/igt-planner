@@ -28,6 +28,7 @@
 <link rel="modulepreload" href="materials.js">
 <link rel="modulepreload" href="build.js">
 <link rel="modulepreload" href="proctex.js">
+<link rel="modulepreload" href="icons.js">
 </head>
 <body>
 
@@ -53,17 +54,15 @@
 </header>
 <!-- The layouts menu. localStorage is a cache, so the panel says so where the word "save" is. -->
 <div id="filemenu" hidden></div>
+<!-- The header cards (AI, photo, share): one popover, rebuilt for whichever button opened it. -->
+<div id="popcard" hidden></div>
 
 <!-- Pages: a strip of tabs, each a whole independent design. The active one is what's on the canvas;
      the rest wait in localStorage. New / rename (double-click) / delete live on the tabs themselves. -->
-<!-- The page's own bar: its tabs, and -- because the scene belongs to the page, not the browser --
-     where this page is set. Not in the header: the header is for things that apply everywhere. -->
+<!-- The page's own bar: its tabs. (Where the page is SET -- its scene -- is chosen on the 3D view
+     itself, top-left: it is what the view shows, and it belongs to this page.) -->
 <div id="pagebar">
   <nav id="pager"></nav>
-  <label class="scenepick" title="where this page is set — a ground, or a place with a horizon. Saved with the page.">
-    <span>scene</span>
-    <select id="groundsel"></select>
-  </label>
 </div>
 
 <main>
@@ -176,6 +175,11 @@
 
   <div id="stage">
     <canvas id="canvas"></canvas>
+    <!-- The scene: where this page is set. On the view it changes, saved with the page. -->
+    <label id="scenechip" title="where this page is set — a plain ground, or a place with a horizon. Saved with the page.">
+      <span class="scico"></span>
+      <select id="groundsel"></select>
+    </label>
     <!-- Rubber-band select: drag on empty ground to sweep up everything inside. -->
     <div id="marquee" hidden></div>
     <div id="slotbar" title="half-slot occupancy of the selected frame"></div>
