@@ -143,8 +143,11 @@ h1 { font-size: 1rem; font-weight: 650; letter-spacing: -.01em; }
 .hlink:hover { color: var(--ink); background: var(--raise); }
 .hlink.ai { color: var(--accent); border-color: var(--accent); font-weight: 600; }
 .hlink.ai:hover { background: var(--accent-soft); color: var(--accent); }
-@media (max-width: 700px) { .hlink:not(.ai) { display: none; } }
+.hlink.gh { display: inline-flex; padding: .3rem .4rem; }
+@media (max-width: 700px) { .scenepick span { display: none; } }
 #groundsel {
+  margin: .25rem 0;
+  max-width: 10rem;      /* "Alpine meadow" fits; on a phone it must leave the tabs their room */
   font: .78rem var(--sans);
   color: var(--dim);
   background: var(--panel);
@@ -158,16 +161,24 @@ h1 { font-size: 1rem; font-weight: 650; letter-spacing: -.01em; }
 
 /* Pages. A tab strip between the header and the canvas -- each tab a whole independent design, the
    active one wearing the accent on its top edge. New / rename / delete live on the tabs. */
-#pager {
+#pagebar {
   flex: none;
   display: flex;
-  align-items: stretch;
-  gap: 3px;
+  align-items: center;
+  gap: .6rem;
   padding: 0 .7rem;
   border-bottom: 1px solid var(--line);
   background: var(--panel);
+}
+#pager {
+  flex: 1;
+  min-width: 0;          /* lets a long row of tabs scroll instead of pushing the scene picker off */
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
   overflow-x: auto;
 }
+.scenepick { flex: none; display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--faint); }
 #pager .ptab {
   display: inline-flex; align-items: center; gap: .4rem;
   font: .78rem var(--sans);
