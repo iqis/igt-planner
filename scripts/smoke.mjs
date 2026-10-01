@@ -43,6 +43,28 @@ const check = (name, ok, detail = "") => {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// ---- the rules engine, no browser ---------------------------------------------------------------
+// web/core.js is what an agent (or scripts/igt.mjs) calls. It must load in plain Node -- no DOM, no
+// three -- and give the planner's answers: a good layout is buildable, a bad one says why.
+{
+  const core = await import("../web/core.js");
+  const { readFileSync } = await import("node:fs");
+  const cat = f => JSON.parse(readFileSync(join(ROOT, "catalog", f), "utf8"));
+  core.loadCatalog({ catalog: cat("igt-catalog.json"), colors: cat("colors.json"),
+    textures: cat("textures.json"), fittings: cat("frame_fittings.json") });
+  const good = core.evaluate({ app: "igt-planner", v: 1, nodes: [
+    { i: 1, sku: "CK-150", leg: "CK-114", x: 0, z: 0, rot: 0, placements: [{ sku: "GS-450R-US", span: 2, start: 0 }] },
+    { i: 2, sku: "CK-116TR", host: 1, edge: "end+x" }] });
+  check("core: a good layout is buildable", good.buildable && good.bill.lines.length >= 4,
+    JSON.stringify(good.problems));
+  check("core: a hooked board is placed off its host", good.nodes[1].x_mm > 900 && good.nodes[1].top_mm === good.nodes[0].top_mm,
+    JSON.stringify(good.nodes[1]));
+  const bad = core.evaluate({ app: "igt-planner", v: 1, nodes: [
+    { i: 1, sku: "CK-150", leg: "CK-114", x: 0, z: 0, rot: 0, placements: [{ sku: "GS-355", span: 2, start: 7 }] },
+    { i: 2, sku: "LV-077GY", host: 1, edge: "end+x" }] });
+  check("core: a bad layout says why", !bad.buildable && bad.problems.length >= 2, JSON.stringify(bad.problems));
+}
+
 // ---- server up ----------------------------------------------------------------------------------
 const server = spawn("py", [join(ROOT, "serve.py"), "--port", String(PORT), "--root", SERVE_ROOT], {
   cwd: ROOT, stdio: "ignore",
@@ -185,6 +207,14 @@ try {
     `${shared.pages} -> ${after.pages}`);
   check("the hash is stripped after landing", after.hash === "", after.hash);
   check("the figure's pose and height survive the link", after.fig === "sit/1850", after.fig);
+
+  // the plain form an agent can write without gzip: #layout=<URL-encoded JSON>
+  const plainDoc = { app: "igt-planner", v: 1, nodes: [{ i: 1, sku: "CK-149", leg: "CK-112", x: 0, z: 0, rot: 0 }] };
+  await page.goto(`${BASE}/web/#layout=${encodeURIComponent(JSON.stringify(plainDoc))}`, { waitUntil: "networkidle2" });
+  await page.reload({ waitUntil: "networkidle2" });
+  await page.waitForFunction("window.__igt && window.__igt.state.nodes.length >= 0", { timeout: 15000 });
+  const plainGot = await page.evaluate(() => window.__igt.state.nodes.map(n => n.sku).join(","));
+  check("a plain #layout= link opens", plainGot === "CK-149", plainGot);
 
   // part search: words in any order, part numbers without punctuation, spans, typos, JP titles
   const search = await page.evaluate(() => {
