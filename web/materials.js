@@ -53,7 +53,7 @@ export function materialFor(p, colors, selected) {
     color: new THREE.Color(hex || FALLBACK_COLOR),
     metalness: r.metalness,
     roughness: r.roughness,
-    emissive: new THREE.Color(selected ? 0x2e1806 : 0x000000),
+    emissive: new THREE.Color(selected ? 0x0a1a3a : 0x000000),
     ...(isMesh(p) ? { transparent: true, opacity: 0.3, side: THREE.DoubleSide } : {}),
   });
 }
@@ -340,7 +340,7 @@ export function boardMaterial(p, colors, texture, w, d, selected) {
     color: 0xffffff,
     metalness: r.metalness,
     roughness: r.roughness,
-    emissive: new THREE.Color(selected ? 0x2e1806 : 0x000000),
+    emissive: new THREE.Color(selected ? 0x0a1a3a : 0x000000),
     transparent: true,
     alphaTest: 0.5,
   });
@@ -456,6 +456,6 @@ export function grainMaterial(p, colors, grain, wMM, dMM, selected, tileMM = 320
     color: new THREE.Color(colors[p.sku]?.color_hex || 0xb98b53),
     metalness: r.metalness,
     roughness: r.roughness,
-    emissive: new THREE.Color(selected ? 0x2e1806 : 0x000000),
+    emissive: new THREE.Color(selected ? 0x0a1a3a : 0x000000),
   });
 }

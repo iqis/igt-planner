@@ -9,7 +9,7 @@
 //
 // Millimetres and radians throughout, like the rest of the planner.
 
-import { burnerOf, BBQ_SURFACE_SKUS, shelterVerts, shelterBBox } from "./partsdata.js";
+import { burnerOf, BBQ_SURFACE_SKUS, shelterVerts, shelterBBox, GROUND_HIP } from "./partsdata.js";
 
 export const FRAME_THICK = 30;
 // The rail's inner recess is ~10mm deep, and a flat module's edge drops into it as its
@@ -99,6 +99,11 @@ export function footprintOf(sku, kind, node) {
   if (kind === "footprint") { const b = shelterBBox(shelterVerts(p.geometry)); return { w: b.w, d: b.d }; }
   if (p.role === "figure" && node) {
     const h = figH(node);
+    // On the ground an adult sits cross-legged (knees out wide, shallow) and a toddler sits with
+    // its legs straight out in a V (narrower, long) -- the same split figureGroup draws.
+    if (node.pose === "ground")
+      return p.figure === "toddler" ? { w: Math.round(h * .36), d: Math.round(h * .56) }
+                                    : { w: Math.round(h * .46), d: Math.round(h * .30) };
     return node.pose === "sit" ? { w: Math.round(h * .28), d: Math.round(h * .42) }
                                : { w: Math.round(h * .28), d: Math.round(h * .17) };
   }
@@ -143,7 +148,9 @@ export function topOf(n, depth = 0) {
   // a height adjuster.
   if (selfIgt(n.sku)) return LAYOUT.datum_height_mm;
   if (PARTS[n.sku].role === "figure")
-    return n.pose === "sit" ? Math.round(420 + figH(n) * .30) : figH(n);
+    return n.pose === "sit" ? Math.round(420 + figH(n) * .30)
+      : n.pose === "ground" ? Math.round(figH(n) * (GROUND_HIP + .30))
+      : figH(n);
   return PARTS[n.sku].height_mm ?? PARTS[n.sku].assembled_mm?.h ?? LAYOUT.datum_height_mm;
 }
 

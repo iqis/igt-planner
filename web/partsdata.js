@@ -73,3 +73,8 @@ export function shelterBBox(verts) {
   return { w: x1 - x0, d: y1 - y0 };
 }
 
+
+// Sitting on the ground, a scale figure's hip joint rides this fraction of its standing height above
+// it -- the pelvis's own thickness under the sitting bones (~120mm for an adult). core.js sizes the
+// figure's footprint and height from it; parts3d.js draws it.
+export const GROUND_HIP = .07;

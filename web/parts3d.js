@@ -12,7 +12,7 @@
 import * as THREE from "three";
 import { roundedBox, meshWires, isMesh, flatRect, boardFromOutline,
          railProfile, jikaroRing, jikaroSeams } from "./materials.js";
-import { BURNERS, burnerOf, BBQ_SURFACE_SKUS, shelterVerts, shelterBBox } from "./partsdata.js";
+import { BURNERS, burnerOf, BBQ_SURFACE_SKUS, shelterVerts, shelterBBox, GROUND_HIP } from "./partsdata.js";
 export { BURNERS, burnerOf, BBQ_SURFACE_SKUS, shelterVerts, shelterBBox };
 
 const MM = 0.001;
@@ -3416,9 +3416,10 @@ export function gs1000Group(w = GS1000.span, d = GS1000.span, h = GS1000.h, { ca
 //
 // Proportions are the classic head-count canons: an adult stands ~7.5 heads, a two-year-old
 // ~4.5 -- which is WHY toddlers look the way they do, so the canon is the whole difference
-// between the two figures. `pose` is "stand" or "sit". Seated hips ride at `seatH` (a camp
-// chair by default); shins hang toward the ground and stop at their OWN length, so a toddler's
-// feet dangling off an adult-height seat is the honest geometry, not a bug.
+// between the two figures. `pose` is "stand", "sit" or "ground". Seated hips ride at `seatH` (a
+// camp chair by default); shins hang toward the ground and stop at their OWN length, so a toddler's
+// feet dangling off an adult-height seat is the honest geometry, not a bug. On the GROUND an adult
+// sits cross-legged, hands on knees; a toddler sits the way toddlers do -- legs straight out in a V.
 export function figureGroup(hMm, { toddler = false, pose = "stand", seatH = 420 } = {}) {
   const g = new THREE.Group();
   const H = hMm;
@@ -3442,13 +3443,15 @@ export function figureGroup(hMm, { toddler = false, pose = "stand", seatH = 420 
     : { headR: .066, hip: .52, sho: .81, shoW: .105, hipW: .056, armR: .027, legR: .038,
         torsoR: .100, flat: .55, wristY: .44, thigh: .245, shin: .245, foot: .135 };
 
-  const hipY = pose === "sit" ? seatH : P.hip * H;
+  const hipY = pose === "sit" ? seatH : pose === "ground" ? GROUND_HIP * H : P.hip * H;
   const shoY = hipY + (P.sho - P.hip) * H;
   const hipX = P.hipW * H, shoX = P.shoW * H;
 
   // Torso: one vertical capsule, flattened front-to-back, with a shoulder girdle across it --
   // so the figure is wider at the shoulders than it is deep, which is most of "reads as human".
-  const body = bone(0, hipY - .02 * H, 0, 0, shoY - .02 * H, 0, P.torsoR * H);
+  // The torso capsule's round end hangs torsoR below its start -- kept off the floor when the
+  // hips are almost on it (ground pose); a no-op standing or on a chair.
+  const body = bone(0, Math.max(hipY - .02 * H, P.torsoR * H * .9), 0, 0, shoY - .02 * H, 0, P.torsoR * H);
   body.scale.z = P.flat;
   bone(-shoX, shoY, 0, shoX, shoY, 0, P.armR * H * 1.25);
 
@@ -3463,7 +3466,32 @@ export function figureGroup(hMm, { toddler = false, pose = "stand", seatH = 420 
   g.add(head);
   cyl(g, .030 * H, .036 * H, .06 * H, 12, mat, 0, shoY + .02 * H, 0);
 
-  if (pose !== "sit") {
+  if (pose === "ground" && !toddler) {
+    // Cross-legged: thighs splay forward and out to knees resting low and wide, shins fold back
+    // inward and cross in front of the body, the feet tucked under the opposite knee.
+    const kneeX = .19 * H, kneeY = .05 * H, kneeZ = .15 * H;
+    for (const s of [-1, 1]) {
+      bone(s * hipX, hipY, .01 * H, s * kneeX, kneeY, kneeZ, P.legR * H);
+      bone(s * kneeX, kneeY, kneeZ, -s * .05 * H, .035 * H, kneeZ + (s > 0 ? .03 : .05) * H, P.legR * H * .9);
+      bone(-s * .05 * H, .03 * H, kneeZ + (s > 0 ? .03 : .05) * H,
+           -s * .12 * H, .03 * H, kneeZ + (s > 0 ? .01 : .03) * H, .024 * H);
+      // arms: shoulder -> elbow, then the forearm down to a hand resting on the knee
+      const elbow = [s * (shoX + .02 * H), shoY - .17 * H, .06 * H];
+      bone(s * shoX, shoY, 0, ...elbow, P.armR * H);
+      bone(...elbow, s * kneeX * .92, kneeY + P.legR * H * 1.6, kneeZ * .9, P.armR * H * .9);
+    }
+  } else if (pose === "ground") {
+    // Toddler: legs straight out in front, a little apart and slightly bent; hands on the ground
+    // beside the hips, the way a small child props itself up.
+    const reach = (P.thigh + P.shin) * H;
+    for (const s of [-1, 1]) {
+      const kx = s * hipX * 1.6, kz = P.thigh * H * .95;
+      bone(s * hipX, hipY, .01 * H, kx, hipY + .015 * H, kz, P.legR * H);
+      bone(kx, hipY + .015 * H, kz, s * hipX * 2.2, .03 * H, reach * .98, P.legR * H * .9);
+      bone(s * hipX * 2.2, .03 * H, reach * .98, s * hipX * 2.2, .08 * H, reach * .98 + .03 * H, .024 * H);
+      bone(s * shoX, shoY, 0, s * (shoX + .05 * H), .04 * H, -.01 * H, P.armR * H);
+    }
+  } else if (pose !== "sit") {
     for (const s of [-1, 1]) {
       bone(s * hipX, hipY, 0, s * hipX * 1.12, .05 * H, 0, P.legR * H);
       bone(s * hipX * 1.12, .026 * H, -.02 * H,

@@ -153,6 +153,7 @@ camera.position.set(1.6, 1.5, 2.1);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.target.set(0, 0.35, 0);
+controls.maxDistance = 18;   // a place's horizon is painted 24m out; never back the camera through it
 controls.addEventListener("change", invalidate);   // any camera input wakes the renderer
 // The scroll wheel already dollies, so the middle button is free -- and PAN is what you actually
 // reach for. Right pans too: on a canvas where the left button is spoken for, one obvious way to
@@ -270,6 +271,9 @@ function makeWoodTexture() {
       }
       ctx.fillStyle = "rgba(28,18,8,0.6)";            // dark seam between planks
       ctx.fillRect((i + 1) * pw - 1.5, 0, 1.5, S);
+      // End joints: boards are ~1.2m long at this scale, butted end to end, staggered row to row.
+      const off = (i * 0.37 % 1) * S;
+      for (const y of [off, (off + S / 2) % S]) ctx.fillRect(i * pw, y, pw - 1.5, 1.5);
     }
   });
 }
@@ -303,7 +307,7 @@ function makeSandTexture() {
 const GROUNDS = {
   grid:   { name: "Grid" },                                                     // no texture -- the bare CAD floor
   grass:  { name: "Grass",  make: makeGrassTexture,  repeat: 8, rough: 0.96 },
-  wood:   { name: "Wood",   make: makeWoodTexture,   repeat: 5, rough: 0.72 },
+  wood:   { name: "Wood",   make: makeWoodTexture,   repeat: 36, rough: 0.72 },   // 6 boards a tile -> ~12cm each
   gravel: { name: "Gravel", make: makeGravelTexture, repeat: 8, rough: 0.95 },
   sand:   { name: "Sand",   make: makeSandTexture,   repeat: 7, rough: 0.9 },
 };
@@ -321,17 +325,238 @@ function groundTexture(key) {
   groundTexCache[key] = tex;
   return tex;
 }
+// ---- places: a backdrop, a sky and the light that goes with them --------------------------------
+// The grounds put a layout ON something. A place puts it SOMEWHERE: a ground, plus a horizon all the
+// way round -- mountains, a pine treeline, the sea, desert mesas, a starry night -- and the light and
+// haze that belong to it. For fun, and for the photo plate, which is where a layout gets shown off.
+//
+// The same rule as the grounds: everything is GENERATED on a canvas. Nothing is fetched, nothing is
+// licensed, and the panorama is built from whole-number harmonics so it closes on itself with no seam.
+// It is painted on the inside of a wide open cylinder; the ground fades into fog of the horizon's own
+// colour before it gets there, so the two meet without an edge.
+//
+// Vertically the canvas spans BACKDROP_Y0..BACKDROP_Y1 metres on a BACKDROP_R-metre cylinder, so a
+// shape's height in metres is just its height on the canvas -- a 5m ridge 24m off reads as a range.
+const BACKDROP_R = 24, BACKDROP_Y0 = -1, BACKDROP_Y1 = 15;   // 40m read as too far off -- the owner wanted the hills to loom
+const PANO_W = 4096, PANO_H = 1024;
+const PX_PER_M = PANO_H / (BACKDROP_Y1 - BACKDROP_Y0);
+const HORIZON = PANO_H - (0 - BACKDROP_Y0) * PX_PER_M;     // canvas row of y = 0
+
+const PLACES = {
+  meadow: {
+    name: "Alpine meadow", ground: "grass",
+    sky: ["#4f86cf", "#9dc1e8", "#dfe9f1"], haze: "#d3dde6", clouds: 7,
+    layers: [
+      { kind: "mountains", m: 6.5, color: "#9aaec3", snow: "#f1f5f9", seed: 3 },
+      { kind: "mountains", m: 3.2, color: "#6f8a83", seed: 8 },
+      { kind: "trees", m: 1.6, color: "#3f5d45", seed: 11, count: 220 },
+    ],
+    light: { sky: 0xf3f7ff, ground: 0x2b3a22, hemi: 1.55, key: 0xfff3dc, keyI: 1.65, exposure: 0.95 },
+  },
+  forest: {
+    name: "Pine forest", ground: "grass",
+    sky: ["#8fa7b8", "#c4d1d6", "#dfe4e1"], haze: "#cfd7d3", clouds: 4,
+    layers: [
+      { kind: "trees", m: 4.2, color: "#7d9188", seed: 21, count: 420 },
+      { kind: "trees", m: 3.4, color: "#4d6457", seed: 22, count: 360 },
+      { kind: "trees", m: 2.6, color: "#2f4436", seed: 23, count: 300 },
+    ],
+    light: { sky: 0xe8f0ea, ground: 0x23301e, hemi: 1.45, key: 0xfff1df, keyI: 1.2, exposure: 0.95 },
+  },
+  beach: {
+    name: "Beach", ground: "sand",
+    sky: ["#3f8fd8", "#8fc4ee", "#e4f1f8"], haze: "#e6eef0", clouds: 6,
+    layers: [
+      { kind: "mountains", m: 1.6, color: "#a9bccb", seed: 31, span: [0.08, 0.3] },   // a far headland
+      { kind: "sea", m: 0.9, color: "#3b7fae", foam: "#e8f2f4" },
+    ],
+    light: { sky: 0xf6fbff, ground: 0x8a7a5c, hemi: 1.7, key: 0xfffaf0, keyI: 1.75, exposure: 0.92 },
+  },
+  desert: {
+    name: "Desert dusk", ground: "sand",
+    sky: ["#2d3b78", "#c8738a", "#f4b46e"], haze: "#e7a77c", sun: { x: 0.62, color: "#ffd9a0" },
+    layers: [
+      { kind: "mesas", m: 4.0, color: "#9a5a52", seed: 41 },
+      { kind: "mesas", m: 2.2, color: "#6e3b38", seed: 42 },
+    ],
+    light: { sky: 0xffd6c0, ground: 0x6a4b38, hemi: 1.25, key: 0xffb27a, keyI: 1.5, exposure: 0.9 },
+  },
+  night: {
+    name: "Starry night", ground: "grass",
+    sky: ["#03050c", "#0b1430", "#1e2c4c"], haze: "#1b2742", stars: 900, moon: { x: 0.3, y: 0.42 },
+    layers: [
+      { kind: "mountains", m: 3.8, color: "#141d33", seed: 51 },
+      { kind: "trees", m: 2.0, color: "#070b14", seed: 52, count: 320 },
+    ],
+    light: { sky: 0x6f84b8, ground: 0x0d1220, hemi: 0.75, key: 0xb9c8ff, keyI: 0.55, exposure: 0.85 },
+  },
+};
+
+function rng32(seed) {                                    // mulberry32: same place, same panorama
+  return () => {
+    seed |= 0; seed = seed + 0x6d2b79f5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+// A skyline profile in 0..1 around the circle, built from WHOLE-NUMBER harmonics so it is periodic:
+// the right edge of the canvas meets the left exactly. `base` is how many big features go round the
+// whole circle -- the camera sees about a sixth of it, so a base of 1 would read as a flat wall.
+function ridgeProfile(seed, { base = 6, sharp = 1.8 } = {}) {
+  const r = rng32(seed), H = [];
+  for (let i = 1; i <= 12; i++)
+    H.push({ k: Math.max(1, Math.round(base * i * (0.75 + r() * 0.5))), a: 1 / Math.pow(i, 1.35), p: r() * 7 });
+  const raw = x => H.reduce((s, h) => s + h.a * Math.sin(2 * Math.PI * h.k * x + h.p), 0);
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0; i < 2048; i++) { const v = raw(i / 2048); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  return x => Math.pow((raw(x) - lo) / (hi - lo), sharp);
+}
+
+function paintPlace(place) {
+  const c = document.createElement("canvas");
+  c.width = PANO_W; c.height = PANO_H;
+  const g = c.getContext("2d");
+  const W = PANO_W, Y = HORIZON;
+  const sky = g.createLinearGradient(0, 0, 0, Y);
+  sky.addColorStop(0, place.sky[0]); sky.addColorStop(0.62, place.sky[1]); sky.addColorStop(1, place.sky[2]);
+  g.fillStyle = sky; g.fillRect(0, 0, W, Y);
+  g.fillStyle = place.haze; g.fillRect(0, Y, W, PANO_H - Y);          // below the horizon: the ground's haze
+  const r = rng32(7);
+  const wrap = (x, fn) => { fn(x); if (x < 200) fn(x + W); if (x > W - 200) fn(x - W); };
+
+  if (place.sun) {
+    const sx = place.sun.x * W, glow = g.createRadialGradient(sx, Y, 0, sx, Y, 520);
+    glow.addColorStop(0, place.sun.color); glow.addColorStop(1, "rgba(255,200,150,0)");
+    g.fillStyle = glow; g.fillRect(sx - 520, Y - 520, 1040, 520);
+  }
+  if (place.stars) for (let i = 0; i < place.stars; i++) {
+    const x = r() * W, y = r() * Y * 0.92, a = 0.25 + r() * 0.75, s = r() < 0.06 ? 2 : 1;
+    g.fillStyle = `rgba(255,255,255,${a})`; g.fillRect(x, y, s, s);
+  }
+  if (place.moon) {
+    const mx = place.moon.x * W, my = place.moon.y * Y;
+    const halo = g.createRadialGradient(mx, my, 10, mx, my, 120);
+    halo.addColorStop(0, "rgba(220,230,255,.35)"); halo.addColorStop(1, "rgba(220,230,255,0)");
+    g.fillStyle = halo; g.fillRect(mx - 120, my - 120, 240, 240);
+    g.fillStyle = "#eef2fb"; g.beginPath(); g.arc(mx, my, 22, 0, 7); g.fill();
+  }
+  for (let i = 0; i < (place.clouds || 0); i++) {      // soft streaks, a few overlapping puffs each
+    const cx = r() * W, cy = Y * (0.25 + r() * 0.45), w = 160 + r() * 320;
+    for (let j = 0; j < 7; j++) wrap(cx + (r() - 0.5) * w, x => {
+      const rr = 30 + r() * 50, gr = g.createRadialGradient(x, cy, 0, x, cy, rr * 1.8);
+      gr.addColorStop(0, "rgba(255,255,255,.55)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = gr; g.fillRect(x - rr * 1.8, cy - rr, rr * 3.6, rr * 2);
+    });
+  }
+
+  for (const L of place.layers) {
+    const hmax = L.m * PX_PER_M;
+    if (L.kind === "mountains" || L.kind === "mesas") {
+      const prof = L.kind === "mesas" ? ridgeProfile(L.seed, { base: 9, sharp: 1 }) : ridgeProfile(L.seed);
+      const jag = ridgeProfile(L.seed + 100, { base: 60, sharp: 1 });   // fine texture for the snow line
+      // One filled PATH, not a fence of 2px columns: the canvas antialiases a path's edge, and a ridge
+      // magnified on a 40m wall shows every stair of a column fill.
+      const hAt = u => {
+        if (L.span && (u < L.span[0] || u > L.span[1])) return 0;
+        let h = prof(u);
+        if (L.span) h *= Math.sin(Math.PI * (u - L.span[0]) / (L.span[1] - L.span[0]));   // a headland tapers into the sea
+        // Mesas: where the profile clears 0.62 it becomes a flat-topped butte with near-vertical sides;
+        // below that, low rolling ground. Isolated tables, not a wall.
+        if (L.kind === "mesas") h = h > 0.62 ? 0.82 + (h - 0.62) * 0.3 : h > 0.56 ? 0.25 + (h - 0.56) * 9.5 : h * 0.45;
+        return h;
+      };
+      const ridge = new Path2D();
+      ridge.moveTo(0, Y + 1);
+      for (let x = 0; x <= W; x += 3) ridge.lineTo(x, Y - hAt(x / W) * hmax);
+      ridge.lineTo(W, Y + 1); ridge.closePath();
+      g.fillStyle = L.color; g.fill(ridge);
+      if (L.snow) {                                     // the snow: everything above a ragged line, inside the ridge
+        g.save(); g.clip(ridge);
+        g.beginPath(); g.moveTo(0, 0);
+        for (let x = 0; x <= W; x += 3) g.lineTo(x, Y - (0.58 + (jag(x / W) - 0.5) * 0.12) * hmax);
+        g.lineTo(W, 0); g.closePath();
+        g.fillStyle = L.snow; g.fill();
+        g.restore();
+      }
+    } else if (L.kind === "trees") {
+      const tr = rng32(L.seed);
+      g.fillStyle = L.color;
+      for (let i = 0; i < L.count; i++) {
+        const x = tr() * W, h = hmax * (0.55 + tr() * 0.45), w = h * (0.32 + tr() * 0.1);
+        wrap(x, xx => {
+          for (let t = 0; t < 3; t++) {                 // three stacked tiers: a conifer, not a triangle
+            const ty = Y - h * (0.2 + t * 0.27), th = h * (0.55 - t * 0.1), tw = w * (1 - t * 0.22);
+            g.beginPath(); g.moveTo(xx - tw / 2, ty + th * 0.35); g.lineTo(xx, ty - th * 0.65); g.lineTo(xx + tw / 2, ty + th * 0.35); g.fill();
+          }
+          g.fillRect(xx - w * 0.04, Y - h * 0.2, w * 0.08, h * 0.2);
+        });
+      }
+    } else if (L.kind === "sea") {
+      const top = Y - L.m * PX_PER_M;
+      const sea = g.createLinearGradient(0, top, 0, Y);
+      sea.addColorStop(0, L.color); sea.addColorStop(1, "#6fa9c6");
+      g.fillStyle = sea; g.fillRect(0, top, W, Y - top + 1);
+      g.fillStyle = L.foam;
+      for (let i = 0; i < 260; i++) g.fillRect(r() * W, top + r() * (Y - top), 12 + r() * 40, 1);
+    }
+  }
+  return c;
+}
+
+const backdropCache = {};
+let backdrop = null;
+function setBackdrop(key) {
+  if (backdrop) { scene.remove(backdrop); backdrop.geometry.dispose(); backdrop.material.dispose(); backdrop = null; }
+  const place = PLACES[key];
+  if (!place) return;
+  if (!backdropCache[key]) {
+    const t = new THREE.CanvasTexture(paintPlace(place));
+    t.wrapS = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    backdropCache[key] = t;
+  }
+  backdrop = new THREE.Mesh(
+    new THREE.CylinderGeometry(BACKDROP_R, BACKDROP_R, BACKDROP_Y1 - BACKDROP_Y0, 128, 1, true),
+    // fog:false -- the painting carries its own haze; toneMapped:false -- its colours are final.
+    new THREE.MeshBasicMaterial({ map: backdropCache[key], side: THREE.BackSide, fog: false, toneMapped: false }),
+  );
+  backdrop.position.y = (BACKDROP_Y0 + BACKDROP_Y1) / 2;
+  scene.add(backdrop);
+}
+
+/** A place's sky, haze and light, laid over whatever the theme just set. */
+function applyPlaceLight(name) {   // not `key`: that is the sun (the DirectionalLight) in this file
+  const place = PLACES[name];
+  if (!place) return false;
+  const L = place.light;
+  scene.background = new THREE.Color(place.sky[0]);
+  scene.fog = new THREE.Fog(new THREE.Color(place.haze), 7, BACKDROP_R - 3);
+  hemi.color.set(L.sky); hemi.groundColor.set(L.ground); hemi.intensity = L.hemi;
+  key.color.set(L.key); key.intensity = L.keyI;
+  renderer.toneMappingExposure = L.exposure;
+  return true;
+}
+
 function setGround(key) {
-  if (!GROUNDS[key]) key = "grid";
+  if (!GROUNDS[key] && !PLACES[key]) key = "grid";
   currentGround = key;
   try { localStorage.setItem(LS_GROUND, key); } catch {}
   if (groundMesh) { scene.remove(groundMesh); groundMesh.material.dispose(); groundMesh.geometry.dispose(); groundMesh = null; }
   if (grid) grid.visible = key === "grid";            // graph paper only on the bare floor
-  if (key !== "grid") {
-    const g = GROUNDS[key];
+  const place = PLACES[key];
+  const surface = place ? place.ground : key;         // a place stands on one of the grounds
+  setBackdrop(key);
+  if (surface !== "grid") {
+    const g = GROUNDS[surface];
+    // A place's floor runs out to its horizon (the fog takes it before the backdrop), so it is far
+    // bigger -- with its UVs scaled to match, or the same texture would tile four times coarser.
+    const size = place ? BACKDROP_R * 2.2 : 26;
+    const geo = new THREE.PlaneGeometry(size, size);
+    if (place) { const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * size / 26, uv.getY(i) * size / 26); }
     groundMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(26, 26),                // wide enough that the fog swallows its edge
-      new THREE.MeshStandardMaterial({ map: groundTexture(key), roughness: g.rough, metalness: 0 }),
+      geo,                                            // wide enough that the fog swallows its edge
+      new THREE.MeshStandardMaterial({ map: groundTexture(surface), roughness: g.rough, metalness: 0 }),
     );
     groundMesh.rotation.x = -Math.PI / 2;
     groundMesh.position.y = -0.003;                   // just under the grid lines and the parts' feet
@@ -342,7 +567,9 @@ function setGround(key) {
   // reflects green up at the parts instead of studio grey -- the cheapest cue after shadows
   // that things stand IN the scene rather than on a swatch of it.
   const BOUNCE = { grass: 0x25301c, wood: 0x4a3c28, gravel: 0x353533, sand: 0x74644c };
-  hemi.groundColor.set(BOUNCE[key] || 0x33383f);
+  hemi.groundColor.set(BOUNCE[surface] || 0x33383f);
+  // Sky, haze and sun: a place sets its own; leaving one hands them back to the theme.
+  applyTheme(document.documentElement.dataset.theme || "light");
   renderer.shadowMap.needsUpdate = true;
   invalidate();
   const sel = $("groundsel");
@@ -392,7 +619,7 @@ function drawFrame(g, n) {
   const f = footprint(n);
   const top = topOf(n);
   const isSel = state.sel === n.id;
-  const glow = isSel ? 0x2e1806 : 0x000000;
+  const glow = isSel ? 0x0a1a3a : 0x000000;
 
   // The frame SHELL -- rails, black end pieces, hook holes, corner plates, rivets -- is built
   // by frameGroup in parts3d.js, so the part bench draws the identical frame (recess and all)
@@ -877,7 +1104,7 @@ function drawEdgeHandles() {
       const m = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
         new THREE.MeshBasicMaterial({
-          color: 0xd8813f, transparent: true, opacity: 0, depthWrite: false,
+          color: 0x3b82f6, transparent: true, opacity: 0, depthWrite: false,
         }),
       );
       m.scale.set((COARSE ? 110 : 72) * MM, (COARSE ? 100 : 46) * MM, e.len * MM);
@@ -893,7 +1120,7 @@ function drawEdgeHandles() {
       const tab = new THREE.Mesh(
         new THREE.SphereGeometry((COARSE ? 24 : 14) * MM, 18, 12),
         new THREE.MeshStandardMaterial({
-          color: 0xf0a463, metalness: 0.1, roughness: 0.4, emissive: 0x7a4310, emissiveIntensity: 0.55,
+          color: 0x6b9cf5, metalness: 0.1, roughness: 0.4, emissive: 0x1d3f8a, emissiveIntensity: 0.55,
         }),
       );
       tab.position.set(e.mid.x * MM, (e.mid.y + (COARSE ? 22 : 16)) * MM, e.mid.z * MM);
@@ -950,7 +1177,7 @@ function selTop(n) {
 // A clean CAD-style selection outline: a tight oriented box hugging the selected object. Added to
 // the object's OWN group (already positioned + rotated), so it stays tight at any camera angle, and
 // drawn depth-test-off so it reads as a selection highlight that's always visible.
-const SEL_COLOR = 0xf0a463;
+const SEL_COLOR = 0x3b82f6;
 
 // A ring where a dragged part will land: green on a free edge (hook on), cyan on an occupied one
 // (insert between). Lives in `build`, so it's cleared every rebuild.
@@ -989,8 +1216,8 @@ function showHoverBox(n) {
   const f = footprint(n), h = selTop(n), pad = 14;
   hoverBox = new THREE.LineSegments(
     new THREE.EdgesGeometry(new THREE.BoxGeometry((f.w + pad) * MM, (h + pad) * MM, (f.d + pad) * MM)),
-    // Cyan, so it's distinct from the orange SELECTION box and legible on either theme's ground.
-    new THREE.LineBasicMaterial({ color: 0x3ec6f0, transparent: true, opacity: 0.75, depthTest: false }));
+    // The selection's own blue, fainter: hover is a lighter touch of the same idea, as in any design tool.
+    new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.4, depthTest: false }));
   hoverBox.position.set(n.x * MM, h / 2 * MM, n.z * MM);
   hoverBox.rotation.y = -n.rot;
   hoverBox.renderOrder = 8;
@@ -1034,7 +1261,7 @@ function addGhostFootprint(n) {
   const pts = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd], [-hw, -hd]].map(([x, z]) => new THREE.Vector3(x, 0.002, z));
   const line = new THREE.Line(
     new THREE.BufferGeometry().setFromPoints(pts),
-    new THREE.LineDashedMaterial({ color: 0xd8813f, dashSize: 0.035, gapSize: 0.02, transparent: true, opacity: 0.95 }),
+    new THREE.LineDashedMaterial({ color: 0x3b82f6, dashSize: 0.035, gapSize: 0.02, transparent: true, opacity: 0.95 }),
   );
   line.computeLineDistances();                 // a dashed line draws nothing without this
   line.position.set(n.x * MM, 0, n.z * MM);
@@ -1319,10 +1546,13 @@ function fillActions(box, n) {
   // to the record's median. The point of the popover is to set the REAL person's numbers.
   if (PARTS[n.sku].role === "figure") {
     const p = PARTS[n.sku];
-    box.append(chip("standing", n.pose !== "sit", "on its feet", () => { delete n.pose; render(); }));
+    box.append(chip("standing", !n.pose, "on its feet", () => { delete n.pose; render(); }));
     box.append(chip("seated", n.pose === "sit",
       "sitting at camp-chair height (420mm). A toddler's feet dangle — that is the honest geometry.",
       () => { n.pose = "sit"; render(); }));
+    box.append(chip("on the ground", n.pose === "ground",
+      p.figure === "toddler" ? "sitting on the ground, legs out in front" : "sitting cross-legged on the ground",
+      () => { n.pose = "ground"; render(); }));
     const sep = document.createElement("span"); sep.className = "sep"; box.append(sep);
     const pub = p.assembled_mm.h;
     box.append(chip(`${pub / 10}cm · median`, !n.config,
@@ -1615,16 +1845,18 @@ const hideModMenu = () => { modmenu.hidden = true; };
 // between two parts is a question of size, span and what it weighs; the money question, if it comes,
 // belongs on the part bench, which prices a part in every region.
 const preview = $("preview");
-function showPreview(p, rowEl) {
+function showPreview(p, rowEl, why = "") {
   const a = p.assembled_mm;
   const span = spanOf(p) ? `${spanOf(p) / 2}u` : "";
   preview.innerHTML =
     (PUBLIC ? "" : `<img src="img/${p.sku}.jpg" alt="">`)   // product photos stay off the public build
     + `<div class="pv-name">${p.title_en}</div>`
+    + (p.title_jp ? `<div class="pv-jp">${p.title_jp}</div>` : "")
     + `<div class="pv-row"><span class="pv-sku">${p.sku}</span></div>`
     + (a ? `<div class="pv-row"><span>size</span><b>${a.w}×${a.d}×${a.h}mm</b></div>` : "")
     + (span ? `<div class="pv-row"><span>span</span><b>${span}</b></div>` : "")
-    + (p.weight_g ? `<div class="pv-row"><span>weight</span><b>${(p.weight_g / 1000).toFixed(2)}kg</b></div>` : "");
+    + (p.weight_g ? `<div class="pv-row"><span>weight</span><b>${(p.weight_g / 1000).toFixed(2)}kg</b></div>` : "")
+    + (why ? `<div class="pv-why">${why}</div>` : "");
   const img = preview.querySelector("img");
   if (img) img.onerror = () => { img.style.visibility = "hidden"; };
   // Beside the hovered ROW (always visible), to its LEFT; flip right if there is no room,
@@ -1641,8 +1873,8 @@ function showPreview(p, rowEl) {
   preview.hidden = false;
 }
 const hidePreview = () => { preview.hidden = true; };
-function wirePreview(row, p) {
-  row.addEventListener("mouseenter", () => showPreview(p, row));
+function wirePreview(row, p, why = "") {
+  row.addEventListener("mouseenter", () => showPreview(p, row, why));
   row.addEventListener("mouseleave", hidePreview);
 }
 
@@ -2582,12 +2814,15 @@ function partRow(p, fn, dead, why, badge) {
   el.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
     + `<span class="nm">${p.title_en}</span>`
     + `<span class="sp">${badge ?? (s ? s / 2 + "u" : "")}</span>`;
-  el.title = why || `${p.sku} — ${p.title_en}`;
+  // The details live in the hover card now (wirePreview), the same card the + menus show -- a native
+  // title tooltip on top of it would say the same thing twice, late. Touch keeps the tooltip-free row.
+  if (COARSE) el.title = why || `${p.sku} — ${p.title_en}`;
   el.dataset.search = searchKey(p);
   el.dataset.sku = p.sku;
   el.dataset.name = p.title_en || "";
   if (p.title_jp) el.dataset.jp = p.title_jp;
-  if (!dead) { el.onclick = () => fn(p); previewOnHover(el, p.sku); }
+  if (!dead) { el.onclick = () => { hidePreview(); fn(p); }; previewOnHover(el, p.sku); }
+  if (!COARSE) wirePreview(el, p, dead ? why : "");   // a dead row's card says WHY it is dead
   return el;
 }
 
@@ -2600,6 +2835,7 @@ function previewOnHover(el, sku) {
 }
 
 function paintPalette() {
+  hidePreview();   // the row under the card is about to be replaced; its mouseleave will never fire
   // Frames were still the ORIGINAL "Add a table" chip row -- "2u ⤢", meaning stated nowhere --
   // years after every other category went to full rows. Same rows now; the unit count is the
   // badge and "Collapsible" is in the name, where the answer belongs.
@@ -3097,11 +3333,11 @@ function paintHint() {
   // Point at the dots only when there ARE dots: a chair, a footprint, or a frame with every
   // edge taken draws no handles (paint runs after rebuild, so edgeMeshes is this frame's).
   if (sel() && edgeMeshes.length) el.innerHTML = COARSE
-    ? "tap an <b>orange dot</b> to hook something onto that edge"
+    ? "tap a <b>blue dot</b> to hook something onto that edge"
     : "hover a table <b>edge</b> to hook something onto it";
   else el.innerHTML = COARSE
-    ? "tap a <b>frame</b> — orange dots mark where things hook on"
-    : "click a <b>frame</b> — orange dots mark where things hook on";
+    ? "tap a <b>frame</b> — blue dots mark where things hook on"
+    : "click a <b>frame</b> — blue dots mark where things hook on";
 }
 function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); paintBlocks(); paintRulers(); paintHint(); }
 
@@ -3830,11 +4066,13 @@ function applyTheme(t) {
   // a dark room read muddy against a bright page.
   hemi.intensity = t === "light" ? 1.75 : 1.5;
   hemi.color.set(t === "light" ? 0xf2f5f9 : 0xdfe6f0);
+  key.color.set(0xffffff); key.intensity = 1.4; renderer.toneMappingExposure = 0.95;   // the studio sun
   shadowCatcher.material.opacity = t === "light" ? 0.2 : 0.32;
   // Grid lines: faint on either ground. Baked into the geometry, so rebuild on change.
   if (t === "light") setGrid(0xc2c7cf, 0xd8dbe1);
   else setGrid(0x2b3038, 0x21252b);
   $("theme").textContent = t === "light" ? "☀" : "☾";   // sun / moon
+  applyPlaceLight(currentGround);                     // a place outranks the studio light
   invalidate();
 }
 function initTheme() {
@@ -3850,10 +4088,15 @@ function initGround() {
   const sel = $("groundsel");
   if (!sel) return;
   sel.innerHTML = "";
-  for (const [key, g] of Object.entries(GROUNDS)) {
-    const o = document.createElement("option");
-    o.value = key; o.textContent = g.name;
-    sel.append(o);
+  for (const [label, set] of [["Ground", GROUNDS], ["Places", PLACES]]) {
+    const grp = document.createElement("optgroup");
+    grp.label = label;
+    for (const [key, g] of Object.entries(set)) {
+      const o = document.createElement("option");
+      o.value = key; o.textContent = g.name;
+      grp.append(o);
+    }
+    sel.append(grp);
   }
   sel.onchange = () => setGround(sel.value);
   // Textures are generated lazily on first pick, so an empty canvas costs nothing until it is used.

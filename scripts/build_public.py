@@ -58,11 +58,11 @@ AI_PAGE = """<!doctype html>
 <meta name="description" content="Design a Snow Peak IGT layout with your own AI agent; the planner's open rules check it.">
 <style>
 :root { color-scheme: light dark; --bg: #f7f8fa; --panel: #fff; --ink: #1b1e24; --dim: #5b6472;
-  --line: #e2e5ea; --code: #f1f3f6; --accent: #c2691f;
+  --line: #e2e5ea; --code: #f1f3f6; --accent: #2563eb;
   --sans: system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI", Roboto, "Noto Sans", "Hiragino Sans", sans-serif;
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace; }
 @media (prefers-color-scheme: dark) { :root { --bg: #14161a; --panel: #1b1e24; --ink: #e6e8ec; --dim: #8b93a1;
-  --line: #2b3038; --code: #22262d; --accent: #e08a45; } }
+  --line: #2b3038; --code: #22262d; --accent: #6b9cf0; } }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--sans); }
 nav { position: sticky; top: 0; display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; align-items: center; padding: .7rem 1rem;

@@ -15,11 +15,14 @@
   --faint: #7e8795;
   --cell: #2e343d;
   --cell-top: #7d5a34;
-  --accent: #d8813f;
-  --accent-hi: #f0a463;
+  /* Blue, not orange: the parts themselves are bamboo and teak -- orange-brown -- so an orange
+     selection sat on the one colour it could not stand out from. Blue is wood's complement, and
+     it is what every design tool already uses to say "selected". */
+  --accent: #5b8def;
+  --accent-hi: #7aa5f5;
   /* The soft washes, as tokens: both were hardcoded rgba of the DARK palette and stayed
      dark-orange / dark-red when the theme went light. */
-  --accent-soft: rgba(216, 129, 63, .14);
+  --accent-soft: rgba(91, 141, 239, .16);
   --bad-soft: rgba(226, 99, 90, .14);
   /* Two radii, drawn six ways before: controls sit on --r-ctl, floating panels on --r-pop. */
   --r-ctl: 6px;
@@ -29,15 +32,15 @@
   --bad: #e2635a;
   --warn-bg: #2a1f1f;
   --warn-ink: #f0b4ae;
-  --info-bg: #2a241c;
-  --info-ink: #e6c9a4;
+  --info-bg: #1a2233;
+  --info-ink: #b9cdf5;
   --caution: #b8863a;
   --caution-ink: #d8a34a;
   --shadow: rgba(0, 0, 0, .6);
   --scene: #14161a;       /* the 3D canvas clear colour -- read by app.js too */
   --sunken: #0e1013;      /* photo and thumbnail wells, a step BELOW the panel */
   --overlay: rgba(14, 16, 19, .82);   /* the tag strip laid over a thumbnail */
-  --sel-bg: #2a241c;      /* a selected row's accent-tinted fill (part bench) */
+  --sel-bg: #1c2740;      /* a selected row's accent-tinted fill (part bench) */
   /* One stack, used everywhere (the font: shorthands below say var(--mono), because a
      shorthand's own family list would override the inherited one). Consolas is the load-
      bearing entry: ui-monospace resolves only in Safari, SF Mono / Menlo are macOS, and
@@ -68,24 +71,24 @@
   --faint: #6e7785;      /* 4.5:1 on white; #8a93a1 was 3.1:1 */
   --cell: #ccd2da;
   --cell-top: #cda877;
-  --accent: #c2691f;
-  --accent-hi: #d8813f;
-  --accent-soft: rgba(194, 105, 31, .12);
+  --accent: #2563eb;
+  --accent-hi: #3b82f6;
+  --accent-soft: rgba(37, 99, 235, .10);
   --bad-soft: rgba(207, 77, 68, .12);
   --on-accent: #ffffff;
   --ok: #2f9e6a;
   --bad: #cf4d44;
   --warn-bg: #fbeceb;
   --warn-ink: #9c342c;
-  --info-bg: #fbf2e4;
-  --info-ink: #8a5a1f;
+  --info-bg: #eef4ff;
+  --info-ink: #1e40af;
   --caution: #c08a2e;
   --caution-ink: #8f6716;
   --shadow: rgba(16, 24, 40, .10);
   --scene: #eef0f3;
   --sunken: #e4e7ea;
   --overlay: rgba(245, 246, 248, .86);
-  --sel-bg: #f6ecda;
+  --sel-bg: #e8f0fe;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -725,6 +728,8 @@ h2 {
 #preview .pv-row { display: flex; justify-content: space-between; gap: .5rem; color: var(--dim); padding: .08rem 0; }
 #preview .pv-row b { color: var(--ink); font-weight: 600; }
 #preview .pv-sku { color: var(--faint); font-family: var(--mono); }
+#preview .pv-jp { color: var(--dim); font-size: .72rem; line-height: 1.35; margin: -.1rem 0 .25rem; }
+#preview .pv-why { margin-top: .4rem; padding-top: .4rem; border-top: 1px solid var(--line-soft); color: var(--warn-ink); line-height: 1.4; }
 
 /* Right-click / long-press a placed module: a little action menu at the pointer. */
 #modmenu[hidden] { display: none; }
