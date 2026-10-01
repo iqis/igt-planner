@@ -71,6 +71,19 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     && jik.nodes.every(n => n.top_mm === 400), JSON.stringify({ p: jik.problems, tops: jik.nodes.map(n => n.top_mm) }));
 }
 
+// ---- every language has every key ------------------------------------------------------------
+{
+  const en = (await import("../web/i18n/en.js")).default;
+  for (const code of ["zh-Hans", "zh-Hant", "ja", "ko", "th"]) {
+    const d = (await import(`../web/i18n/${code}.js`)).default;
+    const missing = Object.keys(en).filter(k => !(k in d));
+    const extra = Object.keys(d).filter(k => !(k in en));
+    const holes = Object.keys(en).filter(k => k in d && (en[k].match(/\{\w+\}/g) || []).sort().join() !== (d[k].match(/\{\w+\}/g) || []).sort().join());
+    check(`i18n: ${code} is complete`, !missing.length && !extra.length && !holes.length,
+      JSON.stringify({ missing: missing.slice(0, 5), extra: extra.slice(0, 5), placeholders: holes.slice(0, 5) }));
+  }
+}
+
 // ---- server up ----------------------------------------------------------------------------------
 const server = spawn("py", [join(ROOT, "serve.py"), "--port", String(PORT), "--root", SERVE_ROOT], {
   cwd: ROOT, stdio: "ignore",

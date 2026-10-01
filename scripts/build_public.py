@@ -109,6 +109,7 @@ def main():
         if f.is_file() and f.name not in BENCH:
             shutil.copy2(f, DIST / "web" / f.name)
     shutil.copytree(WEB / "vendor", DIST / "web" / "vendor")
+    shutil.copytree(WEB / "i18n", DIST / "web" / "i18n")          # the interface's languages
 
     means = {}
     for f in sorted((WEB / "tex").iterdir()):

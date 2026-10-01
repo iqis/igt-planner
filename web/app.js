@@ -6,6 +6,7 @@ import { PUBLIC, GRAIN_MEANS } from "./build.js";
 import { proceduralGrain } from "./proctex.js";
 import { icon, brand } from "./icons.js";
 import qrcode from "./vendor/qrcode.mjs";
+import { t, getLang, setLang, applyStatic, LANGS } from "./i18n.js";
 import {
   BY_ROLE, CAT, COLORS, CONN, CONN_TABLE, EDGE_IFACES, EDGE_KEYS, FIGURES,
   FRAMES, FRAME_HOOK, FRAME_THICK, GRID, HALF, HEIGHT_LADDER, HOLE_INSET, HOOKABLE,
@@ -112,6 +113,9 @@ const burnerTop = () => null;
 // Colours come from Snow Peak's product photography (catalog/colors.json). The swatch in
 // the palette is the same colour the part is rendered in, so the two never drift.
 const swatchOf = sku => COLORS[sku]?.color_hex || "#8a929c";
+// A part's name in the interface's language. Official names exist in English (US store) and Japanese
+// (JP store) only -- see i18n.js -- so Japanese shows the JP name and every other language the English.
+const nameOf = p => (getLang() === "ja" && p?.title_jp) ? p.title_jp : (p?.title_en ?? "");
 
 // Legs are aluminium: SILVER by default, every one of them. Black exists as a FINISH -- CK-109 and
 // CK-112 sample pure black in Snow Peak's own photos, so black-anodised legs are real -- but which
@@ -1446,7 +1450,7 @@ function setHover(e) {
   btn.hidden = !e;
   if (e) {
     btn.title = e.isSlot ? "add a unit accessory to this slot"
-      : `hook an extension onto the ${PARTS[e.node.sku].title_en}`;
+      : `hook an extension onto the ${nameOf(PARTS[e.node.sku])}`;
     followHover();
   }
   paintHover();
@@ -1497,7 +1501,7 @@ function fillLegs(box, n) {
   for (const p of BY_ROLE.leg)
     box.append(chip(`${p.height_mm}mm`, n.leg === p.sku,
       n.kind === "ext" ? "an extension is flush with what it hooks to — it takes the same legs, so "
-        + "this sets them for the whole run" : p.title_en,
+        + "this sets them for the whole run" : nameOf(p),
       () => setLeg(n, p.sku)));
   // Finish is independent of height: legs are silver by default, black is a variant some SKUs ship in.
   // A hooked run shares one finish, the same way it shares its height.
@@ -1600,9 +1604,9 @@ function fillActions(box, n) {
       () => { n.bridge = !n.bridge; if (!n.bridge) delete n.surface; render(); }));
     if (n.bridge) for (const [key, label, sku, hint] of [
       [null, "— bare", null, "the bridge with nothing on it"],
-      ["net", "▦ 焼アミ Pro.L", "ST-032MAR", "484×352 stainless net — the same net the CK-160 takes"],
+      ["net", "▦ grill net", "ST-032MAR", "焼アミ Pro.L — a 484×352 stainless net, the same net the CK-160 takes"],
       ["halves", "▤▤ two half nets", "S-029HA", "339×206 half nets ×2 — also cross-listed on the CK-160"],
-      ["plate", "▬ 鉄板", "GR-006", "500×330 black-steel griddle — its 500 IS the CK-160's 500"]])
+      ["plate", "▬ griddle", "GR-006", "鉄板 — a 500×330 black-steel griddle; its 500 IS the CK-160's 500"]])
       box.append(chip(label, (n.surface || null) === key, sku ? `${sku} — ${hint}` : hint,
         () => { n.surface = key; render(); }));
     box.append(chip(n.coal ? "coal bed ✓ ST-032S" : "+ coal bed", !!n.coal,
@@ -1619,7 +1623,7 @@ function fillActions(box, n) {
   // you happened to bring. And "LI" is LIQUID INJECTION -- it hangs UPSIDE DOWN under the burner,
   // which is why the legs make a cage instead of a tripod.
   if (PARTS[n.sku].prop === "gs1000")
-    box.append(chip(n.canister ? "canister ✓ OD 缶" : "+ canister", !!n.canister,
+    box.append(chip(n.canister ? "canister ✓" : "+ canister", !!n.canister,
       "専用容器 (GP-250S / GP-500S / GP-500BL), mounted INVERTED under the burner — bought separately, "
       + "not part of the stove's 1,800g. Its size has no source in the catalog: it is proportioned "
       + "off the manual drawing, and it is the least trustworthy shape on this part.",
@@ -1654,8 +1658,8 @@ function openToolPop(which, n) {
   toolPop.innerHTML = "";
   const head = document.createElement("div");
   head.className = "mhead";
-  head.textContent = which === "legs" ? "leg height — sets the standing height"
-                                      : `${PARTS[n.sku].title_en} — options`;
+  head.textContent = which === "legs" ? t("tool.height.tip")
+                                      : `${nameOf(PARTS[n.sku])} — options`;
   toolPop.append(head);
   const box = document.createElement("div");
   box.className = "chips";
@@ -1675,17 +1679,17 @@ function openToolPop(which, n) {
  *  "detach" says a thing no padlock does. */
 function placementBtn(n) {
   if (n.host != null && n.rail)
-    return toolBtn(n.locked ? ib("unlock", "unlock") : ib("lock", "lock"),
-      n.locked ? "unlock — free to slide along the rail" : "lock the slide position so it can't move", "ib",
+    return toolBtn(n.locked ? ib("unlock", t("tool.unlock")) : ib("lock", t("tool.lock")),
+      n.locked ? t("tool.unlock.rail.tip") : t("tool.lock.rail.tip"), "ib",
       () => { n.locked = !n.locked; render(); });
   if (n.host != null)
-    return toolBtn(ib("detach", "detach"), "pull it off — float it free to move or re-hook onto another edge", "ib",
+    return toolBtn(ib("detach", t("tool.detach")), t("tool.detach.tip"), "ib",
       () => { detachNode(n); n.floating = true; n.locked = false; selectOnly(n.id); render();
               note("pulled off — drag it where you want, then lock it"); });
   const fixed = !!n.locked;
-  return toolBtn(fixed ? ib("unlock", "unlock") : (n.floating ? ib("anchor", "place") : ib("lock", "lock")),
-    fixed ? "unlock — float it to move it again"
-      : (n.floating ? "place it — lock it down where it sits" : "lock it in place so a stray drag can't move it"),
+  return toolBtn(fixed ? ib("unlock", t("tool.unlock")) : (n.floating ? ib("anchor", t("tool.place")) : ib("lock", t("tool.lock"))),
+    fixed ? t("tool.unlock.tip")
+      : (n.floating ? t("tool.place.tip") : t("tool.lock.tip")),
     n.floating && !fixed ? "ib keep" : "ib",
     () => { if (fixed) { n.locked = false; n.floating = true; } else { n.locked = true; n.floating = false; } render(); });
 }
@@ -1702,31 +1706,31 @@ function paintSelTools() {
   // A multi-selection gets a compact toolbar: a count, duplicate-all (the free ones), delete-all.
   if (state.selSet.size > 1) {
     const count = document.createElement("span");
-    count.className = "count"; count.textContent = `${state.selSet.size} selected`;
+    count.className = "count"; count.textContent = t("sel.count", { n: state.selSet.size });
     selTools.append(count);
-    selTools.append(toolBtn(ib("copy", "copy"), "duplicate all  (Ctrl+D)", "ib", () => duplicateSelected()));
-    selTools.append(toolBtn(ib("block", "block"), "save all of it as one block, kept by name", "ib",
-      () => { const name = prompt("name this block:", ""); if (name && name.trim()) saveBlock(name.trim()); }));
+    selTools.append(toolBtn(ib("copy", t("tool.copy")), t("tool.dupall.tip"), "ib", () => duplicateSelected()));
+    selTools.append(toolBtn(ib("block", t("tool.block")), t("tool.blockall.tip"), "ib",
+      () => { const name = prompt(t("tool.blockname"), ""); if (name && name.trim()) saveBlock(name.trim()); }));
     const sep0 = document.createElement("span"); sep0.className = "sep"; selTools.append(sep0);
-    selTools.append(toolBtn(ib("trash", "delete"), "delete all  (Del)", "ib danger", () => removeNode(n)));
+    selTools.append(toolBtn(ib("trash", t("tool.delete")), t("tool.delall.tip"), "ib danger", () => removeNode(n)));
   } else {
     // Placement first: is this thing floating, placed, locked, hooked? -- the leading decision.
     selTools.append(placementBtn(n));
     // This part's OWN controls, at the part: height, then whatever it can be configured into.
     if (legAdjustable(n) && PARTS[n.leg])
-      selTools.append(toolBtn(`${icon("height")}<span class="num">${PARTS[n.leg].height_mm}</span>`, "leg height — sets the standing height", "ib keep",
+      selTools.append(toolBtn(`${icon("height")}<span class="num">${PARTS[n.leg].height_mm}</span>`, t("tool.height.tip"), "ib keep",
         () => openToolPop("legs", n)));
-    if (hasActions(n)) selTools.append(toolBtn(ib("options", "options"), `${PARTS[n.sku].title_en} — options`, "ib", () => openToolPop("actions", n)));
+    if (hasActions(n)) selTools.append(toolBtn(ib("options", t("tool.options")), t("tool.options.tip", { name: nameOf(PARTS[n.sku]) }), "ib", () => openToolPop("actions", n)));
     if (!n.host) {
-      selTools.append(toolBtn(ib("rotate", "rotate"), "rotate 90°  (R)", "ib", () => rotateNode(n)));
-      selTools.append(toolBtn(ib("copy", "copy"), "duplicate  (Ctrl+D)", "ib", () => duplicateNode(n)));
+      selTools.append(toolBtn(ib("rotate", t("tool.rotate")), t("tool.rotate.tip"), "ib", () => rotateNode(n)));
+      selTools.append(toolBtn(ib("copy", t("tool.copy")), t("tool.dup.tip"), "ib", () => duplicateNode(n)));
       // A block is a duplicate that outlives the session, so its button lives next to duplicate.
-      selTools.append(toolBtn(ib("block", "block"), "save as a block — this and everything on it, kept by name", "ib",
-        () => { const name = prompt("name this block:", ""); if (name && name.trim()) saveBlock(name.trim()); }));
+      selTools.append(toolBtn(ib("block", t("tool.block")), t("tool.block.tip"), "ib",
+        () => { const name = prompt(t("tool.blockname"), ""); if (name && name.trim()) saveBlock(name.trim()); }));
     }
-    if (replaceOptions(n).length > 1) selTools.append(toolBtn(ib("swap", "swap"), "replace with a similar part", "ib", () => openReplaceMenu(n)));
+    if (replaceOptions(n).length > 1) selTools.append(toolBtn(ib("swap", t("tool.swap")), t("tool.swap.tip"), "ib", () => openReplaceMenu(n)));
     const sep = document.createElement("span"); sep.className = "sep"; selTools.append(sep);
-    selTools.append(toolBtn(ib("trash", "delete"), "delete  (Del)", "ib danger", () => removeNode(n)));
+    selTools.append(toolBtn(ib("trash", t("tool.delete")), t("tool.del.tip"), "ib danger", () => removeNode(n)));
   }
   selTools.hidden = false;
   followSelTools();
@@ -1738,8 +1742,12 @@ function followSelTools() {
   const s = toScreen({ x: n.x, y: selTop(n), z: n.z });
   selTools.style.visibility = s.behind ? "hidden" : "visible";
   if (s.behind) { replaceMenu.hidden = true; toolPop.hidden = true; return; }
-  selTools.style.left = `${s.x}px`;
-  selTools.style.top = `${Math.max(30, s.y - 14)}px`;
+  // It hangs ABOVE its anchor (translate -100%), so its top edge must clear the undo/scene bar at the
+  // view's top-left, and its sides must stay on the canvas -- on a phone it is nearly as wide as it.
+  const vt = $("viewtop"), half = selTools.offsetWidth / 2;
+  const minY = (vt ? vt.offsetTop + vt.offsetHeight : 0) + selTools.offsetHeight + 8;
+  selTools.style.left = `${Math.max(half + 6, Math.min(canvas.clientWidth - half - 6, s.x))}px`;
+  selTools.style.top = `${Math.max(minY, s.y - 14)}px`;
   for (const pop of [replaceMenu, toolPop]) {
     if (pop.hidden) continue;
     pop.style.left = `${Math.min(s.x + 12, canvas.clientWidth - 244)}px`;
@@ -1765,13 +1773,13 @@ function openReplaceMenu(n) {
   replaceMenu.innerHTML = "";
   const head = document.createElement("div");
   head.className = "mhead";
-  head.textContent = `replace ${PARTS[n.sku].title_en} with:`;
+  head.textContent = `replace ${nameOf(PARTS[n.sku])} with:`;
   replaceMenu.append(head);
   for (const p of replaceOptions(n)) {
     if (p.sku === n.sku) continue;
     const row = document.createElement("div");
     row.className = "part";
-    row.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span><span class="nm">${p.title_en}</span>`;
+    row.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span><span class="nm">${nameOf(p)}</span>`;
     row.onclick = () => { replaceMenu.hidden = true; replaceNode(n, p.sku); };
     wirePreview(row, p);
     replaceMenu.append(row);
@@ -1831,7 +1839,7 @@ const moduleCfgOf = sku => MODULE_CONFIGS[sku.replace(/-(US|INT|EC|R)$/i, "")];
 
 function showModMenu(node, pl, clientX, clientY) {
   const p = PARTS[pl.sku];
-  modmenu.innerHTML = `<div class="mhead">${p.title_en}</div>`;
+  modmenu.innerHTML = `<div class="mhead">${nameOf(p)}</div>`;
   // Its own options first -- you right-clicked the thing, so act on the thing.
   const cfg = moduleCfgOf(pl.sku);
   if (cfg) {
@@ -1866,8 +1874,8 @@ function showPreview(p, rowEl, why = "") {
   const span = spanOf(p) ? `${spanOf(p) / 2}u` : "";
   preview.innerHTML =
     (PUBLIC ? "" : `<img src="img/${p.sku}.jpg" alt="">`)   // product photos stay off the public build
-    + `<div class="pv-name">${p.title_en}</div>`
-    + (p.title_jp ? `<div class="pv-jp">${p.title_jp}</div>` : "")
+    + `<div class="pv-name">${nameOf(p)}</div>`
+    + ((getLang() === "ja" ? p.title_en : p.title_jp) ? `<div class="pv-jp">${getLang() === "ja" ? p.title_en : p.title_jp}</div>` : "")
     + `<div class="pv-row"><span class="pv-sku">${p.sku}</span></div>`
     + (a ? `<div class="pv-row"><span>size</span><b>${a.w}×${a.d}×${a.h}mm</b></div>` : "")
     + (span ? `<div class="pv-row"><span>span</span><b>${span}</b></div>` : "")
@@ -1949,7 +1957,7 @@ function paintMenu() {
     // The trailing badge is the COMPAT flag only now -- a "?" when the manual doesn't list this
     // pairing -- never a price. It was carrying both, and the price was the half that didn't belong.
     row.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
-      + `<span class="nm">${p.title_en}</span>`
+      + `<span class="nm">${nameOf(p)}</span>`
       + (c.level === "unlisted" ? `<span class="sp caution">?</span>` : "");
     const f = footprintOf(p.sku, kindOf(p));
     row.title = c.level === "unlisted"
@@ -1989,7 +1997,7 @@ function paintSlotMenu() {
     // The trailing badge is the COMPAT flag only now -- a "?" when the manual doesn't list this
     // pairing -- never a price. It was carrying both, and the price was the half that didn't belong.
     row.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
-      + `<span class="nm">${p.title_en}</span>`
+      + `<span class="nm">${nameOf(p)}</span>`
       + (c.level === "unlisted" ? `<span class="sp caution">?</span>` : "");
     row.title = c.level === "unlisted" ? `${p.sku} — ${c.why}` : `${p.sku} — ${spanOf(p) / 2}u`;
     row.onclick = () => { placeModuleAt(p.sku, n, start); setHover(null); };
@@ -2828,16 +2836,16 @@ function partRow(p, fn, dead, why, badge) {
   el.className = "part" + (dead ? " dead" : "");
   const s = spanOf(p);
   el.innerHTML = `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
-    + `<span class="nm">${p.title_en}</span>`
+    + `<span class="nm">${nameOf(p)}</span>`
     + `<span class="sp">${badge ?? (s ? s / 2 + "u" : "")}</span>`;
   // The details live in the hover card now (wirePreview), the same card the + menus show -- a native
   // title tooltip on top of it would say the same thing twice, late. Touch keeps the tooltip-free row.
-  if (COARSE) el.title = why || `${p.sku} — ${p.title_en}`;
+  if (COARSE) el.title = why || `${p.sku} — ${nameOf(p)}`;
   el.dataset.search = searchKey(p);
   el.dataset.sku = p.sku;
   el.dataset.name = p.title_en || "";
   if (p.title_jp) el.dataset.jp = p.title_jp;
-  if (!dead) { el.onclick = () => { hidePreview(); fn(p); }; previewOnHover(el, p.sku); }
+  if (!dead) { el.onclick = () => { hidePreview(); fn(p); if (PHONE.matches) setSheet(null); }; previewOnHover(el, p.sku); }
   if (!COARSE) wirePreview(el, p, dead ? why : "");   // a dead row's card says WHY it is dead
   return el;
 }
@@ -2938,7 +2946,7 @@ function paintPalette() {
         sw.style.background = "#" + (SHELTER_FILL[PARTS[n.sku].shelter_type] || 0x8a8f97).toString(16).padStart(6, "0");
         const nm = document.createElement("span");
         nm.className = "nm";
-        nm.textContent = PARTS[n.sku].title_en || n.sku;
+        nm.textContent = nameOf(PARTS[n.sku]) || n.sku;
         nm.title = "select this footprint (works even when the layer is locked)";
         nm.onclick = () => { state.sel = n.id; render(); };
         const del = document.createElement("span");
@@ -2999,7 +3007,7 @@ function paintPalette() {
           : `${p.sku} — hangs a ${p.tiers === 2 ? "two-tier" : "one-tier"} rack under 2U of the rails.`));
   }
 
-  $("selname").textContent = n ? PARTS[n.sku].title_en : "nothing selected";
+  $("selname").textContent = n ? nameOf(PARTS[n.sku]) : t("sel.none");
   $("selbox").hidden = !n;   // the selected-part controls ride at the TOP, only while something is picked
   paintCatCounts();      // put the part-count on each category head, now the rows exist
   filterPalette();       // re-apply the current search over the freshly painted rows
@@ -3131,7 +3139,7 @@ function filterPalette() {
   }
   const cnt = $("searchcount");
   cnt.hidden = !q;
-  if (q) cnt.textContent = shown ? `${shown} match${shown === 1 ? "" : "es"}` : "no match — try a part number, “2u”, or fewer words";
+  if (q) cnt.textContent = shown ? t(shown === 1 ? "pal.match1" : "pal.matches", { n: shown }) : t("pal.nomatch");
 }
 $("palsearch").addEventListener("input", filterPalette);
 
@@ -3142,7 +3150,7 @@ for (const h of document.querySelectorAll(".cathead"))
 function paintFoldAll() {
   const anyOpen = [...document.querySelectorAll("#palette .cat")].some(c => !c.classList.contains("collapsed"));
   $("foldall").innerHTML = anyOpen ? icon("fold") : icon("unfold");
-  $("foldall").title = anyOpen ? "fold every category" : "open every category";
+  $("foldall").title = t(anyOpen ? "pal.foldall" : "pal.openall");
 }
 $("foldall").onclick = () => {
   const cats = [...document.querySelectorAll("#palette .cat")];
@@ -3198,7 +3206,7 @@ function paintSlots() {
 // And it groups. It listed "IGT Low Height 400mm Leg Set" four separate times for two frames --
 // a shopping list that makes you count is not doing its job.
 function paintBOM() {
-  const t = $("bomtable"); t.innerHTML = "";
+  const tbl = $("bomtable"); tbl.innerHTML = "";
   let grams = 0;
 
   // Same sku, same row. `req`/`pl` only decide the lead mark, so they collapse together.
@@ -3219,9 +3227,9 @@ function paintBOM() {
     const lead = req ? "↳ " : pl ? "· " : "";           // ↳ comes with · you dropped in
     const kg = (p.weight_g || 0) * n / 1000;
     tr.innerHTML = `<td class="qty">${n > 1 ? "×" + n : ""}</td>`
-      + `<td class="nm" title="${p.sku} — ${p.title_en}">${lead}${p.title_en}</td>`
+      + `<td class="nm" title="${p.sku} — ${nameOf(p)}">${lead}${nameOf(p)}</td>`
       + `<td class="p">${p.weight_g ? kg.toFixed(1) + " kg" : "—"}</td>`;
-    t.append(tr);
+    tbl.append(tr);
   }
   const tot = { g: grams };
 
@@ -3233,7 +3241,7 @@ function paintBOM() {
   // click to find out what he already wanted to know, and there is room for six more characters.
   const kg = tot.g / 1000;
   $("totals").innerHTML = `
-    <div class="row big"><span>you carry</span><b>${kg.toFixed(1)} kg</b></div>
+    <div class="row big"><span>${t("bom.carry")}</span><b>${kg.toFixed(1)} kg</b></div>
     <div class="row"><span></span><b class="alt">${(kg * 2.20462).toFixed(1)} lb</b></div>`;
 }
 
@@ -3241,12 +3249,14 @@ function paintBOM() {
 // they sit behind a one-line summary now (closed by default, remembered while you work), grouped the
 // way you act on them: what to fix, what to check, what was added for you, and plain notes.
 const WARN_CATS = [
-  ["problem", "to fix"], ["check", "to check"], ["added", "added for you"], ["note", "notes"],
+  ["problem", t("warn.problem")], ["check", t("warn.check")], ["added", t("warn.added")], ["note", t("warn.note")],
 ];
 let warnOpen = false;
 function paintWarnings() {
   const w = $("warnings"); w.innerHTML = "";
   const all = warnings();
+  const fix = all.filter(x => x.cat === "problem").length, badge = document.querySelector("#dockbuild .badge");
+  if (badge) { badge.hidden = !fix; badge.textContent = fix; }
   if (!all.length) return;
   const box = document.createElement("details");
   box.className = "warnbox";
@@ -3287,7 +3297,7 @@ function treeRow(n, depth, { module = false, pl = null } = {}) {
   const glyph = module ? "·" : n.host != null ? "↳" : (KIND_GLYPH[n.kind] || "▤");
   row.innerHTML = `<span class="tw">${glyph}</span>`
     + `<span class="sw" style="background:${swatchOf(p.sku)}"></span>`
-    + `<span class="nm" title="${p.title_en}">${p.title_en}</span>`;
+    + `<span class="nm" title="${nameOf(p)}">${nameOf(p)}</span>`;
   // Shift / Ctrl / Cmd click adds/removes from the selection; a plain click selects just this one.
   // (A module row has no object of its own, so it just selects its host frame.)
   row.onclick = e => { (!module && (e.shiftKey || e.ctrlKey || e.metaKey)) ? toggleInSel(n.id) : selectOnly(n.id); render(); };
@@ -3344,7 +3354,7 @@ function paintDimHud() {
     const size = n.kind === "footprint"
       ? `${Math.round(f.w)} × ${Math.round(f.d)} mm`
       : `${Math.round(f.w)} × ${Math.round(f.d)} × ${Math.round(h)} mm`;
-    selLine = `${PARTS[n.sku].title_en}  <b>${size}</b>`;
+    selLine = `${nameOf(PARTS[n.sku])}  <b>${size}</b>`;
   }
   hud.innerHTML = (overall ? `<div>${overall}</div>` : "") + (selLine ? `<div class="sel">${selLine}</div>` : "");
   hud.hidden = !overall && !selLine;
@@ -3377,12 +3387,8 @@ function paintHint() {
   const el = $("hint");
   // Point at the dots only when there ARE dots: a chair, a footprint, or a frame with every
   // edge taken draws no handles (paint runs after rebuild, so edgeMeshes is this frame's).
-  if (sel() && edgeMeshes.length) el.innerHTML = COARSE
-    ? "tap a <b>blue dot</b> to hook something onto that edge"
-    : "hover a table <b>edge</b> to hook something onto it";
-  else el.innerHTML = COARSE
-    ? "tap a <b>frame</b> — blue dots mark where things hook on"
-    : "click a <b>frame</b> — blue dots mark where things hook on";
+  if (sel() && edgeMeshes.length) el.innerHTML = t(COARSE ? "hint.dot.touch" : "hint.dot");
+  else el.innerHTML = t(COARSE ? "hint.frame.touch" : "hint.frame");
 }
 function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); paintBlocks(); paintRulers(); paintHint(); }
 
@@ -3500,7 +3506,7 @@ function newPage(name) {
   commitActivePage();
   const id = pageSeq++;
   const doc = { app: "igt-planner", v: SAVE_V, nodes: [] };
-  book.pages.push({ id, name: name || `Page ${book.pages.length + 1}`, doc });
+  book.pages.push({ id, name: name || t("page.n", { n: book.pages.length + 1 }), doc });
   book.activeId = id;
   loadLayout(doc);                    // a fresh, empty design
   lsPut(LS_PAGES, book); lsPut(LS_SCENE, doc);
@@ -3554,14 +3560,14 @@ function paintPager() {
     // No delete on the last page: a book always has at least one page.
     if (book.pages.length > 1) {
       const x = document.createElement("span");
-      x.className = "pclose"; x.innerHTML = icon("x", 12); x.title = "delete this page";
+      x.className = "pclose"; x.innerHTML = icon("x", 12); x.title = t("page.delete");
       x.onclick = ev => { ev.stopPropagation(); if (confirm(`Delete page "${p.name}"? This can't be undone.`)) deletePage(p.id); };
       tab.append(x);
     }
     el.append(tab);
   }
   const add = document.createElement("button");
-  add.className = "padd"; add.innerHTML = icon("plus", 15); add.title = "new page — a fresh, independent design";
+  add.className = "padd"; add.innerHTML = icon("plus", 15); add.title = t("page.new");
   add.onclick = () => newPage();
   el.append(add);
 }
@@ -3762,25 +3768,25 @@ function paintFiles() {
   };
   const head = t => { const h = document.createElement("div"); h.className = "fhead"; h.textContent = t; fileMenu.append(h); };
 
-  head("this layout");
-  row("Save as…", "keeps it in this browser", () => {
-    const name = prompt("name this layout:", "");
+  head(t("files.this"));
+  row(t("files.save"), t("files.save.sub"), () => {
+    const name = prompt(t("files.savename"), "");
     if (name && name.trim()) saveNamed(name.trim());
   });
-  row("Export a file…", "the copy that outlives this browser", exportFile);
-  row("Import a file…", "", importFile);
-  row("Start over", "", () => {
-    if (state.nodes.length && !confirm("clear the layout?")) return;
+  row(t("files.export"), t("files.export.sub"), exportFile);
+  row(t("files.import"), "", importFile);
+  row(t("files.reset"), "", () => {
+    if (state.nodes.length && !confirm(t("files.resetq"))) return;
     state.nodes = []; state.nextId = 1; selectOnly(null);
     undoStack.length = 0; redoStack.length = 0; render();
   });
 
-  head(names.length ? "in this browser" : "nothing saved in this browser yet");
+  head(t(names.length ? "files.saved" : "files.none"));
   for (const n of names) {
     const at = (all[n].at || "").slice(0, 10);
     const r = row(n, `${(all[n].nodes || []).length} parts · ${at}`, () => openNamed(n));
     const x = document.createElement("button");
-    x.className = "fdel"; x.innerHTML = icon("x", 12); x.title = "forget this one";
+    x.className = "fdel"; x.innerHTML = icon("x", 12); x.title = t("files.forget");
     x.onclick = e => { e.stopPropagation(); if (confirm(`forget "${n}"?`)) deleteNamed(n); };
     r.append(x);
   }
@@ -3788,7 +3794,7 @@ function paintFiles() {
     const w = document.createElement("div");
     w.className = "fnote";
     // Say the true thing where the word "save" is, not in a help page nobody opens.
-    w.textContent = "These live in this browser only — clearing site data deletes them. Export to keep one for real.";
+    w.textContent = t("files.note");
     fileMenu.append(w);
   }
 }
@@ -3959,7 +3965,7 @@ async function exportPng({ deliver = true, layout = "plate", aspect = "4:3", sca
     };
     const maxRows = Math.floor((H - M - 40 - ly) / 36);
     for (const { p, n } of bill.slice(0, bill.length > maxRows ? maxRows - 1 : maxRows)) {
-      ctx.fillText(fit(`${n > 1 ? "×" + n + " " : ""}${p.title_en}`), rx, ly);
+      ctx.fillText(fit(`${n > 1 ? "×" + n + " " : ""}${nameOf(p)}`), rx, ly);
       ly += 36;
     }
     if (bill.length > maxRows) {
@@ -4015,6 +4021,7 @@ function openCard(btn, build) {
   if (cardOwner === btn && !card.hidden) { closeCard(); return; }
   fileMenu.hidden = true;
   card.innerHTML = "";
+  card.className = "";
   build(card);
   card.hidden = false;
   const r = btn.getBoundingClientRect(), w = card.offsetWidth;
@@ -4081,26 +4088,26 @@ const SOCIAL = [
 async function openShareCard(btn) {
   const url = await makeShareUrl();
   openCard(btn, c => {
-    c.append(cardHead("Share this page", "the link carries the whole design — no account, no server"));
-    if (!url) { c.append(el("p", "cnote", "This browser cannot build a share link. Export the file from layouts instead.")); return; }
-    if (url.length > 8000) c.append(el("p", "cnote warn", `This design makes a ${(url.length / 1000).toFixed(1)}k link — too long for some apps. Export the file if it will not paste.`));
+    c.append(cardHead(t("share.title"), t("share.sub")));
+    if (!url) { c.append(el("p", "cnote", t("share.nolink"))); return; }
+    if (url.length > 8000) c.append(el("p", "cnote warn", t("share.long", { k: (url.length / 1000).toFixed(1) })));
     const row = el("div", "crow");
     const field = el("input", "cfield"); field.readOnly = true; field.value = url;
     field.onfocus = () => field.select();
-    row.append(field, cardBtn(`${icon("copy")}<span>Copy</span>`, () => copyText(url, "link"), "primary"));
+    row.append(field, cardBtn(`${icon("copy")}<span>${t("common.copy")}</span>`, () => copyText(url, t("share.link")), "primary"));
     c.append(row);
-    const title = `My Snow Peak IGT layout — ${activePage()?.name || "a design"}`;
+    const title = t("share.post", { name: activePage()?.name || t("share.adesign") });
     const grid = el("div", "cgrid");
     for (const [key, label, make, max] of SOCIAL) {
       const href = make(url, title);
       const tooLong = max && (title.length + 1 + url.length) > max;
       const a = el("a", `csocial${tooLong ? " dead" : ""}`, `${brand(key, 18)}<span>${label}</span>`);
-      if (tooLong) a.title = `${label} allows ${max} characters — this link is ${url.length}`;
+      if (tooLong) a.title = t("share.toolong", { label, max, n: url.length });
       else { a.href = href; a.target = "_blank"; a.rel = "noopener"; }
       grid.append(a);
     }
     // WeChat has no web share: the link becomes a QR code -- scan it with WeChat, open it on the phone,
-    // forward it from there. Xiaohongshu posts are pictures and links in them do not click: so the
+    // forward it from there. RedNote (Xiaohongshu) posts are pictures and links in them do not click: so the
     // caption (with the link) goes on the clipboard and the photo card opens set to its 3:4.
     const qrBox = el("div", "cqr");
     qrBox.hidden = true;
@@ -4110,26 +4117,26 @@ async function openShareCard(btn) {
       qr.addData(url);
       qr.make();
       qrBox.innerHTML = qr.createSvgTag({ cellSize: 3, margin: 2, scalable: true })
-        + `<p>用微信「扫一扫」，在手机上打开这个设计，再转发给朋友或群聊。</p>`
-        + (url.length > 1200 ? `<p class="warn">这个设计的链接很长，二维码会比较密——扫不出来的话，把屏幕放大一点。</p>` : "");
+        + `<p>${t("share.wechat")}</p>`
+        + (url.length > 1200 ? `<p class="warn">${t("share.qrdense")}</p>` : "");
       qrBox.hidden = false;
     }, "csocial");
-    const xhs = cardBtn(`${brand("xiaohongshu", 18)}<span>小红书</span>`, async () => {
+    const xhs = cardBtn(`${brand("xiaohongshu", 18)}<span>RedNote</span>`, async () => {
       await copyText(`${title}
-${url}`, "caption with the link");
+${url}`, t("share.caption"));
       try { localStorage.setItem("igt.photo.layout", "view"); localStorage.setItem("igt.photo.aspect", "3:4"); } catch {}
       openPhotoCard($("pngbtn"));
-      note("文案和链接已复制 — 导出 3:4 图片后发小红书，把文案粘贴进去", 6000);
+      note(t("share.rednote"), 6000);
     }, "csocial");
     grid.append(wechat, xhs);
-    const mail = el("a", "csocial", `${icon("mail", 18)}<span>Email</span>`);
+    const mail = el("a", "csocial", `${icon("mail", 18)}<span>${t("share.email")}</span>`);
     mail.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(url)}`;
     grid.append(mail);
-    if (navigator.share) grid.append(cardBtn(`${icon("share", 18)}<span>More…</span>`,
+    if (navigator.share) grid.append(cardBtn(`${icon("share", 18)}<span>${t("share.more")}</span>`,
       () => navigator.share({ title, url }).catch(() => {}), "csocial"));
     c.append(grid, qrBox);
     const foot = el("div", "cfoot");
-    foot.append(cardBtn(`${icon("camera")}<span>Send a picture instead</span>`, () => openPhotoCard($("pngbtn")), "link"));
+    foot.append(cardBtn(`${icon("camera")}<span>${t("share.picture")}</span>`, () => openPhotoCard($("pngbtn")), "link"));
     c.append(foot);
   });
 }
@@ -4137,28 +4144,28 @@ ${url}`, "caption with the link");
 // ---- photo ----------------------------------------------------------------------------------------
 function openPhotoCard(btn) {
   openCard(btn, c => {
-    c.append(cardHead("Photo of this page", "a picture that lands in a chat as itself"));
+    c.append(cardHead(t("photo.title"), t("photo.sub")));
     const shape = el("div", "cfield-row");
-    const layoutSeg = segmented("igt.photo.layout", [["Plate", "plate"], ["View only", "view"]], "plate",
+    const layoutSeg = segmented("igt.photo.layout", [[t("photo.plate"), "plate"], [t("photo.view"), "view"]], "plate",
       v => { shape.hidden = v !== "view"; hint.textContent = HINTS[v]; });
     const HINTS = {
-      plate: "the view as you framed it, a to-scale plan, and the parts with what they weigh",
-      view: "just the 3D view as you framed it — scene and all, for posting",
+      plate: t("photo.plate.hint"),
+      view: t("photo.view.hint"),
     };
     const aspectSeg = segmented("igt.photo.aspect", [["4:3", "4:3"], ["1:1", "1:1"], ["3:4", "3:4"], ["4:5", "4:5"], ["16:9", "16:9"]], "4:3");
-    const scaleSeg = segmented("igt.photo.scale", [["Standard", "1"], ["Large ×2", "2"]], "1");
+    const scaleSeg = segmented("igt.photo.scale", [[t("photo.std"), "1"], [t("photo.x2"), "2"]], "1");
     const field = (label, ctl) => { const r = el("div", "cfield-row"); r.append(el("label", "", label), ctl); return r; };
-    c.append(field("Layout", layoutSeg));
-    shape.append(el("label", "", "Shape"), aspectSeg);
+    c.append(field(t("photo.layout"), layoutSeg));
+    shape.append(el("label", "", t("photo.shape")), aspectSeg);
     shape.hidden = layoutSeg.value() !== "view";
-    c.append(shape, field("Size", scaleSeg));
+    c.append(shape, field(t("photo.size"), scaleSeg));
     const hint = el("p", "cnote", HINTS[layoutSeg.value()]);
     c.append(hint);
     const go = to => { closeCard(); exportPng({ layout: layoutSeg.value(), aspect: aspectSeg.value(), scale: +scaleSeg.value(), to }); };
     const acts = el("div", "crow end");
-    if (navigator.canShare && COARSE) acts.append(cardBtn(`${icon("share")}<span>Share</span>`, () => go("share")));
-    if (window.ClipboardItem && navigator.clipboard?.write) acts.append(cardBtn(`${icon("clipboard")}<span>Copy</span>`, () => go("copy")));
-    acts.append(cardBtn(`${icon("download")}<span>Download</span>`, () => go("download"), "primary"));
+    if (navigator.canShare && COARSE) acts.append(cardBtn(`${icon("share")}<span>${t("photo.share")}</span>`, () => go("share")));
+    if (window.ClipboardItem && navigator.clipboard?.write) acts.append(cardBtn(`${icon("clipboard")}<span>${t("common.copy")}</span>`, () => go("copy")));
+    acts.append(cardBtn(`${icon("download")}<span>${t("photo.download")}</span>`, () => go("download"), "primary"));
     c.append(acts);
   });
 }
@@ -4240,6 +4247,49 @@ function openAiCard(btn) {
     c.append(links);
   });
 }
+
+// ---- phone: the panels as sheets -----------------------------------------------------------------
+// Under 760px the view takes the screen and the parts library / build panel slide up from a dock. One
+// open at a time; the dock button, the sheet's handle, or a tap on the view closes it -- and adding a
+// part closes the library, so you see what you just added.
+// "Compact" = a phone either way up: narrow, OR a short landscape screen under a finger. LAND marks
+// the landscape case. Both become body classes so the stylesheet has one set of compact rules.
+const PHONE = matchMedia("(max-width: 760px), (max-height: 520px) and (orientation: landscape) and (pointer: coarse)");
+const LAND = matchMedia("(orientation: landscape)");
+function syncCompact() {
+  document.body.classList.toggle("compact", PHONE.matches);
+  document.body.classList.toggle("land", PHONE.matches && LAND.matches);
+}
+syncCompact();
+LAND.addEventListener("change", syncCompact);
+function setSheet(which) {
+  document.body.classList.toggle("sheet-parts", which === "parts");
+  document.body.classList.toggle("sheet-build", which === "build");
+  for (const b of document.querySelectorAll("#dock button")) b.classList.toggle("on", b.dataset.sheet === which);
+}
+const openSheet = () => document.body.classList.contains("sheet-parts") ? "parts"
+  : document.body.classList.contains("sheet-build") ? "build" : null;
+for (const b of document.querySelectorAll("#dock button"))
+  b.onclick = () => setSheet(openSheet() === b.dataset.sheet ? null : b.dataset.sheet);
+for (const h of document.querySelectorAll(".sheet-handle")) h.onclick = () => setSheet(null);
+$("stage").addEventListener("pointerdown", () => { if (PHONE.matches && openSheet()) setSheet(null); }, true);
+PHONE.addEventListener("change", () => { syncCompact(); setSheet(null); });
+$("dockparts").innerHTML = `${icon("block", 18)}<span>${t("dock.parts")}</span>`;
+$("dockbuild").innerHTML = `${icon("clipboard", 18)}<span>${t("dock.build")}</span><i class="badge" hidden></i>`;
+
+// Language: a short list, the current one ticked. Choosing reloads into it (see setLang).
+$("langbtn").onclick = e => {
+  e.stopPropagation();
+  openCard(e.currentTarget, c => {
+    c.classList.add("narrow");
+    c.append(el("div", "chead", `<b>${t("lang.title")}</b>`));
+    for (const [code, label] of LANGS) {
+      const b = cardBtn(`<span>${label}</span>${code === getLang() ? icon("check") : ""}`, () => setLang(code), "langrow");
+      if (code === getLang()) b.classList.add("on");
+      c.append(b);
+    }
+  });
+};
 
 // About. A click on the backdrop (the dialog element itself, outside its box) closes it too.
 const infoModal = $("infomodal");
@@ -4409,12 +4459,12 @@ function initGround() {
   const sel = $("groundsel");
   if (!sel) return;
   sel.innerHTML = "";
-  for (const [label, set] of [["Ground", GROUNDS], ["Places", PLACES]]) {
+  for (const [label, set] of [[t("scene.g.ground"), GROUNDS], [t("scene.g.places"), PLACES]]) {
     const grp = document.createElement("optgroup");
     grp.label = label;
     for (const [key, g] of Object.entries(set)) {
       const o = document.createElement("option");
-      o.value = key; o.textContent = g.name;
+      o.value = key; o.textContent = t(`scene.${key}`);
       grp.append(o);
     }
     sel.append(grp);
@@ -4489,16 +4539,22 @@ window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
   renderStats, invalidate, exportPng,
   top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); invalidate(); } };
 
+// Fixed text into the interface's language first (index.html carries data-i18n keys), then icons.
+applyStatic();
+// Not on the public site yet (owner, 2026-10-01: the tents and tarps want more polish). A shared design
+// that already has one still draws it; the library just does not offer them.
+if (PUBLIC) $("shelters")?.closest(".cat")?.remove();
+
 // The fixed buttons' icons. index.html keeps plain words in them, so a page that never ran this
 // still says what each one is.
 for (const [id, html] of [
-  ["filebtn", `${icon("folder")}<span>layouts</span>`], ["sharebtn", `${icon("share")}<span>share</span>`],
-  ["pngbtn", `${icon("camera")}<span>photo</span>`],
+  ["filebtn", `${icon("folder")}<span>${t("hdr.layouts")}</span>`], ["sharebtn", `${icon("share")}<span>${t("hdr.share")}</span>`],
+  ["pngbtn", `${icon("camera")}<span>${t("hdr.photo")}</span>`], ["langbtn", icon("lang")],
   ["undo", icon("undo")], ["redo", icon("redo")], ["edgebtn", icon("plus", 15)],
   ["infobtn", icon("info")],
-  ["bandtool", `${icon("select")}<span>select</span>`], ["rulertool", `${icon("ruler")}<span>measure</span>`],
+  ["bandtool", `${icon("select")}<span>${t("view.band")}</span>`], ["rulertool", `${icon("ruler")}<span>${t("view.ruler")}</span>`],
 ]) { const el = $(id); if (el) el.innerHTML = html; }
-{ const fit = document.querySelector('#viewnav [data-view="fit"]'); if (fit) fit.innerHTML = `${icon("fit")}<span>fit</span>`; }
+{ const fit = document.querySelector('#viewnav [data-view="fit"]'); if (fit) fit.innerHTML = `${icon("fit")}<span>${t("view.fit")}</span>`; }
 { const sc = document.querySelector("#scenechip .scico"); if (sc) sc.innerHTML = icon("scene"); }
 
 resize();
@@ -4570,5 +4626,5 @@ paintFiles();
   const legacy = lsGet(LS_SCENE, null);
   if (legacy) { try { loadLayout(legacy); } catch { addNode("CK-150", false); } }
   else addNode("CK-150", false);
-  adoptAsBook("Page 1");
+  adoptAsBook(t("page.n", { n: 1 }));
 })();

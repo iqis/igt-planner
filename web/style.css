@@ -1025,3 +1025,119 @@ kbd { font: .72rem var(--mono); padding: .05rem .35rem; border: 1px solid var(--
 .icredits { font-size: .74rem; color: var(--faint) !important; margin-top: .8rem !important; }
 
 .hlink[hidden] { display: none; }   /* .hlink sets inline-flex padding etc.; [hidden] must still win */
+
+
+/* ================================================================================================
+   COMPACT -- a phone, either way up. app.js sets body.compact (narrow, or a short landscape screen
+   under a finger) and body.land for the landscape case, so the two share one set of rules instead
+   of two copies of the same media query. The view is the app; everything else gets out of its way.
+   ================================================================================================ */
+#dock, .sheet-handle { display: none; }
+
+/* Header: one row. Words become icons; GitHub steps aside (About links it). */
+body.compact header { gap: .4rem; padding: .45rem .6rem; }
+body.compact header h1 { font-size: .9rem; white-space: nowrap; }
+body.compact .disclaimer { display: none; }
+body.compact .filebar { margin-left: auto; gap: 2px; }
+body.compact .filebar .chip span { display: none; }
+body.compact .filebar .chip, body.compact #infobtn, body.compact #theme, body.compact #langbtn {
+  padding: .3rem; min-width: 34px; min-height: 38px; border-color: transparent; background: none;
+}
+body.compact header { gap: .15rem; }
+body.compact header h1 { margin-right: auto; }
+body.compact .hlinks { margin-left: 0; }
+body.compact .hlink.gh { display: none; }
+
+/* The view takes all of main; the panels leave the grid and become sheets. */
+body.compact main, body.compact main.left-collapsed, body.compact main.right-collapsed,
+body.compact main.left-collapsed.right-collapsed { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); }
+body.compact .panel-toggle { display: none; }
+body.compact #palette, body.compact #bom {
+  position: fixed; left: 0; right: 0; bottom: 56px; z-index: 15;
+  height: 62vh; height: 62dvh;
+  padding: .4rem 1rem 1rem; border: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -10px 40px var(--shadow);
+  transform: translateY(calc(100% + 60px));
+  transition: transform .22s ease;
+}
+body.compact aside.collapsed > *:not(.panel-toggle) { display: revert; }   /* a desktop fold never hides a sheet */
+body.compact.sheet-parts #palette, body.compact.sheet-build #bom { transform: none; }
+body.compact .sheet-handle {
+  display: block; position: sticky; top: 0; z-index: 2;
+  width: 100%; height: 22px; margin: -.2rem 0 .3rem; border: none; cursor: pointer; background: var(--panel);
+}
+body.compact .sheet-handle::before { content: ""; display: block; width: 40px; height: 5px; margin: 8px auto 0;
+  border-radius: 3px; background: var(--line); }
+
+/* The dock. */
+body.compact #dock {
+  display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 16; height: 56px;
+  background: var(--panel); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+#dock button {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border: none; background: none; color: var(--dim); font: .7rem var(--sans); cursor: pointer; position: relative;
+}
+#dock button.on { color: var(--accent); }
+#dock .badge {
+  position: absolute; top: 6px; left: calc(50% + 6px); min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 8px; background: var(--bad); color: #fff; font: 600 .62rem/16px var(--sans); font-style: normal;
+}
+#dock .badge[hidden] { display: none; }
+body.compact { padding-bottom: 56px; }
+
+/* The view bar: one row. Tool icons without words; the four views keep theirs. */
+body.compact #viewnav { left: .5rem; right: .5rem; bottom: .5rem; max-width: none; flex-wrap: nowrap; justify-content: space-between; gap: 0; padding: 3px; }
+body.compact #viewnav button { min-width: 36px; min-height: 40px; padding: .3rem .35rem; font-size: .72rem; }
+body.compact #viewnav #bandtool span, body.compact #viewnav #rulertool span, body.compact #viewnav [data-view="fit"] span { display: none; }
+body.compact #viewnav .sep { margin: .3rem 1px; }
+
+/* Read-outs above the bar; the first-run hint gives way (About has it). */
+body.compact .stagefoot { left: .5rem; right: .5rem; bottom: 4rem; }
+body.compact #hint { display: none; }
+body.compact #slotbar { bottom: 6.6rem; }
+body.compact #viewtop { top: .5rem; left: .5rem; }
+
+/* Inside the parts sheet: a tighter library, and no numeric X/Z -- on a phone you place by dragging. */
+body.compact #palette .cat { margin-bottom: .2rem; }
+body.compact #palette .catgroup { margin: 1rem 0 .4rem; }
+body.compact #transform { display: none !important; }
+
+/* ---- LANDSCAPE: height is the scarce thing. The dock becomes a rail on the right, the sheets slide
+   in from that side as panels, and the header and tabs get thinner. ------------------------------ */
+body.compact.land { padding-bottom: 0; padding-right: 64px; }
+body.compact.land header { padding: .2rem .6rem; }
+body.compact.land .filebar .chip, body.compact.land #infobtn, body.compact.land #theme { min-height: 32px; min-width: 34px; padding: .25rem; }
+body.compact.land #pager .ptab { min-height: 30px; padding: .2rem .6rem; }
+body.compact.land #pager .padd { min-height: 30px; }
+body.compact.land #dock {
+  left: auto; top: 0; bottom: 0; right: 0; width: 64px; height: auto;
+  flex-direction: column; border-top: none; border-left: 1px solid var(--line);
+  padding: 0 env(safe-area-inset-right) 0 0;
+}
+body.compact.land #dock button { flex: 0 0 72px; }
+body.compact.land #palette, body.compact.land #bom {
+  left: auto; right: 64px; top: 0; bottom: 0; width: min(380px, 52vw); height: auto;
+  border-radius: 16px 0 0 16px; box-shadow: -10px 0 40px var(--shadow);
+  transform: translateX(calc(100% + 70px));
+}
+body.compact.land.sheet-parts #palette, body.compact.land.sheet-build #bom { transform: none; }
+body.compact.land .sheet-handle { height: 14px; }
+body.compact.land .sheet-handle::before { margin-top: 4px; }
+body.compact.land #viewnav { left: auto; right: .5rem; width: min(420px, 60vw); }
+body.compact.land .stagefoot { bottom: .6rem; right: calc(min(420px, 60vw) + 1rem); }
+body.compact.land #slotbar { bottom: 3.6rem; }
+
+/* ---- languages ----------------------------------------------------------------------------------- */
+#popcard.narrow { width: 220px; }
+.cbtn.langrow { justify-content: space-between; border: none; padding: .5rem .6rem; }
+.cbtn.langrow.on { color: var(--accent); font-weight: 600; }
+/* Each script gets its own system face first: the shared stack would set Chinese in a Japanese font
+   (or the reverse), which reads as wrong to a native reader even when every glyph is present. */
+:root:lang(zh-Hans) { --sans: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", sans-serif; }
+:root:lang(zh-Hant) { --sans: system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei UI", "Microsoft JhengHei", "Noto Sans CJK TC", "Noto Sans TC", sans-serif; }
+:root:lang(ja) { --sans: system-ui, -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", "Noto Sans CJK JP", "Noto Sans JP", sans-serif; }
+:root:lang(ko) { --sans: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", "Noto Sans KR", sans-serif; }
+:root:lang(th) { --sans: system-ui, -apple-system, "Thonburi", "Leelawadee UI", "Leelawadee", "Noto Sans Thai", "Tahoma", sans-serif; }

@@ -30,31 +30,32 @@
 <link rel="modulepreload" href="build.js">
 <link rel="modulepreload" href="proctex.js">
 <link rel="modulepreload" href="icons.js">
+<link rel="modulepreload" href="i18n.js">
 </head>
 <body>
 
 <header>
   <h1>IGT Layout Planner</h1>
   <!-- Product names are used to say what each piece IS; nothing here is Snow Peak's own. -->
-  <span class="disclaimer">unofficial · not affiliated with Snow Peak</span>
   <!-- The unit / half / datum line used to live here, and after it a link to the part bench.
        Both were the project talking to its owner. The constants are in the README; the bench is
        an internal measuring tool that writes annotation files, still answering at /web/part.html
        for whoever knows to type it -- neither belongs in front of someone laying out a table. -->
   <div class="filebar">
-    <button id="filebtn" class="chip" title="layouts — save, open, share, export">▤ layouts</button>
-    <button id="sharebtn" class="chip" title="copy a link that carries the whole design">⇗ share</button>
-    <button id="pngbtn" class="chip" title="export this page as one PNG picture — the view, a plan, and the part list">▣ photo</button>
+    <button id="filebtn" class="chip" data-i18n-title="hdr.layouts.tip" title="layouts — save, open, share, export">▤ layouts</button>
+    <button id="sharebtn" class="chip" data-i18n-title="hdr.share.tip" title="copy a link that carries the whole design">⇗ share</button>
+    <button id="pngbtn" class="chip" data-i18n-title="hdr.photo.tip" title="export this page as one PNG picture — the view, a plan, and the part list">▣ photo</button>
   </div>
   <!-- The two doors out: the rules are open source, and they run under anyone's own agent. -->
   <nav class="hlinks">
     <!-- HIDDEN until the AI flow is finished (owner, 2026-10-01): the card, docs/AI.md, /llms.txt and
          the CLI all still work; drop the `hidden` attribute to bring the button back. -->
     <a class="hlink ai" hidden href="https://igt.iqis.app/web/ai" title="design with your own AI agent — the planner's rules check its work">✦ Use with AI</a>
-    <a class="hlink gh" href="https://github.com/iqis/igt-planner" title="source on GitHub — MIT licensed" aria-label="source on GitHub"><svg viewBox="0 0 16 16" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    <a class="hlink gh" href="https://github.com/iqis/igt-planner" data-i18n-title="hdr.source" data-i18n-aria="hdr.source" title="source on GitHub — MIT licensed" aria-label="source on GitHub"><svg viewBox="0 0 16 16" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
   </nav>
-  <button id="infobtn" class="chip" title="about, getting started, keys" aria-label="about">i</button>
-  <button id="theme" class="chip" title="light / dark theme">☾</button>
+  <button id="infobtn" class="chip" data-i18n-title="hdr.about" data-i18n-aria="hdr.about" title="about, getting started, keys" aria-label="about">i</button>
+  <button id="langbtn" class="chip" data-i18n-title="hdr.lang" data-i18n-aria="hdr.lang" title="language" aria-label="language">A</button>
+  <button id="theme" class="chip" data-i18n-title="hdr.theme" title="light / dark theme">☾</button>
 </header>
 <!-- The layouts menu. localStorage is a cache, so the panel says so where the word "save" is. -->
 <div id="filemenu" hidden></div>
@@ -65,54 +66,55 @@
 <dialog id="infomodal" aria-labelledby="infotitle">
   <form method="dialog" class="ihead">
     <h2 id="infotitle">IGT Layout Planner</h2>
-    <button class="iclose" value="close" aria-label="close" title="close (Esc)">×</button>
+    <button class="iclose" value="close" data-i18n-aria="common.close" data-i18n-title="common.closeEsc" aria-label="close" title="close (Esc)">×</button>
   </form>
   <div class="ibody">
-    <p class="ilead">Plan a Snow Peak <b>Iron Grill Table</b> setup in 3D, to the millimetre — and know it will
+    <p class="ilead" data-i18n="about.lead">Plan a Snow Peak <b>Iron Grill Table</b> setup in 3D, to the millimetre — and know it will
       actually go together. Every part sits where its real hooks, brackets and slots put it, and the
       planner tells you what doesn't fit, what the manuals forbid, and what the whole kit weighs.</p>
 
-    <h3>Getting started</h3>
+    <h3 data-i18n="about.start">Getting started</h3>
     <ol>
-      <li><b>Pick a frame</b> from the library on the left (or start from the one already there).</li>
-      <li><b>Click a frame</b> in the view: blue dots mark every edge something can hook onto, and the
+      <li data-i18n="about.step1"><b>Pick a frame</b> from the library on the left (or start from the one already there).</li>
+      <li data-i18n="about.step2"><b>Click a frame</b> in the view: blue dots mark every edge something can hook onto, and the
         slots inside take burners and trays. Click a dot to see what fits there.</li>
-      <li><b>Read the Build panel</b> on the right: the parts you'd carry, their weight, and anything to fix.</li>
+      <li data-i18n="about.step3"><b>Read the Build panel</b> on the right: the parts you'd carry, their weight, and anything to fix.</li>
     </ol>
-    <p>Each tab is its own design, with its own scene. <b>Share</b> sends a link that carries the whole
+    <p data-i18n="about.tabs">Each tab is its own design, with its own scene. <b>Share</b> sends a link that carries the whole
       design; <b>Photo</b> makes a picture of it.</p>
 
-    <h3>Keys</h3>
+    <h3 data-i18n="about.keys">Keys</h3>
     <div class="ikeys">
-      <span><kbd>Ctrl</kbd> <kbd>Z</kbd></span><span>undo</span>
-      <span><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></span><span>redo</span>
-      <span><kbd>Del</kbd></span><span>delete the selection</span>
-      <span><kbd>Ctrl</kbd> <kbd>D</kbd></span><span>duplicate</span>
-      <span><kbd>R</kbd></span><span>rotate 90°</span>
-      <span><kbd>F</kbd></span><span>frame the selection, or fit everything</span>
-      <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>0</kbd></span><span>top · front · side · iso view</span>
-      <span><kbd>B</kbd></span><span>box select</span>
-      <span><kbd>M</kbd></span><span>measure</span>
-      <span><kbd>Ctrl</kbd> <kbd>F</kbd> or <kbd>/</kbd></span><span>search the parts</span>
-      <span><kbd>Shift</kbd> + click</span><span>add to the selection</span>
-      <span>drag · right-drag · scroll</span><span>turn · pan · zoom</span>
+      <span><kbd>Ctrl</kbd> <kbd>Z</kbd></span><span data-i18n="key.undo">undo</span>
+      <span><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></span><span data-i18n="key.redo">redo</span>
+      <span><kbd>Del</kbd></span><span data-i18n="key.del">delete the selection</span>
+      <span><kbd>Ctrl</kbd> <kbd>D</kbd></span><span data-i18n="key.dup">duplicate</span>
+      <span><kbd>R</kbd></span><span data-i18n="key.rot">rotate 90°</span>
+      <span><kbd>F</kbd></span><span data-i18n="key.frame">frame the selection, or fit everything</span>
+      <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>0</kbd></span><span data-i18n="key.views">top · front · side · iso view</span>
+      <span><kbd>B</kbd></span><span data-i18n="key.band">box select</span>
+      <span><kbd>M</kbd></span><span data-i18n="key.measure">measure</span>
+      <span data-i18n="key.searchkeys"><kbd>Ctrl</kbd> <kbd>F</kbd> or <kbd>/</kbd></span><span data-i18n="key.search">search the parts</span>
+      <span data-i18n="key.shiftclick"><kbd>Shift</kbd> + click</span><span data-i18n="key.add">add to the selection</span>
+      <span data-i18n="key.navkeys">drag · right-drag · scroll</span><span data-i18n="key.nav">turn · pan · zoom</span>
     </div>
 
-    <h3>Your designs</h3>
-    <p>Everything stays <b>in this browser</b>: no account, no server copy, no tracking. Clearing the
+    <h3 data-i18n="about.yours">Your designs</h3>
+    <p data-i18n="about.yours.p">Everything stays <b>in this browser</b>: no account, no server copy, no tracking. Clearing the
       site's data clears your pages — use <b>layouts → export</b> to keep a file. A share link carries
       the design inside the link itself.</p>
 
-    <h3>The data</h3>
-    <p>Dimensions, weights, the 250mm unit grid and the attachment rules are compiled from Snow Peak's
+    <h3 data-i18n="about.data">The data</h3>
+    <p data-i18n="about.data.p">Dimensions, weights, the 250mm unit grid and the attachment rules are compiled from Snow Peak's
       public product pages and assembly manuals; every derived rule cites its source. Where the planner
       cannot confirm something it says so rather than guess. This is an independent project, <b>not
       affiliated with Snow Peak</b>; product names are used only to say what each part is.</p>
 
-    <h3>Open source</h3>
-    <p>MIT licensed — <a href="https://github.com/iqis/igt-planner" target="_blank" rel="noopener">source on GitHub</a>.
+    <h3 data-i18n="about.oss">Open source</h3>
+    <p data-i18n="about.oss.p">MIT licensed — <a href="https://github.com/iqis/igt-planner" target="_blank" rel="noopener">source on GitHub</a>.
       Found a part that's wrong, or a combination it should allow?
       <a href="https://github.com/iqis/igt-planner/issues" target="_blank" rel="noopener">Open an issue</a>.</p>
+    <p data-i18n="about.ai">Made with AI: designed by a person, and built together with Claude, Anthropic's AI assistant.</p>
     <p class="icredits">Built with <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> (MIT),
       icons from <a href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a> (ISC) and
       <a href="https://simpleicons.org" target="_blank" rel="noopener">Simple Icons</a> (CC0),
@@ -131,8 +133,9 @@
 
 <main>
   <aside id="palette">
-    <button class="panel-toggle" data-panel="left" title="collapse the parts panel">‹</button>
-    <input id="palsearch" class="search" type="search" placeholder="search: name, CK-149, 2u, 日本語" autocomplete="off">
+    <button class="sheet-handle" data-i18n-aria="common.close" data-i18n-title="common.close" aria-label="close the parts" title="close"></button>
+    <button class="panel-toggle" data-panel="left" data-i18n-title="pal.collapse" title="collapse the parts panel">‹</button>
+    <input id="palsearch" class="search" type="search" data-i18n-placeholder="pal.search" placeholder="search: name, CK-149, 2u, 日本語" autocomplete="off">
     <div id="searchcount" class="searchcount" hidden></div>
     <div class="chips" id="undobar">
       <button id="foldall" class="chip" title="fold every category / open them all">⊟ fold all</button>
@@ -143,9 +146,9 @@
          live here moved into the library proper (Cooking / Trays & boxes / Hanging racks):
          the same rows painted twice in one panel was the panel arguing with itself. -->
     <section class="selbox" id="selbox" hidden>
-      <h2>Selected <span class="hint" id="selname">nothing selected</span></h2>
+      <h2><span data-i18n="sel.selected">Selected</span> <span class="hint" id="selname">nothing selected</span></h2>
       <div id="transform" hidden>
-        <h3>Position</h3>
+        <h3 data-i18n="sel.position">Position</h3>
         <div class="xform">
           <!-- No inputmode=numeric: coordinates are origin-centred and routinely NEGATIVE, and
                the digits-only phone pad has no minus key -- type=number picks a keyboard that does. -->
@@ -161,76 +164,76 @@
          stand nearby, then the scene you arrange around the whole thing. The categories follow the
          ATTACH MECHANISMS the catalog measures -- hook_on / slide_in / slot / hang -- not either
          storefront's tree. Labels only; the sections below still fold on their own. -->
-    <div class="catgroup">The IGT system</div>
+    <div class="catgroup" data-i18n="cat.g.system">The IGT system</div>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Frames</h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.frames">Frames</span></h2>
       <div class="catbody"><div id="add" class="parts"></div></div>
     </section>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Hook-on boards <span class="hint">hang off the short ends</span></h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.hook">Hook-on boards</span> <span class="hint" data-i18n="cat.hook.hint">hang off the short ends</span></h2>
       <div class="catbody"><div id="extensions" class="parts"></div></div>
     </section>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Slide-in extensions <span class="hint">grip the long rail</span></h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.slide">Slide-in extensions</span> <span class="hint" data-i18n="cat.slide.hint">grip the long rail</span></h2>
       <div class="catbody"><div id="slides" class="parts"></div></div>
     </section>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Cooking <span class="hint">burners &amp; stoves, into the slots</span></h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.cook">Cooking</span> <span class="hint" data-i18n="cat.cook.hint">burners &amp; stoves, into the slots</span></h2>
       <div class="catbody"><div id="cooking" class="parts"></div></div>
     </section>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Trays &amp; boxes <span class="hint">into the slots</span></h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.trays">Trays &amp; boxes</span> <span class="hint" data-i18n="cat.trays.hint">into the slots</span></h2>
       <div class="catbody"><div id="trays" class="parts"></div></div>
     </section>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Hanging racks <span class="hint">under the rails</span></h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.hang">Hanging racks</span> <span class="hint" data-i18n="cat.hang.hint">under the rails</span></h2>
       <div class="catbody"><div id="hangers" class="parts"></div></div>
     </section>
 
-    <div class="catgroup">Freestanding tables</div>
+    <div class="catgroup" data-i18n="cat.g.free">Freestanding tables</div>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Layout tables <span class="hint">the system joins onto them</span></h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.layout">Layout tables</span> <span class="hint" data-i18n="cat.layout.hint">the system joins onto them</span></h2>
       <div class="catbody"><div id="laytables" class="parts"></div></div>
     </section>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Standalone tables</h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.standalone">Standalone tables</span></h2>
       <div class="catbody"><div id="freetables" class="parts"></div></div>
     </section>
 
-    <div class="catgroup">The scene around it</div>
+    <div class="catgroup" data-i18n="cat.g.scene">The scene around it</div>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Around the table <span class="hint">chairs, benches &amp; the cooler</span></h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.around">Around the table</span> <span class="hint" data-i18n="cat.around.hint">chairs, benches &amp; the cooler</span></h2>
       <div class="catbody"><div id="seating" class="parts"></div></div>
     </section>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Fire <span class="hint">the Takibi &amp; what hangs on it</span></h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.fire">Fire</span> <span class="hint" data-i18n="cat.fire.hint">the Takibi &amp; what hangs on it</span></h2>
       <div class="catbody"><div id="hearth" class="parts"></div></div>
     </section>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Shelter footprints <span class="hint">size reference on the ground</span></h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.shelter">Shelter footprints</span> <span class="hint" data-i18n="cat.shelter.hint">size reference on the ground</span></h2>
       <div class="catbody"><div id="shelters" class="parts"></div></div>
     </section>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>Scale figures <span class="hint">people, for reading sizes</span></h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.figures">Scale figures</span> <span class="hint" data-i18n="cat.figures.hint">people, for reading sizes</span></h2>
       <div class="catbody"><div id="figures" class="parts"></div></div>
     </section>
 
     <!-- Blocks: a sub-assembly you already worked out, kept by name. Select something and use its
          toolbar to put it here; click one to drop it into whatever you are building now. -->
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span>My blocks <span class="hint">sub-assemblies you saved</span></h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.blocks">My blocks</span> <span class="hint" data-i18n="cat.blocks.hint">sub-assemblies you saved</span></h2>
       <div class="catbody"><div id="blocks" class="parts"></div></div>
     </section>
   </aside>
@@ -241,17 +244,17 @@
          panel), and the scene -- where this page is set, saved with the page. -->
     <div id="viewtop">
       <div class="vgroup">
-        <button id="undo" title="undo  (Ctrl+Z)" aria-label="undo" disabled>undo</button>
-        <button id="redo" title="redo  (Ctrl+Shift+Z)" aria-label="redo" disabled>redo</button>
+        <button id="undo" data-i18n-title="view.undo" data-i18n-aria="key.undo" title="undo  (Ctrl+Z)" aria-label="undo" disabled>undo</button>
+        <button id="redo" data-i18n-title="view.redo" data-i18n-aria="key.redo" title="redo  (Ctrl+Shift+Z)" aria-label="redo" disabled>redo</button>
       </div>
-      <label id="scenechip" title="where this page is set — a plain ground, or a place with a horizon. Saved with the page.">
+      <label id="scenechip" data-i18n-title="view.scene" title="where this page is set — a plain ground, or a place with a horizon. Saved with the page.">
         <span class="scico"></span>
         <select id="groundsel"></select>
       </label>
     </div>
     <!-- Rubber-band select: drag on empty ground to sweep up everything inside. -->
     <div id="marquee" hidden></div>
-    <div id="slotbar" title="half-slot occupancy of the selected frame"></div>
+    <div id="slotbar" data-i18n-title="view.slots" title="half-slot occupancy of the selected frame"></div>
 
     <!-- The edge affordance. It only ever appears where there is really a hole to hook
          into: the frame's two short ends, or the bracket edge of a board already hooked
@@ -301,31 +304,38 @@
     <div id="viewnav">
       <!-- The rubber band is a TOOL, not what empty ground does: pointing at nothing has to move the
            camera, or a one-finger phone can never turn the model at all. -->
-      <button id="bandtool" aria-pressed="false" title="rubber-band select  (B) — off, empty space turns the view">⬚ select</button>
-      <button id="rulertool" aria-pressed="false" title="measure  (M) — click two points for the distance between them">⟺ measure</button>
+      <button id="bandtool" aria-pressed="false" data-i18n-title="view.band.tip" title="rubber-band select  (B) — off, empty space turns the view">⬚ select</button>
+      <button id="rulertool" aria-pressed="false" data-i18n-title="view.ruler.tip" title="measure  (M) — click two points for the distance between them">⟺ measure</button>
       <span class="sep"></span>
-      <button data-view="top" title="top view  (1)">top</button>
-      <button data-view="front" title="front view  (2)">front</button>
-      <button data-view="side" title="side view  (3)">side</button>
-      <button data-view="iso" title="isometric view  (0)">iso</button>
-      <button data-view="fit" title="fit everything in view  (F with nothing selected)">fit</button>
+      <button data-view="top" data-i18n="view.top" data-i18n-title="view.top.tip" title="top view  (1)">top</button>
+      <button data-view="front" data-i18n="view.front" data-i18n-title="view.front.tip" title="front view  (2)">front</button>
+      <button data-view="side" data-i18n="view.side" data-i18n-title="view.side.tip" title="side view  (3)">side</button>
+      <button data-view="iso" data-i18n="view.iso" data-i18n-title="view.iso.tip" title="isometric view  (0)">iso</button>
+      <button data-view="fit" data-i18n-title="view.fit.tip" title="fit everything in view  (F with nothing selected)">fit</button>
     </div>
   </div>
 
   <aside id="bom">
-    <button class="panel-toggle" data-panel="right" title="collapse the build panel">›</button>
+    <button class="sheet-handle" data-i18n-aria="common.close" data-i18n-title="common.close" aria-label="close the build" title="close"></button>
+    <button class="panel-toggle" data-panel="right" data-i18n-title="bom.collapse" title="collapse the build panel">›</button>
     <section>
-      <h2>Scene <span class="hint">click to select · nesting = what hooks onto what</span></h2>
+      <h2><span data-i18n="tree.title">Scene</span> <span class="hint" data-i18n="tree.hint">click to select · nesting = what hooks onto what</span></h2>
       <div id="scene"></div>
     </section>
     <section>
-      <h2>Build</h2>
+      <h2 data-i18n="bom.title">Build</h2>
       <div id="warnings"></div>
       <table id="bomtable"></table>
       <div id="totals"></div>
     </section>
   </aside>
 </main>
+<!-- Phone: the two side panels become sheets that slide up over the view, opened from this dock. On a
+     wider screen the dock is not shown and the panels are columns, as ever. -->
+<nav id="dock">
+  <button id="dockparts" data-sheet="parts">parts</button>
+  <button id="dockbuild" data-sheet="build">build</button>
+</nav>
 
 <script type="module" src="app.js"></script>
 </body>
