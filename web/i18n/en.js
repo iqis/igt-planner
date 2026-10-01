@@ -359,4 +359,7 @@ export default {
   "note.photofail": "the picture failed — {err}",
   "plate.untitled": "IGT layout",
   "plate.more": "+ {n} more",
+  "share.sub.short": "a short link to this design — no account needed",
+  "share.full": "Copy the full link (the design itself, no server)",
+  "note.shortmissing": "No design is stored under the short link “{id}” — ask for the full link",
 };

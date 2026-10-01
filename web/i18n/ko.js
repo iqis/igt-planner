@@ -359,4 +359,7 @@ export default {
   "note.photofail": "이미지를 만들지 못했습니다 — {err}",
   "plate.untitled": "IGT 레이아웃",
   "plate.more": "외 {n}개",
+  "share.sub.short": "이 디자인의 짧은 링크 — 계정 필요 없음",
+  "share.full": "전체 링크 복사(디자인 자체를 담음, 서버 불필요)",
+  "note.shortmissing": "짧은 링크 “{id}”에 저장된 디자인이 없습니다 — 전체 링크를 받아 주세요",
 };

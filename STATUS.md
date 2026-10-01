@@ -12,6 +12,13 @@
 > no photo is requested. The repo/tailnet planner is unchanged (`web/build.js` PUBLIC=false).
 > Redeploy after any catalog or app change -- nothing auto-deploys.
 
+> **2026-10-01: short links.** `worker/index.js` (the site's only code; runs for `/api/*` and `/s/*`
+> only): POST `/api/s` stores the `#d=` payload in KV `igt-short` under an 8-char hash of it (same
+> design = same id; payload must gunzip to a real layout; 20 mints/min/IP), `/s/<id>` 302s to
+> `/web/#d=…`, unknown ids to `/web/#missing=`. The share card mints one and falls back to the long
+> link wherever there is no Worker (serve.py, tailnet) -- so short links exist only on the public site.
+> "Copy the full link" stays in the card. Test locally: `npx wrangler dev --port 8830 --local`.
+
 **Verdict: ready to share with family over the tailnet.** The code side of launch is done;
 two operational steps remain, both the owner's (below).
 

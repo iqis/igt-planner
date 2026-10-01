@@ -3669,6 +3669,9 @@ async function fromHash() {
   // window that cannot gzip. Both land the same way.
   const plain = /[#&]layout=([^&]+)/.exec(location.hash);
   const m = /[#&]d=([^&]+)/.exec(location.hash);
+  // The Worker sends an unknown /s/<id> here rather than to a bare 404 page.
+  const missing = /[#&]missing=([^&]+)/.exec(location.hash);
+  if (missing) { note(t("note.shortmissing", { id: decodeURIComponent(missing[1]) }), 6000); return false; }
   if (!m && !plain) return false;
   try {
     const json = plain ? decodeURIComponent(plain[1])
@@ -4056,6 +4059,25 @@ async function makeShareUrl() {
     return `${location.origin}${location.pathname}#d=${b64u(gz)}`;
   } catch { return null; }
 }
+/** The same link, short: igt.iqis.app/s/<id>, minted by the site's Worker (worker/index.js), which
+ *  stores the #d= payload under a hash of it. Null wherever there is no Worker (serve.py, file
+ *  copies) or it does not answer quickly -- the long link always works, so it is the fallback. */
+const shortIds = new Map();                  // payload -> id, so reopening the card is free
+async function makeShortUrl(longUrl) {
+  const d = /#d=([^&]+)/.exec(longUrl || "")?.[1];
+  if (!d) return null;
+  if (shortIds.has(d)) return `${location.origin}/s/${shortIds.get(d)}`;
+  try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 3000);
+    const r = await fetch("/api/s", { method: "POST", body: d, signal: ctl.signal });
+    clearTimeout(timer);
+    const id = r.ok && (await r.json()).id;
+    if (!id) return null;
+    shortIds.set(d, id);
+    return `${location.origin}/s/${id}`;
+  } catch { return null; }
+}
 async function copyText(text, what) {
   try { await navigator.clipboard.writeText(text); note(t("note.copied", { what })); return true; }
   catch { prompt(t("note.copythis", { what }), text); return false; }
@@ -4070,11 +4092,13 @@ const SOCIAL = [
   ["telegram", "Telegram", (u, t) => `https://t.me/share/url?url=${encodeURIComponent(u)}&text=${encodeURIComponent(t)}`],
 ];
 async function openShareCard(btn) {
-  const url = await makeShareUrl();
+  const full = await makeShareUrl();
+  const short = await makeShortUrl(full);
+  const url = short || full;
   openCard(btn, c => {
-    c.append(cardHead(t("share.title"), t("share.sub")));
+    c.append(cardHead(t("share.title"), t(short ? "share.sub.short" : "share.sub")));
     if (!url) { c.append(el("p", "cnote", t("share.nolink"))); return; }
-    if (url.length > 8000) c.append(el("p", "cnote warn", t("share.long", { k: (url.length / 1000).toFixed(1) })));
+    if (!short && url.length > 8000) c.append(el("p", "cnote warn", t("share.long", { k: (url.length / 1000).toFixed(1) })));
     const row = el("div", "crow");
     const field = el("input", "cfield"); field.readOnly = true; field.value = url;
     field.onfocus = () => field.select();
@@ -4121,6 +4145,8 @@ ${url}`, t("share.caption"));
     c.append(grid, qrBox);
     const foot = el("div", "cfoot");
     foot.append(cardBtn(`${icon("camera")}<span>${t("share.picture")}</span>`, () => openPhotoCard($("pngbtn")), "link"));
+    // The long form carries the design itself: it opens even if this site's link store never does.
+    if (short) foot.append(cardBtn(`${icon("link")}<span>${t("share.full")}</span>`, () => copyText(full, t("share.link")), "link"));
     c.append(foot);
   });
 }

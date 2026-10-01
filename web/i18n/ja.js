@@ -359,4 +359,7 @@ export default {
   "note.photofail": "画像を作れませんでした——{err}",
   "plate.untitled": "IGT レイアウト",
   "plate.more": "ほか {n} 点",
+  "share.sub.short": "このデザインの短縮リンク — アカウント不要",
+  "share.full": "完全なリンクをコピー（デザインそのもの、サーバー不要）",
+  "note.shortmissing": "短縮リンク「{id}」にデザインが保存されていません — 完全なリンクをもらってください",
 };

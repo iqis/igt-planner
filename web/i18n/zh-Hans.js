@@ -359,4 +359,7 @@ export default {
   "note.photofail": "图片生成失败——{err}",
   "plate.untitled": "IGT 布局",
   "plate.more": "+ 另外 {n} 项",
+  "share.sub.short": "这个设计的短链接 — 无需注册",
+  "share.full": "复制完整链接（链接本身即设计，不经服务器）",
+  "note.shortmissing": "短链接“{id}”下没有存储设计 — 请向对方要完整链接",
 };

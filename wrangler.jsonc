@@ -1,10 +1,24 @@
-// The public planner: dist/ (scripts/build_public.py) served as static assets -- no Worker code.
-// Static assets honour the _headers and _redirects the build writes, same as Pages did.
+// The public planner: dist/ (scripts/build_public.py) served as static assets, plus one small
+// Worker (worker/index.js) for short links. Only /api/* and /s/* run it; every other request is
+// answered by the asset layer directly, honouring the _headers and _redirects the build writes.
 //   py scripts/build_public.py && npx wrangler deploy
 {
   "name": "igt-planner",
   "compatibility_date": "2026-09-30",
-  "assets": { "directory": "./dist" },
+  "main": "worker/index.js",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/s/*"]
+  },
+  // Short links: id -> the #d= payload. Content-addressed, so a design always maps to one id.
+  "kv_namespaces": [
+    { "binding": "SHORT", "id": "d89acd4299f64bd28425b46676b4d3b1" }
+  ],
+  // Minting is the only write anyone can cause: cap it per client IP.
+  "ratelimits": [
+    { "name": "MINT", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } }
+  ],
   // igt.iqis.app is the home; igt.gardenplace.cc stays bound only so its redirect rule (in the
   // gardenplace.cc zone, 301 -> igt.iqis.app, path and hash kept) has a proxied host to run on.
   "routes": [

@@ -359,4 +359,7 @@ export default {
   "note.photofail": "圖片產生失敗——{err}",
   "plate.untitled": "IGT 配置",
   "plate.more": "+ 另外 {n} 項",
+  "share.sub.short": "這個設計的短連結 — 無需註冊",
+  "share.full": "複製完整連結（連結本身即設計，不經伺服器）",
+  "note.shortmissing": "短連結「{id}」下沒有儲存設計 — 請向對方索取完整連結",
 };
