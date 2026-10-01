@@ -1023,3 +1023,5 @@ h3 {
 .ikeys > span:nth-child(odd) { color: var(--ink); white-space: nowrap; }
 kbd { font: .72rem var(--mono); padding: .05rem .35rem; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--raise); color: var(--ink); }
 .icredits { font-size: .74rem; color: var(--faint) !important; margin-top: .8rem !important; }
+
+.hlink[hidden] { display: none; }   /* .hlink sets inline-flex padding etc.; [hidden] must still win */
