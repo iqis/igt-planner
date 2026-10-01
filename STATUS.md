@@ -4,6 +4,14 @@
 > pose in INTENT; smoke 18 checks). Also fixed: palette search had silently dropped every
 > section added after the original id list (Cooking/trays/racks/freestanding). `41ca460`.
 
+> **2026-09-30: PUBLIC at https://igt.gardenplace.cc** (no login). `py scripts/build_public.py &&
+> npx wrangler deploy` -- Workers static assets (wrangler steered new Pages projects there), custom
+> domain via `wrangler.jsonc`. The public build ships NO Snow Peak photo: grains drawn by
+> `web/proctex.js` at each photo's mean colour, plan-view decals and hover thumbnails dropped, bench
+> + `img/` excluded, "not affiliated" line in the header; `SMOKE_ROOT=dist npm run smoke` asserts
+> no photo is requested. The repo/tailnet planner is unchanged (`web/build.js` PUBLIC=false).
+> Redeploy after any catalog or app change -- nothing auto-deploys.
+
 **Verdict: ready to share with family over the tailnet.** The code side of launch is done;
 two operational steps remain, both the owner's (below).
 
@@ -55,10 +63,9 @@ two operational steps remain, both the owner's (below).
 - **Real campsite pads** from the campground data (M, cross-project design chat first).
 - **Tents/shells bodies** — needs owner resources (photogrammetry of owned tents, or an
   image-to-3D account); procedural is at its ceiling.
-- **CF Pages + Access hosting** ($0, plan in memory) and the full-public IP cleanup trio.
 
 ## Standing references
 
 - Full findings: `data/launch-review-2026-07-29.json`, `data/model-audit-2026-07-29.json`
-- Smoke: `npm install` once, `npm run smoke`; hook at `scripts/hooks/pre-push`
+- Smoke: `npm install` once, `npm run smoke` (+ `SMOKE_ROOT=dist` for the public build); hook at `scripts/hooks/pre-push`
 - The bench (`/web/part.html`) is owner-only tooling; `/anno` writes need `serve.py --anno`

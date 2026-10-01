@@ -15,6 +15,10 @@ import puppeteer from "puppeteer-core";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const PORT = 8817;
+// SMOKE_ROOT=dist runs the same walk against the public build (scripts/build_public.py): no bench
+// there, and one extra check -- that the page never asked for a photograph.
+const SERVE_ROOT = process.env.SMOKE_ROOT ? join(ROOT, process.env.SMOKE_ROOT) : ROOT;
+const PUBLIC = SERVE_ROOT !== ROOT;
 const BASE = `http://127.0.0.1:${PORT}`;
 
 const BROWSERS = [
@@ -40,7 +44,7 @@ const check = (name, ok, detail = "") => {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // ---- server up ----------------------------------------------------------------------------------
-const server = spawn("py", [join(ROOT, "serve.py"), "--port", String(PORT)], {
+const server = spawn("py", [join(ROOT, "serve.py"), "--port", String(PORT), "--root", SERVE_ROOT], {
   cwd: ROOT, stdio: "ignore",
 });
 for (let i = 0; i < 40; i++) {
@@ -183,12 +187,17 @@ try {
   check("the figure's pose and height survive the link", after.fig === "sit/1850", after.fig);
 
   check("planner console is clean", errors.length === 0, errors.slice(0, 3).join(" | "));
+  if (PUBLIC) {
+    const photos = await page.evaluate(() => performance.getEntriesByType("resource").map(e => e.name)
+      .filter(u => /\/img\/|\/tex\/(?!brushed_steel|canvas|chair_mesh)/.test(u)));
+    check("public build requests no photographs", photos.length === 0, photos.slice(0, 3).join(" | "));
+  }
   await page.close();
 
   // ---- the bench, across the builder families ---------------------------------------------------
   // One SKU per geometry family that has burned us: the frame shell, a chair, a tarp, the
   // Land Lock loft, the GP-040 wire frame. A dispatch crash in any of them fails here.
-  for (const sku of ["CK-149", "LV-085", "TP-862", "TP-671R", "GP-040"]) {
+  for (const sku of PUBLIC ? [] : ["CK-149", "LV-085", "TP-862", "TP-671R", "GP-040"]) {
     const bp = await browser.newPage();
     const bErrors = [];
     bp.on("console", m => { if (m.type() === "error" && !IGNORABLE(m.text())) bErrors.push(m.text()); });

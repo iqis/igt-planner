@@ -1,0 +1,9 @@
+// The public planner: dist/ (scripts/build_public.py) served as static assets -- no Worker code.
+// Static assets honour the _headers and _redirects the build writes, same as Pages did.
+//   py scripts/build_public.py && npx wrangler deploy
+{
+  "name": "igt-planner",
+  "compatibility_date": "2026-09-30",
+  "assets": { "directory": "./dist" },
+  "routes": [{ "pattern": "igt.gardenplace.cc", "custom_domain": true }]
+}

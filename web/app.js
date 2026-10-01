@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, grainMaterial } from "./materials.js";
+import { PUBLIC, GRAIN_MEANS } from "./build.js";
+import { proceduralGrain } from "./proctex.js";
 import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          jikaroGroup, jikaroBridge, hangRackGroup, slideExtGroup,
          entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop, lv310Group, LV310_TOP,
@@ -53,15 +55,23 @@ const renderStats = { frames: 0 };               // the smoke test reads this: i
 
 const texLoader = new THREE.TextureLoader();
 const texCache = {};
+// Every photo-derived texture goes through here. The public build ships no photographs (build.js),
+// so there a grain becomes a canvas aimed at the photo's mean colour, and the plan-view decal --
+// the photograph itself, laid on the board -- is simply not drawn.
+const PHOTO_FREE = ["tex/brushed_steel.jpg", "tex/canvas.jpg", "tex/chair_mesh.png"];   // generated, ours
+function loadImageTex(path) {
+  if (!PUBLIC || PHOTO_FREE.includes(path)) return texLoader.load(path, invalidate);
+  return proceduralGrain(path === TEAK_GRAIN ? "teak" : "bamboo", GRAIN_MEANS[path]);
+}
 const textureOf = (sku, key = "file") => {
   const path = TEXTURES[sku]?.[key];
-  if (!path) return null;
-  if (!texCache[path]) texCache[path] = texLoader.load(path, invalidate);
+  if (!path || (PUBLIC && key === "file")) return null;
+  if (!texCache[path]) texCache[path] = loadImageTex(path);
   return texCache[path];
 };
 // The sliding extension's own bamboo, perspective-rectified from its top-view photo (the US
 // hero) and cropped to a clean grain -- so it wears its real surface, not a borrowed one.
-const loadTex = path => (texCache[path] ??= texLoader.load(path, invalidate));
+const loadTex = path => (texCache[path] ??= loadImageTex(path));
 const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
 // Dedicated grain instances for the self-IGT wood tops, keyed by tile shape. Kept OUT of the
 // shared cache so their tiling (repeat) does not fight the sliding extension, which draws the
@@ -72,7 +82,7 @@ const STEEL_TEX = "tex/brushed_steel.jpg";      // brushed stainless (拉丝) fo
 const woodTexCache = {};
 function woodGrain(key, rx, ry, path = WOOD_GRAIN) {
   if (woodTexCache[key]) return woodTexCache[key];
-  const t = texLoader.load(path, invalidate);
+  const t = loadImageTex(path);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = THREE.SRGBColorSpace;
   t.repeat.set(rx, ry);
@@ -2278,14 +2288,14 @@ function showPreview(p, rowEl) {
   const a = p.assembled_mm;
   const span = spanOf(p) ? `${spanOf(p) / 2}u` : "";
   preview.innerHTML =
-    `<img src="img/${p.sku}.jpg" alt="">`
+    (PUBLIC ? "" : `<img src="img/${p.sku}.jpg" alt="">`)   // product photos stay off the public build
     + `<div class="pv-name">${p.title_en}</div>`
     + `<div class="pv-row"><span class="pv-sku">${p.sku}</span></div>`
     + (a ? `<div class="pv-row"><span>size</span><b>${a.w}×${a.d}×${a.h}mm</b></div>` : "")
     + (span ? `<div class="pv-row"><span>span</span><b>${span}</b></div>` : "")
     + (p.weight_g ? `<div class="pv-row"><span>weight</span><b>${(p.weight_g / 1000).toFixed(2)}kg</b></div>` : "");
   const img = preview.querySelector("img");
-  img.onerror = () => { img.style.visibility = "hidden"; };
+  if (img) img.onerror = () => { img.style.visibility = "hidden"; };
   // Beside the hovered ROW (always visible), to its LEFT; flip right if there is no room,
   // and clamp inside the stage so it never escapes over the panels.
   const sr = $("stage").getBoundingClientRect();

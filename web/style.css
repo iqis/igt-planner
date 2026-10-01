@@ -116,6 +116,8 @@ header {
   flex: none;
 }
 h1 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; }
+.disclaimer { font-size: .64rem; color: var(--faint); white-space: nowrap; }
+@media (max-width: 700px) { .disclaimer { display: none; } }
 /* The one thing anyone ever clicked in the old header line. */
 .benchlink { font-size: .72rem; color: var(--dim); text-decoration: underline; text-underline-offset: 3px; }
 .benchlink:hover { color: var(--accent); }

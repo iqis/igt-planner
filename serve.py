@@ -113,11 +113,13 @@ def main():
                     help="interface to bind (default 127.0.0.1; use '' for every interface)")
     ap.add_argument("--anno", action="store_true",
                     help="accept POST /anno writes (the part bench). Off by default: the tailnet instance is read-only")
+    ap.add_argument("--root", default=str(ROOT),
+                    help="directory to serve (default: the repo). `--root dist` serves the public build")
     args = ap.parse_args()
     Handler.allow_anno = args.anno or os.environ.get("IGT_ANNO") == "1"
 
     try:
-        with Server((args.host, args.port), partial(Handler, directory=str(ROOT))) as httpd:
+        with Server((args.host, args.port), partial(Handler, directory=args.root)) as httpd:
             print(f"IGT planner -> http://localhost:{args.port}/web/")
             httpd.serve_forever()
     except OSError as e:
