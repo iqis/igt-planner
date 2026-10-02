@@ -29,6 +29,13 @@
 > Templates: `web/templates.js` (4 layout docs, smoke checks each buildable), in the layouts menu and
 > as picture cards on any empty page.
 
+> **2026-10-02: v1.0.0 released; channels.** prod = igt.iqis.app (`dist/`), dev = igt-dev.iqis.app
+> (`dist-dev/`, wrangler env `dev`, own KV + rate limit, EXPERIMENTAL on: AI entry + tents; noindex,
+> DEV badge). `web/build.js` stamps CHANNEL/EXPERIMENTAL/VERSION/COMMIT (`*` = dirty tree).
+> RELEASE: bump `VERSION` + add `## [x.y.z]` to CHANGELOG.md, commit on main, `py scripts/deploy.py
+> prod` (refuses dirty/non-main/already-tagged/no-entry; smokes repo + dist; deploys; tags + pushes).
+> Dev any time: `py scripts/deploy.py dev`. Gate new experimental UI on `EXPERIMENTAL` from build.js.
+
 > **2026-10-02: share links carry the page name + an optional author.** Share card has a "sign it"
 > field (localStorage `igt.author`); links/exports carry `name` (not default "Page n") and `author`
 > (signer, else the page's received author -- last sharer only, no chain). Landing names the new page
