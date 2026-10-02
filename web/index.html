@@ -77,6 +77,15 @@
 <div id="popcard" hidden></div>
 <!-- About: what this is, how to start, the keys, where the data comes from, what is kept where. A native
      <dialog>: Esc, focus trapping and the backdrop come with it. -->
+<!-- One part's page: what it is, what it fits onto, what fits onto it. Filled by openPartPage(). -->
+<dialog id="partmodal" aria-labelledby="pptitle">
+  <form method="dialog" class="ihead pphead">
+    <button class="iclose ppback" type="button" data-i18n-aria="pp.back" data-i18n-title="pp.back" aria-label="back" title="back" hidden></button>
+    <div class="pptitles"><h2 id="pptitle" tabindex="-1"></h2><div id="ppsub"></div></div>
+    <button class="iclose" value="close" data-i18n-aria="common.close" data-i18n-title="common.closeEsc" aria-label="close" title="close (Esc)">×</button>
+  </form>
+  <div class="ibody" id="ppbody"></div>
+</dialog>
 <dialog id="infomodal" aria-labelledby="infotitle">
   <form method="dialog" class="ihead">
     <h2 id="infotitle" class="brand"><img class="logo-d" src="logo-dark.svg" width="34" height="34" alt=""><img class="logo-l" src="logo-light.svg" width="34" height="34" alt=""><span class="bname"><small>Siqi's</small><span>IGT Planner</span></span></h2>
@@ -128,7 +137,8 @@
     <p data-i18n="about.oss.p">MIT licensed — <a href="https://github.com/iqis/igt-planner" target="_blank" rel="noopener">source on GitHub</a>.
       Found a part that's wrong, or a combination it should allow?
       <a href="https://github.com/iqis/igt-planner/issues" target="_blank" rel="noopener">Open an issue</a>.</p>
-    <p data-i18n="about.ai">Made with AI: designed by a person, and built together with Claude, Anthropic's AI assistant.</p>
+    <p data-i18n="about.contrib">Everything here is open — the code, the parts catalog, the measured rules. Build on the data, <a href="https://github.com/iqis/igt-planner/fork" target="_blank" rel="noopener">fork it</a>, and send a <a href="https://github.com/iqis/igt-planner/pulls" target="_blank" rel="noopener">pull request</a>: a missing part, a better measurement, a translation, a whole new idea.</p>
+    <p data-i18n="about.ai"><b>Development process:</b> making wishes to Claude.</p>
     <p class="icredits">Built with <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> (MIT),
       icons from <a href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a> (ISC) and
       <a href="https://simpleicons.org" target="_blank" rel="noopener">Simple Icons</a> (CC0),
@@ -235,7 +245,7 @@
     </section>
 
     <section class="cat">
-      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.shelter">Shelter footprints</span> <span class="hint" data-i18n="cat.shelter.hint">size reference on the ground</span></h2>
+      <h2 class="cathead"><span class="caret">▾</span><span data-i18n="cat.shelter">Tarps</span> <span class="hint" data-i18n="cat.shelter.hint">size reference on the ground</span></h2>
       <div class="catbody"><div id="shelters" class="parts"></div></div>
     </section>
 
@@ -253,6 +263,8 @@
   </aside>
 
   <div id="stage">
+    <!-- An empty page offers the starter layouts here, where the design would be (paintEmpty). -->
+    <div id="emptystate" hidden></div>
     <canvas id="canvas"></canvas>
     <!-- Top-left of the view: undo / redo where the work is (they hid as two small icons in the parts
          panel), and the scene -- where this page is set, saved with the page. -->

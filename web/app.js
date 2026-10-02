@@ -6,6 +6,7 @@ import { PUBLIC, GRAIN_MEANS } from "./build.js";
 import { proceduralGrain } from "./proctex.js";
 import { icon, brand } from "./icons.js";
 import qrcode from "./vendor/qrcode.mjs";
+import { TEMPLATES } from "./templates.js";
 import { t, getLang, setLang, applyStatic, LANGS } from "./i18n.js";
 import {
   BY_ROLE, CAT, COLORS, CONN, CONN_TABLE, EDGE_IFACES, EDGE_KEYS, FIGURES,
@@ -23,7 +24,7 @@ import {
   occupancy, openEdges, overhead, partsForRole, place, portsAt, pruneModules, railW,
   readLayout, resolve, rootOf, rotv, rulerSeq, runOf, sel, selfIgt,
   selfIgtEdges, serializeLayout, slideBounds, slideOffset, slotX, slotsOf, spanOf, state,
-  stepDropMm, stepRoom, steps, subtreeIds, topOf, turnOf, warnings,
+  stepDropMm, stepRoom, steps, subtreeIds, topOf, turnOf, warnings, partInfo,
 } from "./core.js";
 import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          jikaroGroup, jikaroBridge, hangRackGroup, slideExtGroup,
@@ -32,7 +33,8 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          loungeCushionGroup, foldingBenchGroup, bambooShelfGroup,
          takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group,
          propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox, burnerOf,
-         tarpPitchGroup, landLockGroup, pentaTarpGroup, figureGroup } from "./parts3d.js";
+         tarpPitchGroup, landLockGroup, pentaTarpGroup, figureGroup, clothTarpGroup } from "./parts3d.js";
+import { PATTERNS as TARP_PATTERNS, solvePitch, pitchOf, MAIN_POLES, SUB_POLES, LEANS } from "./tarp.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -895,17 +897,30 @@ function drawProp(g, n) {
 /** A shelter footprint (tent / shell / tarp): its ground outline laid flat as a scale reference.
  *  Not a solid object -- a translucent membrane + bright outline + billboard label, tagged for
  *  drag / rotate / delete like any node but never connected to anything. */
+/** A tarp's pitch as the node carries it. Older layouts stored one pole height in `config`. */
+const tarpPitch = n => n.pitch || (typeof n.config === "number" ? { a: n.config, b: n.config } : {});
 function drawFootprint(g, n) {
   const p = PARTS[n.sku];
-  const built = shelterOf(p, n.sku);   // shared with the bench -- see propGroup
-  // Locked = a backdrop: only the CURRENTLY SELECTED footprint stays pickable (so you can still
-  // drag the one you're placing), every other one is click-through so it can't steal a click meant
-  // for the furniture standing on it. Unlocked = all footprints pick normally. Either way it draws.
-  const pickable = !state.shelterLock || n.id === state.sel;
-  if (pickable) {
-    built.body.userData.node = n;
-    nodeMeshes.push(built.body);
+  // A tarp whose cut we know is drawn as SOLVED CLOTH (tarp.js): the pole heights decide where the
+  // fabric can reach, and the ground outline is what it actually covers -- not the flat pattern.
+  if (TARP_PATTERNS[n.sku]) {
+    const sol = solvePitch(n.sku, tarpPitch(n));
+    const ground = shelterFootprint(sol.outline.map(i => [sol.pts[i].x, sol.pts[i].z]), {
+      fill: SHELTER_FILL.tarp, label: nameOf(p), sub: `${sol.area_m2.toFixed(1)} m²` });
+    ground.body.userData.node = n;
+    nodeMeshes.push(ground.body);
+    g.add(ground.group);
+    const cloth = clothTarpGroup(sol, { color: COLORS[n.sku]?.color_hex || 0x8a7460 });
+    cloth.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
+    g.add(cloth.group);
+    return;
   }
+  const built = shelterOf(p, n.sku);   // shared with the bench -- see propGroup
+  // Always pickable. A tarp over the kitchen used to need a "layer lock" so its membrane would not
+  // steal clicks meant for the furniture under it -- and locked, a placed tarp could never be
+  // clicked again. pickNode() settles it instead: furniture under the pointer wins over a tarp.
+  built.body.userData.node = n;
+  nodeMeshes.push(built.body);
   g.add(built.group);
   // The ridge tarps STAND now -- membrane, poles, guys -- so "does the kitchen fit under it"
   // finally has a height answer, not just a floor one. The flat outline stays underneath:
@@ -928,7 +943,7 @@ function drawFootprint(g, n) {
     body = landLockGroup(p.assembled_mm.w, p.assembled_mm.d, p.assembled_mm.h,
       { fabricTex: chairTex("canvas", CANVAS_TEX, 4, true), awning: n.config || "closed" });
   if (body) {
-    if (pickable) body.group.traverse(o => {
+    body.group.traverse(o => {
       if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); }
     });
     g.add(body.group);
@@ -1539,7 +1554,44 @@ function fillActions(box, n) {
   // A tarp's pitch height IS its pole: the Wing Pole retails in five lengths (280/240/210/
   // 170/140cm, 60+70cm sections), and the set's published height is just the pole it ships
   // with. Same interaction as a frame's legs -- pick the pole, the whole pitch follows.
-  if (PARTS[n.sku].shelter_type === "tarp") {
+  // A tarp whose cut we know: its two main poles, and per side guyed wings or sub-poles. Each choice
+  // re-solves the cloth (tarp.js) and the card says what came of it: area, ridge low point.
+  if (TARP_PATTERNS[n.sku]) {
+    const P = pitchOf(n.sku, tarpPitch(n)), hexa = TARP_PATTERNS[n.sku].family === "hexa";
+    const set = patch => { n.pitch = { ...P, ...patch }; delete n.config; render(); openToolPop("actions", n); };
+    const label = text => { const d = document.createElement("div"); d.className = "plabel"; d.textContent = text; box.append(d); };
+    for (const [end, key] of [["a", hexa ? "tarp.end.narrow" : "tarp.end.front"], ["b", hexa ? "tarp.end.wide" : "tarp.end.back"]]) {
+      label(t(key));
+      for (const mm of MAIN_POLES)
+        box.append(chip(`${mm / 10}`, P[end] === mm, t("tarp.pole.tip", { cm: mm / 10 }), () => set({ [end]: mm })));
+    }
+    // every wing corner on its own: guyed, or a sub-pole of its own height
+    const corners = TARP_PATTERNS[n.sku].ring.filter(v => v.role === "corner")
+      .sort((u, v) => (u.side === v.side ? 0 : u.side === "left" ? -1 : 1) || v.z - u.z);
+    for (const c of corners) {
+      const cur = P.corners[c.name];
+      const setC = h => set({ corners: { ...P.corners, [c.name]: h } });
+      label(t(`tarp.corner.${hexa ? "hexa" : "recta"}.${c.name}`));
+      box.append(chip(t("tarp.guyed"), cur == null, t("tarp.guyed.tip"), () => setC(null)));
+      for (const mm of SUB_POLES)
+        box.append(chip(`${mm / 10}`, cur === mm, t("tarp.sub.tip", { cm: mm / 10 }), () => setC(mm)));
+    }
+    label(t("tarp.lean"));
+    for (const deg of LEANS)
+      box.append(chip(`${deg}°`, (P.lean || 0) === deg, t("tarp.lean.tip", { deg }), () => set({ lean: deg })));
+    const sol = solvePitch(n.sku, P);
+    const out = document.createElement("div");
+    out.className = "pnote" + (sol.ok ? "" : " warn");
+    out.textContent = sol.ok
+      ? t("tarp.readout", { m2: sol.area_m2.toFixed(1), h: (sol.cornerLow / 1000).toFixed(2),
+        w: (sol.span.w / 1000).toFixed(1), d: (sol.span.d / 1000).toFixed(1) })
+      : t("tarp.short");
+    box.append(out);
+    const src = document.createElement("div");
+    src.className = "pnote dim";
+    src.textContent = t(`tarp.src.${TARP_PATTERNS[n.sku].source}`);
+    box.append(src);
+  } else if (PARTS[n.sku].shelter_type === "tarp") {
     const pub = PARTS[n.sku].assembled_mm.h;
     box.append(chip(t("tarp.setpole", { mm: pub }), !n.config,
       t("tarp.setpole.tip"), () => { delete n.config; render(); }));
@@ -1716,6 +1768,8 @@ function paintSelTools() {
         () => { const name = prompt(t("tool.blockname"), ""); if (name && name.trim()) saveBlock(name.trim()); }));
     }
     if (replaceOptions(n).length > 1) selTools.append(toolBtn(ib("swap", t("tool.swap")), t("tool.swap.tip"), "ib", () => openReplaceMenu(n)));
+    if (n.kind !== "prop" || PARTS[n.sku]?.role !== "figure")
+      selTools.append(toolBtn(ib("info", t("tool.info")), t("pp.open"), "ib", () => openPartPage(n.sku)));
     const sep = document.createElement("span"); sep.className = "sep"; selTools.append(sep);
     selTools.append(toolBtn(ib("trash", t("tool.delete")), t("tool.del.tip"), "ib danger", () => removeNode(n)));
   }
@@ -1840,6 +1894,10 @@ function showModMenu(node, pl, clientX, clientY) {
       modmenu.append(row);
     }
   }
+  const about = document.createElement("div");
+  about.className = "act"; about.innerHTML = `${icon("info", 14)} ${t("tool.info")}`;
+  about.onclick = () => { hideModMenu(); openPartPage(pl.sku); };
+  modmenu.append(about);
   const del = document.createElement("div");
   del.className = "act del"; del.innerHTML = `${icon("trash", 14)} ${t("mod.remove")}`;
   del.onclick = () => { removePlacement(node, pl); hideModMenu(); };
@@ -2111,7 +2169,7 @@ canvas.addEventListener("pointerdown", e => {
     return;
   }
 
-  const nd = ray.intersectObjects(nodeMeshes, false)[0];
+  const nd = pickNode();
   // PRESSED EMPTY GROUND -- the one decision the whole scheme hangs off.
   //
   // Pointing at nothing MOVES THE CAMERA. That is not a preference: it is the only binding a phone
@@ -2217,7 +2275,7 @@ canvas.addEventListener("pointermove", e => {
     // Link the viewport to the outliner: hovering an object (when no edge/slot handle owns the
     // pointer) lights it up and highlights its tree row. An edge hover keeps priority.
     if (!hover) {
-      const nd = ray.intersectObjects(nodeMeshes, false)[0];
+      const nd = pickNode();
       setHoverNode(nd ? nd.object.userData.node.id : null);
       canvas.style.cursor = nd ? "pointer" : "";
     }
@@ -2361,6 +2419,12 @@ canvas.addEventListener("contextmenu", e => {
  *  meant to butt edge to edge -- that is the whole point of a shared 496mm depth.
  *  Only free nodes are ever dragged, and only free nodes are considered as targets:
  *  a hooked board is already exactly where it belongs. */
+/** What the pointer is on. A shelter is a big membrane over everything else, so anything that is
+ *  NOT a shelter under the pointer wins; the tarp is picked only where it is all there is. */
+function pickNode() {
+  const hits = ray.intersectObjects(nodeMeshes, false);
+  return hits.find(h => h.object.userData.node?.kind !== "footprint") || hits[0];
+}
 function snapToNeighbours(n) {
   const a = aabb(n);
   for (const m of state.nodes) {
@@ -2827,6 +2891,12 @@ function partRow(p, fn, dead, why, badge) {
   if (p.title_jp) el.dataset.jp = p.title_jp;
   if (!dead) { el.onclick = () => { hidePreview(); fn(p); if (PHONE.matches) setSheet(null); }; previewOnHover(el, p.sku); }
   if (!COARSE) wirePreview(el, p, dead ? why : "");   // a dead row's card says WHY it is dead
+  // The part's own page: a small (i) at the row's end -- on a mouse it shows on hover, on touch always.
+  const info = document.createElement("button");
+  info.className = "pinfo"; info.innerHTML = icon("info", 14);
+  info.title = t("pp.open"); info.setAttribute("aria-label", t("pp.open"));
+  info.onclick = e => { e.stopPropagation(); openPartPage(p.sku); };
+  el.append(info);
   return el;
 }
 
@@ -2901,12 +2971,6 @@ function paintPalette() {
   const shel = $("shelters");
   if (shel) {
     shel.innerHTML = "";
-    // Lock toggle. Locked = the footprints are a backdrop: only the SELECTED one is draggable, the
-    // rest are click-through so a big translucent tarp can't steal a click meant for the furniture
-    // on top of it. Unlocked = every footprint picks normally.
-    shel.append(chip(t(state.shelterLock ? "shel.locked" : "shel.editable"), state.shelterLock,
-      t(state.shelterLock ? "shel.locked.tip" : "shel.editable.tip"),
-      () => { state.shelterLock = !state.shelterLock; render(); }));
     // The catalog: setup-size footprints (vestibule/canopy included -- NOT the inner mat).
     for (const p of BY_ROLE.shelter)
       shel.append(partRow(p, () => addNode(p.sku), false,
@@ -3374,7 +3438,37 @@ function paintHint() {
   if (sel() && edgeMeshes.length) el.innerHTML = t(COARSE ? "hint.dot.touch" : "hint.dot");
   else el.innerHTML = t(COARSE ? "hint.frame.touch" : "hint.frame");
 }
-function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); paintBlocks(); paintRulers(); paintHint(); }
+function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); paintBlocks(); paintRulers(); paintHint(); paintEmpty(); }
+
+// ---- starter layouts
+// A template is a layout document; opening one is opening a file (a new page if this one has work).
+function openTemplate(tp) {
+  openDocAsPage(structuredClone(tp.doc), t(`tpl.${tp.id}`));
+  if (activePage()) { renamePage(activePage().id, t(`tpl.${tp.id}`)); }
+  fitAll();
+}
+// An empty page is the moment to offer them: four pictures, drawn by the planner, where the design
+// would be. Drawn once each (docShot caches), and only while the page is actually empty.
+let emptyShown = false;
+function paintEmpty() {
+  const box = $("emptystate");
+  const show = state.nodes.length === 0;
+  if (!show) { box.hidden = true; emptyShown = false; return; }
+  box.hidden = false;
+  if (emptyShown) return;
+  emptyShown = true;
+  box.innerHTML = "";
+  box.append(el("div", "ehead", t("tpl.head")));
+  const grid = el("div", "egrid");
+  for (const tp of TEMPLATES) {
+    const b = el("button", "ecard");
+    const shot = docShot(tp.doc, `tpl:${tp.id}`, 480, 300, "image/jpeg", [.7, .55, .9]);
+    b.innerHTML = (shot ? `<img src="${shot}" alt="">` : "") + `<b>${t(`tpl.${tp.id}`)}</b><span>${t(`tpl.${tp.id}.sub`)}</span>`;
+    b.onclick = () => openTemplate(tp);
+    grid.append(b);
+  }
+  box.append(grid, el("div", "eor", t("tpl.or")));
+}
 
 /** Put a read layout on screen. */
 function loadLayout(doc) {
@@ -3767,6 +3861,9 @@ function paintFiles() {
     state.nodes = []; state.nextId = 1; selectOnly(null);
     undoStack.length = 0; redoStack.length = 0; render();
   });
+
+  head(t("tpl.head"));
+  for (const tp of TEMPLATES) row(t(`tpl.${tp.id}`), t(`tpl.${tp.id}.sub`), () => openTemplate(tp));
 
   head(t(names.length ? "files.saved" : "files.none"));
   for (const n of names) {
@@ -4212,7 +4309,7 @@ function openDocAsPage(doc, name) {
   if (asPage) newPage(name);
   const dropped = loadLayout(doc);
   if (asPage) { commitActivePage(); lsPut(LS_PAGES, book); lsPut(LS_SCENE, activePage().doc); }
-  note(`opened ${name}${asPage ? " as a new page" : ""}${droppedSuffix(dropped)}`);
+  note(t(asPage ? "note.openednew" : "note.openedpage", { name }) + droppedSuffix(dropped));
 }
 function openAiCard(btn) {
   openCard(btn, c => {
@@ -4314,6 +4411,186 @@ document.querySelector(".hlink.ai").addEventListener("click", e => {
   if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
   e.preventDefault(); e.stopPropagation(); openAiCard(e.currentTarget);
 });
+
+
+// ---------------------------------------------------------------- the part page
+//
+// One part, on its own: what it is, what it measures, what it fits onto and what fits onto it, and
+// what its manual forbids. The two lists are partInfo()'s -- read off the same rules as the + menus,
+// so the page and the planner cannot disagree. The picture is the planner's own drawing of the part
+// (no photograph ships publicly): the live renderer, pointed at a one-part scene for one frame, the
+// way the snapshot borrows it -- synchronous, so the screen never shows the swap.
+const partModal = $("partmodal");
+const shotCache = new Map();
+const ppStack = [];
+/** A one-part scene that shows the part as it is used: a module sits in the smallest frame it fits,
+ *  a leg set stands under a frame, everything else alone. Null for what the planner does not draw. */
+const DRAWN_TABLES = new Set(["layout_table", "standalone", "hearth"]);
+function shotDoc(sku) {
+  const p = PARTS[sku], info = partInfo(sku);
+  // The same defaults addNode gives a fresh part: a frame on its standing legs, a Jikaro and an
+  // expandable in their published configuration, a cushion round.
+  const defaults = s => {
+    const q = PARTS[s];
+    return { ...(kindOf(q) === "frame" ? { leg: "CK-114" } : {}), ...(s === JIKARO ? { config: "long_in", bridge: false } : {}),
+      ...(expDef(s) ? { config: expDef(s).default } : {}), ...(q.chair === "cushion" ? { config: "round" } : {}) };
+  };
+  const node = o => ({ app: "igt-planner", v: SAVE_V, nodes: [{ i: 1, x: 0, z: 0, rot: 0, ...defaults(o.sku), ...o }] });
+  if (p.role === "leg") return node({ sku: BY_ROLE.frame.find(f => f.units === 4)?.sku || BY_ROLE.frame[0].sku, leg: sku });
+  if (info?.onto?.bay) {
+    const f = BY_ROLE.frame.find(f => info.onto.bay.includes(f.sku) && f.units * 2 >= (spanOf(p) || 1));
+    if (!f) return null;
+    const span = spanOf(p) || 1;
+    return node({ sku: f.sku, placements: [{ sku, span, start: Math.floor((f.units * 2 - span) / 2) }] });
+  }
+  // Only what the planner really models. A clamp or an accessory falls to kind "table" and would be
+  // drawn as a bare box of its size -- a picture that claims more than we know. No picture instead.
+  const k = kindOf(p);
+  return ["frame", "ext", "prop", "footprint"].includes(k) || (k === "table" && DRAWN_TABLES.has(p.role)) ? node({ sku }) : null;
+}
+function partShot(sku, w = 760, h = 460, type = "image/png") {
+  const doc = shotDoc(sku);
+  return doc ? docShot(doc, `${sku}@${w}x${h}/${type}`, w, h, type) : null;
+}
+/** Draw any layout document once, off to the side of the live one, and return it as a data URL. */
+function docShot(doc, key, w, h, type = "image/png", view = [.62, .5, .78]) {
+  if (shotCache.has(key)) return shotCache.get(key);
+  const keep = { nodes: state.nodes, nextId: state.nextId, sel: state.sel, selSet: state.selSet, rulers: state.rulers };
+  const keepHover = hoverPreview, fog = scene.fog;
+  let url = null;
+  try {
+    const { nodes, nextId } = readLayout(doc);
+    Object.assign(state, { nodes, nextId, sel: null, selSet: new Set(), rulers: [] });
+    hoverPreview = null;
+    resolve(); rebuild();
+    const box = new THREE.Box3().setFromObject(build);
+    if (!box.isEmpty()) {
+      const c = box.getCenter(new THREE.Vector3()), r = box.getBoundingSphere(new THREE.Sphere()).radius;
+      const cam = new THREE.PerspectiveCamera(30, w / h, 0.01, 80);
+      const dist = r / Math.sin(cam.fov * Math.PI / 360) * 1.02;
+      cam.position.copy(c).add(new THREE.Vector3(...view).normalize().multiplyScalar(dist));
+      cam.lookAt(c);
+      scene.fog = null;
+      renderer.setSize(w, h, false);
+      renderer.render(scene, cam);
+      url = renderer.domElement.toDataURL(type, .86);
+    }
+  } catch { url = null; }
+  finally {
+    scene.fog = fog;
+    Object.assign(state, keep);
+    hoverPreview = keepHover;
+    resolve(); rebuild(); resize();
+  }
+  shotCache.set(key, url);
+  return url;
+}
+const partLink = sku => PUBLIC ? `${PUBLIC_SITE}/p/${encodeURIComponent(sku)}/` : `${location.origin}${location.pathname}#part=${encodeURIComponent(sku)}`;
+const kgLb = g => `${(g / 1000).toFixed(2)} kg · ${(g / 453.592).toFixed(1)} lb`;
+const mm3 = s => s && `${Math.round(s.w)} × ${Math.round(s.d)} × ${Math.round(s.h)} mm`;
+const REASONS = [[/tipping/i, "pp.reason.tip"], [/dimension/i, "pp.reason.dims"]];
+const PP_PLACES = ["end", "rail", "edge", "opening", "bay"];
+function openPartPage(sku, { push = false } = {}) {
+  const p = PARTS[sku], info = partInfo(sku);
+  if (!p || !info) return;
+  closeCard(); hidePreview();
+  if (!push) ppStack.length = 0;
+  ppStack.push(sku);
+  const ja = getLang() === "ja";
+  $("pptitle").textContent = nameOf(p);
+  $("ppsub").textContent = [ja ? p.title_en : p.title_jp, p.sku].filter(Boolean).join(" · ");
+  const back = partModal.querySelector(".ppback");
+  back.hidden = ppStack.length < 2;
+  const body = $("ppbody");
+  body.innerHTML = "";
+
+  const shot = partShot(sku);
+  if (shot) { const img = el("img", "ppshot"); img.src = shot; img.alt = nameOf(p); body.append(img); }
+
+  // what you can do with it
+  const acts = el("div", "ppacts");
+  const row = document.querySelector(`#palette .part[data-sku="${CSS.escape(sku)}"]:not(.dead)`);
+  if (row) acts.append(cardBtn(`${icon("plus")}<span>${t("pp.add")}</span>`, () => { partModal.close(); row.click(); }, "primary"));
+  acts.append(cardBtn(`${icon("link")}<span>${t("pp.link")}</span>`, () => copyText(partLink(sku), t("share.link"))));
+  const site = ja ? (p.url?.jp || p.url?.us) : (p.url?.us || p.url?.jp);
+  if (site) { const a = el("a", "cbtn", `${icon("external")}<span>${t("pp.official")}</span>`); a.href = site; a.target = "_blank"; a.rel = "noopener"; acts.append(a); }
+  if (p.manual) { const a = el("a", "cbtn", `${icon("file")}<span>${t("pp.manual")}</span>`); a.href = p.manual; a.target = "_blank"; a.rel = "noopener"; acts.append(a); }
+  body.append(acts);
+
+  // the numbers
+  const dl = el("dl", "ppspec");
+  const spec = (k, v) => { if (v) dl.append(el("dt", "", k), el("dd", "", v)); };
+  spec(t("card.size"), mm3(info.size_mm));
+  spec(t("pp.packed"), mm3(info.packed_mm));
+  spec(t("card.weight"), info.weight_g && kgLb(info.weight_g));
+  spec(t("card.span"), info.units ? `${info.units}u` : info.span_half_units ? `${info.span_half_units / 2}u` : "");
+  spec(t("pp.height"), info.height_mm && `${info.height_mm} mm`);
+  spec(t("pp.seat"), info.seat_h_mm && `${info.seat_h_mm} mm`);
+  if (ja) spec(t("pp.material"), info.material_jp);
+  if (p.region_exclusive === "jp") spec(t("pp.where"), t("pp.jponly"));
+  body.append(dl);
+
+  // where it goes, and what goes on it -- each grouped by where
+  const chips = skus => {
+    const box = el("div", "ppchips");
+    for (const s of skus) {
+      const q = PARTS[s];
+      if (!q) continue;
+      const b = el("button", "ppchip", `<span class="sw" style="background:${swatchOf(s)}"></span>${nameOf(q)}`);
+      b.title = s;
+      b.onclick = () => openPartPage(s, { push: true });
+      box.append(b);
+    }
+    return box;
+  };
+  const section = (title, groups, prefix) => {
+    const places = PP_PLACES.filter(k => groups[k]?.length);
+    if (!places.length) return false;
+    body.append(el("h3", "", title));
+    for (const k of places) { body.append(el("div", "ppwhere", t(`pp.place.${k}`))); body.append(chips(groups[k])); }
+    return true;
+  };
+  const a = section(t("pp.onto"), info.onto, "pp.onto");
+  const b = section(t("pp.takes"), info.takes, "pp.takes");
+  if (!a && !b && ["seating", "standalone", "hearth", "layout_table"].includes(p.role)) body.append(el("p", "ppnote", t("pp.alone")));
+  if (p.role === "leg") body.append(el("p", "ppnote", t("pp.leg")));
+  if (info.unlisted.length) body.append(el("p", "ppnote caution", t("pp.unlisted", { list: info.unlisted.map(s => nameOf(PARTS[s] || { title_en: s })).join(", ") })));
+  if (info.not_with) {
+    body.append(el("h3", "", t("pp.notwith")));
+    const ul = el("ul", "ppnot");
+    for (const [s, why] of Object.entries(info.not_with)) {
+      const q = PARTS[s] || Object.values(PARTS).find(x => baseSku(x.sku) === s);
+      const r = REASONS.find(([re]) => re.test(why || ""));
+      const li = el("li", "");
+      li.append(q ? chips([q.sku]).firstChild || el("span", "", s) : el("span", "", s));
+      if (r) li.append(el("span", "ppwhy", t(r[1])));
+      ul.append(li);
+    }
+    body.append(ul);
+  }
+  body.scrollTop = 0;
+  if (!partModal.open) partModal.showModal();
+  $("pptitle").focus({ preventScroll: true });   // not the close button: a ring on x reads as "press me"
+}
+partModal.querySelector(".iclose").innerHTML = icon("x");
+partModal.querySelector(".ppback").innerHTML = icon("back");
+partModal.querySelector(".ppback").onclick = e => {
+  e.preventDefault();
+  ppStack.pop();
+  const prev = ppStack.pop();
+  if (prev) openPartPage(prev, { push: true });
+};
+partModal.addEventListener("click", e => { if (e.target === partModal) partModal.close(); });
+// #part=SKU: a link straight to one part's page (the public /p/SKU pages link here too).
+function partFromHash() {
+  const m = /[#&]part=([^&]+)/.exec(location.hash);
+  if (!m) return false;
+  const sku = decodeURIComponent(m[1]);
+  history.replaceState(null, "", location.pathname + location.search);
+  if (PARTS[sku]) openPartPage(sku);
+  return true;
+}
+addEventListener("hashchange", partFromHash);
 
 
 // ---------------------------------------------------------------- the blocks shelf
@@ -4546,14 +4823,13 @@ window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
   serializeLayout, readLayout, loadLayout, saveNamed, openNamed, savedAll, blocksAll,
   saveBlock, addBlock, shareLink, exportFile,
   newPage, switchPage, deletePage, renamePage, pages: () => book,
-  renderStats, invalidate, exportPng,
+  renderStats, invalidate, exportPng, openPartPage, partShot, openTemplate,
   top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); invalidate(); } };
 
 // Fixed text into the interface's language first (index.html carries data-i18n keys), then icons.
 applyStatic();
 // Not on the public site yet (owner, 2026-10-01: the tents and tarps want more polish). A shared design
 // that already has one still draws it; the library just does not offer them.
-if (PUBLIC) $("shelters")?.closest(".cat")?.remove();
 
 // The fixed buttons' icons. index.html keeps plain words in them, so a page that never ran this
 // still says what each one is.
@@ -4637,4 +4913,4 @@ paintFiles();
   if (legacy) { try { loadLayout(legacy); } catch { addNode("CK-150", false); } }
   else addNode("CK-150", false);
   adoptAsBook(t("page.n", { n: 1 }));
-})();
+})().then(() => partFromHash());

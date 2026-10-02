@@ -721,7 +721,12 @@ h2 {
   gap: .2rem;
 }
 #toolpop[hidden] { display: none; }
-#toolpop { width: 232px; }
+#toolpop .plabel { flex-basis: 100%; font-size: .7rem; color: var(--dim); margin: .35rem 0 .05rem; }
+#toolpop .pnote { flex-basis: 100%; font-size: .74rem; line-height: 1.4; color: var(--ink); margin-top: .45rem; }
+#toolpop .pnote.warn { color: var(--bad); }
+#toolpop .pnote.dim { color: var(--faint); margin-top: .15rem; }
+
+#toolpop { width: 256px; max-height: 400px; }
 /* After the base max-heights above, so this one wins on touch: 42px rows in a 210/260px
    box showed four items; the menus deserve the screen a phone actually has. */
 @media (pointer: coarse) {
@@ -1023,6 +1028,65 @@ h3 {
 .ikeys > span:nth-child(odd) { color: var(--ink); white-space: nowrap; }
 kbd { font: .72rem var(--mono); padding: .05rem .35rem; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--raise); color: var(--ink); }
 .icredits { font-size: .74rem; color: var(--faint) !important; margin-top: .8rem !important; }
+
+/* ---- the part page ----------------------------------------------------------------------------- */
+#partmodal {
+  margin: auto; width: min(640px, calc(100vw - 24px)); max-height: min(86vh, 860px);
+  padding: 0; border: 1px solid var(--line-soft); border-radius: var(--r-pop);
+  background: var(--panel); color: var(--ink); box-shadow: 0 24px 60px var(--shadow);
+  font: .84rem/1.55 var(--sans);
+}
+#partmodal::backdrop { background: rgba(10, 14, 22, .38); }
+#partmodal[open] { display: flex; flex-direction: column; }
+.pphead { gap: .5rem; align-items: flex-start; }
+.pptitles { flex: 1; min-width: 0; }
+.pptitles h2 { font-size: 1.08rem; font-weight: 650; line-height: 1.3; }
+#ppsub { font-size: .76rem; color: var(--dim); margin-top: .1rem; }
+.ppback[hidden] { display: none; }
+.ppshot { display: block; width: 100%; aspect-ratio: 760 / 460; object-fit: cover; border-radius: var(--r-ctl);
+  background: var(--raise); border: 1px solid var(--line-soft); }
+.ppacts { display: flex; flex-wrap: wrap; gap: .4rem; margin: .7rem 0 .2rem; }
+.ppacts .cbtn { text-decoration: none; }
+.ppspec { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; margin: .7rem 0 .2rem; font-size: .8rem; }
+.ppspec dt { color: var(--dim); }
+.ppspec dt::first-letter { text-transform: uppercase; }
+#pptitle:focus { outline: none; }
+.ppspec dd { margin: 0; color: var(--ink); font-variant-numeric: tabular-nums; }
+.ppwhere { font-size: .74rem; color: var(--dim); margin: .45rem 0 .25rem; }
+.ppchips { display: flex; flex-wrap: wrap; gap: .3rem; }
+.ppchip { display: inline-flex; align-items: center; gap: .35rem; padding: .2rem .55rem; border: 1px solid var(--line);
+  border-radius: 999px; background: var(--raise); color: var(--ink); font: .76rem var(--sans); cursor: pointer; }
+.ppchip:hover { border-color: var(--accent); color: var(--accent); }
+.ppchip .sw { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.ppnote { font-size: .78rem; color: var(--dim) !important; }
+.ppnote.caution { border-left: 2px solid var(--caution); padding-left: .5rem; }
+.ppnot { list-style: none; margin: .3rem 0 0; padding: 0; display: grid; gap: .3rem; }
+.ppnot li { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.ppwhy { font-size: .74rem; color: var(--bad); }
+/* the (i) at a library row's end: on hover with a mouse, always under a finger */
+.part { position: relative; }
+.pinfo { display: inline-flex; align-items: center; justify-content: center; flex: none; margin-left: .2rem;
+  padding: .15rem; border: none; border-radius: var(--r-ctl); background: none; color: var(--faint); cursor: pointer; opacity: 0; }
+.part:hover .pinfo, .pinfo:focus-visible { opacity: 1; }
+.pinfo:hover { color: var(--accent); background: var(--raise); }
+@media (pointer: coarse) { .pinfo { opacity: 1; padding: .35rem; } }
+
+/* ---- an empty page: the starter layouts, where the design would be ------------------------------ */
+#emptystate { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: .8rem; padding: 16px; pointer-events: none; }
+#emptystate[hidden] { display: none; }
+#emptystate > * { pointer-events: auto; }
+.ehead { font-weight: 650; font-size: .95rem; color: var(--ink); }
+.egrid { display: grid; grid-template-columns: repeat(2, minmax(0, 220px)); gap: .7rem; }
+.ecard { display: flex; flex-direction: column; align-items: flex-start; gap: .1rem; padding: .45rem .45rem .6rem; text-align: left;
+  border: 1px solid var(--line-soft); border-radius: var(--r-pop); background: var(--panel); color: var(--ink);
+  box-shadow: 0 6px 20px var(--shadow); cursor: pointer; font: .8rem/1.35 var(--sans); }
+.ecard:hover { border-color: var(--accent); }
+.ecard img { width: 100%; aspect-ratio: 480 / 300; object-fit: cover; border-radius: calc(var(--r-pop) - 4px); margin-bottom: .35rem; background: var(--raise); }
+.ecard b { font-weight: 650; padding: 0 .15rem; }
+.ecard span { color: var(--dim); font-size: .74rem; padding: 0 .15rem; }
+.eor { font-size: .78rem; color: var(--dim); }
+body.compact .egrid { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; max-width: 420px; }
 
 .hlink[hidden] { display: none; }   /* .hlink sets inline-flex padding etc.; [hidden] must still win */
 

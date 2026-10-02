@@ -11,11 +11,12 @@ from the measured hooks and brackets, not from bounding boxes — and tells you 
 fit, what the manuals forbid, and what the whole kit weighs. Nothing to install, no account;
 designs live in your browser and travel as links.
 
-**[✦ Use it with your own AI](docs/AI.md)** — the rules engine (`web/core.js`) has no DOM
-and no three.js, so Claude, ChatGPT or any agent can design a layout and have the planner's
-own rules check it: from a chat window (it writes a link), from a terminal
-(`node scripts/igt.mjs evaluate`), or from code. The same guide is served to agents at
-[igt.iqis.app/llms.txt](https://igt.iqis.app/llms.txt).
+**Using it with your own AI — under development.** The rules engine (`web/core.js`) has no
+DOM and no three.js, so an agent can already write a layout and have the planner's own rules
+check it — from a terminal (`node scripts/igt.mjs evaluate`) or from code. The rest is not
+finished: the in-app AI entry is hidden on the public site while it is reworked, and the
+chat-window route ([docs/AI.md](docs/AI.md), also served as
+[igt.iqis.app/llms.txt](https://igt.iqis.app/llms.txt)) is experimental and may change.
 
 ```sh
 git clone https://github.com/iqis/igt-planner && cd igt-planner
@@ -26,6 +27,18 @@ node scripts/igt.mjs example       # the rules from a terminal, no browser
 Vanilla JavaScript and vendored three.js: no build step, no runtime dependencies.
 MIT licensed. An independent project, **not affiliated with Snow Peak**; product names are
 used only to say what each part is.
+
+**Development process:** making wishes to Claude.
+
+## Contributing
+
+Everything here is open: the app, the parts catalog (`catalog/igt-catalog.json`), and the
+rules that decide what fits (`web/core.js`, plus the evidence in `catalog/overrides.json`).
+Use the data in your own tools, fork the planner, and send pull requests — a part that is
+missing or mismeasured, a combination the manuals allow that the planner refuses (or the
+other way round), a better outline for a tarp, a translation, or something new altogether.
+Run `npm run smoke` before you push; where a number comes from a photo or a manual, say which.
+Not sure where to start? [Open an issue](https://github.com/iqis/igt-planner/issues).
 
 What follows is how it was built — where the numbers come from, and why they can be trusted.
 
@@ -125,7 +138,7 @@ seeing.
 scripts/     the five build steps above, plus smoke.mjs (below)
 catalog/     committed output: grid.json, igt-catalog.json, overrides.json
 web/         the planner: core.js (the rules, no DOM) + app.js (the 3D app, vendored three.js)
-docs/AI.md   how to drive it from your own agent (also served as /llms.txt)
+docs/AI.md   driving it from your own agent -- under development (also served as /llms.txt)
 data/        raw fetches and timestamped archives (gitignored)
 ```
 

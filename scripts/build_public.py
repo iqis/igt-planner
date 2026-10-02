@@ -20,6 +20,7 @@ Only the four catalog files the app fetches are copied. Plus Cloudflare Pages' _
     npx wrangler pages deploy dist --project-name igt-planner
 """
 import json
+import subprocess
 import re
 import shutil
 from pathlib import Path
@@ -136,6 +137,9 @@ def main():
     (DIST / "llms.txt").write_text(ai_md, encoding="utf-8")
     body = markdown.markdown(ai_md, extensions=["fenced_code", "tables"])
     (DIST / "web" / "ai.html").write_text(AI_PAGE.replace("{{BODY}}", body), encoding="utf-8")
+
+    # One page per part (dist/p/<SKU>/), drawn by the built planner itself -- so it runs on dist/.
+    subprocess.run(["node", str(ROOT / "scripts" / "part_pages.mjs"), str(DIST)], check=True)
 
     (DIST / "_headers").write_text(HEADERS, encoding="utf-8")
     (DIST / "_redirects").write_text(REDIRECTS, encoding="utf-8")

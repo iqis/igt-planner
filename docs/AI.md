@@ -1,5 +1,9 @@
 # Use the IGT Planner with your own AI
 
+> **Under development.** This is experimental and not yet part of the planner itself: the
+> in-app AI entry is hidden while it is reworked, and the details below — the prompts, the link
+> forms, the CLI — may change. The rules engine and `scripts/igt.mjs` are what work today.
+
 The planner's rules are open, and they run without a browser. Bring whatever agent you
 already use — Claude, ChatGPT, a local model, Claude Code, Codex — and let it design a Snow
 Peak IGT layout with you. You describe what you want; the agent writes a layout; the

@@ -3577,3 +3577,67 @@ export function shelterOf(p, sku = null) {
     sub: `${(b.w / 1000).toFixed(2)} x ${(b.d / 1000).toFixed(2)} m`,
   });
 }
+
+/** A tarp as SOLVED cloth (web/tarp.js solvePitch): the relaxed mesh itself, its curved edge bound in
+ *  red, a pole under every pole-held corner, and the ropes -- two 二又 guys off each main pole along
+ *  the ridge, one guy per wing corner out along the line from the centre (the manual's 延長線上).
+ *  Millimetres in; the ground at y = 0. Drawn at opacity 0.5 for the same reason as tarpPitchGroup. */
+export function clothTarpGroup(sol, { color = 0x8a7460 } = {}) {
+  const g = new THREE.Group();
+  const pos = new Float32Array(sol.pts.length * 3);
+  sol.pts.forEach((p, i) => { pos[3 * i] = p.x * MM; pos[3 * i + 1] = p.y * MM; pos[3 * i + 2] = p.z * MM; });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geo.setIndex(sol.tris.flat());
+  geo.computeVertexNormals();
+  g.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: new THREE.Color(color),
+    metalness: 0, roughness: 0.85, side: THREE.DoubleSide, transparent: true, opacity: 0.5 })));
+  // the red edge binding, one curve PER EDGE: a single closed spline through the whole rim rounds
+  // every corner off, and a tarp's corners are sharp points (the grommet tabs)
+  const trim = metal(0xa8382e, 0.15, 0.6);
+  const V = i => new THREE.Vector3(sol.pts[i].x * MM, sol.pts[i].y * MM, sol.pts[i].z * MM);
+  const nO = sol.outline.length, E = sol.edgeN || nO;
+  for (let e = 0; e * E < nO; e++) {
+    const run = [];
+    for (let k = 0; k <= E; k++) run.push(V(sol.outline[(e * E + k) % nO]));
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(run, false, "centripetal"), E * 4, 9 * MM, 5, false), trim));
+  }
+  const alu = metal(0xc9ccd1, 0.8, 0.35), steel = metal(0x3a3d42, 0.4, 0.6);
+  const guys = [];
+  const stake = (x, z) => cyl(g, 4, 5, 22, 8, steel, x, 11, z);
+  const T = sol.anchors.find(a => a.name === "T").at, B = sol.anchors.find(a => a.name === "B").at;
+  const cx = (T.x + B.x) / 2, cz = (T.z + B.z) / 2;
+  for (const a of sol.anchors) {
+    const p = a.at;
+    const ox = p.x - cx, oz = p.z - cz, ol = Math.hypot(ox, oz) || 1, ux = ox / ol, uz = oz / ol;
+    if (a.pole) {
+      // foot to top: a leaning pole is drawn leaning (tarp.js puts the foot inboard of the top)
+      const f = a.foot || { x: p.x, y: 0, z: p.z };
+      const top = new THREE.Vector3(p.x * MM, p.y * MM, p.z * MM), foot = new THREE.Vector3(f.x * MM, 0, f.z * MM);
+      const len = top.distanceTo(foot), r = (a.role === "tip" ? 14 : 11) * MM;
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 12), alu);
+      m.position.copy(top).add(foot).multiplyScalar(0.5);
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), top.clone().sub(foot).normalize());
+      g.add(m);
+    }
+    if (a.role === "tip") {
+      // 二又: two guys from the pole top, 45 degrees either side of the ridge, at ~45 degrees down
+      for (const s of [-1, 1]) {
+        const c = Math.cos(Math.PI / 4), sn = Math.sin(Math.PI / 4) * s;
+        const dx = ux * c - uz * sn, dz = ux * sn + uz * c;
+        const sx = p.x + dx * p.y, sz = p.z + dz * p.y;
+        guys.push(new THREE.Vector3(p.x * MM, p.y * MM, p.z * MM), new THREE.Vector3(sx * MM, 0, sz * MM));
+        stake(sx, sz);
+      }
+    } else {
+      // a wing guy: out along the centre line, down at the rope's angle (steeper for a guyed corner)
+      const reach = a.pole ? p.y : p.y / 1.2;
+      const sx = p.x + ux * reach, sz = p.z + uz * reach;
+      guys.push(new THREE.Vector3(p.x * MM, p.y * MM, p.z * MM), new THREE.Vector3(sx * MM, 0, sz * MM));
+      stake(sx, sz);
+    }
+  }
+  g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(guys),
+    new THREE.LineBasicMaterial({ color: 0x9aa0a8, transparent: true, opacity: 0.85 })));
+  return { group: g };
+}

@@ -45,7 +45,7 @@ export let CAT, GRID, LAYOUT, CONN, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAM
 //
 // Modelling the hooked ones as free nodes that happen to be adjacent is what kept the
 // corner from turning: adjacency has no handedness, and a corner is nothing but handedness.
-export const state = { nodes: [], sel: null, nextId: 1, shelterLock: true, selSet: new Set(), rulers: [], scene: "grid" };
+export const state = { nodes: [], sel: null, nextId: 1, selSet: new Set(), rulers: [], scene: "grid" };
 export let rulerSeq = 1;   // ids for measurements -- their own counter, reassigned fresh on load
 export const nextRulerId = () => rulerSeq++;
 
@@ -1064,7 +1064,8 @@ export function bomLines() {
 export const SAVE_V = 1;
 // Everything a node carries that is a DECISION. Anything absent from a node is simply left out.
 export const INTENT = ["sku", "host", "edge", "leg", "legFinish", "floating", "locked", "step", "slide",
-                "config", "sharedJoint", "bridge", "surface", "coal", "base", "canister", "pose", "placements"];
+                "config", "sharedJoint", "bridge", "surface", "coal", "base", "canister", "pose", "placements",
+                "pitch"];
 
 /** The scene as a plain object -- intent only. `sel` is not saved: a selection is not a design. */
 export function serializeLayout(nodes = state.nodes) {
@@ -1316,7 +1317,10 @@ export function loadCatalog({ catalog, colors, textures, fittings }) {
     standalone: by("standalone").filter(p => p.assembled_mm),
     seating: by("seating").filter(p => p.assembled_mm),
     hearth: by("hearth").filter(p => p.assembled_mm),
-    shelter: by("shelter").filter(p => p.geometry)
+    // Tarps only. The tents and shells are still in the catalog (an old layout with one still opens
+    // and draws), but they are not offered: their models are not good enough to put in front of
+    // anyone (owner, 2026-10-02). A tarp is a pitched membrane on poles -- that, we draw well.
+    shelter: by("shelter").filter(p => p.geometry && p.shelter_type === "tarp")
       .sort((a, b) => (a.shelter_type || "").localeCompare(b.shelter_type || "") || a.title_en.localeCompare(b.title_en)),
     unsourced: inScope.filter(p => hookRoles(p) && !HOOKABLE.includes(p)),
   };
@@ -1481,4 +1485,66 @@ export function evaluate(doc) {
   } finally {
     state.nodes = saved.nodes; state.nextId = saved.nextId;
   }
+}
+
+// ---------------------------------------------------------------- one part, on its own
+//
+// What a part fits onto and what fits onto it, for the part page -- read off the SAME rules the
+// planner's + menus and evaluate() use, by evaluating each part standing alone and reading its
+// next moves. Nothing here is a second list to keep in step: if a menu offers it, this says it.
+let relIndex = null;
+const placeOf = e => e.rail ? "rail" : /open/.test(e.edge) ? "opening" : /^end/.test(e.edge) ? "end" : "edge";
+function relations() {
+  if (relIndex) return relIndex;
+  relIndex = { takes: {}, onto: {} };
+  for (const h of Object.values(PARTS)) {
+    if (h.excluded) continue;
+    let next;
+    try { next = evaluate({ app: "igt-planner", v: SAVE_V, nodes: [{ id: 1, sku: h.sku }] }).nodes[0]?.next; }
+    catch { continue; }
+    if (!next) continue;
+    const takes = {};
+    const add = (place, sku) => {
+      if (!PARTS[sku] || PARTS[sku].excluded) return;
+      (takes[place] ||= new Set()).add(sku);
+      ((relIndex.onto[sku] ||= {})[place] ||= new Set()).add(h.sku);
+    };
+    for (const e of next.edges || []) for (const s of e.fits) add(placeOf(e), s);
+    for (const r of next.slots || []) for (const s of r.fits) add("bay", s);
+    relIndex.takes[h.sku] = takes;
+  }
+  return relIndex;
+}
+
+/** Everything the part page shows about one sku: identity, measurements, where it goes, what goes on
+ *  it (each grouped by WHERE: end / rail / edge / opening / bay), and what its manual forbids. */
+export function partInfo(sku) {
+  const p = PARTS[sku];
+  if (!p) return null;
+  const rel = relations();
+  const lists = by => Object.fromEntries(Object.entries(by || {}).map(([place, set]) => [place, [...set]]));
+  const takes = lists(rel.takes[sku]);
+  const onto = lists(rel.onto[sku]);
+  // A manual's whitelist that leaves a host out is a caution, not a block -- say which hosts it is.
+  const unlisted = [...new Set(Object.values(onto).flat())].filter(h => compat(sku, h).level === "unlisted");
+  return {
+    sku, name: p.title_en, name_jp: p.title_jp || undefined, role: p.role, kind: kindOf(p),
+    units: p.units || undefined, span_half_units: spanOf(p) || undefined,
+    size_mm: p.assembled_mm || undefined, packed_mm: p.packed_mm || undefined,
+    height_mm: p.height_mm || undefined, seat_h_mm: p.seat_h_mm || undefined,
+    weight_g: p.weight_g || undefined, material_jp: p.material || undefined,
+    url: p.url || undefined, manual: p.manual || undefined,
+    takes, onto, unlisted,
+    not_with: p.manual_incompatible_with || undefined,
+    manual_lists: p.manual_compatible_with || undefined,
+  };
+}
+
+/** The parts that get a page: everything the planner's library lists, plus the leg sets (chosen on
+ *  the frame, not from the library, but sold on their own). `shelters` off for the public build. */
+export function pageParts() {
+  const r = BY_ROLE;
+  const all = [...r.frame, ...r.leg, ...HOOKABLE, ...r.unsourced, ...SLIDE_IN, ...r.slot_module, ...r.hang_rack,
+    ...r.layout_table, ...r.standalone, ...r.hearth, ...r.seating, ...r.shelter];
+  return [...new Set(all.filter(p => p && PARTS[p.sku] && !p.excluded))];
 }

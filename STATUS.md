@@ -19,6 +19,36 @@
 > link wherever there is no Worker (serve.py, tailnet) -- so short links exist only on the public site.
 > "Copy the full link" stays in the card. Test locally: `npx wrangler dev --port 8830 --local`.
 
+> **2026-10-01: part pages + starter templates.** `core.partInfo(sku)` = what a part fits onto /
+> what fits onto it, grouped by place (end/rail/edge/opening/bay), derived by evaluating every part
+> standing alone and reading its next moves -- the menus' own rules, no second list. In-app page:
+> `openPartPage` (the (i) on a library row, the selection toolbar, a module's menu, `#part=SKU`),
+> with the planner's own drawing (`docShot`: the live renderer on a one-part scene, synchronous).
+> Public: `scripts/part_pages.mjs` (run by build_public) writes `dist/p/<SKU>/` -- English HTML +
+> `shot.jpg` drawn by the built planner in headless Chrome -- plus sitemap.xml / robots.txt.
+> Templates: `web/templates.js` (4 layout docs, smoke checks each buildable), in the layouts menu and
+> as picture cards on any empty page.
+
+> **2026-10-02: AI entry = under development.** The header's AI link stays `hidden`; README and
+> docs/AI.md (-> /llms.txt, /web/ai) now say so. The engine + `scripts/igt.mjs` are the working part.
+
+> **2026-10-02: shelters = tarps only; tarps are solved cloth.** Tents/shells dropped from the library
+> (models not good enough; still load from old layouts). The "layer lock" is gone -- `pickNode()`
+> prefers anything that is not a footprint under the pointer, so a tarp never steals a click and can
+> always be picked. `web/tarp.js`: flat pattern (curved cut) -> ring mesh -> position-based cloth
+> relaxation, pitched TAUT: the ridge is pinned pole top to pole top with a gentle 2% dip (RIDGE_SAG;
+> owner: taut = straight with a slight soft dip, not a free sag), the poles' plan spacing follows from the
+> ridge length; links are TENSION-ONLY and the bias (quad diagonals) is soft -- rigid diagonals or
+> compression-resisting links pleated the cloth under a dipping ridge; gravity is weighted by node AREA;
+> guyed wings pull out+down along the centre line, sub-poles pin a corner's height; poles LEAN (0-15 deg,
+> default 5): top = length x cos, foot inboard by length x sin. Guy tension CALIBRATED so HD Hexa L's
+> wide wings ride ~0.2 of the pole (product hero); smoke holds straight ridge + that + sub-poles adding
+> area. Node state `n.pitch = {a, b, corners: {NR,WR,WL,NL | CR1..}, lean}` (each wing corner its own
+> sub-pole or null=guyed; `left`/`right` still read as a side's default) (in INTENT; legacy numeric `config` = both
+> poles). Patterns: TP-861/862 from the manual drawing (not to scale; narrow end 400 / wide end 500 --
+> NOT symmetric end to end), TP-440/851 estimated from them, Rectas = published rectangle.
+> Penta / Octa / Hexa Evo Pro still use the old fixed-footprint drawing. ~140 ms per solve, cached.
+
 **Verdict: ready to share with family over the tailnet.** The code side of launch is done;
 two operational steps remain, both the owner's (below).
 

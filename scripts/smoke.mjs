@@ -69,6 +69,35 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     { i: 2, sku: "CK-902", leg: "CK-112", host: 1, edge: "jik+x" }] });
   check("core: Low-leg frame is flush with the Jikaro", jik.buildable && !jik.problems.length
     && jik.nodes.every(n => n.top_mm === 400), JSON.stringify({ p: jik.problems, tops: jik.nodes.map(n => n.top_mm) }));
+  // the part page's two lists come from the same rules as the menus: a box goes in a frame's bay,
+  // a frame takes boards at its ends
+  // the tarp is cloth, pitched taut: the ridge runs pole top to pole top with only a gentle dip, Snow Peak's own setup (HD Hexa L on 280 + 240, wings guyed) drops the wide wings to ~0.2 of
+  // the pole as on the product hero, and raising the wings on sub-poles buys covered ground
+  const tarp = await import("../web/tarp.js");
+  const hexaL = tarp.solvePitch("TP-862", {}), raised = tarp.solvePitch("TP-862", { left: 1900, right: 1900 });
+  const ridgeOff = (() => { const T = hexaL.anchors.find(a => a.name === "T").at, B = hexaL.anchors.find(a => a.name === "B").at;
+    return Math.max(...hexaL.ridge.map(i => hexaL.pts[i]).map(p => {
+      const s = (p.z - B.z) / (T.z - B.z); return Math.abs(p.y - (B.y + s * (T.y - B.y))); })); })();
+  check("tarp: a taut ridge dips only gently", hexaL.ok && ridgeOff > 50 && ridgeOff < 200, `${ridgeOff.toFixed(0)} mm below the pole-to-pole line`);
+  const one = tarp.solvePitch("TP-862", { corners: { NR: 1900 } });
+  const ys = Object.fromEntries(one.anchors.filter(a => a.role === "corner").map(a => [a.name, Math.round(a.at.y)]));
+  check("tarp: one sub-pole lifts one corner", one.ok && ys.NR > 1850 && ys.NL < 1300 && ys.WR < 1300, JSON.stringify(ys));
+  check("tarp: Hexa L's guyed wings ride where the hero shows", hexaL.cornerLow > 380 && hexaL.cornerLow < 720,
+    `lowest corner ${Math.round(hexaL.cornerLow)} mm`);
+  check("tarp: sub-poles on the wings cover more ground", raised.ok && raised.area_m2 > hexaL.area_m2 + 1,
+    `${hexaL.area_m2.toFixed(1)} -> ${raised.area_m2.toFixed(1)} m2`);
+  const tarpBad = Object.keys(tarp.PATTERNS).filter(sku => !tarp.solvePitch(sku, {}).ok);
+  check("tarp: every known cut pitches at its defaults", !tarpBad.length, tarpBad.join(", "));
+  // every starter layout is a real design: buildable by the rules, nothing dropped
+  const { TEMPLATES } = await import("../web/templates.js");
+  const tplBad = TEMPLATES.map(tp => [tp.id, core.evaluate(tp.doc)])
+    .filter(([, r]) => !r.buildable || r.problems.some(p => /not in the catalog/.test(p.text)));
+  check("core: every template is buildable", TEMPLATES.length >= 4 && !tplBad.length,
+    tplBad.map(([id, r]) => `${id}: ${r.problems.map(p => p.text).join("; ")}`).join(" | "));
+  const box = core.partInfo("CK-160"), fr = core.partInfo("CK-150");
+  check("core: part page knows where a module goes", box.onto.bay?.includes("CK-150"), JSON.stringify(box.onto));
+  check("core: part page knows what a frame takes", fr.takes.end?.includes("CK-116TR") && fr.takes.bay?.includes("CK-160"),
+    JSON.stringify(Object.keys(fr.takes)));
 }
 
 // ---- every language has every key ------------------------------------------------------------
@@ -279,11 +308,35 @@ try {
   }));
   check("the favicon decodes", favOk);
 
+  // The part page: every part the library lists opens one, without an error, and a module's page
+  // carries the planner's drawing of it. Opened through the same entry the (i) button uses.
+  const pp = await page.evaluate(async () => {
+    const before = JSON.stringify(window.__igt.serializeLayout());
+    const skus = [...new Set([...document.querySelectorAll("#palette .part[data-sku]")].map(r => r.dataset.sku))];
+    const bad = [];
+    for (const s of skus) {
+      try { window.__igt.openPartPage(s); if (!document.getElementById("partmodal").open) bad.push(s); }
+      catch (e) { bad.push(`${s}: ${e.message}`); }
+    }
+    window.__igt.openPartPage("CK-160");
+    const img = !!document.querySelector("#ppbody .ppshot");
+    const chips = document.querySelectorAll("#ppbody .ppchip").length;
+    document.getElementById("partmodal").close();
+    return { n: skus.length, bad, img, chips, same: JSON.stringify(window.__igt.serializeLayout()) === before };
+  });
+  check("every listed part opens its page", pp.n > 50 && !pp.bad.length, `${pp.n} parts; ${pp.bad.slice(0, 3).join(" | ")}`);
+  check("a module's page shows its drawing and its frames", pp.img && pp.chips >= 3, JSON.stringify(pp));
+  check("drawing a part leaves the scene alone", pp.same);
+
   check("planner console is clean", errors.length === 0, errors.slice(0, 3).join(" | "));
   if (PUBLIC) {
     const photos = await page.evaluate(() => performance.getEntriesByType("resource").map(e => e.name)
       .filter(u => /\/img\/|\/tex\/(?!brushed_steel|canvas|chair_mesh)/.test(u)));
     check("public build requests no photographs", photos.length === 0, photos.slice(0, 3).join(" | "));
+    // The static part pages: real HTML with the facts in it, and the planner's picture of the part.
+    const pageHtml = await (await fetch(`${BASE}/p/CK-150/`)).text();
+    const shotOk = (await fetch(`${BASE}/p/CK-160/shot.jpg`)).ok;
+    check("public part pages carry their facts and picture", /Fits onto/.test(pageHtml) && /CK-150/.test(pageHtml) && shotOk);
   }
   await page.close();
 
