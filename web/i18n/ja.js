@@ -424,4 +424,10 @@ export default {
   "tarp.corner.recta.CR2": "右後コーナー",
   "about.contrib": "コード、パーツカタログ、実測にもとづくルール——すべて公開しています。データを自由に使い、<a href=\"https://github.com/iqis/igt-planner/fork\" target=\"_blank\" rel=\"noopener\">fork</a> して <a href=\"https://github.com/iqis/igt-planner/pulls\" target=\"_blank\" rel=\"noopener\">pull request</a> を送ってください。足りないパーツ、より正確な寸法、翻訳、新しいアイデア、なんでも歓迎です。",
   "tarp.guyedsize": "ロープとペグ込み：{w} × {d} m",
+  "share.author": "署名（任意）",
+  "share.author.ph": "あなたの名前",
+  "share.author.note": "このブラウザに保存されます。名前はリンクと一緒に送られ、短縮リンクの保存先にも残ります。",
+  "note.fromlink.by": "{author} さんから共有されたデザイン——もうあなたのものです。保存かエクスポートで残してください",
+  "page.by": "作成：{author}",
+  "plate.by": "作成 {author}",
 };

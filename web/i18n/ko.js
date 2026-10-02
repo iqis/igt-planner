@@ -424,4 +424,10 @@ export default {
   "tarp.corner.recta.CR2": "오른쪽 뒤 모서리",
   "about.contrib": "코드, 부품 카탈로그, 측정한 규칙 — 모두 공개되어 있습니다. 데이터를 자유롭게 쓰고, <a href=\"https://github.com/iqis/igt-planner/fork\" target=\"_blank\" rel=\"noopener\">fork</a>해서 <a href=\"https://github.com/iqis/igt-planner/pulls\" target=\"_blank\" rel=\"noopener\">pull request</a>를 보내 주세요: 빠진 부품, 더 정확한 측정, 번역, 새로운 아이디어 모두 환영합니다.",
   "tarp.guyedsize": "스트링과 팩 포함: {w} × {d} m",
+  "share.author": "서명 (선택)",
+  "share.author.ph": "이름",
+  "share.author.note": "이 브라우저에만 기억됩니다. 이름은 링크와 함께 전송되며 짧은 링크 저장소에도 남습니다.",
+  "note.fromlink.by": "{author} 님이 공유한 디자인 — 이제 당신 것입니다. 저장하거나 내보내 남기세요",
+  "page.by": "작성자: {author}",
+  "plate.by": "작성자 {author}",
 };

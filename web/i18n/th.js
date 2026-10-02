@@ -424,4 +424,10 @@ export default {
   "tarp.corner.recta.CR2": "มุมหลังขวา",
   "about.contrib": "ทุกอย่างที่นี่เปิดหมด — โค้ด แคตตาล็อกชิ้นส่วน และกฎที่วัดมา นำข้อมูลไปใช้ได้เลย <a href=\"https://github.com/iqis/igt-planner/fork\" target=\"_blank\" rel=\"noopener\">fork</a> แล้วส่ง <a href=\"https://github.com/iqis/igt-planner/pulls\" target=\"_blank\" rel=\"noopener\">pull request</a> มา: ชิ้นส่วนที่ขาด การวัดที่แม่นกว่า คำแปล หรือไอเดียใหม่ ยินดีทั้งหมด",
   "tarp.guyedsize": "รวมเชือกและสมอบก: {w} × {d} m",
+  "share.author": "ลงชื่อ (ไม่บังคับ)",
+  "share.author.ph": "ชื่อของคุณ",
+  "share.author.note": "จำไว้ในเบราว์เซอร์นี้เท่านั้น ชื่อจะเดินทางไปกับลิงก์ และถูกเก็บในที่เก็บลิงก์สั้นด้วย",
+  "note.fromlink.by": "{author} แชร์ดีไซน์นี้ให้คุณ — ตอนนี้เป็นของคุณแล้ว บันทึกหรือส่งออกเพื่อเก็บไว้",
+  "page.by": "โดย {author}",
+  "plate.by": "โดย {author}",
 };

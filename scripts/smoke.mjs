@@ -236,7 +236,7 @@ try {
   // share round-trip: serialize -> gzip -> #d= -> reload -> the design arrives as a new page
   const shared = await page.evaluate(async () => {
     const app = window.__igt;
-    const json = new TextEncoder().encode(JSON.stringify(app.serializeLayout()));
+    const json = new TextEncoder().encode(JSON.stringify({ ...app.serializeLayout(), name: "Lake kitchen", author: "Ben" }));
     const gz = await new Response(new Blob([json]).stream()
       .pipeThrough(new CompressionStream("gzip"))).arrayBuffer();
     const b64 = btoa(String.fromCharCode(...new Uint8Array(gz)))
@@ -251,6 +251,8 @@ try {
     count: window.__igt.state.nodes.length,
     hash: location.hash,
     pages: JSON.parse(localStorage.getItem("igt.pages")).pages.length,
+    name: (b => b.pages.find(p => p.id === b.activeId)?.name)(JSON.parse(localStorage.getItem("igt.pages"))),
+    author: (b => b.pages.find(p => p.id === b.activeId)?.author)(JSON.parse(localStorage.getItem("igt.pages"))),
     fig: (() => { const f = window.__igt.state.nodes.find(n => n.sku === "FIG-ADULT");
                   return f ? `${f.pose}/${f.config}` : "missing"; })(),
   }));
@@ -259,6 +261,8 @@ try {
   check("shared design lands as a NEW page", after.pages === shared.pages + 1,
     `${shared.pages} -> ${after.pages}`);
   check("the hash is stripped after landing", after.hash === "", after.hash);
+  check("a shared page keeps its name", /^Lake kitchen( \d+)?$/.test(after.name || ""), after.name);
+  check("a shared page knows who it is by", after.author === "Ben", String(after.author));
   check("the figure's pose and height survive the link", after.fig === "sit/1850", after.fig);
 
   // the plain form an agent can write without gzip: #layout=<URL-encoded JSON>

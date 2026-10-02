@@ -29,6 +29,12 @@
 > Templates: `web/templates.js` (4 layout docs, smoke checks each buildable), in the layouts menu and
 > as picture cards on any empty page.
 
+> **2026-10-02: share links carry the page name + an optional author.** Share card has a "sign it"
+> field (localStorage `igt.author`); links/exports carry `name` (not default "Page n") and `author`
+> (signer, else the page's received author -- last sharer only, no chain). Landing names the new page
+> after it and stores `author` on the page (tab tooltip, "by X" note); the snapshot plate's byline says
+> "by X". Smoke round-trips both.
+
 > **2026-10-02: AI entry = under development.** The header's AI link stays `hidden`; README and
 > docs/AI.md (-> /llms.txt, /web/ai) now say so. The engine + `scripts/igt.mjs` are the working part.
 

@@ -1088,6 +1088,11 @@ kbd { font: .72rem var(--mono); padding: .05rem .35rem; border: 1px solid var(--
 .eor { font-size: .78rem; color: var(--dim); }
 body.compact .egrid { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; max-width: 420px; }
 
+#popcard .csign { display: grid; gap: .25rem; margin: .1rem 0 .55rem; }
+#popcard .csign label { font-size: .74rem; color: var(--dim); }
+#popcard .csign .cnote { margin: 0; font-size: .7rem; }
+#popcard .csign input { font-family: var(--sans); }
+
 .hlink[hidden] { display: none; }   /* .hlink sets inline-flex padding etc.; [hidden] must still win */
 
 

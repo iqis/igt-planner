@@ -424,4 +424,10 @@ export default {
   "tarp.corner.recta.CR2": "Back right corner",
   "about.contrib": "Everything here is open — the code, the parts catalog, the measured rules. Build on the data, <a href=\"https://github.com/iqis/igt-planner/fork\" target=\"_blank\" rel=\"noopener\">fork it</a>, and send a <a href=\"https://github.com/iqis/igt-planner/pulls\" target=\"_blank\" rel=\"noopener\">pull request</a>: a missing part, a better measurement, a translation, a whole new idea.",
   "tarp.guyedsize": "With ropes and pegs: {w} × {d} m",
+  "share.author": "Sign it (optional)",
+  "share.author.ph": "your name",
+  "share.author.note": "Remembered in this browser. It travels inside the link — and so sits in the short-link store.",
+  "note.fromlink.by": "{author} shared this with you — it is yours now; save or export to keep it",
+  "page.by": "by {author}",
+  "plate.by": "by {author}",
 };

@@ -424,4 +424,10 @@ export default {
   "tarp.corner.recta.CR2": "右后角",
   "about.contrib": "这里的一切都是开放的——代码、部件目录、测量出来的规则。欢迎拿数据去用，<a href=\"https://github.com/iqis/igt-planner/fork\" target=\"_blank\" rel=\"noopener\">fork 一份</a>，再提一个 <a href=\"https://github.com/iqis/igt-planner/pulls\" target=\"_blank\" rel=\"noopener\">pull request</a>：缺的部件、更准的测量、翻译，或者全新的点子。",
   "tarp.guyedsize": "含拉绳和地钉：{w} × {d} m",
+  "share.author": "署名（可选）",
+  "share.author.ph": "你的名字",
+  "share.author.note": "只记在这个浏览器里。名字会随链接一起发出，也会存进短链接的存储。",
+  "note.fromlink.by": "{author} 分享给你的设计——现在归你了；保存或导出以留存",
+  "page.by": "作者：{author}",
+  "plate.by": "作者 {author}",
 };

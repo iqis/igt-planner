@@ -3624,7 +3624,7 @@ function paintPager() {
   for (const p of book.pages) {
     const tab = document.createElement("button");
     tab.className = "ptab" + (p.id === book.activeId ? " on" : "");
-    tab.title = t("page.tab.tip");
+    tab.title = p.author ? `${t("page.by", { author: p.author })} · ${t("page.tab.tip")}` : t("page.tab.tip");
     const name = document.createElement("span");
     name.className = "pname"; name.textContent = p.name;
     tab.append(name);
@@ -3697,7 +3697,8 @@ function deleteNamed(name) {
 
 // ---- the file: the only copy that leaves this machine -------------------------------------------
 function exportFile() {
-  const doc = { ...serializeLayout(), at: new Date().toISOString() };
+  const doc = { ...serializeLayout(), name: namedPage(), author: authorOf() || undefined,
+    at: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(doc, null, 1)], { type: "application/json" });
   const a = document.createElement("a");
   // A timestamped name, because a file called "layout.json" is a file you overwrite.
@@ -3719,7 +3720,10 @@ function importFile() {
       const asPage = state.nodes.length > 0; // same rule as openNamed -- never cost the page on screen
       if (asPage) newPage(f.name.replace(/\.json$/i, ""));
       const dropped = loadLayout(doc);
+      if (typeof doc.author === "string" && doc.author.trim()) activePage().author = doc.author.trim().slice(0, 40);
       if (asPage) { commitActivePage(); lsPut(LS_PAGES, book); lsPut(LS_SCENE, activePage().doc); }
+      else lsPut(LS_PAGES, book);
+      paintPager();
       note(t(asPage ? "note.openednew" : "note.openedpage", { name: f.name }) + droppedSuffix(dropped));
     }
     catch (e) { note(t("note.readfail", { err: e.message }), 5000); }
@@ -3744,7 +3748,7 @@ async function shareLink() {
   // The whole body is guarded: on iOS below 16.4 `new CompressionStream` itself throws, and
   // an unhandled rejection out of a bare async onclick is a button that silently does nothing.
   try {
-    const json = new TextEncoder().encode(JSON.stringify(serializeLayout()));
+    const json = new TextEncoder().encode(JSON.stringify(shareDoc()));
     const gz = await pipe(json, new CompressionStream("gzip"));
     const url = `${location.origin}${location.pathname}#d=${b64u(gz)}`;
     // A link nobody can paste is not a share. Say the number rather than discover it later.
@@ -3764,6 +3768,24 @@ async function shareLink() {
     note(`this browser could not build a share link (${e.message}) — export a file instead`, 6000);
   }
 }
+/** What a share link carries: the design, and the page's name -- a link to "Lake kitchen" should
+ *  land as "Lake kitchen", not as one more "Shared". */
+const LS_AUTHOR = "igt.author";
+/** Your name, as the share card remembers it in this browser. Empty = links go out unsigned. */
+const myName = () => { try { return (localStorage.getItem(LS_AUTHOR) || "").trim().slice(0, 40); } catch { return ""; } };
+/** Who a design is BY: whoever shares it, if they signed -- else whoever it came from. One name, the
+ *  last sharer's; no chain of editors. */
+const authorOf = () => myName() || activePage()?.author || "";
+// A page still called by its default ("Page 3" / "第 3 页") has no name worth sending -- it would land
+// as someone else's "Page 3".
+const namedPage = () => {
+  const nm = activePage()?.name || "";
+  const [pre, post] = t("page.n", { n: "#" }).split("#");
+  const mid = nm.slice(pre.length, nm.length - post.length);
+  return nm && !(nm.startsWith(pre) && nm.endsWith(post) && /^\d+$/.test(mid)) ? nm : undefined;
+};
+const shareDoc = () => ({ ...serializeLayout(), name: namedPage(), author: authorOf() || undefined });
+let landedName = "", landedAuthor = "";   // what a shared link arrived with (fromHash -> the boot code)
 async function fromHash() {
   // Two link forms. #d= is what the share button mints: gzipped, base64url, short. #layout= is the
   // same JSON, just URL-encoded -- longer, but writable by anyone, including an agent in a chat
@@ -3777,8 +3799,11 @@ async function fromHash() {
   try {
     const json = plain ? decodeURIComponent(plain[1])
       : new TextDecoder().decode(await pipe(unb64u(m[1]), new DecompressionStream("gzip")));
-    const dropped = loadLayout(JSON.parse(json));
-    note(t("note.fromlink") + droppedSuffix(dropped), 6000);
+    const doc = JSON.parse(json);
+    landedName = typeof doc.name === "string" ? doc.name.trim().slice(0, 60) : "";
+    landedAuthor = typeof doc.author === "string" ? doc.author.trim().slice(0, 40) : "";
+    const dropped = loadLayout(doc);
+    note((landedAuthor ? t("note.fromlink.by", { author: landedAuthor }) : t("note.fromlink")) + droppedSuffix(dropped), 6000);
     return true;
   } catch (e) { note(t("note.badlink", { err: e.message }), 5000); return false; }
 }
@@ -4017,7 +4042,8 @@ async function exportPng({ deliver = true, layout = "plate", aspect = "4:3", sca
     faint(.55, () => {
       const date = new Date().toISOString().slice(0, 10);
       ctx.fillText(date, W - M - ctx.measureText(date).width, M + 44);
-      ctx.fillText("Siqi's IGT Planner · igt.iqis.app", M, M + 84);
+      const by = authorOf();
+      ctx.fillText(`${by ? t("plate.by", { author: by }) + " · " : ""}Siqi's IGT Planner · igt.iqis.app`, M, M + 84);
     });
 
     const top = M + HEAD;
@@ -4158,7 +4184,7 @@ const PUBLIC_SITE = "https://igt.iqis.app";
 /** The page as a link: gzipped JSON in the hash. Null where the browser cannot compress. */
 async function makeShareUrl() {
   try {
-    const json = new TextEncoder().encode(JSON.stringify(serializeLayout()));
+    const json = new TextEncoder().encode(JSON.stringify(shareDoc()));
     const gz = await pipe(json, new CompressionStream("gzip"));
     return `${location.origin}${location.pathname}#d=${b64u(gz)}`;
   } catch { return null; }
@@ -4203,11 +4229,25 @@ async function openShareCard(btn) {
     c.append(cardHead(t("share.title"), t(short ? "share.sub.short" : "share.sub")));
     if (!url) { c.append(el("p", "cnote", t("share.nolink"))); return; }
     if (!short && url.length > 8000) c.append(el("p", "cnote warn", t("share.long", { k: (url.length / 1000).toFixed(1) })));
+    // Sign it (optional, remembered in this browser). The link carries the name, so a change re-mints it.
+    const sign = el("div", "csign");
+    const who = el("input", "cfield");
+    who.type = "text"; who.maxLength = 40; who.value = myName(); who.placeholder = t("share.author.ph");
+    who.setAttribute("aria-label", t("share.author"));
+    const commitName = () => {
+      const v = who.value.trim();
+      if (v === myName()) return;
+      try { v ? localStorage.setItem(LS_AUTHOR, v) : localStorage.removeItem(LS_AUTHOR); } catch {}
+      closeCard(); openShareCard(btn);
+    };
+    who.onchange = commitName;
+    who.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); commitName(); } };
+    sign.append(el("label", "", t("share.author")), who, el("p", "cnote", t("share.author.note")));
     const row = el("div", "crow");
     const field = el("input", "cfield"); field.readOnly = true; field.value = url;
     field.onfocus = () => field.select();
     row.append(field, cardBtn(`${icon("copy")}<span>${t("common.copy")}</span>`, () => copyText(url, t("share.link")), "primary"));
-    c.append(row);
+    c.append(sign, row);
     const title = t("share.post", { name: activePage()?.name || t("share.adesign") });
     const grid = el("div", "cgrid");
     for (const [key, label, make, max] of SOCIAL) {
@@ -4891,15 +4931,17 @@ paintFiles();
       // First free EXACT name, not a count: counting /^Shared/ matches minted duplicates
       // the moment a page was renamed or deleted ("Shared with Ben" inflated it too).
       const taken = new Set(book.pages.map(p => p.name));
-      let name = "Shared";
-      for (let i = 2; taken.has(name); i++) name = `Shared ${i}`;
+      const base = landedName || "Shared";
+      let name = base;
+      for (let i = 2; taken.has(name); i++) name = `${base} ${i}`;
       const id = pageSeq++;
-      book.pages.push({ id, name, doc: serializeLayout() });
+      book.pages.push({ id, name, doc: serializeLayout(), ...(landedAuthor ? { author: landedAuthor } : {}) });
       book.activeId = id;
       lsPut(LS_PAGES, book); lsPut(LS_SCENE, activePage().doc);
       paintPager();
     } else {
-      adoptAsBook("Shared");
+      adoptAsBook(landedName || "Shared");
+      if (landedAuthor) { activePage().author = landedAuthor; lsPut(LS_PAGES, book); paintPager(); }
     }
     return;
   }
