@@ -4213,13 +4213,17 @@ async function copyText(text, what) {
   catch { prompt(t("note.copythis", { what }), text); return false; }
 }
 // Where a link can go. `max` = the service's limit on text + link, where it has one that bites.
+// One tag, every language, so every shared layout can be found in one place. It is in the TEXT that
+// goes with a link, never in the link (whose # carries the design). Reddit titles and LINE take none.
+const TAG = "IGTLayout";
+const tagged = text => `${text} #${TAG}`;
 const SOCIAL = [
-  ["x", "X", (u, t) => `https://x.com/intent/post?text=${encodeURIComponent(t)}&url=${encodeURIComponent(u)}`],
-  ["facebook", "Facebook", u => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}`],
+  ["x", "X", (u, t) => `https://x.com/intent/post?text=${encodeURIComponent(t)}&url=${encodeURIComponent(u)}&hashtags=${TAG}`],
+  ["facebook", "Facebook", u => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}&hashtag=${encodeURIComponent("#" + TAG)}`],
   ["reddit", "Reddit", (u, t) => `https://www.reddit.com/submit?url=${encodeURIComponent(u)}&title=${encodeURIComponent(t)}`],
-  ["whatsapp", "WhatsApp", (u, t) => `https://wa.me/?text=${encodeURIComponent(`${t} ${u}`)}`],
+  ["whatsapp", "WhatsApp", (u, t) => `https://wa.me/?text=${encodeURIComponent(`${tagged(t)} ${u}`)}`],
   ["line", "LINE", u => `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(u)}`],
-  ["telegram", "Telegram", (u, t) => `https://t.me/share/url?url=${encodeURIComponent(u)}&text=${encodeURIComponent(t)}`],
+  ["telegram", "Telegram", (u, t) => `https://t.me/share/url?url=${encodeURIComponent(u)}&text=${encodeURIComponent(tagged(t))}`],
 ];
 async function openShareCard(btn) {
   const full = await makeShareUrl();
@@ -4274,7 +4278,7 @@ async function openShareCard(btn) {
       qrBox.hidden = false;
     }, "csocial");
     const xhs = cardBtn(`${brand("xiaohongshu", 18)}<span>RedNote</span>`, async () => {
-      await copyText(`${title}
+      await copyText(`${tagged(title)}
 ${url}`, t("share.caption"));
       try { localStorage.setItem("igt.photo.layout", "view"); localStorage.setItem("igt.photo.aspect", "3:4"); } catch {}
       openPhotoCard($("pngbtn"));
@@ -4282,10 +4286,10 @@ ${url}`, t("share.caption"));
     }, "csocial");
     grid.append(wechat, xhs);
     const mail = el("a", "csocial", `${icon("mail", 18)}<span>${t("share.email")}</span>`);
-    mail.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(url)}`;
+    mail.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`${url}\n\n#${TAG}`)}`;
     grid.append(mail);
     if (navigator.share) grid.append(cardBtn(`${icon("share", 18)}<span>${t("share.more")}</span>`,
-      () => navigator.share({ title, url }).catch(() => {}), "csocial"));
+      () => navigator.share({ title, text: tagged(title), url }).catch(() => {}), "csocial"));
     c.append(grid, qrBox);
     const foot = el("div", "cfoot");
     foot.append(cardBtn(`${icon("camera")}<span>${t("share.picture")}</span>`, () => openPhotoCard($("pngbtn")), "link"));
