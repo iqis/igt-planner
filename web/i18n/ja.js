@@ -430,4 +430,6 @@ export default {
   "note.fromlink.by": "{author} さんから共有されたデザイン——もうあなたのものです。保存かエクスポートで残してください",
   "page.by": "作成：{author}",
   "plate.by": "作成 {author}",
+  "about.localbuild": "ローカルビルド",
+  "about.devbadge": "開発版：実験的な機能あり、不安定な場合があります——正式版は igt.iqis.app",
 };

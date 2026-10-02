@@ -430,4 +430,6 @@ export default {
   "note.fromlink.by": "{author} 分享给你的设计——现在归你了；保存或导出以留存",
   "page.by": "作者：{author}",
   "plate.by": "作者 {author}",
+  "about.localbuild": "本地构建",
+  "about.devbadge": "测试站：含实验功能，可能出错——正式站是 igt.iqis.app",
 };

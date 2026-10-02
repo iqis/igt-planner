@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { materialFor, roundedBox, boardMaterial, grainMaterial } from "./materials.js";
-import { PUBLIC, GRAIN_MEANS } from "./build.js";
+import { PUBLIC, GRAIN_MEANS, CHANNEL, EXPERIMENTAL, VERSION, COMMIT } from "./build.js";
 import { proceduralGrain } from "./proctex.js";
 import { icon, brand } from "./icons.js";
 import qrcode from "./vendor/qrcode.mjs";
@@ -4178,7 +4178,7 @@ function segmented(key, options, fallback, onChange) {
   box.value = () => cur;
   return box;
 }
-const PUBLIC_SITE = "https://igt.iqis.app";
+const PUBLIC_SITE = CHANNEL === "dev" ? "https://igt-dev.iqis.app" : "https://igt.iqis.app";
 
 // ---- share ----------------------------------------------------------------------------------------
 /** The page as a link: gzipped JSON in the hash. Null where the browser cannot compress. */
@@ -4448,6 +4448,19 @@ $("langbtn").onclick = e => {
     }
   });
 };
+
+// Which build this is: the About modal says the version (and commit), and the dev site says DEV in the
+// header so nobody mistakes it for the real one. Experimental features switch on here.
+{
+  const v = $("version");
+  if (v) v.textContent = VERSION ? `v${VERSION}${CHANNEL === "dev" ? "+dev" : ""}${COMMIT ? ` · ${COMMIT}` : ""}` : t("about.localbuild");
+  if (CHANNEL === "dev") {
+    const badge = el("span", "devbadge", "DEV");
+    badge.title = t("about.devbadge");
+    document.querySelector("header .brand")?.after(badge);
+  }
+  if (EXPERIMENTAL) document.querySelector(".hlink.ai")?.removeAttribute("hidden");
+}
 
 // About. A click on the backdrop (the dialog element itself, outside its box) closes it too.
 const infoModal = $("infomodal");
@@ -4864,7 +4877,8 @@ try {
   el.hidden = false;                       // no timer: this note has nowhere to go
   throw e;
 }
-loadCatalog({ catalog: catFiles[0], colors: catFiles[1], textures: catFiles[2], fittings: catFiles[3] });
+loadCatalog({ catalog: catFiles[0], colors: catFiles[1], textures: catFiles[2], fittings: catFiles[3],
+  experimental: EXPERIMENTAL });
 
 // A way in from the console. Being able to put the camera straight overhead is how you
 // check a silhouette; orbiting by hand and squinting is how you convince yourself.

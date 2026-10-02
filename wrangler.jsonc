@@ -24,5 +24,16 @@
   "routes": [
     { "pattern": "igt.iqis.app", "custom_domain": true },
     { "pattern": "igt.gardenplace.cc", "custom_domain": true }
-  ]
+  ],
+  // The public DEV site: the same Worker on its own name, domain, short-link store and assets
+  // (dist-dev/, built with experimental features on and noindex). `npx wrangler deploy --env dev`.
+  "env": {
+    "dev": {
+      "name": "igt-planner-dev",
+      "assets": { "directory": "./dist-dev", "binding": "ASSETS", "run_worker_first": ["/api/*", "/s/*"] },
+      "kv_namespaces": [{ "binding": "SHORT", "id": "5272ab4d55784ca8a5ed3ce739844ad5" }],
+      "ratelimits": [{ "name": "MINT", "namespace_id": "1002", "simple": { "limit": 20, "period": 60 } }],
+      "routes": [{ "pattern": "igt-dev.iqis.app", "custom_domain": true }]
+    }
+  }
 }

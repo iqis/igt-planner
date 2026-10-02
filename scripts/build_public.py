@@ -15,12 +15,14 @@ the public build is the same app with the photographs taken out:
 Only the four catalog files the app fetches are copied. Plus Cloudflare Pages' _redirects (bare
 / lands on the app, as serve.py does) and _headers (serve.py's caching, for the same reasons).
 
-    py scripts/build_public.py            # -> dist/
+    py scripts/build_public.py            # -> dist/      (prod: igt.iqis.app)
+    py scripts/build_public.py dev        # -> dist-dev/  (dev:  igt-dev.iqis.app -- experimental on, noindex)
     py serve.py --root dist --port 8818   # look at it before deploying
-    npx wrangler pages deploy dist --project-name igt-planner
+    py scripts/deploy.py prod|dev         # build + smoke + deploy (+ tag a prod release)
 """
 import json
 import subprocess
+import sys
 import re
 import shutil
 from pathlib import Path
@@ -30,7 +32,22 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
-DIST = ROOT / "dist"
+CHANNEL = sys.argv[1] if len(sys.argv) > 1 else "prod"
+if CHANNEL not in ("prod", "dev"):
+    raise SystemExit("usage: build_public.py [prod|dev]")
+DIST = ROOT / ("dist" if CHANNEL == "prod" else "dist-dev")
+VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+
+
+def commit():
+    try:
+        sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True,
+                             text=True, check=True).stdout.strip()
+        dirty = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True,
+                               text=True, check=True).stdout.strip()
+        return sha + ("*" if dirty else "")       # * = built from uncommitted changes
+    except Exception:
+        return ""
 
 # Ours: generated, not cropped out of anyone's photograph. Keep in step with PHOTO_FREE in app.js.
 PHOTO_FREE = {"brushed_steel.jpg", "canvas.jpg", "chair_mesh.png"}
@@ -127,7 +144,13 @@ def main():
     build, n1 = re.subn(r"export const PUBLIC = false;", "export const PUBLIC = true;", build)
     build, n2 = re.subn(r"export const GRAIN_MEANS = \{\};",
                         "export const GRAIN_MEANS = " + json.dumps(means) + ";", build)
-    if n1 != 1 or n2 != 1:
+    stamps = {"CHANNEL": json.dumps(CHANNEL), "EXPERIMENTAL": "true" if CHANNEL == "dev" else "false",
+              "VERSION": json.dumps(VERSION), "COMMIT": json.dumps(commit())}
+    n3 = 0
+    for k, v in stamps.items():
+        build, n = re.subn(rf"export const {k} = [^;]*;", f"export const {k} = {v};", build)
+        n3 += n
+    if n1 != 1 or n2 != 1 or n3 != len(stamps):
         raise SystemExit("build.js no longer has the lines this script rewrites")
     (DIST / "web" / "build.js").write_text(build, encoding="utf-8")
 
@@ -139,9 +162,15 @@ def main():
     (DIST / "web" / "ai.html").write_text(AI_PAGE.replace("{{BODY}}", body), encoding="utf-8")
 
     # One page per part (dist/p/<SKU>/), drawn by the built planner itself -- so it runs on dist/.
-    subprocess.run(["node", str(ROOT / "scripts" / "part_pages.mjs"), str(DIST)], check=True)
+    subprocess.run(["node", str(ROOT / "scripts" / "part_pages.mjs"), str(DIST), CHANNEL], check=True)
 
-    (DIST / "_headers").write_text(HEADERS, encoding="utf-8")
+    headers = HEADERS
+    if CHANNEL == "dev":
+        # the dev site is public but not for search: it must never outrank the real one
+        headers += "/*\n  X-Robots-Tag: noindex, nofollow\n"
+        (DIST / "robots.txt").write_text("User-agent: *\nDisallow: /\n", encoding="utf-8")
+        (DIST / "sitemap.xml").unlink(missing_ok=True)
+    (DIST / "_headers").write_text(headers, encoding="utf-8")
     (DIST / "_redirects").write_text(REDIRECTS, encoding="utf-8")
 
     # The point of the exercise, checked rather than trusted.
@@ -152,7 +181,8 @@ def main():
         raise SystemExit(f"photographs in dist/: {leaked}")
     files = [p for p in DIST.rglob("*") if p.is_file()]
     size = sum(p.stat().st_size for p in files)
-    print(f"dist/: {len(files)} files, {size / 1e6:.1f} MB; {len(means)} grains drawn procedurally")
+    print(f"{DIST.name}/ ({CHANNEL} v{VERSION}): {len(files)} files, {size / 1e6:.1f} MB; "
+          f"{len(means)} grains drawn procedurally")
 
 
 if __name__ == "__main__":

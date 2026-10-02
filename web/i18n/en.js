@@ -430,4 +430,6 @@ export default {
   "note.fromlink.by": "{author} shared this with you — it is yours now; save or export to keep it",
   "page.by": "by {author}",
   "plate.by": "by {author}",
+  "about.localbuild": "local build",
+  "about.devbadge": "the dev site: experimental features, may break — the real one is igt.iqis.app",
 };

@@ -17,12 +17,13 @@ import * as core from "../web/core.js";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const DIST = resolve(ROOT, process.argv[2] || "dist");
-const SITE = "https://igt.iqis.app";
+const CHANNEL = process.argv[3] || "prod";
+const SITE = CHANNEL === "dev" ? "https://igt-dev.iqis.app" : "https://igt.iqis.app";
 const PORT = 8819;
 
 const cat = f => JSON.parse(readFileSync(join(ROOT, "catalog", f), "utf8"));
 core.loadCatalog({ catalog: cat("igt-catalog.json"), colors: cat("colors.json"),
-  textures: cat("textures.json"), fittings: cat("frame_fittings.json") });
+  textures: cat("textures.json"), fittings: cat("frame_fittings.json"), experimental: CHANNEL === "dev" });
 const PARTS = core.PARTS;
 const parts = core.pageParts();
 const listed = new Set(parts.map(p => p.sku));

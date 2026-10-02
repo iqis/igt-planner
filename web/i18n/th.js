@@ -430,4 +430,6 @@ export default {
   "note.fromlink.by": "{author} แชร์ดีไซน์นี้ให้คุณ — ตอนนี้เป็นของคุณแล้ว บันทึกหรือส่งออกเพื่อเก็บไว้",
   "page.by": "โดย {author}",
   "plate.by": "โดย {author}",
+  "about.localbuild": "บิลด์ในเครื่อง",
+  "about.devbadge": "เว็บทดสอบ: มีฟีเจอร์ทดลอง อาจพัง — เว็บจริงคือ igt.iqis.app",
 };

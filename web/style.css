@@ -1093,6 +1093,9 @@ body.compact .egrid { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 1
 #popcard .csign .cnote { margin: 0; font-size: .7rem; }
 #popcard .csign input { font-family: var(--sans); }
 
+.iversion { font: .72rem var(--mono); color: var(--faint) !important; margin-top: .8rem !important; }
+.devbadge { align-self: center; margin-left: .45rem; padding: .05rem .4rem; border-radius: 4px; font: 600 .62rem var(--mono);
+  letter-spacing: .06em; color: #fff; background: #c2410c; }
 .hlink[hidden] { display: none; }   /* .hlink sets inline-flex padding etc.; [hidden] must still win */
 
 

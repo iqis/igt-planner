@@ -1265,7 +1265,7 @@ export const FIGURES = [
 /** Load the four catalog files (the same JSON the planner fetches) and derive everything the rules
  *  read from them. Call once, before anything else; a browser, Node or a Worker all call it the same
  *  way. Returns PARTS for convenience. */
-export function loadCatalog({ catalog, colors, textures, fittings }) {
+export function loadCatalog({ catalog, colors, textures, fittings, experimental = false }) {
   CAT = catalog;
   COLORS = colors.colors;
   TEXTURES = textures.textures;
@@ -1320,7 +1320,7 @@ export function loadCatalog({ catalog, colors, textures, fittings }) {
     // Tarps only. The tents and shells are still in the catalog (an old layout with one still opens
     // and draws), but they are not offered: their models are not good enough to put in front of
     // anyone (owner, 2026-10-02). A tarp is a pitched membrane on poles -- that, we draw well.
-    shelter: by("shelter").filter(p => p.geometry && p.shelter_type === "tarp")
+    shelter: by("shelter").filter(p => p.geometry && (experimental || p.shelter_type === "tarp"))
       .sort((a, b) => (a.shelter_type || "").localeCompare(b.shelter_type || "") || a.title_en.localeCompare(b.title_en)),
     unsourced: inScope.filter(p => hookRoles(p) && !HOOKABLE.includes(p)),
   };
