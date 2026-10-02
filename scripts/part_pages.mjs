@@ -64,7 +64,6 @@ function page(p, info, shot) {
     ["Weight", info.weight_g && `${(info.weight_g / 1000).toFixed(2)} kg · ${(info.weight_g / 453.592).toFixed(1)} lb`],
     ["Units", info.units ? `${info.units}u` : info.span_half_units ? `${info.span_half_units / 2}u` : ""],
     ["Height", info.height_mm && `${info.height_mm} mm`], ["Seat height", info.seat_h_mm && `${info.seat_h_mm} mm`],
-    ["Sold", p.region_exclusive === "jp" ? "in Japan only" : ""],
   ].filter(([, v]) => v);
   const site = p.url?.us || p.url?.jp;
   const notWith = Object.entries(info.not_with || {}).map(([s, why]) => {

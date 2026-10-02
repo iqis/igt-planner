@@ -1733,9 +1733,11 @@ function placementBtn(n) {
       () => { detachNode(n); n.floating = true; n.locked = false; selectOnly(n.id); render();
               note(t("note.detached")); });
   const fixed = !!n.locked;
-  return toolBtn(fixed ? ib("unlock", t("tool.unlock")) : (n.floating ? ib("anchor", t("tool.place")) : ib("lock", t("tool.lock"))),
-    fixed ? t("tool.unlock.tip")
-      : (n.floating ? t("tool.place.tip") : t("tool.lock.tip")),
+  // One pair of words for one switch: "place" WAS lock under another name (it set exactly the same
+  // state), and two names for one thing read as two things. The word stays visible while the part is
+  // still floating, because that is when the button matters.
+  return toolBtn(fixed ? ib("unlock", t("tool.unlock")) : ib("lock", t("tool.lock")),
+    fixed ? t("tool.unlock.tip") : t("tool.lock.tip"),
     n.floating && !fixed ? "ib keep" : "ib",
     () => { if (fixed) { n.locked = false; n.floating = true; } else { n.locked = true; n.floating = false; } render(); });
 }
@@ -4591,7 +4593,6 @@ function openPartPage(sku, { push = false } = {}) {
   spec(t("pp.height"), info.height_mm && `${info.height_mm} mm`);
   spec(t("pp.seat"), info.seat_h_mm && `${info.seat_h_mm} mm`);
   if (ja) spec(t("pp.material"), info.material_jp);
-  if (p.region_exclusive === "jp") spec(t("pp.where"), t("pp.jponly"));
   body.append(dl);
 
   // where it goes, and what goes on it -- each grouped by where
