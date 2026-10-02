@@ -423,4 +423,5 @@ export default {
   "tarp.corner.recta.CR1": "오른쪽 앞 모서리",
   "tarp.corner.recta.CR2": "오른쪽 뒤 모서리",
   "about.contrib": "코드, 부품 카탈로그, 측정한 규칙 — 모두 공개되어 있습니다. 데이터를 자유롭게 쓰고, <a href=\"https://github.com/iqis/igt-planner/fork\" target=\"_blank\" rel=\"noopener\">fork</a>해서 <a href=\"https://github.com/iqis/igt-planner/pulls\" target=\"_blank\" rel=\"noopener\">pull request</a>를 보내 주세요: 빠진 부품, 더 정확한 측정, 번역, 새로운 아이디어 모두 환영합니다.",
+  "tarp.guyedsize": "스트링과 팩 포함: {w} × {d} m",
 };

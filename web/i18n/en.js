@@ -423,4 +423,5 @@ export default {
   "tarp.corner.recta.CR1": "Front right corner",
   "tarp.corner.recta.CR2": "Back right corner",
   "about.contrib": "Everything here is open — the code, the parts catalog, the measured rules. Build on the data, <a href=\"https://github.com/iqis/igt-planner/fork\" target=\"_blank\" rel=\"noopener\">fork it</a>, and send a <a href=\"https://github.com/iqis/igt-planner/pulls\" target=\"_blank\" rel=\"noopener\">pull request</a>: a missing part, a better measurement, a translation, a whole new idea.",
+  "tarp.guyedsize": "With ropes and pegs: {w} × {d} m",
 };

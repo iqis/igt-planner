@@ -84,9 +84,12 @@ export const SUB_POLES = [1900, 1700, 1250];                // uprights: TP-080,
 export const LEANS = [0, 5, 10, 15];
 // The ridge's dip as a fraction of its span (see solvePitch). 2% is ~11 cm on a Hexa L: barely there.
 export const RIDGE_SAG = 0.02;
+// One leg of a main pole's 二又 rope (the set's 10 m 二又, doubled). With it, the solved pegs put the
+// HD Hexa L's guyed footprint within ~5-8% of Snow Peak's published 780 x 1220 cm (smoke holds 10%).
+export const MAIN_ROPE_LEG = 5000;
 
 // Calibrated (see the header): per unit of cloth weight, the pull of a main rope and of a guy.
-const TUNE = { gravity: 1, guy: 500, guyDown: 1.2, steps: 600, iters: 16, N: 8, K: 6, shear: 0.35 };
+const TUNE = { gravity: 1, guy: 500, steps: 600, iters: 16, N: 8, K: 6, shear: 0.35 };
 
 export const pitchOf = (sku, p = {}) => {
   const pat = PATTERNS[sku];
@@ -237,22 +240,37 @@ export function solvePitch(sku, pitch) {
   // A corner's pull goes into the cloth through its reinforcement patch, not one point: spread it
   // over the nodes within ~40 cm of the corner (weighted toward it), or the solver tears the corner.
   const PATCH = 400;
-  for (const a of anchors) {
-    if (a.role === "tip") continue;          // the tips are pinned with the ridge
-    const f = TUNE.guy * g * per;
-    const down = a.pole ? 0 : TUNE.guyDown;
-    const h = Math.hypot(1, down);
-    const c0 = mesh.pts[a.node];
-    const near = [];
+  // Each anchor's patch: the nodes its pull is spread over, weighted toward the corner.
+  const patches = anchors.filter(a => a.role !== "tip").map(a => {
+    const c0 = mesh.pts[a.node], near = [];
     mesh.pts.forEach((q, i) => { const d = Math.hypot(q.x - c0.x, q.z - c0.z); if (d < PATCH) near.push([i, 1 - d / PATCH]); });
     const wsum = near.reduce((t, [, w]) => t + w, 0);
-    for (const [i, w] of near) {
-      const fi = f * w / wsum;
-      force[3 * i] += a.u.x * fi / h;
-      force[3 * i + 2] += a.u.z * fi / h;
-      force[3 * i + 1] -= fi * down / h;
+    return { a, near: near.map(([i, w]) => [i, w / wsum]) };
+  });
+  const gravity = Float64Array.from(force);
+  // A guyed corner's rope has a LENGTH (the manual: 2 m on the long wing, 3 m on the short), and it
+  // runs straight from the corner down to its peg -- so its slope is not a free number: a corner at
+  // height h on a rope of length L pulls along h / sqrt(L^2 - h^2). The pull's direction is
+  // re-aimed as the corner settles. (A fixed "down" angle was the knob that decided everything,
+  // and it put the Hexa L's guyed footprint 1.6 m narrower than Snow Peak publishes.)
+  const aimGuys = () => {
+    force.set(gravity);
+    for (const { a, near } of patches) {
+      const f = TUNE.guy * g * per;
+      let down = 0;
+      if (!a.pole) {
+        const h = Math.max(0, x[3 * a.node + 1]), L = a.rope || 2000;
+        down = h / Math.sqrt(Math.max(L * L - h * h, (0.05 * L) ** 2));
+      }
+      const k = Math.hypot(1, down);
+      for (const [i, w] of near) {
+        force[3 * i] += a.u.x * f * w / k;
+        force[3 * i + 2] += a.u.z * f * w / k;
+        force[3 * i + 1] -= f * w * down / k;
+      }
     }
-  }
+  };
+  aimGuys();
   // constraints as flat typed arrays: this loop runs ~10 million times per pitch
   const nC = mesh.C.length;
   const CA = new Int32Array(nC), CB = new Int32Array(nC), CR = new Float64Array(nC), CW = new Float64Array(nC);
@@ -260,6 +278,7 @@ export function solvePitch(sku, pitch) {
   const pinN = [...fixedY.keys()].map(k => 3 * k + 1), pinY = [...fixedY.values()];
   const fullN = [...fixed.keys()].map(k => 3 * k), fullP = [...fixed.values()];
   for (let step = 0; step < TUNE.steps; step++) {
+    if (step % 20 === 0) aimGuys();
     // Verlet with heavy damping: we want the resting shape, not the flapping
     for (let i = 0; i < nP * 3; i++) {
       const v = (x[i] - prev[i]) * 0.86;
@@ -319,18 +338,33 @@ export function solvePitch(sku, pitch) {
     pts, tris: mesh.tris, outline, ridge: mesh.ridge, edgeN: TUNE.N,   // outline[e * edgeN] is ring vertex e: the corners
     anchors: anchors.map(a => {
       const at = pts[a.node];
-      if (!a.pole) return { name: a.name, role: a.role, side: a.side, pole: null, rope: a.rope, at };
+      // Where its rope(s) meet the ground, ropes straight and taut. A main pole: two 二又 legs, 45 deg
+      // either side of the ridge. A guyed corner: its own rope (2 m / 3 m) out along the line from the
+      // centre. A sub-pole: its guy out along that line at 45 deg.
+      const cl = Math.hypot(at.x, at.z) || 1, ox = at.x / cl, oz = at.z / cl;
+      let pegs;
+      if (a.role === "tip") {
+        const reach = Math.sqrt(Math.max(0, MAIN_ROPE_LEG ** 2 - at.y ** 2)), s = a.name === "T" ? 1 : -1;
+        pegs = [-1, 1].map(side => ({ x: at.x + side * reach * Math.SQRT1_2, z: at.z + s * reach * Math.SQRT1_2 }));
+      } else {
+        const reach = a.pole ? at.y : Math.sqrt(Math.max(0, (a.rope || 2000) ** 2 - at.y ** 2));
+        pegs = [{ x: at.x + ox * reach, z: at.z + oz * reach }];
+      }
+      if (!a.pole) return { name: a.name, role: a.role, side: a.side, pole: null, rope: a.rope, at, pegs };
       // the foot: inboard of the top, along the pull -- the ridge for a main pole, the line from the
       // centre through the corner for a sub-pole
       let ux = 0, uz = a.name === "T" ? 1 : -1;
       if (a.role !== "tip") { const l = Math.hypot(at.x, at.z) || 1; ux = at.x / l; uz = at.z / l; }
       const off = a.pole * Math.sin(lean);
-      return { name: a.name, role: a.role, side: a.side, pole: a.pole, rope: a.rope, at,
+      return { name: a.name, role: a.role, side: a.side, pole: a.pole, rope: a.rope, at, pegs,
         foot: { x: at.x - ux * off, y: 0, z: at.z - uz * off } };
     }),
     ridgeLow, cornerLow, area_m2: Math.abs(area) / 2 / 1e6,
     span: { w: Math.max(...ox2) - Math.min(...ox2), d: Math.max(...oz2) - Math.min(...oz2) },
   };
+  const gx = [...ox2, ...res.anchors.flatMap(a => a.pegs.map(p => p.x))];
+  const gz = [...oz2, ...res.anchors.flatMap(a => a.pegs.map(p => p.z))];
+  res.guyed = { w: Math.max(...gx) - Math.min(...gx), d: Math.max(...gz) - Math.min(...gz) };
   solveCache.set(key, res);
   return res;
 }

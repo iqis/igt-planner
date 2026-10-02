@@ -3620,21 +3620,10 @@ export function clothTarpGroup(sol, { color = 0x8a7460 } = {}) {
       m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), top.clone().sub(foot).normalize());
       g.add(m);
     }
-    if (a.role === "tip") {
-      // 二又: two guys from the pole top, 45 degrees either side of the ridge, at ~45 degrees down
-      for (const s of [-1, 1]) {
-        const c = Math.cos(Math.PI / 4), sn = Math.sin(Math.PI / 4) * s;
-        const dx = ux * c - uz * sn, dz = ux * sn + uz * c;
-        const sx = p.x + dx * p.y, sz = p.z + dz * p.y;
-        guys.push(new THREE.Vector3(p.x * MM, p.y * MM, p.z * MM), new THREE.Vector3(sx * MM, 0, sz * MM));
-        stake(sx, sz);
-      }
-    } else {
-      // a wing guy: out along the centre line, down at the rope's angle (steeper for a guyed corner)
-      const reach = a.pole ? p.y : p.y / 1.2;
-      const sx = p.x + ux * reach, sz = p.z + uz * reach;
-      guys.push(new THREE.Vector3(p.x * MM, p.y * MM, p.z * MM), new THREE.Vector3(sx * MM, 0, sz * MM));
-      stake(sx, sz);
+    // the ropes, to the pegs tarp.js solved (taut, straight, of the manual's lengths)
+    for (const pg of a.pegs || []) {
+      guys.push(new THREE.Vector3(p.x * MM, p.y * MM, p.z * MM), new THREE.Vector3(pg.x * MM, 0, pg.z * MM));
+      stake(pg.x, pg.z);
     }
   }
   g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(guys),

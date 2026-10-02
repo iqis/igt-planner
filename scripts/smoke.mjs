@@ -71,8 +71,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     && jik.nodes.every(n => n.top_mm === 400), JSON.stringify({ p: jik.problems, tops: jik.nodes.map(n => n.top_mm) }));
   // the part page's two lists come from the same rules as the menus: a box goes in a frame's bay,
   // a frame takes boards at its ends
-  // the tarp is cloth, pitched taut: the ridge runs pole top to pole top with only a gentle dip, Snow Peak's own setup (HD Hexa L on 280 + 240, wings guyed) drops the wide wings to ~0.2 of
-  // the pole as on the product hero, and raising the wings on sub-poles buys covered ground
+  // the tarp is cloth, pitched taut: the ridge runs pole top to pole top with only a gentle dip, and
+  // raising the wings on sub-poles buys covered ground
   const tarp = await import("../web/tarp.js");
   const hexaL = tarp.solvePitch("TP-862", {}), raised = tarp.solvePitch("TP-862", { left: 1900, right: 1900 });
   const ridgeOff = (() => { const T = hexaL.anchors.find(a => a.name === "T").at, B = hexaL.anchors.find(a => a.name === "B").at;
@@ -81,9 +81,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("tarp: a taut ridge dips only gently", hexaL.ok && ridgeOff > 50 && ridgeOff < 200, `${ridgeOff.toFixed(0)} mm below the pole-to-pole line`);
   const one = tarp.solvePitch("TP-862", { corners: { NR: 1900 } });
   const ys = Object.fromEntries(one.anchors.filter(a => a.role === "corner").map(a => [a.name, Math.round(a.at.y)]));
-  check("tarp: one sub-pole lifts one corner", one.ok && ys.NR > 1850 && ys.NL < 1300 && ys.WR < 1300, JSON.stringify(ys));
-  check("tarp: Hexa L's guyed wings ride where the hero shows", hexaL.cornerLow > 380 && hexaL.cornerLow < 720,
-    `lowest corner ${Math.round(hexaL.cornerLow)} mm`);
+  const y0 = Object.fromEntries(hexaL.anchors.filter(a => a.role === "corner").map(a => [a.name, Math.round(a.at.y)]));
+  check("tarp: one sub-pole lifts one corner", one.ok && ys.NR > 1850
+    && ["NL", "WR", "WL"].every(k => Math.abs(ys[k] - y0[k]) < 150), `${JSON.stringify(ys)} vs ${JSON.stringify(y0)}`);
+  // the calibration: Snow Peak publishes the Hexa L's guyed footprint, 780 x 1220 cm -- the solved
+  // cloth, ropes of the manual's lengths and their pegs land within 10% of it
+  check("tarp: Hexa L pegs out where Snow Peak says (780 x 1220 cm)",
+    Math.abs(hexaL.guyed.w / 7800 - 1) < 0.1 && Math.abs(hexaL.guyed.d / 12200 - 1) < 0.1,
+    `${(hexaL.guyed.w / 1000).toFixed(2)} x ${(hexaL.guyed.d / 1000).toFixed(2)} m`);
   check("tarp: sub-poles on the wings cover more ground", raised.ok && raised.area_m2 > hexaL.area_m2 + 1,
     `${hexaL.area_m2.toFixed(1)} -> ${raised.area_m2.toFixed(1)} m2`);
   const tarpBad = Object.keys(tarp.PATTERNS).filter(sku => !tarp.solvePitch(sku, {}).ok);

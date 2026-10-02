@@ -41,9 +41,12 @@
 > ridge length; links are TENSION-ONLY and the bias (quad diagonals) is soft -- rigid diagonals or
 > compression-resisting links pleated the cloth under a dipping ridge; gravity is weighted by node AREA;
 > guyed wings pull out+down along the centre line, sub-poles pin a corner's height; poles LEAN (0-15 deg,
-> default 5): top = length x cos, foot inboard by length x sin. Guy tension CALIBRATED so HD Hexa L's
-> wide wings ride ~0.2 of the pole (product hero); smoke holds straight ridge + that + sub-poles adding
-> area. Node state `n.pitch = {a, b, corners: {NR,WR,WL,NL | CR1..}, lean}` (each wing corner its own
+> default 5): top = length x cos, foot inboard by length x sin. Guy ropes have LENGTHS (manual: 2 m / 3 m,
+> 10 m 二又 mains) and pull along the straight rope to their peg, re-aimed as the corner settles; the
+> pegs are solved too (`sol.anchors[].pegs`, `sol.guyed`), and CALIBRATION = Snow Peak's published
+> guyed footprint (Hexa L 780 x 1220 -> solved 7.2 x 11.7, smoke holds 10%). The earlier photo-based
+> 0.2h wing height was wrong: matching the footprint puts guyed wide wings ~1.0 m, Hexa L ~13 m2.
+> Smoke also holds the gentle ridge dip, single-corner sub-pole, sub-poles adding area. Node state `n.pitch = {a, b, corners: {NR,WR,WL,NL | CR1..}, lean}` (each wing corner its own
 > sub-pole or null=guyed; `left`/`right` still read as a side's default) (in INTENT; legacy numeric `config` = both
 > poles). Patterns: TP-861/862 from the manual drawing (not to scale; narrow end 400 / wide end 500 --
 > NOT symmetric end to end), TP-440/851 estimated from them, Rectas = published rectangle.

@@ -1587,6 +1587,13 @@ function fillActions(box, n) {
         w: (sol.span.w / 1000).toFixed(1), d: (sol.span.d / 1000).toFixed(1) })
       : t("tarp.short");
     box.append(out);
+    if (sol.ok) {
+      const pegged = document.createElement("div");
+      pegged.className = "pnote";
+      pegged.style.marginTop = ".1rem";
+      pegged.textContent = t("tarp.guyedsize", { w: (sol.guyed.w / 1000).toFixed(1), d: (sol.guyed.d / 1000).toFixed(1) });
+      box.append(pegged);
+    }
     const src = document.createElement("div");
     src.className = "pnote dim";
     src.textContent = t(`tarp.src.${TARP_PATTERNS[n.sku].source}`);

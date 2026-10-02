@@ -423,4 +423,5 @@ export default {
   "tarp.corner.recta.CR1": "右前角",
   "tarp.corner.recta.CR2": "右后角",
   "about.contrib": "这里的一切都是开放的——代码、部件目录、测量出来的规则。欢迎拿数据去用，<a href=\"https://github.com/iqis/igt-planner/fork\" target=\"_blank\" rel=\"noopener\">fork 一份</a>，再提一个 <a href=\"https://github.com/iqis/igt-planner/pulls\" target=\"_blank\" rel=\"noopener\">pull request</a>：缺的部件、更准的测量、翻译，或者全新的点子。",
+  "tarp.guyedsize": "含拉绳和地钉：{w} × {d} m",
 };
