@@ -91,6 +91,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     `${(hexaL.guyed.w / 1000).toFixed(2)} x ${(hexaL.guyed.d / 1000).toFixed(2)} m`);
   check("tarp: sub-poles on the wings cover more ground", raised.ok && raised.area_m2 > hexaL.area_m2 + 1,
     `${hexaL.area_m2.toFixed(1)} -> ${raised.area_m2.toFixed(1)} m2`);
+  // a tarp is carried: the cloth plus the poles its pitch stands on. Hexa L on 240/210 mains, two
+  // corners on 190 uprights (one TP-080 pair) and one on a 170 = 3.6 + 1.1 + 0.9 + 2.8 + 0.4 kg
+  const carried = core.evaluate({ app: "igt-planner", v: 1, nodes: [
+    { i: 1, sku: "TP-862", x: 0, z: 0, rot: 0, pitch: { a: 2400, b: 2100, corners: { NR: 1900, WR: 1900, WL: 1700 } } }] }).bill;
+  check("tarp: the bill carries the cloth and its poles",
+    carried.total_weight_kg === 8.8 && carried.lines.map(l => l.sku).sort().join() === "TP-002,TP-003,TP-022,TP-080,TP-862",
+    JSON.stringify(carried));
   const tarpBad = Object.keys(tarp.PATTERNS).filter(sku => !tarp.solvePitch(sku, {}).ok);
   check("tarp: every known cut pitches at its defaults", !tarpBad.length, tarpBad.join(", "));
   // every starter layout is a real design: buildable by the rules, nothing dropped

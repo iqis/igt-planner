@@ -1090,7 +1090,9 @@
    "guyed_mm": {
     "w": 6900,
     "d": 11200
-   }
+   },
+   "weight_g": 3100,
+   "weight_source": "TP-861H, the tarp alone (JP 3.1kg); the Pro set TP-861S is 9.5kg with poles, stakes, hammer"
   },
   "TP-862": {
    "role": "shelter",
@@ -1141,7 +1143,9 @@
    "guyed_mm": {
     "w": 7800,
     "d": 12200
-   }
+   },
+   "weight_g": 3600,
+   "weight_source": "TP-862H, the tarp alone (JP 3.6kg); the Pro set TP-862S is 9.8kg"
   },
   "TP-260": {
    "role": "shelter",
@@ -1188,7 +1192,9 @@
     "jp": null,
     "uk": null
    },
-   "reason": "Snow Peak HD Tarp Shield Hexa Evo Pro (TP-260): shelter FOOTPRINT for scale reference — fabric shade 1160x920cm (large). US TP-250R. Guys extend beyond ridge ends. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+   "reason": "Snow Peak HD Tarp Shield Hexa Evo Pro (TP-260): shelter FOOTPRINT for scale reference — fabric shade 1160x920cm (large). US TP-250R. Guys extend beyond ridge ends. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "weight_g": 4500,
+   "weight_source": "TP-250R, the HD Hexa Evo Pro. tarp alone (JP 4.5kg; the ivory TP-260IV is 5.3kg)"
   },
   "TP-851": {
    "role": "shelter",
@@ -1239,7 +1245,9 @@
    "guyed_mm": {
     "w": 7800,
     "d": 12200
-   }
+   },
+   "weight_g": 5600,
+   "weight_source": "DERIVED: only the set is published -- TP-851SR 7.9kg (Snow Peak UK) minus its two Wing Poles (280 1.2kg + 240 1.1kg); still includes stakes and ropes"
   },
   "TP-841": {
    "role": "shelter",
@@ -1278,7 +1286,9 @@
     "jp": null,
     "uk": null
    },
-   "reason": "Snow Peak HD Tarp Shield Recta M (TP-841): shelter FOOTPRINT for scale reference — fabric panel 415x340cm. Guyed span not officially published for M. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+   "reason": "Snow Peak HD Tarp Shield Recta M (TP-841): shelter FOOTPRINT for scale reference — fabric panel 415x340cm. Guyed span not officially published for M. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "weight_g": 3700,
+   "weight_source": "TP-841H, the tarp alone (JP 3.7kg); the Pro set TP-841S is 11.8kg"
   },
   "TP-842": {
    "role": "shelter",
@@ -1321,7 +1331,9 @@
    "guyed_mm": {
     "w": 11200,
     "d": 8900
-   }
+   },
+   "weight_g": 5000,
+   "weight_source": "TP-842H, the tarp alone (JP 5kg); the Pro set TP-842S is 13.4kg"
   },
   "STP-381": {
    "role": "shelter",
@@ -1415,7 +1427,9 @@
    "guyed_mm": {
     "w": 6900,
     "d": 11200
-   }
+   },
+   "weight_g": 6500,
+   "weight_source": "DERIVED: only the set is published -- TP-440S-US 8.8kg minus its two Wing Poles (280 1.2kg + 240 1.1kg); still includes the inner roof, 8 steel stakes and ropes"
   },
   "TP-430": {
    "role": "shelter",
@@ -1701,6 +1715,77 @@
     "jp": "https://ec.snowpeak.co.jp/snowpeak/ja/p/26235"
    },
    "reason": "Land Lock (TP-671R): the flagship 2-room shelter, owner-asked. Official 設営サイズ 625x405x205(h)cm and 24.5kg from the JP listing; the manual (TP-671R_manual.pdf, public S3) page 5 gives the frame plan -- two A-frames crossing over the body, two C-frames rounding the ends, one centre ridge frame -- which is what landLockGroup draws. Footprint = the manual's rounded oblong, sampled as a 16-vertex superellipse (n=3) of the published 6250x4050; a scale drawing exists in the manual if anyone wants to trace the true corner radii later. shell3d 'landlock' picks the 3D body."
+  },
+  "TP-001": {
+   "role": "pole",
+   "title_en": "Wing Pole 280cm",
+   "pole_mm": 2800,
+   "pole_use": [
+    "main"
+   ],
+   "per_set": 1,
+   "reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing."
+  },
+  "TP-002": {
+   "role": "pole",
+   "title_en": "Wing Pole 240cm",
+   "pole_mm": 2400,
+   "pole_use": [
+    "main"
+   ],
+   "per_set": 1,
+   "reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing."
+  },
+  "TP-003": {
+   "role": "pole",
+   "title_en": "Wing Pole 210cm",
+   "pole_mm": 2100,
+   "pole_use": [
+    "main"
+   ],
+   "per_set": 1,
+   "reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing."
+  },
+  "TP-140": {
+   "role": "pole",
+   "title_en": "Wing Pole 140cm",
+   "pole_mm": 1400,
+   "pole_use": [
+    "main"
+   ],
+   "per_set": 1,
+   "reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing."
+  },
+  "TP-022": {
+   "role": "pole",
+   "title_en": "Aluminum Pole 170cm",
+   "pole_mm": 1700,
+   "pole_use": [
+    "main",
+    "sub"
+   ],
+   "per_set": 1,
+   "reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing. The only 170cm pole in Snow Peak's JP catalog (phi 22, 3 sections, 0.4kg); no 170cm Wing Pole is listed, so a 170 main pole bills as this."
+  },
+  "TP-080": {
+   "role": "pole",
+   "title_en": "Upright Pole Set (190cm x2)",
+   "pole_mm": 1900,
+   "pole_use": [
+    "sub"
+   ],
+   "per_set": 2,
+   "reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing. Sold as a pair: two 190cm poles + 7m two-way ropes + 4 pegs, 2.8kg the set. No single 190cm pole is listed."
+  },
+  "TP-161": {
+   "role": "pole",
+   "title_en": "Light Tarp Pole 125 (set of 2)",
+   "pole_mm": 1250,
+   "pole_use": [
+    "sub"
+   ],
+   "per_set": 2,
+   "reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing. Sold as a pair, 525g the set (phi 14.5, 5 sections)."
   }
  },
  "GF-051": {

@@ -102,6 +102,15 @@ export const pitchOf = (sku, p = {}) => {
   return P;
 };
 
+/** The poles a pitch stands on, by length: the two mains (a, b) and one per sub-poled corner -- what
+ *  the bill turns into SKUs. A guyed corner needs no pole. A tarp with no known cut has no pitch here. */
+export function polesOf(sku, pitch) {
+  const P = pitchOf(sku, pitch);
+  if (!P) return [];
+  return [{ use: "main", mm: P.a }, { use: "main", mm: P.b },
+    ...Object.values(P.corners).filter(h => h != null).map(mm => ({ use: "sub", mm }))];
+}
+
 /** The flat pattern as a conforming mesh: K rings from the centre out to the curved edge, the edge
  *  sampled N times per side. Ring 0 is the centre; the outer ring IS the cut outline. */
 function flatMesh(pat, N = TUNE.N, K = TUNE.K) {

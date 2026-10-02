@@ -633,7 +633,7 @@
    }
   }
  },
- "count": 141,
+ "count": 148,
  "unmatched_sku": [
   "CK-904SET",
   "CK-080SET",
@@ -2788,6 +2788,224 @@
    "height_mm": 830
   },
   {
+   "sku": "TP-001",
+   "handle": null,
+   "title_en": "Wing Pole 280cm",
+   "title_jp": "ウイングポール 280cm",
+   "barcode": "",
+   "role": "pole",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": null,
+   "packed_mm": null,
+   "weight_g": 1200,
+   "material": "アルミニウム合金（アルマイト加工）",
+   "price": {
+    "us": null,
+    "jp": 8580,
+    "uk": 7300
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0104A0300"
+   },
+   "curated_reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing.",
+   "pole_mm": 2800,
+   "pole_use": [
+    "main"
+   ],
+   "per_set": 1
+  },
+  {
+   "sku": "TP-002",
+   "handle": null,
+   "title_en": "Wing Pole 240cm",
+   "title_jp": "ウイングポール 240cm",
+   "barcode": "",
+   "role": "pole",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": null,
+   "packed_mm": null,
+   "weight_g": 1100,
+   "material": "アルミニウム合金（アルマイト加工）",
+   "price": {
+    "us": null,
+    "jp": 7524,
+    "uk": 6300
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0104A0304"
+   },
+   "curated_reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing.",
+   "pole_mm": 2400,
+   "pole_use": [
+    "main"
+   ],
+   "per_set": 1
+  },
+  {
+   "sku": "TP-003",
+   "handle": null,
+   "title_en": "Wing Pole 210cm",
+   "title_jp": "ウイングポール 210cm",
+   "barcode": "",
+   "role": "pole",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": null,
+   "packed_mm": null,
+   "weight_g": 900,
+   "material": "アルミニウム合金（アルマイト加工）",
+   "price": {
+    "us": null,
+    "jp": 6732,
+    "uk": 2900
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0104A0308"
+   },
+   "curated_reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing.",
+   "pole_mm": 2100,
+   "pole_use": [
+    "main"
+   ],
+   "per_set": 1
+  },
+  {
+   "sku": "TP-022",
+   "handle": null,
+   "title_en": "Aluminum Pole 170cm",
+   "title_jp": "アルミポール170CM",
+   "barcode": "",
+   "role": "pole",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": null,
+   "packed_mm": null,
+   "weight_g": 400,
+   "material": "アルミニウム合金（アルマイト加工）",
+   "price": {
+    "us": null,
+    "jp": 4620,
+    "uk": 3600
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0104A0309"
+   },
+   "curated_reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing. The only 170cm pole in Snow Peak's JP catalog (phi 22, 3 sections, 0.4kg); no 170cm Wing Pole is listed, so a 170 main pole bills as this.",
+   "pole_mm": 1700,
+   "pole_use": [
+    "main",
+    "sub"
+   ],
+   "per_set": 1
+  },
+  {
+   "sku": "TP-080",
+   "handle": null,
+   "title_en": "Upright Pole Set (190cm x2)",
+   "title_jp": "アップライトポールセット",
+   "barcode": "",
+   "role": "pole",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": null,
+   "packed_mm": null,
+   "weight_g": 2800,
+   "material": "アルミニウム合金（アルマイト加工）",
+   "price": {
+    "us": null,
+    "jp": 10230,
+    "uk": 9500
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0109A0049"
+   },
+   "curated_reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing. Sold as a pair: two 190cm poles + 7m two-way ropes + 4 pegs, 2.8kg the set. No single 190cm pole is listed.",
+   "pole_mm": 1900,
+   "pole_use": [
+    "sub"
+   ],
+   "per_set": 2
+  },
+  {
+   "sku": "TP-140",
+   "handle": null,
+   "title_en": "Wing Pole 140cm",
+   "title_jp": "ウイングポール140cm",
+   "barcode": "",
+   "role": "pole",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": null,
+   "packed_mm": null,
+   "weight_g": 500,
+   "material": "アルミニウム合金（アルマイト加工）",
+   "price": {
+    "us": null,
+    "jp": 3300,
+    "uk": 1680
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0107A0064"
+   },
+   "curated_reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing.",
+   "pole_mm": 1400,
+   "pole_use": [
+    "main"
+   ],
+   "per_set": 1
+  },
+  {
+   "sku": "TP-161",
+   "handle": null,
+   "title_en": "Light Tarp Pole 125 (set of 2)",
+   "title_jp": "ライトタープポール125 2本セット",
+   "barcode": "",
+   "role": "pole",
+   "collections": [],
+   "region_exclusive": "jp",
+   "assembled_mm": null,
+   "packed_mm": null,
+   "weight_g": 525,
+   "material": "アルミニウム合金（A6063）",
+   "price": {
+    "us": null,
+    "jp": 5940,
+    "uk": 4700
+   },
+   "available": {},
+   "image": null,
+   "url": {
+    "us": null,
+    "jp": "https://ec.snowpeak.co.jp/item/SNP0106A0094"
+   },
+   "curated_reason": "A tarp pole, billed from the pitch the tarp is set to (a/b main poles, each sub-poled corner). Not offered in the library: it is never a node, only a line on the bill. Weight from the JP listing. Sold as a pair, 525g the set (phi 14.5, 5 sections).",
+   "pole_mm": 1250,
+   "pole_use": [
+    "sub"
+   ],
+   "per_set": 2
+  },
+  {
    "sku": "XCK-128-01",
    "handle": null,
    "title_en": "Multi Function Table Rail Joint (2-piece set)",
@@ -4848,7 +5066,7 @@
     "h": 2770
    },
    "packed_mm": null,
-   "weight_g": null,
+   "weight_g": 4500,
    "material": "",
    "price": {
     "us": null,
@@ -4893,7 +5111,8 @@
     ]
    },
    "capacity": 6,
-   "peak_h_mm": 2770
+   "peak_h_mm": 2770,
+   "weight_source": "TP-250R, the HD Hexa Evo Pro. tarp alone (JP 4.5kg; the ivory TP-260IV is 5.3kg)"
   },
   {
    "sku": "TP-430",
@@ -4980,7 +5199,7 @@
     "h": 2380
    },
    "packed_mm": null,
-   "weight_g": null,
+   "weight_g": 6500,
    "material": "",
    "price": {
     "us": null,
@@ -5029,7 +5248,8 @@
    "guyed_mm": {
     "w": 6900,
     "d": 11200
-   }
+   },
+   "weight_source": "DERIVED: only the set is published -- TP-440S-US 8.8kg minus its two Wing Poles (280 1.2kg + 240 1.1kg); still includes the inner roof, 8 steel stakes and ropes"
   },
   {
    "sku": "TP-660",
@@ -5337,7 +5557,7 @@
     "h": 2380
    },
    "packed_mm": null,
-   "weight_g": null,
+   "weight_g": 3700,
    "material": "",
    "price": {
     "us": null,
@@ -5374,7 +5594,8 @@
     ]
    },
    "capacity": 6,
-   "peak_h_mm": 2380
+   "peak_h_mm": 2380,
+   "weight_source": "TP-841H, the tarp alone (JP 3.7kg); the Pro set TP-841S is 11.8kg"
   },
   {
    "sku": "TP-842",
@@ -5391,7 +5612,7 @@
     "h": 2770
    },
    "packed_mm": null,
-   "weight_g": null,
+   "weight_g": 5000,
    "material": "",
    "price": {
     "us": null,
@@ -5432,7 +5653,8 @@
    "guyed_mm": {
     "w": 11200,
     "d": 8900
-   }
+   },
+   "weight_source": "TP-842H, the tarp alone (JP 5kg); the Pro set TP-842S is 13.4kg"
   },
   {
    "sku": "TP-851",
@@ -5449,7 +5671,7 @@
     "h": 2800
    },
    "packed_mm": null,
-   "weight_g": null,
+   "weight_g": 5600,
    "material": "",
    "price": {
     "us": null,
@@ -5498,7 +5720,8 @@
    "guyed_mm": {
     "w": 7800,
     "d": 12200
-   }
+   },
+   "weight_source": "DERIVED: only the set is published -- TP-851SR 7.9kg (Snow Peak UK) minus its two Wing Poles (280 1.2kg + 240 1.1kg); still includes stakes and ropes"
   },
   {
    "sku": "TP-861",
@@ -5515,7 +5738,7 @@
     "h": 2380
    },
    "packed_mm": null,
-   "weight_g": null,
+   "weight_g": 3100,
    "material": "",
    "price": {
     "us": null,
@@ -5564,7 +5787,8 @@
    "guyed_mm": {
     "w": 6900,
     "d": 11200
-   }
+   },
+   "weight_source": "TP-861H, the tarp alone (JP 3.1kg); the Pro set TP-861S is 9.5kg with poles, stakes, hammer"
   },
   {
    "sku": "TP-862",
@@ -5581,7 +5805,7 @@
     "h": 2380
    },
    "packed_mm": null,
-   "weight_g": null,
+   "weight_g": 3600,
    "material": "",
    "price": {
     "us": null,
@@ -5630,7 +5854,8 @@
    "guyed_mm": {
     "w": 7800,
     "d": 12200
-   }
+   },
+   "weight_source": "TP-862H, the tarp alone (JP 3.6kg); the Pro set TP-862S is 9.8kg"
   },
   {
    "sku": "CK-025",

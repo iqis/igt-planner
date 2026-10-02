@@ -10,6 +10,7 @@
 // Millimetres and radians throughout, like the rest of the planner.
 
 import { burnerOf, BBQ_SURFACE_SKUS, shelterVerts, shelterBBox, GROUND_HIP } from "./partsdata.js";
+import { polesOf } from "./tarp.js";
 import EN from "./i18n/en.js";   // the English sentences of warnings(), so they live in one place
 
 export const FRAME_THICK = 30;
@@ -981,10 +982,29 @@ export function freeBlock(n, cell) {
 }
 
 
+/** A tarp's poles as bill lines. Each length maps to the pole Snow Peak sells at it (catalog role
+ *  "pole": `pole_mm`, `pole_use` main/sub); a pole sold in pairs (`per_set` 2) bills one set per two. */
+function tarpPoleSkus(n) {
+  const pitch = n.pitch || (typeof n.config === "number" ? { a: n.config, b: n.config } : {});
+  const want = new Map();
+  for (const { use, mm } of polesOf(n.sku, pitch)) {
+    const p = Object.values(PARTS).find(q => q.role === "pole" && q.pole_mm === mm && q.pole_use?.includes(use));
+    if (p) want.set(p.sku, (want.get(p.sku) || 0) + 1);
+  }
+  return [...want].flatMap(([sku, k]) => Array(Math.ceil(k / (PARTS[sku].per_set || 1))).fill(sku));
+}
+
 export function bomLines() {
   const lines = [];
   for (const n of state.nodes) {
-    if (n.kind === "footprint") continue;   // a shelter is a size reference, not part of the IGT bill
+    // A tent or shell is a size reference, not part of the bill. A TARP is carried: the cloth, and the
+    // poles its pitch stands on -- pick a 280 over a 240 and the carry weight follows.
+    if (n.kind === "footprint") {
+      if (PARTS[n.sku].shelter_type !== "tarp") continue;
+      lines.push({ sku: n.sku, node: n });
+      for (const sku of tarpPoleSkus(n)) lines.push({ sku, req: true });
+      continue;
+    }
     if (PARTS[n.sku].role === "figure") continue;   // and a person is not for sale
     lines.push({ sku: n.sku, node: n });
     // A set is two legs. A frame stands on four -- unless it shares a CK-175 joint, in which

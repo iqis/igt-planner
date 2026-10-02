@@ -6,6 +6,10 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+- **Tarps weigh in, poles and all**: every tarp now has a weight, and a pitched tarp puts its poles
+  on the bill -- the two main poles at the lengths you chose, and an upright for each wing corner
+  you raised (sold-in-pairs poles bill as sets). Change a 280 to a 240 and the carry weight follows.
+
 ## [1.0.0] — 2026-10-02
 
 The first numbered release: everything the public planner has done since it went up on

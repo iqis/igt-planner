@@ -45,6 +45,14 @@
 > **2026-10-02: AI entry = under development.** The header's AI link stays `hidden`; README and
 > docs/AI.md (-> /llms.txt, /web/ai) now say so. The engine + `scripts/igt.mjs` are the working part.
 
+> **2026-10-02: tarps + poles on the bill.** Tarp weights in overrides `_add` (`weight_source` says
+> which: the H/tarp-only listing; TP-440 / TP-851 DERIVED = published set minus its 280+240 Wing Poles).
+> Poles are catalog parts, role `pole` (never a node, no library row, no part page): TP-001/002/003/140
+> Wing Poles, TP-022 Alu 170 (main 170 AND sub 170 -- no 170 Wing Pole is listed), TP-080 / TP-161 sold
+> as pairs (`per_set` 2). `core.bomLines` bills a footprint node only if it is a tarp: cloth +
+> `tarpPoleSkus(n)` from `tarp.polesOf(sku, pitch)`. Tents/shells stay off the bill. Tarps without a
+> cut (Octa, Evo Pro, Penta) bill the cloth only. Smoke holds the 8.8 kg example. Not billed yet: stakes.
+
 > **2026-10-02: shelters = tarps only; tarps are solved cloth.** Tents/shells dropped from the library
 > (models not good enough; still load from old layouts). The "layer lock" is gone -- `pickNode()`
 > prefers anything that is not a footprint under the pointer, so a tarp never steals a click and can
