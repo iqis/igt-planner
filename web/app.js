@@ -34,7 +34,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group,
          propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox, burnerOf,
          tarpPitchGroup, landLockGroup, pentaTarpGroup, figureGroup, clothTarpGroup } from "./parts3d.js";
-import { PATTERNS as TARP_PATTERNS, solvePitch, pitchOf, letterOf, MAIN_POLES, SUB_POLES, MID_POLES, LEANS } from "./tarp.js";
+import { PATTERNS as TARP_PATTERNS, solvePitch, pitchOf, letterOf, MAIN_POLES, SUB_POLES, MID_POLES, LEANS, RIDGES, ridgeOf } from "./tarp.js";
 import { openTarpMode } from "./tarpmode.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
@@ -1723,6 +1723,12 @@ function fillTarpPitch(box, sku, P, set) {
         box.append(chip(`${mm / 10}`, cur === mm, t("tarp.sub.tip", { cm: mm / 10 }), () => setC(mm)));
     }
   }
+  // the ridge: locked straight (mains first), or what tightening the wings first leaves (the manual)
+  label(t("tarp.ridge"));
+  const rk = ridgeOf(P);
+  for (const r of RIDGES)
+    box.append(chip(t(`tarp.ridge.${r.key}`), rk === r.key, t(r.order ? "tarp.ridge.wings.tip" : "tarp.ridge.taut.tip", { k: r.mainPull }),
+      () => set({ order: r.order, mainPull: r.mainPull })));
   label(t("tarp.lean"));
   for (const deg of LEANS)
     box.append(chip(`${deg}°`, (P.lean || 0) === deg, t("tarp.lean.tip", { deg }), () => set({ lean: deg })));

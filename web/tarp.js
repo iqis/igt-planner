@@ -17,8 +17,9 @@
 //
 // WHY RELAXATION and not tarp-shade's closed form: that solver prescribes every corner's height, and a
 // guyed corner has none -- it is exactly the unknown. Rope tensions here are CALIBRATED, not measured:
-// chosen so Snow Peak's own setup comes out as the manual says (HD Tarp Hexa L on 280 + 240 poles ->
-// ridge curve 185-200 cm). The smoke test holds that.
+// against Snow Peak's published guyed footprints and the Octa manual's side elevation (see octa()).
+// (An earlier note here claimed a manual figure of a 185-200 cm ridge for the Hexa L; no such figure is
+// in the manual, and nothing holds it.)
 //
 // WHAT IS MEASURED AND WHAT IS NOT. Snow Peak publishes a tarp's overall size and nothing else. The
 // HD Hexa manual (TP-861H/862H p.8) draws the outline with three dimensions -- tip to tip and the span
@@ -124,6 +125,22 @@ export const DEFAULTS = {
   // wing centres down
   octa: { a: 2800, b: 2800, left: null, right: null, lean: 5 },
 };
+// How the ropes were tightened, as the pitch menu offers it. "taut": mains first, the ridge locked straight
+// (a 2% dip). The others: wings first, as the manuals have it, then the mains taken up `mainPull` times as
+// hard as one wing rope -- the ridge's curve and the pole tips' "horns" are what that leaves.
+//   soft (1x, every rope alike -- the manual's 均等): the HD Hexa L on 280 + 240 pegs out 11.7 x 7.6 m
+//     against Snow Peak's published 12.2 x 7.8 (taut: 7.2 across, 8% short)
+//   firm (4x): the Octa as its manual's side elevation draws it -- ridge dip 0.22 m, poles 4.95 m apart,
+//     side corners 0.94 m, wing centres 0.97 m (drawn: 0.20 / 4.93 / 0.87 / 1.01)
+// Past ~15x the solver's own give (it holds the cloth inextensible only to within a few %) starts to show.
+export const RIDGES = [
+  { key: "taut" },
+  { key: "soft", order: "wings", mainPull: 1 },
+  { key: "medium", order: "wings", mainPull: 2 },
+  { key: "firm", order: "wings", mainPull: 4 },
+];
+export const ridgeOf = P => RIDGES.find(r => r.order === P.order && (r.mainPull ?? null) === (P.mainPull ?? null))?.key || "taut";
+
 // The wing-centre pole (an octa's `mid` vertex): the manual's 140 cm Wing Pole, or none.
 export const MID_POLES = [1400];
 export const MAIN_POLES = [2800, 2400, 2100, 1700, 1400];   // Wing Poles, 60/70 cm sections
@@ -139,7 +156,7 @@ export const RIDGE_SAG = 0.02;
 export const MAIN_ROPE_LEG = 5000;
 
 // Calibrated (see the header): per unit of cloth weight, the pull of a main rope and of a guy.
-const TUNE = { gravity: 1, guy: 500, steps: 600, iters: 16, N: 8, K: 6, shear: 0.35 };
+const TUNE = { gravity: 1, guy: 500, steps: 600, iters: 16, N: 8, H: 280, shear: 0.35 };
 
 export const pitchOf = (sku, p = {}) => {
   const pat = PATTERNS[sku];
@@ -174,9 +191,13 @@ export function polesOf(sku, pitch) {
       .map(([name, mm]) => ({ use: role[name] === "mid" ? "main" : "sub", mm }))];
 }
 
-/** The flat pattern as a conforming mesh: K rings from the centre out to the curved edge, the edge
- *  sampled N times per side. Ring 0 is the centre; the outer ring IS the cut outline. */
-function flatMesh(pat, N = TUNE.N, K = TUNE.K) {
+/** The flat pattern as a WOVEN mesh: a square lattice whose threads run the way cloth's do -- warp
+ *  along the ridge, weft across it -- clipped to the curved cut and triangulated, with the outline
+ *  sampled N times per side as its edge. (It was a ring mesh fanning out from the centre once: every
+ *  "thread" then ran into the centre, and with the ridge free the wings hung the whole tarp off that
+ *  one point -- the ridge came out as a V. Real threads run parallel and carry a wing's pull along
+ *  the diagonal to the whole ridge.) */
+function flatMesh(pat, N = TUNE.N, H = TUNE.H) {
   const ring = pat.ring, n = ring.length;
   const cx = 0, cz = (ring.find(v => v.name === "T").z + ring.find(v => v.name === "B").z) / 2;
   const edge = [];      // the outline, flat, with the curved cut
@@ -191,43 +212,67 @@ function flatMesh(pat, N = TUNE.N, K = TUNE.K) {
     }
   }
   const A = edge.length;
-  const pts = [{ x: cx, z: cz }];
-  for (let j = 1; j <= K; j++) for (let k = 0; k < A; k++) {
-    const t = j / K, e = edge[k];
-    pts.push({ x: cx + (e.x - cx) * t, z: cz + (e.z - cz) * t });
-  }
-  const id = (j, k) => j === 0 ? 0 : 1 + (j - 1) * A + ((k % A) + A) % A;
-  const tris = [];
-  for (let k = 0; k < A; k++) tris.push([0, id(1, k), id(1, k + 1)]);
-  for (let j = 1; j < K; j++) for (let k = 0; k < A; k++) {
-    tris.push([id(j, k), id(j + 1, k), id(j + 1, k + 1)]);
-    tris.push([id(j, k), id(j + 1, k + 1), id(j, k + 1)]);
-  }
-  // constraints: every triangle edge, the quads' other diagonals (shear), and skip-one links along
-  // rings and spokes (a little bending stiffness, so the cloth drapes rather than crumples)
+  const inside = (x, z) => {        // even-odd test against the outline polyline
+    let c = false;
+    for (let i = 0, j = A - 1; i < A; j = i++) {
+      const p = edge[i], q = edge[j];
+      if ((p.z > z) !== (q.z > z) && x < (q.x - p.x) * (z - p.z) / (q.z - p.z) + p.x) c = !c;
+    }
+    return c;
+  };
+  const segDist = (x, z, p, q) => {
+    const dx = q.x - p.x, dz = q.z - p.z;
+    const t = Math.max(0, Math.min(1, ((x - p.x) * dx + (z - p.z) * dz) / (dx * dx + dz * dz)));
+    return Math.hypot(x - p.x - t * dx, z - p.z - t * dz);
+  };
+  const nearEdge = (x, z) => {
+    let m = Infinity;
+    for (let i = 0; i < A; i++) m = Math.min(m, segDist(x, z, edge[i], edge[(i + 1) % A]));
+    return m;
+  };
+  // the lattice: a column on the ridge (x = 0), rows through the centre; points too near the edge are
+  // left to the edge's own samples, or the triangles there come out as slivers
+  const pts = edge.map(e => ({ x: e.x, z: e.z }));
+  const lat = new Map();            // "i,j" -> node
+  const xs = edge.map(e => e.x), zs = edge.map(e => e.z);
+  for (let i = Math.floor(Math.min(...xs) / H); i <= Math.ceil(Math.max(...xs) / H); i++)
+    for (let j = Math.floor((Math.min(...zs) - cz) / H); j <= Math.ceil((Math.max(...zs) - cz) / H); j++) {
+      const x = i * H, z = cz + j * H;
+      if (!inside(x, z) || nearEdge(x, z) < 0.45 * H) continue;
+      lat.set(`${i},${j}`, pts.length);
+      pts.push({ x, z });
+    }
+  // every triangle wound the same way (clockwise with x right and z up, as the outline runs), or their
+  // normals point half up, half down and the cloth shades flat
+  const tris = delaunay(pts).filter(([a, b, c]) =>
+    inside((pts[a].x + pts[b].x + pts[c].x) / 3, (pts[a].z + pts[b].z + pts[c].z) / 3))
+    .map(([a, b, c]) => (pts[b].x - pts[a].x) * (pts[c].z - pts[a].z) - (pts[c].x - pts[a].x) * (pts[b].z - pts[a].z) > 0
+      ? [a, c, b] : [a, b, c]);
   const links = new Map();
   const link = (a, b, w = 1) => { const k = a < b ? `${a},${b}` : `${b},${a}`; if (!links.has(k)) links.set(k, [a, b, w]); };
-  // Warp and weft hold (spokes and rings, near enough the threads); the BIAS gives. Woven cloth
-  // shears on the diagonal, and that is what lets a taut tarp take its saddle -- a ridge with a soft
-  // dip and wings falling away. Rigid diagonals too, and the cloth cannot curve both ways at once: it
-  // pleated under the ridge instead.
-  for (let j = 0; j < K; j++) for (let k = 0; k < A; k++) link(id(j, k), id(j + 1, k));
-  for (let j = 1; j <= K; j++) for (let k = 0; k < A; k++) link(id(j, k), id(j, k + 1));
-  for (let j = 1; j < K; j++) for (let k = 0; k < A; k++) {
-    link(id(j, k), id(j + 1, k + 1), TUNE.shear);
-    link(id(j, k + 1), id(j + 1, k), TUNE.shear);
+  // Warp and weft hold; the BIAS gives -- woven cloth shears on the diagonal, which is what lets a taut
+  // tarp take its saddle. An edge within ~20 deg of a thread is a thread; the rest are bias.
+  for (const [a, b, c] of tris) for (const [p, q] of [[a, b], [b, c], [c, a]]) {
+    const dx = Math.abs(pts[q].x - pts[p].x), dz = Math.abs(pts[q].z - pts[p].z);
+    link(p, q, Math.max(dx, dz) / Math.hypot(dx, dz) > 0.94 ? 1 : TUNE.shear);
   }
-  for (let j = 1; j <= K; j++) for (let k = 0; k < A; k++) link(id(j, k), id(j, k + 2), 0.15);
-  for (let j = 0; j + 2 <= K; j++) for (let k = 0; k < A; k++) link(id(j, k), id(j + 2, k), 0.15);
+  for (let k = 0; k < A; k++) link(k, (k + 1) % A, 1);           // the edge binding does not stretch
+  // a little bending stiffness: every other knot along each thread, and along the edge
+  for (const [key, a] of lat) {
+    const [i, j] = key.split(",").map(Number);
+    for (const k2 of [`${i + 2},${j}`, `${i},${j + 2}`]) if (lat.has(k2)) link(a, lat.get(k2), 0.15);
+  }
+  for (let k = 0; k < A; k++) link(k, (k + 2) % A, 0.15);
   const C = [...links.values()].map(([a, b, w]) => [a, b, Math.hypot(pts[a].x - pts[b].x, pts[a].z - pts[b].z), w]);
-  const outer = []; for (let k = 0; k < A; k++) outer.push(id(K, k));
-  const vertNode = {}; edge.forEach((e, k) => { if (e.vert >= 0) vertNode[e.vert] = id(K, k); });
-  // the ridge: the spokes to T and B
-  const iT = ring.findIndex(v => v.name === "T"), iB = ring.findIndex(v => v.name === "B");
-  const spoke = i => { const k = edge.findIndex(e => e.vert === i); const s = [0]; for (let j = 1; j <= K; j++) s.push(id(j, k)); return s; };
-  // Each node's share of the cloth: a third of every triangle it is a corner of. The ring mesh crowds
-  // nodes at the centre, so equal weight per NODE made the middle a lead blob that hung in a pleat
-  // under the ridge; weight goes by AREA (normalised so the mean node weighs 1).
+  const outer = [];
+  for (let k = 0; k < A; k++) outer.push(k);
+  const vertNode = {};
+  edge.forEach((e, k) => { if (e.vert >= 0) vertNode[e.vert] = k; });
+  // the ridge: tip T, down the lattice column on x = 0, to tip B
+  const iT = vertNode[ring.findIndex(v => v.name === "T")], iB = vertNode[ring.findIndex(v => v.name === "B")];
+  const col = [...lat].filter(([k]) => k.startsWith("0,")).map(([, a]) => a).sort((a, b) => pts[b].z - pts[a].z);
+  const ridge = [iT, ...col, iB];
+  // each node's share of the cloth: a third of every triangle it is a corner of
   const area = new Float64Array(pts.length);
   for (const [a, b, c] of tris) {
     const A3 = Math.abs((pts[b].x - pts[a].x) * (pts[c].z - pts[a].z) - (pts[c].x - pts[a].x) * (pts[b].z - pts[a].z)) / 6;
@@ -235,8 +280,43 @@ function flatMesh(pat, N = TUNE.N, K = TUNE.K) {
   }
   const meanA = area.reduce((t, v) => t + v, 0) / pts.length;
   const weight = Array.from(area, v => v / meanA);
-  return { pts, tris, C, outer, vertNode, weight, ridge: [...spoke(iT).reverse(), ...spoke(iB).slice(1)], centre: { x: cx, z: cz } };
+  return { pts, tris, C, outer, vertNode, weight, ridge, centre: { x: cx, z: cz } };
 }
+
+/** Bowyer-Watson Delaunay triangulation of points {x, z} -> [[a, b, c], ...]. */
+function delaunay(P) {
+  const xs = P.map(p => p.x), zs = P.map(p => p.z);
+  const mx = (Math.min(...xs) + Math.max(...xs)) / 2, mz = (Math.min(...zs) + Math.max(...zs)) / 2;
+  const R = 20 * Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs));
+  const V = [...P, { x: mx - R, z: mz - R }, { x: mx + R, z: mz - R }, { x: mx, z: mz + R }];
+  const n = P.length;
+  const circ = (a, b, c) => {
+    const A = V[a], B = V[b], C = V[c];
+    const d = 2 * (A.x * (B.z - C.z) + B.x * (C.z - A.z) + C.x * (A.z - B.z));
+    const a2 = A.x * A.x + A.z * A.z, b2 = B.x * B.x + B.z * B.z, c2 = C.x * C.x + C.z * C.z;
+    const ux = (a2 * (B.z - C.z) + b2 * (C.z - A.z) + c2 * (A.z - B.z)) / d;
+    const uz = (a2 * (C.x - B.x) + b2 * (A.x - C.x) + c2 * (B.x - A.x)) / d;
+    return { ux, uz, r2: (A.x - ux) ** 2 + (A.z - uz) ** 2 };
+  };
+  let tris = [{ t: [n, n + 1, n + 2], c: circ(n, n + 1, n + 2) }];
+  for (let i = 0; i < n; i++) {
+    const p = V[i], bad = [], keep = [];
+    for (const T of tris) ((p.x - T.c.ux) ** 2 + (p.z - T.c.uz) ** 2 < T.c.r2 * (1 - 1e-12) ? bad : keep).push(T);
+    const count = new Map();
+    const edgesOf = t => [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]];
+    for (const { t } of bad) for (const [a, b] of edgesOf(t)) {
+      const k = a < b ? `${a},${b}` : `${b},${a}`;
+      count.set(k, (count.get(k) || 0) + 1);
+    }
+    for (const { t } of bad) for (const [a, b] of edgesOf(t)) {
+      const k = a < b ? `${a},${b}` : `${b},${a}`;
+      if (count.get(k) === 1) keep.push({ t: [a, b, i], c: circ(a, b, i) });
+    }
+    tris = keep;
+  }
+  return tris.map(T => T.t).filter(t => t.every(v => v < n));
+}
+
 const meshCache = new Map();
 const meshOf = sku => {
   if (!meshCache.has(sku)) meshCache.set(sku, flatMesh(PATTERNS[sku]));
@@ -268,9 +348,10 @@ export function solvePitch(sku, pitch, { fast = false } = {}) {
   const P = pitchOf(sku, pitch);
   // pegs the user placed (tarp mode): { key: {x, z} } in the tarp's own frame -- see `pegKey` below
   const U = P.pegs || {};
-  const key = `${sku}|${P.a}|${P.b}|${JSON.stringify(P.corners)}|${P.lean}|${P.sag}|${JSON.stringify(U)}|${fast}`;
+  const key = `${sku}|${P.a}|${P.b}|${JSON.stringify(P.corners)}|${P.lean}|${P.sag}|${JSON.stringify(U)}|${P.order}|${P.mainPull}|${fast}`;
   // dragging a peg re-solves on every frame: a quarter of the work gives the shape to within a few cm
-  const STEPS = fast ? TUNE.steps / 4 : TUNE.steps, ITERS = fast ? TUNE.iters / 2 : TUNE.iters;
+  // (a free ridge -- wings first -- settles slower: its poles have to slide into place)
+  const STEPS = fast ? TUNE.steps / (P.order === "wings" ? 2 : 4) : TUNE.steps, ITERS = fast ? TUNE.iters / 2 : TUNE.iters;
   const lean = (P.lean || 0) * Math.PI / 180;
   const topY = len => len * Math.cos(lean);           // a leaning pole's top stands lower
   const hA = topY(P.a), hB = topY(P.b);
@@ -309,15 +390,34 @@ export function solvePitch(sku, pitch, { fast = false } = {}) {
   const D = Math.sqrt(Math.max(0, C3 * C3 - (hA - hB) ** 2));
   // Under the 45-degree rule a main pole's 二又 legs meet the ground as far out as its top is high,
   // 45 deg either side of the ridge. A corner that shares a leg's peg (peg: "main") is pulled to it.
+  const userPeg = k => U[k] && { x: U[k].x, z: U[k].z + cz };   // a user's peg, in the solver's frame
   const mainPeg = c => {
     const s = Math.sign(c.z - cz) || 1, h = s > 0 ? hA : hB, side = Math.sign(c.x) || 1;
     return { x: side * h * Math.SQRT1_2, z: s * D / 2 + cz + s * h * Math.SQRT1_2 };
   };
+  // THE ORDER THE ROPES ARE TIGHTENED (`order`). Mains first (the default): the main ropes lock the poles'
+  // spacing with the ridge pulled straight, the wings cannot bend it -- the pinned ridge above. WINGS
+  // FIRST, as both Snow Peak manuals have it (HD Hexa p.5 / Octa p.6: slacken the ridge ~20%, tension the
+  // wings, and only once the slack is gone tighten the mains, all ropes alike): the poles' spacing is
+  // never locked. Each pole top keeps its height and slides along the ridge, pulled out by its two
+  // 二又 legs; the wings pull the ridge down and out; where those balance is the pitch -- the ridge's
+  // curve and the pole tips standing up out of it (the "horns") are OUTPUTS.
+  const free = P.order === "wings";
   const fixed = new Map();            // node -> [x, y, z] (full pin)
-  for (const i of mesh.ridge) {
+  if (!free) for (const i of mesh.ridge) {
     const s = (mesh.pts[i].z - zB) / Lr;
     fixed.set(i, [0, hB + s * (hA - hB) - 4 * dip * s * (1 - s), -D / 2 + s * D + cz]);
   }
+  // wings first: a pole top is held at its height and on the centre line, free along it, and pulled at
+  // its two legs' pegs -- staked where the taut pitch would put them, and left there as the top moves
+  const tips = !free ? [] : anchors.filter(a => a.role === "tip").map(a => {
+    const s = a.name === "T" ? 1 : -1, h = s > 0 ? hA : hB, zt = s * D / 2 + cz;
+    const reach = pat.rope45 ? h : Math.sqrt(Math.max(0, MAIN_ROPE_LEG ** 2 - h * h));
+    const pegs = [-1, 1].map(side => userPeg(pegKey(a, side, s))
+      || (a.share?.find(q => Math.sign(q.x) === side) && pat.rope45 ? mainPeg(a.share.find(q => Math.sign(q.x) === side)) : null)
+      || { x: side * reach * Math.SQRT1_2, z: zt + s * reach * Math.SQRT1_2 });
+    return { node: a.node, h, pegs };
+  });
   // sub-pole corners: the pole fixes the height; the guy decides where across the ground
   const fixedY = new Map(anchors.filter(a => a.pole && a.role !== "tip").map(a => [a.node, topY(a.pole)]));
   // Start from the answer's neighbourhood: each wing swung down about the (straight) ridge like an
@@ -358,7 +458,6 @@ export function solvePitch(sku, pitch, { fast = false } = {}) {
   // The pegs a corner is pulled AT, when it has any: the user's (tarp mode), or -- an Octa end corner --
   // the main leg's peg it shares. A raised wing centre has two (its 二又); a leg the user left alone
   // keeps its default place. None: the corner is pulled the rule's way (below).
-  const userPeg = k => U[k] && { x: U[k].x, z: U[k].z + cz };
   const pullPegs = a => {
     if (a.role === "mid") {
       if (!a.pole || !U[pegKey(a, -1)] && !U[pegKey(a, 1)]) return null;
@@ -407,6 +506,16 @@ export function solvePitch(sku, pitch, { fast = false } = {}) {
         force[3 * i + 1] -= f * w * down / k;
       }
     }
+    // wings first: each pole top pulled at its two legs' pegs, every rope at the same tension (the
+    // manual: "均等"); its height and its place on the centre line are the pole's, so only the pull
+    // along the ridge does anything
+    for (const tp of tips) {
+      const f = TUNE.guy * g * per * (P.mainPull ?? 1);
+      for (const pg of tp.pegs) {
+        const dx = pg.x - x[3 * tp.node], dy = -x[3 * tp.node + 1], dz = pg.z - x[3 * tp.node + 2];
+        force[3 * tp.node + 2] += f * dz / (Math.hypot(dx, dy, dz) || 1);
+      }
+    }
   };
   aimGuys();
   // constraints as flat typed arrays: this loop runs ~10 million times per pitch
@@ -439,6 +548,7 @@ export function solvePitch(sku, pitch, { fast = false } = {}) {
       }
       for (let p = 0; p < pinN.length; p++) x[pinN[p]] = pinY[p];
       for (let p = 0; p < fullN.length; p++) { const b = fullN[p], v = fullP[p]; x[b] = v[0]; x[b + 1] = v[1]; x[b + 2] = v[2]; }
+      for (const tp of tips) { x[3 * tp.node] = 0; x[3 * tp.node + 1] = tp.h; }
       for (let i = 0; i < nP; i++) if (x[3 * i + 1] < 0) x[3 * i + 1] = 0;
     }
   }
@@ -483,7 +593,12 @@ export function solvePitch(sku, pitch, { fast = false } = {}) {
       let pegs;
       if (a.role === "tip") {
         const reach = pat.rope45 ? at.y : Math.sqrt(Math.max(0, MAIN_ROPE_LEG ** 2 - at.y ** 2)), s = a.name === "T" ? 1 : -1;
-        pegs = [-1, 1].map(side => {
+        const tp = tips.find(q => q.node === a.node);
+        if (tp) pegs = tp.pegs.map((pg, i) => {        // wings first: the legs stay where they were staked
+          const k = pegKey(a, [-1, 1][i], s);
+          return { x: pg.x, z: pg.z - cz, key: k, ...(U[k] && { user: true }) };
+        });
+        else pegs = [-1, 1].map(side => {
           // a leg whose peg is shared with a corner answers to that corner's key; the user's peg wins
           const k = pegKey(a, side, s), mine = U[k];
           if (mine) return { x: mine.x, z: mine.z, key: k, user: true };

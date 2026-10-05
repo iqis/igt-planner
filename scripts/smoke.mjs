@@ -134,6 +134,29 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     outC.at.y > oy.SR1 + 50 && inC.at.y < oy.SR1 - 50 && farC.pegs[0].short && !outC.pegs[0].short
     && Math.abs(fastC.at.y - outC.at.y) < 60,
     `out ${outC.at.y.toFixed(0)} / in ${inC.at.y.toFixed(0)} / base ${oy.SR1.toFixed(0)} / fast ${fastC.at.y.toFixed(0)}`);
+  // wings first (the manuals' order): the ridge is free, and comes out a smooth curve with the pole tips
+  // standing up out of it -- steep only at the ends (the "horns"), never a V at the centre
+  const ridgeProfile = s => {
+    const pr = s.ridge.map(i => s.pts[i]);
+    return pr.slice(0, -1).map((q, i) => Math.atan2(pr[i + 1].y - q.y, Math.abs(pr[i + 1].z - q.z)) * 180 / Math.PI);
+  };
+  const soft = tarp.solvePitch("TP-862", { order: "wings", mainPull: 1 }), sl = ridgeProfile(soft);
+  const mid = sl.slice(Math.round(sl.length * 0.2), Math.round(sl.length * 0.8));
+  const midTurn = Math.max(...mid.slice(1).map((v, i) => Math.abs(v - mid[i])));
+  check("tarp: wings first, the ridge is a smooth curve with horns at the poles",
+    soft.ok && midTurn < 3 && Math.abs(sl[0]) > Math.max(...mid.map(Math.abs)) + 5,
+    `middle turns at most ${midTurn.toFixed(1)} deg; end ${sl[0].toFixed(0)} deg vs middle ${Math.max(...mid.map(Math.abs)).toFixed(0)}`);
+  // ...and pitched the manual's way, the Hexa L pegs out where Snow Peak publishes (780 x 1220 cm)
+  check("tarp: wings first, the Hexa L pegs out within 5% of 780 x 1220 cm",
+    Math.abs(soft.guyed.w / 7800 - 1) < 0.05 && Math.abs(soft.guyed.d / 12200 - 1) < 0.05,
+    `${(soft.guyed.w / 1000).toFixed(2)} x ${(soft.guyed.d / 1000).toFixed(2)} m`);
+  // ...and the Octa, mains taken up firm, as its manual's side elevation draws it (dip 0.20, poles 4.93 m)
+  const firm = tarp.solvePitch("TP-430", { order: "wings", mainPull: 4 });
+  const fT = firm.anchors.find(a => a.name === "T").at, fB = firm.anchors.find(a => a.name === "B").at;
+  const fDip = Math.max(...firm.ridge.map(i => firm.pts[i]).map(q => {
+    const u = (q.z - fB.z) / (fT.z - fB.z); return fB.y + u * (fT.y - fB.y) - q.y; }));
+  check("tarp: wings first, firm, the Octa's ridge dips and its poles stand as the manual draws",
+    Math.abs(fDip - 200) < 80 && Math.abs(fT.z - fB.z - 4930) < 100, `dip ${fDip.toFixed(0)} mm, poles ${(fT.z - fB.z).toFixed(0)} mm apart`);
   const tarpBad = Object.keys(tarp.PATTERNS).filter(sku => !tarp.solvePitch(sku, {}).ok);
   check("tarp: every known cut pitches at its defaults", !tarpBad.length, tarpBad.join(", "));
   // every starter layout is a real design: buildable by the rules, nothing dropped

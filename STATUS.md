@@ -45,6 +45,18 @@
 > **2026-10-02: AI entry = under development.** The header's AI link stays `hidden`; README and
 > docs/AI.md (-> /llms.txt, /web/ai) now say so. The engine + `scripts/igt.mjs` are the working part.
 
+> **2026-10-05: RIDGE ORDER + WOVEN MESH.** `pitch.order = "wings"` (+ `mainPull`): ridge NOT pinned; pole tops
+> pinned in x/y, free along z, pulled at their two 二又 legs' pegs (staked at the taut pitch's place) with
+> mainPull x a wing rope's tension. Ridge dip + pole spacing + horns are outputs. Presets `tarp.RIDGES`:
+> taut / soft 1x / medium 2x / firm 4x (menu row "Ridge", `ridgeOf(P)`). Evidence: Hexa L soft pegs out
+> 11.72 x 7.58 vs published 12.2 x 7.8 (taut 7.17 across); Octa firm = manual side elevation (dip 0.22 vs
+> 0.20, poles 4.95 vs 4.93). The "185-200 cm ridge" in the old header had NO source -- removed.
+> MESH: `flatMesh` is now a square lattice (H = 280 mm; warp along the ridge, weft across, x = 0 column =
+> ridge) + outline samples, Bowyer-Watson Delaunay, clipped, wound consistently (clockwise x-right/z-up --
+> mixed winding shaded the cloth flat). Threads (edges within ~20 deg of an axis) stiff, rest bias 0.35.
+> The ring mesh hung a free ridge off its hub (a V). Taut results unchanged within 2 cm; ~40% faster.
+> Fast mode on a free ridge = 1/2 steps (poles must slide), ~10 cm off on the Hexa soft; full on release.
+
 > **2026-10-05: TARP MODE (EXPERIMENTAL -> dev only).** `web/tarpmode.js`, a full-screen `<dialog>`: own
 > scene, two renderers (orbit 3D + ortho plan, up = -z so A sits at the bottom), peg handles dragged in plan.
 > State = `pitch.pegs` {key: {x, z}} in the tarp's OWN frame (solve output frame: ridge on z, origin =

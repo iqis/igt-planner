@@ -6,6 +6,14 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+- **Ridge: how the ropes were tightened.** Every tarp now has a "Ridge" row: taut (mains first, the
+  ridge pulled straight -- as before), or wings first, the way both Snow Peak manuals say to pitch, with
+  the mains taken up soft, medium or firm. Wings first, the ridge is free: it curves, and the pole tips
+  stand up out of it like horns. Pitched the manual's way the HD Hexa L pegs out within 3% of Snow
+  Peak's published footprint (taut was 8% short across).
+- **Better cloth.** Tarps are now woven: threads run along and across the ridge, as real cloth's do,
+  instead of fanning out from the centre -- which had hung a free ridge off one point, as a V.
+
 - **Tarp mode** (dev site for now): open a tarp on its own, full screen -- 3D beside a plan view, nothing
   else in the way (the rest of the layout can come back as see-through ghosts). Drag any peg in the plan:
   out, and its rope runs flatter and the corner rides up; in, and the corner comes down. The cloth

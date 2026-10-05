@@ -172,6 +172,11 @@ export function openTarpMode({ sku, name, color, pitch, fillPitch, ghosts, onCha
     if (sol.ok) {
       line(t("tarp.readout", { m2: sol.area_m2.toFixed(1), h: m2(sol.cornerLow), w: (sol.span.w / 1000).toFixed(1), d: (sol.span.d / 1000).toFixed(1) }));
       line(t("tarp.guyedsize", { w: (sol.guyed.w / 1000).toFixed(1), d: (sol.guyed.d / 1000).toFixed(1) }));
+      // the ridge: how far it dips below the line between the pole tops, and how far apart they stand
+      const T = sol.anchors.find(a => a.name === "T").at, B = sol.anchors.find(a => a.name === "B").at;
+      const dip = Math.max(...sol.ridge.map(i => sol.pts[i]).map(q => {
+        const u = (q.z - B.z) / (T.z - B.z); return B.y + u * (T.y - B.y) - q.y; }));
+      line(t("tm.ridge", { dip: m2(dip), span: m2(Math.hypot(T.x - B.x, T.z - B.z)) }));
     } else line(t("tarp.short"), "warn");
     if (sol.short.length) line(t("tm.shortwarn", { list: sol.short.join(", ") }), "warn");
 
