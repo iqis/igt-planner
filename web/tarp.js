@@ -249,14 +249,28 @@ const reachOf = (pat, a, h) => {
   const full = Math.sqrt(Math.max(0, (a.rope || 2000) ** 2 - h * h));
   return pat.rope45 && a.peg !== "main" ? Math.min(h, full) : full;
 };
+// A peg's name in `pitch.pegs`: a corner's own peg is its name; a main pole's or a raised wing centre's
+// two 二又 legs are `T-` / `T+` (by which side of the ridge, x < 0 or > 0) -- except a main leg whose peg
+// a corner shares (the Octa's ends), which answers to that corner, so the one peg has one name.
+export function pegKey(a, side, s = Math.sign(a.z) || 1) {
+  if (a.role === "tip" && a.share) {
+    const c = a.share.find(q => Math.sign(q.x) === side);
+    if (c) return c.name;
+  }
+  return `${a.name}${side < 0 ? "-" : "+"}`;
+}
 const solveCache = new Map();
 /** Pitch a tarp. -> { ok, why?, pts (mesh nodes, mm, y up), tris, outline (outer ring node ids),
  *  anchors [{name, role, pole, at, pull}], ridgeLow, area_m2, span, source } */
-export function solvePitch(sku, pitch) {
+export function solvePitch(sku, pitch, { fast = false } = {}) {
   const pat = PATTERNS[sku];
   if (!pat) return null;
   const P = pitchOf(sku, pitch);
-  const key = `${sku}|${P.a}|${P.b}|${JSON.stringify(P.corners)}|${P.lean}|${P.sag}`;
+  // pegs the user placed (tarp mode): { key: {x, z} } in the tarp's own frame -- see `pegKey` below
+  const U = P.pegs || {};
+  const key = `${sku}|${P.a}|${P.b}|${JSON.stringify(P.corners)}|${P.lean}|${P.sag}|${JSON.stringify(U)}|${fast}`;
+  // dragging a peg re-solves on every frame: a quarter of the work gives the shape to within a few cm
+  const STEPS = fast ? TUNE.steps / 4 : TUNE.steps, ITERS = fast ? TUNE.iters / 2 : TUNE.iters;
   const lean = (P.lean || 0) * Math.PI / 180;
   const topY = len => len * Math.cos(lean);           // a leaning pole's top stands lower
   const hA = topY(P.a), hB = topY(P.b);
@@ -276,6 +290,9 @@ export function solvePitch(sku, pitch) {
     if (v.role === "tip") return { ...v, node, pole: v.name === "T" ? P.a : P.b, u };
     return { ...v, node, pole: P.corners[v.name] ?? null, u };
   });
+  // a main pole's legs: which corners share their pegs (the Octa's ends, guyed)
+  for (const a of anchors) if (a.role === "tip")
+    a.share = anchors.filter(q => q.peg === "main" && !q.pole && Math.sign(q.z - cz) === (a.name === "T" ? 1 : -1));
   // THE RIDGE IS STRAIGHT. Pitched taut -- the way nearly everyone pitches -- the ridge tape runs
   // pole top to pole top as a line, and it does not stretch: so the two poles stand exactly as far
   // apart (in plan) as the ridge's length allows for their height difference, and every node on the
@@ -338,17 +355,41 @@ export function solvePitch(sku, pitch) {
   // height h on a rope of length L pulls along h / sqrt(L^2 - h^2). The pull's direction is
   // re-aimed as the corner settles. (A fixed "down" angle was the knob that decided everything,
   // and it put the Hexa L's guyed footprint 1.6 m narrower than Snow Peak publishes.)
+  // The pegs a corner is pulled AT, when it has any: the user's (tarp mode), or -- an Octa end corner --
+  // the main leg's peg it shares. A raised wing centre has two (its 二又); a leg the user left alone
+  // keeps its default place. None: the corner is pulled the rule's way (below).
+  const userPeg = k => U[k] && { x: U[k].x, z: U[k].z + cz };
+  const pullPegs = a => {
+    if (a.role === "mid") {
+      if (!a.pole || !U[pegKey(a, -1)] && !U[pegKey(a, 1)]) return null;
+      const px = x[3 * a.node], pz = x[3 * a.node + 2];
+      const h = fixedY.get(a.node);
+      const reach = (pat.rope45 ? h : Math.sqrt(Math.max(0, a.rope ** 2 - h * h))) * Math.SQRT1_2;
+      return [-1, 1].map(side => userPeg(pegKey(a, side))
+        || { x: px + (a.u.x - side * a.u.z) * reach, z: pz + (a.u.z + side * a.u.x) * reach });
+    }
+    const own = userPeg(a.name);
+    if (own) return [own];
+    if (pat.rope45 && a.peg === "main" && !a.pole) return [mainPeg(a)];
+    return null;
+  };
   const aimGuys = () => {
     force.set(gravity);
     for (const { a, near } of patches) {
       const f = TUNE.guy * g * per;
       let down = 0;
-      if (pat.rope45 && a.peg === "main" && !a.pole) {
-        // pulled straight at the main leg's peg (fixed by the main rope's own 45 degrees)
-        const pg = mainPeg(a), dx = pg.x - x[3 * a.node], dy = -x[3 * a.node + 1], dz = pg.z - x[3 * a.node + 2];
-        const l = Math.hypot(dx, dy, dz) || 1;
+      const pp = pullPegs(a);
+      if (pp) {
+        // pulled straight at its peg(s): a rope goes where it is staked, whatever the rule would say
+        let vx = 0, vy = 0, vz = 0;
+        for (const pg of pp) {
+          const dx = pg.x - x[3 * a.node], dy = -x[3 * a.node + 1], dz = pg.z - x[3 * a.node + 2];
+          const l = Math.hypot(dx, dy, dz) || 1;
+          vx += dx / l; vy += dy / l; vz += dz / l;
+        }
+        const l = Math.hypot(vx, vy, vz) || 1;
         for (const [i, w] of near) {
-          force[3 * i] += f * w * dx / l; force[3 * i + 1] += f * w * dy / l; force[3 * i + 2] += f * w * dz / l;
+          force[3 * i] += f * w * vx / l; force[3 * i + 1] += f * w * vy / l; force[3 * i + 2] += f * w * vz / l;
         }
         continue;
       }
@@ -374,7 +415,7 @@ export function solvePitch(sku, pitch) {
   mesh.C.forEach(([a, b, r, w], q) => { CA[q] = 3 * a; CB[q] = 3 * b; CR[q] = r; CW[q] = w; });
   const pinN = [...fixedY.keys()].map(k => 3 * k + 1), pinY = [...fixedY.values()];
   const fullN = [...fixed.keys()].map(k => 3 * k), fullP = [...fixed.values()];
-  for (let step = 0; step < TUNE.steps; step++) {
+  for (let step = 0; step < STEPS; step++) {
     if (step % 20 === 0) aimGuys();
     // Verlet with heavy damping: we want the resting shape, not the flapping
     for (let i = 0; i < nP * 3; i++) {
@@ -382,7 +423,7 @@ export function solvePitch(sku, pitch) {
       prev[i] = x[i];
       x[i] += v + force[i] * dt * dt;
     }
-    for (let it = 0; it < TUNE.iters; it++) {
+    for (let it = 0; it < ITERS; it++) {
       // alternate the sweep: one-directional Gauss-Seidel leaves a handed bias (a symmetric pitch
       // came out lopsided by 40 cm)
       const fwd = (it + step) % 2 === 0;
@@ -443,7 +484,11 @@ export function solvePitch(sku, pitch) {
       if (a.role === "tip") {
         const reach = pat.rope45 ? at.y : Math.sqrt(Math.max(0, MAIN_ROPE_LEG ** 2 - at.y ** 2)), s = a.name === "T" ? 1 : -1;
         pegs = [-1, 1].map(side => {
-          if (pat.rope45) return { x: at.x + side * reach * Math.SQRT1_2, z: at.z + s * reach * Math.SQRT1_2 };
+          // a leg whose peg is shared with a corner answers to that corner's key; the user's peg wins
+          const k = pegKey(a, side, s), mine = U[k];
+          if (mine) return { x: mine.x, z: mine.z, key: k, user: true };
+          const keyed = q => ({ ...q, key: k });
+          if (pat.rope45) return keyed({ x: at.x + side * reach * Math.SQRT1_2, z: at.z + s * reach * Math.SQRT1_2 });
           // A corner whose rope SHARES this leg's peg (the Octa's end corners: 3 m rope and 二又 leg on
           // one peg, manual p.4): the peg is where that rope, taut, meets the 45-degree leg -- the
           // corner's rope length decides the main rope's reach, not the other way round.
@@ -453,21 +498,26 @@ export function solvePitch(sku, pitch) {
             // P = at + t (side, s)/sqrt2 on the ground; |P - cp|^2 = r2 -> t^2 + 2 b t + (|d|^2 - r2) = 0
             const dx = at.x - cp.x, dz = at.z - cp.z, b = (dx * side + dz * s) * Math.SQRT1_2;
             const t = -b + Math.sqrt(Math.max(0, b * b - (dx * dx + dz * dz - r2)));
-            return { x: at.x + side * t * Math.SQRT1_2, z: at.z + s * t * Math.SQRT1_2 };
+            return keyed({ x: at.x + side * t * Math.SQRT1_2, z: at.z + s * t * Math.SQRT1_2 });
           }
-          return { x: at.x + side * reach * Math.SQRT1_2, z: at.z + s * reach * Math.SQRT1_2 };
+          return keyed({ x: at.x + side * reach * Math.SQRT1_2, z: at.z + s * reach * Math.SQRT1_2 });
         });
       } else if (a.role === "mid") {
         // a raised wing centre: its own 二又 (7 m, doubled), two legs 45 deg either side of straight out;
         // not raised, it has no rope at all
-        const reach = a.pole ? Math.sqrt(Math.max(0, a.rope ** 2 - at.y ** 2)) : 0;
-        pegs = !a.pole ? [] : [-1, 1].map(side => ({
-          x: at.x + (ox - side * oz) * reach * Math.SQRT1_2, z: at.z + (oz + side * ox) * reach * Math.SQRT1_2 }));
+        // (under the 45-degree rule, each leg meets the ground as far out as the pole top is high)
+        const reach = !a.pole ? 0 : pat.rope45 ? at.y : Math.sqrt(Math.max(0, a.rope ** 2 - at.y ** 2));
+        pegs = !a.pole ? [] : [-1, 1].map(side => {
+          const k = pegKey(a, side);
+          return U[k] ? { x: U[k].x, z: U[k].z, key: k, user: true }
+            : { x: at.x + (ox - side * oz) * reach * Math.SQRT1_2, z: at.z + (oz + side * ox) * reach * Math.SQRT1_2, key: k };
+        });
       } else if (a.peg === "main" && !a.pole) {
         pegs = null;     // shares the main pole's peg: filled in below, once the tips have theirs
       } else {
         const reach = a.pole ? at.y : reachOf(pat, a, at.y);
-        pegs = [{ x: at.x + ox * reach, z: at.z + oz * reach }];
+        pegs = [U[a.name] ? { x: U[a.name].x, z: U[a.name].z, key: a.name, user: true }
+          : { x: at.x + ox * reach, z: at.z + oz * reach, key: a.name }];
       }
       const letter = String.fromCharCode(65 + pat.ring.findIndex(v => v.name === a.name));
       if (!a.pole) return { name: a.name, letter, role: a.role, side: a.side, pole: null, rope: a.rope, at, pegs };
@@ -485,8 +535,20 @@ export function solvePitch(sku, pitch) {
   // a corner that shares a main leg's peg ropes to exactly that peg
   for (const a of res.anchors) if (a.pegs === null) {
     const tip = res.anchors.find(q => q.role === "tip" && Math.sign(q.at.z) === Math.sign(a.at.z));
-    a.pegs = [tip.pegs.reduce((m, p) => Math.sign(p.x) === Math.sign(a.at.x) ? p : m, tip.pegs[0])];
+    a.pegs = [{ ...tip.pegs.reduce((m, p) => Math.sign(p.x) === Math.sign(a.at.x) ? p : m, tip.pegs[0]) }];
   }
+  // Does each rope reach? A rope is taken up on its adjuster, never let out past its length: `need` is
+  // the straight run from where it ties on to its peg, `have` the rope (a main leg: half its 二又; a
+  // sub-pole's guy is not the tarp's to check). Too short, and that peg cannot be where it is drawn.
+  for (const a of res.anchors) for (const pg of a.pegs) {
+    const have = a.role === "tip" ? MAIN_ROPE_LEG : a.pole && a.role === "corner" ? null : a.rope || 2000;
+    const run = Math.hypot(pg.x - a.at.x, pg.z - a.at.z);
+    pg.need = Math.hypot(run, a.at.y);
+    pg.have = have;
+    pg.deg = Math.atan2(a.at.y, run) * 180 / Math.PI;
+    pg.short = have != null && pg.need > have * 1.005;
+  }
+  res.short = res.anchors.filter(a => a.pegs.some(p => p.short)).map(a => a.letter);
   const gx = [...ox2, ...res.anchors.flatMap(a => a.pegs.map(p => p.x))];
   const gz = [...oz2, ...res.anchors.flatMap(a => a.pegs.map(p => p.z))];
   res.guyed = { w: Math.max(...gx) - Math.min(...gx), d: Math.max(...gz) - Math.min(...gz) };

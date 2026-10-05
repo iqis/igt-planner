@@ -6,6 +6,12 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+- **Tarp mode** (dev site for now): open a tarp on its own, full screen -- 3D beside a plan view, nothing
+  else in the way (the rest of the layout can come back as see-through ghosts). Drag any peg in the plan:
+  out, and its rope runs flatter and the corner rides up; in, and the corner comes down. The cloth
+  re-pitches as you drag. Every rope shows how much of it the peg needs and at what angle, and turns red
+  when the peg is out of its reach. Pegs are saved with the tarp, shared with the link, and undoable.
+
 ## [1.2.0] — 2026-10-04
 
 - **The TAKIBI Tarp Octa pitches as cloth**: its cut is read from the vector plan in Snow Peak's manual

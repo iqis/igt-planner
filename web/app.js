@@ -35,6 +35,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox, burnerOf,
          tarpPitchGroup, landLockGroup, pentaTarpGroup, figureGroup, clothTarpGroup } from "./parts3d.js";
 import { PATTERNS as TARP_PATTERNS, solvePitch, pitchOf, letterOf, MAIN_POLES, SUB_POLES, MID_POLES, LEANS } from "./tarp.js";
+import { openTarpMode } from "./tarpmode.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -1331,6 +1332,7 @@ function rebuild() {
     const g = new THREE.Group();
     g.position.set(n.x * MM, n.floating ? GHOST_LIFT * MM : 0, n.z * MM);
     g.rotation.y = -n.rot;
+    g.userData.nodeId = n.id;              // tarp mode finds the layout's parts by it (tarpGhosts)
     (n.kind === "frame" ? drawFrame : n.kind === "prop" ? drawProp : n.kind === "footprint" ? drawFootprint : drawTable)(g, n);
     // Provisional look, applied AFTER the build and BEFORE the selection outline, so the outline
     // stays crisp while the part itself fades.
@@ -1557,38 +1559,10 @@ function fillActions(box, n) {
   // A tarp whose cut we know: its two main poles, and per side guyed wings or sub-poles. Each choice
   // re-solves the cloth (tarp.js) and the card says what came of it: area, ridge low point.
   if (TARP_PATTERNS[n.sku]) {
-    const fam = TARP_PATTERNS[n.sku].family, P = pitchOf(n.sku, tarpPitch(n)), hexa = fam === "hexa";
-    const set = patch => { n.pitch = { ...P, ...patch }; delete n.config; render(); openToolPop("actions", n); };
-    const label = text => { const d = document.createElement("div"); d.className = "plabel"; d.textContent = text; box.append(d); };
-    // One row per pole point, in letter order around the ring -- A at the front tip, on round the right
-    // side to the back tip and up the left -- the letters the 3D view puts on the cloth while selected.
-    const ends = { T: ["a", hexa ? "tarp.end.narrow" : "tarp.end.front"], B: ["b", hexa ? "tarp.end.wide" : "tarp.end.back"] };
-    for (const v of TARP_PATTERNS[n.sku].ring) {
-      const L = letterOf(n.sku, v.name), cur = P.corners[v.name];
-      const setC = h => set({ corners: { ...P.corners, [v.name]: h } });
-      if (v.role === "tip") {
-        // the two main poles
-        const [end, key] = ends[v.name];
-        label(`${L} · ${t(key)}`);
-        for (const mm of MAIN_POLES)
-          box.append(chip(`${mm / 10}`, P[end] === mm, t("tarp.pole.tip", { cm: mm / 10 }), () => set({ [end]: mm })));
-      } else if (v.role === "mid") {
-        // an octa's wing centre: down in the cloth (no pole, no rope), or raised on a 140 Wing Pole
-        label(`${L} · ${t(`tarp.corner.${fam}.${v.name}`)}`);
-        box.append(chip(t("tarp.mid.none"), cur == null, t("tarp.mid.none.tip"), () => setC(null)));
-        for (const mm of MID_POLES)
-          box.append(chip(`${mm / 10}`, cur === mm, t("tarp.mid.tip", { cm: mm / 10 }), () => setC(mm)));
-      } else {
-        // a wing corner on its own: guyed, or a sub-pole of its own height
-        label(`${L} · ${t(`tarp.corner.${fam}.${v.name}`)}`);
-        box.append(chip(t("tarp.guyed"), cur == null, t("tarp.guyed.tip"), () => setC(null)));
-        for (const mm of SUB_POLES)
-          box.append(chip(`${mm / 10}`, cur === mm, t("tarp.sub.tip", { cm: mm / 10 }), () => setC(mm)));
-      }
-    }
-    label(t("tarp.lean"));
-    for (const deg of LEANS)
-      box.append(chip(`${deg}°`, (P.lean || 0) === deg, t("tarp.lean.tip", { deg }), () => set({ lean: deg })));
+    const P = pitchOf(n.sku, tarpPitch(n));
+    // tarp mode: this tarp alone, in 3D and plan, its pegs draggable (dev channel while it settles)
+    if (EXPERIMENTAL) box.append(chip(t("tm.open"), false, t("tm.open.tip"), () => openTarpModeFor(n)));
+    fillTarpPitch(box, n.sku, P, patch => { n.pitch = { ...P, ...patch }; delete n.config; render(); openToolPop("actions", n); });
     const sol = solvePitch(n.sku, P);
     const out = document.createElement("div");
     out.className = "pnote" + (sol.ok ? "" : " warn");
@@ -1608,13 +1582,11 @@ function fillActions(box, n) {
     src.className = "pnote dim";
     src.textContent = t(`tarp.src.${TARP_PATTERNS[n.sku].source}`);
     box.append(src);
-    // The TAKIBI Octa is made to have a fire under it -- and its manual allows that only on two 280s
-    // (shorter, and the flame is too close to the inner roof). Said where the pole is chosen.
-    if (fam === "octa") {
-      const fire = document.createElement("div");
-      fire.className = "pnote" + (P.a === 2800 && P.b === 2800 ? " dim" : " warn");
-      fire.textContent = t("tarp.octa.fire");
-      box.append(fire);
+    if (sol.short?.length) {
+      const sh = document.createElement("div");
+      sh.className = "pnote warn";
+      sh.textContent = t("tm.shortwarn", { list: sol.short.join(", ") });
+      box.append(sh);
     }
   } else if (PARTS[n.sku].shelter_type === "tarp") {
     const pub = PARTS[n.sku].assembled_mm.h;
@@ -1719,6 +1691,87 @@ function fillActions(box, n) {
 }
 
 /** Open the object's leg-height or options popover, at its toolbar. */
+/** A tarp's pitch rows -- its two main poles, then every corner and wing centre in letter order, the
+ *  lean, and (an Octa) the manual's fire rule -- for the options menu and for tarp mode alike.
+ *  `P` is the expanded pitch (pitchOf); `set(patch)` takes the change. */
+function fillTarpPitch(box, sku, P, set) {
+  const fam = TARP_PATTERNS[sku].family, hexa = fam === "hexa";
+  const label = text => { const d = document.createElement("div"); d.className = "plabel"; d.textContent = text; box.append(d); };
+  // One row per pole point, in letter order around the ring -- A at the front tip, on round the right
+  // side to the back tip and up the left -- the letters the 3D view puts on the cloth while selected.
+  const ends = { T: ["a", hexa ? "tarp.end.narrow" : "tarp.end.front"], B: ["b", hexa ? "tarp.end.wide" : "tarp.end.back"] };
+  for (const v of TARP_PATTERNS[sku].ring) {
+    const L = letterOf(sku, v.name), cur = P.corners[v.name];
+    const setC = h => set({ corners: { ...P.corners, [v.name]: h } });
+    if (v.role === "tip") {
+      // the two main poles
+      const [end, key] = ends[v.name];
+      label(`${L} · ${t(key)}`);
+      for (const mm of MAIN_POLES)
+        box.append(chip(`${mm / 10}`, P[end] === mm, t("tarp.pole.tip", { cm: mm / 10 }), () => set({ [end]: mm })));
+    } else if (v.role === "mid") {
+      // an octa's wing centre: down in the cloth (no pole, no rope), or raised on a 140 Wing Pole
+      label(`${L} · ${t(`tarp.corner.${fam}.${v.name}`)}`);
+      box.append(chip(t("tarp.mid.none"), cur == null, t("tarp.mid.none.tip"), () => setC(null)));
+      for (const mm of MID_POLES)
+        box.append(chip(`${mm / 10}`, cur === mm, t("tarp.mid.tip", { cm: mm / 10 }), () => setC(mm)));
+    } else {
+      // a wing corner on its own: guyed, or a sub-pole of its own height
+      label(`${L} · ${t(`tarp.corner.${fam}.${v.name}`)}`);
+      box.append(chip(t("tarp.guyed"), cur == null, t("tarp.guyed.tip"), () => setC(null)));
+      for (const mm of SUB_POLES)
+        box.append(chip(`${mm / 10}`, cur === mm, t("tarp.sub.tip", { cm: mm / 10 }), () => setC(mm)));
+    }
+  }
+  label(t("tarp.lean"));
+  for (const deg of LEANS)
+    box.append(chip(`${deg}°`, (P.lean || 0) === deg, t("tarp.lean.tip", { deg }), () => set({ lean: deg })));
+  // The TAKIBI Octa is made to have a fire under it -- and its manual allows that only on two 280s
+  // (shorter, and the flame is too close to the inner roof). Said where the pole is chosen.
+  if (fam === "octa") {
+    const fire = document.createElement("div");
+    fire.className = "pnote" + (P.a === 2800 && P.b === 2800 ? " dim" : " warn");
+    fire.textContent = t("tarp.octa.fire");
+    box.append(fire);
+  }
+}
+
+/** Open tarp mode on tarp node n (tarpmode.js): changes land on the node as they are made, with undo. */
+function openTarpModeFor(n) {
+  toolPop.hidden = true;
+  return openTarpMode({
+    sku: n.sku, name: nameOf(PARTS[n.sku]), color: COLORS[n.sku]?.color_hex || 0x8a7460,
+    pitch: tarpPitch(n),
+    fillPitch: (box, pitch, set) => fillTarpPitch(box, n.sku, pitchOf(n.sku, pitch), set),
+    ghosts: () => tarpGhosts(n),
+    onChange: pitch => { n.pitch = pitch; delete n.config; render(); },
+    onClose: () => render(),
+  });
+}
+
+/** The rest of the layout as see-through ghosts in tarp n's own frame, for tarp mode: what the tarp
+ *  covers. Clones share the scene's geometry; each gets its own faded material (tarp mode frees those). */
+function tarpGhosts(n) {
+  const outer = new THREE.Group(), inner = new THREE.Group();
+  outer.rotation.y = n.rot;                        // a node group is placed rot -n.rot, then moved:
+  inner.position.set(-n.x * MM, 0, -n.z * MM);     // undo the move, then the turn
+  outer.add(inner);
+  for (const g of build.children) {
+    const id = g.userData.nodeId;
+    if (id == null || id === n.id || byId(id)?.kind === "footprint") continue;
+    const c = g.clone(true), sprites = [];
+    c.traverse(o => {
+      if (o.isSprite) { sprites.push(o); return; }
+      if (!o.material) return;
+      const fade = m => { const k = m.clone(); k.transparent = true; k.opacity = Math.min(k.opacity ?? 1, 0.35); k.depthWrite = false; return k; };
+      o.material = Array.isArray(o.material) ? o.material.map(fade) : fade(o.material);
+    });
+    for (const sp of sprites) sp.removeFromParent();
+    inner.add(c);
+  }
+  return [outer];
+}
+
 function openToolPop(which, n) {
   toolPop.innerHTML = "";
   const head = document.createElement("div");
@@ -4907,7 +4960,7 @@ window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
   serializeLayout, readLayout, loadLayout, saveNamed, openNamed, savedAll, blocksAll,
   saveBlock, addBlock, shareLink, exportFile,
   newPage, switchPage, deletePage, renamePage, pages: () => book,
-  renderStats, invalidate, exportPng, openPartPage, partShot, openTemplate,
+  renderStats, invalidate, exportPng, openPartPage, partShot, openTemplate, openTarpModeFor,
   top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); invalidate(); } };
 
 // Fixed text into the interface's language first (index.html carries data-i18n keys), then icons.

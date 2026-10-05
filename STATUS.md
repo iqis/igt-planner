@@ -45,6 +45,18 @@
 > **2026-10-02: AI entry = under development.** The header's AI link stays `hidden`; README and
 > docs/AI.md (-> /llms.txt, /web/ai) now say so. The engine + `scripts/igt.mjs` are the working part.
 
+> **2026-10-05: TARP MODE (EXPERIMENTAL -> dev only).** `web/tarpmode.js`, a full-screen `<dialog>`: own
+> scene, two renderers (orbit 3D + ortho plan, up = -z so A sits at the bottom), peg handles dragged in plan.
+> State = `pitch.pegs` {key: {x, z}} in the tarp's OWN frame (solve output frame: ridge on z, origin =
+> ridge midpoint). Keys (`tarp.pegKey`): corner name; main/mid 二又 legs `T-`/`T+` -- except a main leg
+> whose peg an Octa end corner shares, which answers to the corner's name (one peg, one key). Solver: a
+> corner with a user peg is pulled AT it (3D unit vector; raised mid = sum of its two legs); each output peg
+> carries need/have/deg/short; `res.short` = letters. `solvePitch(sku, pitch, {fast})` = 1/4 steps, 1/2
+> iters, ~50 ms, within ~1 cm -- used while dragging; full solve on release -> onChange -> n.pitch, render,
+> undo. Octa wing-centre legs now 45 deg too. Pitch rows = `fillTarpPitch()` shared by the options menu
+> and tarp mode. Ghosts = `tarpGhosts(n)`: build-group clones (nodes tagged `g.userData.nodeId`) with faded
+> material clones, in the tarp's frame. Test hook: `openTarpModeFor(n)` returns {pegsOnScreen, solution}.
+
 > **2026-10-04: TAKIBI Octa = solved cloth (v1.2.0).** `tarp.js octa()`: cut from the manual's VECTOR plan
 > (TP-430_manual_web.pdf p.4 path 477 -> `scripts/derive_octa_pattern.py`): along the ridge as drawn,
 > across stretched to the published 450 (the plan is the pitched tarp, foreshortened across). New vertex

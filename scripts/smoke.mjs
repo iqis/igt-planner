@@ -124,6 +124,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("tarp: the Octa's raised wing centres cover more ground and bill two 140s",
     octaUp.ok && octaUp.area_m2 > octaS.area_m2 + 0.5 && octaUpBill.lines.find(l => l.sku === "TP-140")?.qty === 2
     && octaUpBill.total_weight_kg === 12.3, `${octaS.area_m2.toFixed(1)} -> ${octaUp.area_m2.toFixed(1)} m2; ${JSON.stringify(octaUpBill)}`);
+  // tarp mode's pegs: a corner is pulled AT its peg -- out, it rides up; in, it comes down; past its
+  // rope, the rope is flagged short. The drag-time fast solve lands within a few cm of the full one.
+  const pg0 = octaS.anchors.find(a => a.name === "SR1").pegs[0];
+  const hAt = k => tarp.solvePitch("TP-430", { pegs: { SR1: { x: pg0.x * k, z: pg0.z } } }).anchors.find(a => a.name === "SR1");
+  const outC = hAt(1.3), inC = hAt(0.8), farC = hAt(2.2);
+  const fastC = tarp.solvePitch("TP-430", { pegs: { SR1: { x: pg0.x * 1.3, z: pg0.z } } }, { fast: true }).anchors.find(a => a.name === "SR1");
+  check("tarp mode: a peg moved out lifts its corner, in lowers it, too far is a short rope",
+    outC.at.y > oy.SR1 + 50 && inC.at.y < oy.SR1 - 50 && farC.pegs[0].short && !outC.pegs[0].short
+    && Math.abs(fastC.at.y - outC.at.y) < 60,
+    `out ${outC.at.y.toFixed(0)} / in ${inC.at.y.toFixed(0)} / base ${oy.SR1.toFixed(0)} / fast ${fastC.at.y.toFixed(0)}`);
   const tarpBad = Object.keys(tarp.PATTERNS).filter(sku => !tarp.solvePitch(sku, {}).ok);
   check("tarp: every known cut pitches at its defaults", !tarpBad.length, tarpBad.join(", "));
   // every starter layout is a real design: buildable by the rules, nothing dropped
@@ -251,6 +261,28 @@ try {
     return after === before || `bill grew ${before} -> ${after}`;
   });
   check("a scale figure stays off the bill", figured === true, String(figured));
+
+  // tarp mode: opens on a tarp, a peg dragged in plan lands on the node (with undo), and it closes clean
+  const tm = await page.evaluate(() => {
+    const app = window.__igt;
+    window.__kept = app.serializeLayout();          // the checks after this one want the scene back
+    app.loadLayout({ app: "igt-planner", v: 1, nodes: [{ i: 1, sku: "TP-430", x: 0, z: 0, rot: 0.3 }] });
+    window.__tm = app.openTarpModeFor(app.state.nodes[0]);
+    const h = window.__tm.pegsOnScreen().find(q => q.key === "SR1");
+    return { h, open: !!document.querySelector(".tmodal[open]"), h0: window.__tm.solution.anchors.find(a => a.name === "SR1").at.y };
+  });
+  await page.mouse.move(tm.h.x, tm.h.y); await page.mouse.down();
+  for (let k = 1; k <= 4; k++) { await page.mouse.move(tm.h.x + k * 10, tm.h.y); await new Promise(r => setTimeout(r, 40)); }
+  await page.mouse.up();
+  const tmAfter = await page.evaluate(() => {
+    const n = window.__igt.state.nodes[0], s = window.__tm.solution;
+    window.__tm.close();
+    return { pegs: n.pitch?.pegs, h1: s.anchors.find(a => a.name === "SR1").at.y };
+  });
+  await new Promise(r => setTimeout(r, 100));        // a dialog's close event comes a task later
+  tmAfter.gone = await page.evaluate(() => { window.__igt.loadLayout(window.__kept); return !document.querySelector(".tmodal"); });
+  check("tarp mode: a dragged peg lands on the tarp and moves its corner", tm.open && tmAfter.gone
+    && tmAfter.pegs?.SR1 && Math.abs(tmAfter.h1 - tm.h0) > 20, JSON.stringify({ ...tm, ...tmAfter }));
 
   // the PNG plate: composes to a real image, and the screen comes back at its own size
   const png = await page.evaluate(async () => {
