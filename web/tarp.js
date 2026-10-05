@@ -118,23 +118,25 @@ export const PATTERNS = {
 // Snow Peak's recommended pitch per family (manuals): poles at the two tips; a hexa's wings guyed,
 // a recta's corners on sub-poles. `left` / `right` = a sub-pole height for that side's corners, or
 // null = guyed.
-// Every family pitched the way its manual says: wings first, then the mains (owner, 2026-10-05) -- how
-// hard the mains go is the one figure fitted per family (see RIDGES): the Hexa's every-rope-alike puts its
-// guyed footprint on Snow Peak's published one, the Octa's firm puts its ridge where its manual draws it.
+// Every family pitched the way its manual says (owner, 2026-10-05): wings first, then the mains, every
+// rope alike (the manuals' 均等). That one setting fits both pieces of evidence there are -- see RIDGES.
 export const DEFAULTS = {
   hexa: { a: 2800, b: 2400, left: null, right: null, lean: 5, order: "wings", mainPull: 1 },
   recta: { a: 2800, b: 2800, left: 1700, right: 1700, lean: 5, order: "wings", mainPull: 1 },
   // the Octa's manual: two 280s (and 280 is REQUIRED with a fire under it), every corner guyed, the
   // wing centres down
-  octa: { a: 2800, b: 2800, left: null, right: null, lean: 5, order: "wings", mainPull: 4 },
+  octa: { a: 2800, b: 2800, left: null, right: null, lean: 5, order: "wings", mainPull: 1 },
 };
 // How the ropes were tightened, as the pitch menu offers it. "taut": mains first, the ridge locked straight
 // (a 2% dip). The others: wings first, as the manuals have it, then the mains taken up `mainPull` times as
 // hard as one wing rope -- the ridge's curve and the pole tips' "horns" are what that leaves.
-//   soft (1x, every rope alike -- the manual's 均等): the HD Hexa L on 280 + 240 pegs out 11.7 x 7.6 m
-//     against Snow Peak's published 12.2 x 7.8 (taut: 7.2 across, 8% short)
-//   firm (4x): the Octa as its manual's side elevation draws it -- ridge dip 0.22 m, poles 4.95 m apart,
-//     side corners 0.94 m, wing centres 0.97 m (drawn: 0.20 / 4.93 / 0.87 / 1.01)
+// soft (1x, every rope alike -- the manuals' 均等) is the default, and it fits both pieces of evidence:
+//   the HD Hexa L on 280 + 240 pegs out 11.7 x 7.6 m against Snow Peak's published 12.2 x 7.8
+//     (taut: 7.2 across, 8% short)
+//   the Octa as its manual's side elevation draws it: ridge dip 0.21 m, wing centres 0.99 m, side corners
+//     0.94 m, poles 4.83 m apart (drawn: 0.20 / 1.01 / 0.87 / 4.93)
+// (Before the lattice was made symmetric, the Octa seemed to want 4x: a lopsided mesh had sagged its
+// ridge. One value for both tarps, and it is the manuals' own, is the better sign.)
 // Past ~15x the solver's own give (it holds the cloth inextensible only to within a few %) starts to show.
 // "taut" is stored as order "mains" -- spelled out, because the default is now the manual's order and an
 // absent key would read back as that.
@@ -242,7 +244,13 @@ function flatMesh(pat, N = TUNE.N, H = TUNE.H) {
   const xs = edge.map(e => e.x), zs = edge.map(e => e.z);
   for (let i = Math.floor(Math.min(...xs) / H); i <= Math.ceil(Math.max(...xs) / H); i++)
     for (let j = Math.floor((Math.min(...zs) - cz) / H); j <= Math.ceil((Math.max(...zs) - cz) / H); j++) {
-      const x = i * H, z = cz + j * H;
+      // A square lattice is four-points-on-a-circle everywhere, so which diagonal the triangulation
+      // draws in each square is arbitrary -- and it drew them all one way: the bias ran one way across
+      // the whole cloth, and a symmetric pitch hung lopsided (23 cm on the Octa). A hair of MIRROR-
+      // SYMMETRIC warp (each coordinate stretched by the square of the other, <1% at the edge) leaves
+      // no ties, so the triangulation is unique -- and a unique triangulation of a mirror-symmetric
+      // set of points is itself mirror-symmetric.
+      const x = i * H * (1 + 1e-4 * j * j), z = cz + j * H * (1 + 1e-4 * i * i);
       if (!inside(x, z) || nearEdge(x, z) < 0.45 * H) continue;
       lat.set(`${i},${j}`, pts.length);
       pts.push({ x, z });

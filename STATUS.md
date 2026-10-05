@@ -45,8 +45,16 @@
 > **2026-10-02: AI entry = under development.** The header's AI link stays `hidden`; README and
 > docs/AI.md (-> /llms.txt, /web/ai) now say so. The engine + `scripts/igt.mjs` are the working part.
 
-> **2026-10-05: DEFAULT = THE MANUAL'S ORDER (owner).** `DEFAULTS[family]` carry order "wings" + mainPull:
-> hexa 1, recta 1, octa 4. TAUT is stored EXPLICITLY as order "mains" (an absent key now reads back as the
+> **2026-10-05: SYMMETRY FIX.** A square lattice is cocircular everywhere, so Delaunay picked every
+> square's diagonal ONE way -> one-handed bias + lopsided area weights: a symmetric pitch hung up to 23 cm
+> lopsided (Octa). Fix: lattice coords warped mirror-symmetrically (x *= 1 + 1e-4 j^2, z *= 1 + 1e-4 i^2):
+> no ties -> unique triangulation -> mirror-symmetric. Now mirror corners agree within 3 mm (smoke: 1 cm).
+> It also moved the Octa: its "4x" fit was the lopsided mesh's extra sag. On the symmetric mesh BOTH
+> tarps fit at mainPull 1 = the manuals' 均等 (Octa: dip 0.21 vs 0.20, wing centres 0.99 vs 1.01, poles
+> 4.83 vs 4.93; Hexa L guyed 7.58 vs 7.80 across). Horns at the tips are ~40 deg over the last ~0.2 m --
+> the Octa elevation draws ~10 deg there (point-loaded tip node; not fixed).
+> **2026-10-05: DEFAULT = THE MANUAL'S ORDER (owner).** `DEFAULTS[family]` carry order "wings" + mainPull 1
+> for every family (octa was briefly 4, see the symmetry fix). TAUT is stored EXPLICITLY as order "mains" (an absent key now reads back as the
 > default). `ridgeOf`: order !== "wings" -> taut. This supersedes the 2026-10-02 "taut = straight with a
 > slight dip" default (still available as the taut chip). Smoke's taut-ridge check now asks for "mains".
 > **2026-10-05: RIDGE ORDER + WOVEN MESH.** `pitch.order = "wings"` (+ `mainPull`): ridge NOT pinned; pole tops

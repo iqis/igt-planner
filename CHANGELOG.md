@@ -11,8 +11,10 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
   the mains taken up soft, medium or firm. Wings first, the ridge is free: it curves, and the pole tips
   stand up out of it like horns. Pitched the manual's way the HD Hexa L pegs out within 3% of Snow
   Peak's published footprint (taut was 8% short across).
-- **Tarps pitch the manual's way by default**: wings first, then the mains -- the Hexas and Rectas with
-  every rope alike, the Octa with its mains firm. "Taut" is still one tap away in the Ridge row.
+- **Tarps pitch the manual's way by default**: wings first, then the mains, every rope alike. "Taut" is
+  still one tap away in the Ridge row.
+- **Fix: a symmetric pitch hung lopsided** (up to 23 cm on the Octa) -- the new cloth mesh had its bias
+  running one way. Now mirror corners agree to within millimetres.
 - **Better cloth.** Tarps are now woven: threads run along and across the ridge, as real cloth's do,
   instead of fanning out from the centre -- which had hung a free ridge off one point, as a V.
 

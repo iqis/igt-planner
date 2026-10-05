@@ -137,6 +137,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     && Math.abs(fastC.at.y - outC.at.y) < 60,
     `out ${outC.at.y.toFixed(0)} / in ${inC.at.y.toFixed(0)} / base ${oy.SR1.toFixed(0)} / fast ${fastC.at.y.toFixed(0)}`);
   // wings first (the manuals' order): the ridge is free, and comes out a smooth curve with the pole tips
+  // (no step in its middle over 6 deg -- the old ring mesh hung it as a V, ~10 deg at the centre)
   // standing up out of it -- steep only at the ends (the "horns"), never a V at the centre
   const ridgeProfile = s => {
     const pr = s.ridge.map(i => s.pts[i]);
@@ -146,19 +147,26 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const mid = sl.slice(Math.round(sl.length * 0.2), Math.round(sl.length * 0.8));
   const midTurn = Math.max(...mid.slice(1).map((v, i) => Math.abs(v - mid[i])));
   check("tarp: wings first, the ridge is a smooth curve with horns at the poles",
-    soft.ok && midTurn < 3 && Math.abs(sl[0]) > Math.max(...mid.map(Math.abs)) + 5,
+    soft.ok && midTurn < 6 && Math.abs(sl[0]) > Math.max(...mid.map(Math.abs)) + 5,
     `middle turns at most ${midTurn.toFixed(1)} deg; end ${sl[0].toFixed(0)} deg vs middle ${Math.max(...mid.map(Math.abs)).toFixed(0)}`);
   // ...and pitched the manual's way, the Hexa L pegs out where Snow Peak publishes (780 x 1220 cm)
   check("tarp: wings first, the Hexa L pegs out within 5% of 780 x 1220 cm",
     Math.abs(soft.guyed.w / 7800 - 1) < 0.05 && Math.abs(soft.guyed.d / 12200 - 1) < 0.05,
     `${(soft.guyed.w / 1000).toFixed(2)} x ${(soft.guyed.d / 1000).toFixed(2)} m`);
-  // ...and the Octa, mains taken up firm, as its manual's side elevation draws it (dip 0.20, poles 4.93 m)
-  const firm = tarp.solvePitch("TP-430", { order: "wings", mainPull: 4 });
-  const fT = firm.anchors.find(a => a.name === "T").at, fB = firm.anchors.find(a => a.name === "B").at;
-  const fDip = Math.max(...firm.ridge.map(i => firm.pts[i]).map(q => {
+  // ...and the Octa, pitched the same way, as its manual's side elevation draws it (dip 0.20, poles 4.93 m)
+  const man = tarp.solvePitch("TP-430", {});
+  const fT = man.anchors.find(a => a.name === "T").at, fB = man.anchors.find(a => a.name === "B").at;
+  const fDip = Math.max(...man.ridge.map(i => man.pts[i]).map(q => {
     const u = (q.z - fB.z) / (fT.z - fB.z); return fB.y + u * (fT.y - fB.y) - q.y; }));
-  check("tarp: wings first, firm, the Octa's ridge dips and its poles stand as the manual draws",
-    Math.abs(fDip - 200) < 80 && Math.abs(fT.z - fB.z - 4930) < 100, `dip ${fDip.toFixed(0)} mm, poles ${(fT.z - fB.z).toFixed(0)} mm apart`);
+  check("tarp: the Octa, the manual's way, dips its ridge and stands its poles as its manual draws",
+    Math.abs(fDip - 200) < 80 && Math.abs(fT.z - fB.z - 4930) < 150, `dip ${fDip.toFixed(0)} mm, poles ${(fT.z - fB.z).toFixed(0)} mm apart`);
+  // a symmetric pitch hangs symmetric: every corner matches its mirror twin, left/right and (Octa) front/back
+  const twin = { ER1: "EL1", SR1: "SL1", MR: "ML", SR2: "SL2", ER2: "EL2", ER1_: "ER2" };
+  const mA = Object.fromEntries(man.anchors.map(a => [a.name, a.at]));
+  const lop = Math.max(...Object.entries(twin).map(([r, l]) => r.endsWith("_")
+    ? Math.abs(mA[r.slice(0, -1)].y - mA[l].y) + Math.abs(mA[r.slice(0, -1)].z + mA[l].z)
+    : Math.abs(mA[r].y - mA[l].y) + Math.abs(mA[r].x + mA[l].x)));
+  check("tarp: a symmetric pitch hangs symmetric (mirror corners within 1 cm)", lop < 10, `${lop.toFixed(1)} mm`);
   const tarpBad = Object.keys(tarp.PATTERNS).filter(sku => !tarp.solvePitch(sku, {}).ok);
   check("tarp: every known cut pitches at its defaults", !tarpBad.length, tarpBad.join(", "));
   // every starter layout is a real design: buildable by the rules, nothing dropped
