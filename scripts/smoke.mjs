@@ -109,6 +109,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const octa = core.evaluate({ app: "igt-planner", v: 1, nodes: [{ i: 1, sku: "TP-430", x: 0, z: 0, rot: 0 }] }).bill;
   check("tarp: the Octa carries the two 280s its manual asks for",
     octa.total_weight_kg === 11.3 && octa.lines.find(l => l.sku === "TP-001")?.qty === 2, JSON.stringify(octa));
+  // the Octa: cut from its manual's vector plan; on two 280s it pegs out along the ridge where Snow Peak
+  // says (880 cm, within 12%), and raising the wing centres on 140s buys covered ground and bills two TP-140
+  const octaS = tarp.solvePitch("TP-430", {}), octaUp = tarp.solvePitch("TP-430", { corners: { MR: 1400, ML: 1400 } });
+  check("tarp: the Octa pegs out along its ridge where Snow Peak says (880 cm)",
+    octaS.ok && Math.abs(octaS.guyed.d / 8800 - 1) < 0.12, `${(octaS.guyed.d / 1000).toFixed(2)} m`);
+  const octaUpBill = core.evaluate({ app: "igt-planner", v: 1, nodes: [
+    { i: 1, sku: "TP-430", x: 0, z: 0, rot: 0, pitch: { corners: { MR: 1400, ML: 1400 } } }] }).bill;
+  check("tarp: the Octa's raised wing centres cover more ground and bill two 140s",
+    octaUp.ok && octaUp.area_m2 > octaS.area_m2 + 0.5 && octaUpBill.lines.find(l => l.sku === "TP-140")?.qty === 2
+    && octaUpBill.total_weight_kg === 12.3, `${octaS.area_m2.toFixed(1)} -> ${octaUp.area_m2.toFixed(1)} m2; ${JSON.stringify(octaUpBill)}`);
   const tarpBad = Object.keys(tarp.PATTERNS).filter(sku => !tarp.solvePitch(sku, {}).ok);
   check("tarp: every known cut pitches at its defaults", !tarpBad.length, tarpBad.join(", "));
   // every starter layout is a real design: buildable by the rules, nothing dropped

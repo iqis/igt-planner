@@ -6,6 +6,14 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-10-04
+
+- **The TAKIBI Tarp Octa pitches as cloth**: its cut is read from the vector plan in Snow Peak's manual
+  and scaled to the published 510 × 450 cm. Choose its two main poles, guy or sub-pole each of its eight
+  corners, and raise either wing centre on a 140 cm Wing Pole; the bill carries the poles. The end
+  corners' ropes share the main poles' pegs, as the manual has it, and the planner says when a pitch
+  breaks the manual's rule for a fire underneath (two 280s, inner roof on, one fire pit in the centre).
+
 ## [1.1.1] — 2026-10-04
 
 - **Tarps sold with their own poles**: the TAKIBI Hexa M and the Amenity Hexa L come only as sets,

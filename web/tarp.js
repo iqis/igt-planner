@@ -57,6 +57,41 @@ function recta({ len, width, sag = 0.015, source }) {
   ];
   return { family: "recta", ring, sag: [0, sag, 0, 0, sag, 0], source, size: { w: width, d: len } };
 }
+/** An octa (TAKIBI Tarp Octa, TP-430): poles at the middle of the two ends, and per side three
+ *  stretches of wing -- an end corner (E, 3 m rope), a side corner (S, 2 m rope), and between the two
+ *  side corners the WING CENTRE (M): no rope in the basic pitch, or raised on a 140 cm Wing Pole with
+ *  a 7 m 二又 (the manual's 両翼の中央を跳ね上げる).
+ *
+ *  The outline is the manual's own vector plan (p.4 上から見た図, the PDF's path 477 -- exact control
+ *  points, not pixels; scripts/derive_octa_pattern.py). That plan is the PITCHED tarp seen from above,
+ *  so along the ridge it is to scale (its pegs put the length at 4.97 m against the published 5.10) but
+ *  across it is foreshortened by the falling wings (0.877 = cos 29 deg). So: along the ridge as drawn,
+ *  across stretched back to the published 450 cm.
+ *
+ *  Checked against the published guyed footprint, 880 x 750 cm: ALONG, pitched on two 280s with the end
+ *  corners' 3 m ropes sharing the main legs' pegs (manual), it pegs out at ~9.6 m (+9%; smoke holds 12%).
+ *  ACROSS, 750 cannot be reached by this cloth at all: a 2 m rope off a corner at most 2.25 m of cloth
+ *  from the ridge pegs out at most 3.28 m from it (corner ~1.3 m up) -- 6.56 m in all; 7.5 would need
+ *  a 5.26 m-wide cloth. The published 750 and the drawing's across proportions come from the same
+ *  schematic and agree with each other, not with the 450. So across, only the 450 is trusted. */
+function octa({ source }) {
+  const R = (name, x, z, role, rope, side, peg) => ({ name, x, z, role, rope, side, ...(peg && { peg }) });
+  const ring = [
+    R("T", 0, 2477, "tip"),
+    R("ER1", 1636, 2550, "corner", 3000, "right", "main"), R("SR1", 2250, 1072, "corner", 2000, "right"),
+    R("MR", 2183, 0, "mid", 3500, "right"),
+    R("SR2", 2250, -1072, "corner", 2000, "right"), R("ER2", 1636, -2550, "corner", 3000, "right", "main"),
+    R("B", 0, -2477, "tip"),
+    R("EL2", -1636, -2550, "corner", 3000, "left", "main"), R("SL2", -2250, -1072, "corner", 2000, "left"),
+    R("ML", -2183, 0, "mid", 3500, "left"),
+    R("SL1", -2250, 1072, "corner", 2000, "left"), R("EL1", -1636, 2550, "corner", 3000, "left", "main"),
+  ];
+  // the cut, per edge (ring[i] -> ring[i+1]): the ends are straight (the pole corner sits 73 mm in --
+  // that shallow V IS the end's cut); end corner -> side corner is the deep curve (6% of its chord);
+  // the wing's middle stretch barely curves (1%)
+  const sag = [0, 0.06, 0.01, 0.01, 0.06, 0, 0, 0.06, 0.01, 0.01, 0.06, 0];
+  return { family: "octa", ring, sag, source, size: { w: 4500, d: 5100 } };
+}
 const HEXA_L = s => hexa({ len: 5700, narrow: 4000, wide: 5000, zN: 1310, zW: -1240, source: s });
 const HEXA_M = s => hexa({ len: 4750, narrow: 3700, wide: 4200, zN: 1090, zW: -1030, source: s });
 export const PATTERNS = {
@@ -67,6 +102,7 @@ export const PATTERNS = {
   // a recta's outline IS its published size -- a rectangle has nothing else to know
   "TP-842": recta({ len: 5490, width: 4270, source: PUBLISHED }),
   "TP-841": recta({ len: 4150, width: 3400, source: PUBLISHED }),
+  "TP-430": octa({ source: MANUAL }),
 };
 
 // Snow Peak's recommended pitch per family (manuals): poles at the two tips; a hexa's wings guyed,
@@ -75,7 +111,12 @@ export const PATTERNS = {
 export const DEFAULTS = {
   hexa: { a: 2800, b: 2400, left: null, right: null, lean: 5 },
   recta: { a: 2800, b: 2800, left: 1700, right: 1700, lean: 5 },
+  // the Octa's manual: two 280s (and 280 is REQUIRED with a fire under it), every corner guyed, the
+  // wing centres down
+  octa: { a: 2800, b: 2800, left: null, right: null, lean: 5 },
 };
+// The wing-centre pole (an octa's `mid` vertex): the manual's 140 cm Wing Pole, or none.
+export const MID_POLES = [1400];
 export const MAIN_POLES = [2800, 2400, 2100, 1700, 1400];   // Wing Poles, 60/70 cm sections
 export const SUB_POLES = [1900, 1700, 1250];                // uprights: TP-080, TP-022, TP-161
 // Pole lean, degrees off vertical, tops pulled OUT by their ropes (the manual: the main rope's
@@ -97,8 +138,11 @@ export const pitchOf = (sku, p = {}) => {
   const P = { ...DEFAULTS[pat.family], ...(p || {}) };
   // each wing corner on its own: corners[name] = a sub-pole height, or null = guyed. A corner not
   // named falls back to its side's value -- how older pitches (and the recta's default) say it.
-  P.corners = Object.fromEntries(pat.ring.filter(v => v.role === "corner")
-    .map(v => [v.name, (p?.corners && v.name in p.corners) ? p.corners[v.name] : (P[v.side] ?? null)]));
+  // A wing centre (`mid`) rides in the same map: a pole height, or null = no pole and no rope at all.
+  // It never takes its side's default -- that is a guyed-or-sub-pole choice for corners.
+  P.corners = Object.fromEntries(pat.ring.filter(v => v.role === "corner" || v.role === "mid")
+    .map(v => [v.name, (p?.corners && v.name in p.corners) ? p.corners[v.name]
+      : v.role === "mid" ? null : (P[v.side] ?? null)]));
   return P;
 };
 
@@ -107,8 +151,11 @@ export const pitchOf = (sku, p = {}) => {
 export function polesOf(sku, pitch) {
   const P = pitchOf(sku, pitch);
   if (!P) return [];
+  // a wing-centre pole is a Wing Pole (the 140), so it bills as a main pole, not an upright
+  const role = Object.fromEntries(PATTERNS[sku].ring.map(v => [v.name, v.role]));
   return [{ use: "main", mm: P.a }, { use: "main", mm: P.b },
-    ...Object.values(P.corners).filter(h => h != null).map(mm => ({ use: "sub", mm }))];
+    ...Object.entries(P.corners).filter(([, h]) => h != null)
+      .map(([name, mm]) => ({ use: role[name] === "mid" ? "main" : "sub", mm }))];
 }
 
 /** The flat pattern as a conforming mesh: K rings from the centre out to the curved edge, the edge
@@ -250,7 +297,8 @@ export function solvePitch(sku, pitch) {
   // over the nodes within ~40 cm of the corner (weighted toward it), or the solver tears the corner.
   const PATCH = 400;
   // Each anchor's patch: the nodes its pull is spread over, weighted toward the corner.
-  const patches = anchors.filter(a => a.role !== "tip").map(a => {
+  // (a wing centre with no pole has no rope either: it is just cloth)
+  const patches = anchors.filter(a => a.role !== "tip" && !(a.role === "mid" && !a.pole)).map(a => {
     const c0 = mesh.pts[a.node], near = [];
     mesh.pts.forEach((q, i) => { const d = Math.hypot(q.x - c0.x, q.z - c0.z); if (d < PATCH) near.push([i, 1 - d / PATCH]); });
     const wsum = near.reduce((t, [, w]) => t + w, 0);
@@ -354,7 +402,28 @@ export function solvePitch(sku, pitch) {
       let pegs;
       if (a.role === "tip") {
         const reach = Math.sqrt(Math.max(0, MAIN_ROPE_LEG ** 2 - at.y ** 2)), s = a.name === "T" ? 1 : -1;
-        pegs = [-1, 1].map(side => ({ x: at.x + side * reach * Math.SQRT1_2, z: at.z + s * reach * Math.SQRT1_2 }));
+        pegs = [-1, 1].map(side => {
+          // A corner whose rope SHARES this leg's peg (the Octa's end corners: 3 m rope and 二又 leg on
+          // one peg, manual p.4): the peg is where that rope, taut, meets the 45-degree leg -- the
+          // corner's rope length decides the main rope's reach, not the other way round.
+          const c = anchors.find(q => q.peg === "main" && Math.sign(q.x) === side && Math.sign(q.z) === s);
+          if (c && !c.pole) {
+            const cp = pts[c.node], r2 = Math.max(0, c.rope ** 2 - cp.y ** 2);
+            // P = at + t (side, s)/sqrt2 on the ground; |P - cp|^2 = r2 -> t^2 + 2 b t + (|d|^2 - r2) = 0
+            const dx = at.x - cp.x, dz = at.z - cp.z, b = (dx * side + dz * s) * Math.SQRT1_2;
+            const t = -b + Math.sqrt(Math.max(0, b * b - (dx * dx + dz * dz - r2)));
+            return { x: at.x + side * t * Math.SQRT1_2, z: at.z + s * t * Math.SQRT1_2 };
+          }
+          return { x: at.x + side * reach * Math.SQRT1_2, z: at.z + s * reach * Math.SQRT1_2 };
+        });
+      } else if (a.role === "mid") {
+        // a raised wing centre: its own 二又 (7 m, doubled), two legs 45 deg either side of straight out;
+        // not raised, it has no rope at all
+        const reach = a.pole ? Math.sqrt(Math.max(0, a.rope ** 2 - at.y ** 2)) : 0;
+        pegs = !a.pole ? [] : [-1, 1].map(side => ({
+          x: at.x + (ox - side * oz) * reach * Math.SQRT1_2, z: at.z + (oz + side * ox) * reach * Math.SQRT1_2 }));
+      } else if (a.peg === "main" && !a.pole) {
+        pegs = null;     // shares the main pole's peg: filled in below, once the tips have theirs
       } else {
         const reach = a.pole ? at.y : Math.sqrt(Math.max(0, (a.rope || 2000) ** 2 - at.y ** 2));
         pegs = [{ x: at.x + ox * reach, z: at.z + oz * reach }];
@@ -371,6 +440,11 @@ export function solvePitch(sku, pitch) {
     ridgeLow, cornerLow, area_m2: Math.abs(area) / 2 / 1e6,
     span: { w: Math.max(...ox2) - Math.min(...ox2), d: Math.max(...oz2) - Math.min(...oz2) },
   };
+  // a corner that shares a main leg's peg ropes to exactly that peg
+  for (const a of res.anchors) if (a.pegs === null) {
+    const tip = res.anchors.find(q => q.role === "tip" && Math.sign(q.at.z) === Math.sign(a.at.z));
+    a.pegs = [tip.pegs.reduce((m, p) => Math.sign(p.x) === Math.sign(a.at.x) ? p : m, tip.pegs[0])];
+  }
   const gx = [...ox2, ...res.anchors.flatMap(a => a.pegs.map(p => p.x))];
   const gz = [...oz2, ...res.anchors.flatMap(a => a.pegs.map(p => p.z))];
   res.guyed = { w: Math.max(...gx) - Math.min(...gx), d: Math.max(...gz) - Math.min(...gz) };

@@ -34,7 +34,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group,
          propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox, burnerOf,
          tarpPitchGroup, landLockGroup, pentaTarpGroup, figureGroup, clothTarpGroup } from "./parts3d.js";
-import { PATTERNS as TARP_PATTERNS, solvePitch, pitchOf, MAIN_POLES, SUB_POLES, LEANS } from "./tarp.js";
+import { PATTERNS as TARP_PATTERNS, solvePitch, pitchOf, MAIN_POLES, SUB_POLES, MID_POLES, LEANS } from "./tarp.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -1557,7 +1557,7 @@ function fillActions(box, n) {
   // A tarp whose cut we know: its two main poles, and per side guyed wings or sub-poles. Each choice
   // re-solves the cloth (tarp.js) and the card says what came of it: area, ridge low point.
   if (TARP_PATTERNS[n.sku]) {
-    const P = pitchOf(n.sku, tarpPitch(n)), hexa = TARP_PATTERNS[n.sku].family === "hexa";
+    const fam = TARP_PATTERNS[n.sku].family, P = pitchOf(n.sku, tarpPitch(n)), hexa = fam === "hexa";
     const set = patch => { n.pitch = { ...P, ...patch }; delete n.config; render(); openToolPop("actions", n); };
     const label = text => { const d = document.createElement("div"); d.className = "plabel"; d.textContent = text; box.append(d); };
     for (const [end, key] of [["a", hexa ? "tarp.end.narrow" : "tarp.end.front"], ["b", hexa ? "tarp.end.wide" : "tarp.end.back"]]) {
@@ -1571,10 +1571,19 @@ function fillActions(box, n) {
     for (const c of corners) {
       const cur = P.corners[c.name];
       const setC = h => set({ corners: { ...P.corners, [c.name]: h } });
-      label(t(`tarp.corner.${hexa ? "hexa" : "recta"}.${c.name}`));
+      label(t(`tarp.corner.${fam}.${c.name}`));
       box.append(chip(t("tarp.guyed"), cur == null, t("tarp.guyed.tip"), () => setC(null)));
       for (const mm of SUB_POLES)
         box.append(chip(`${mm / 10}`, cur === mm, t("tarp.sub.tip", { cm: mm / 10 }), () => setC(mm)));
+    }
+    // an octa's wing centres: down in the cloth (no pole, no rope), or raised on a 140 Wing Pole
+    for (const c of TARP_PATTERNS[n.sku].ring.filter(v => v.role === "mid").sort((u, v) => (u.side === "left" ? -1 : 1) - (v.side === "left" ? -1 : 1))) {
+      const cur = P.corners[c.name];
+      const setC = h => set({ corners: { ...P.corners, [c.name]: h } });
+      label(t(`tarp.corner.${fam}.${c.name}`));
+      box.append(chip(t("tarp.mid.none"), cur == null, t("tarp.mid.none.tip"), () => setC(null)));
+      for (const mm of MID_POLES)
+        box.append(chip(`${mm / 10}`, cur === mm, t("tarp.mid.tip", { cm: mm / 10 }), () => setC(mm)));
     }
     label(t("tarp.lean"));
     for (const deg of LEANS)
@@ -1598,6 +1607,14 @@ function fillActions(box, n) {
     src.className = "pnote dim";
     src.textContent = t(`tarp.src.${TARP_PATTERNS[n.sku].source}`);
     box.append(src);
+    // The TAKIBI Octa is made to have a fire under it -- and its manual allows that only on two 280s
+    // (shorter, and the flame is too close to the inner roof). Said where the pole is chosen.
+    if (fam === "octa") {
+      const fire = document.createElement("div");
+      fire.className = "pnote" + (P.a === 2800 && P.b === 2800 ? " dim" : " warn");
+      fire.textContent = t("tarp.octa.fire");
+      box.append(fire);
+    }
   } else if (PARTS[n.sku].shelter_type === "tarp") {
     const pub = PARTS[n.sku].assembled_mm.h;
     box.append(chip(t("tarp.setpole", { mm: pub }), !n.config,

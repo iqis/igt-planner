@@ -45,6 +45,16 @@
 > **2026-10-02: AI entry = under development.** The header's AI link stays `hidden`; README and
 > docs/AI.md (-> /llms.txt, /web/ai) now say so. The engine + `scripts/igt.mjs` are the working part.
 
+> **2026-10-04: TAKIBI Octa = solved cloth (v1.2.0).** `tarp.js octa()`: cut from the manual's VECTOR plan
+> (TP-430_manual_web.pdf p.4 path 477 -> `scripts/derive_octa_pattern.py`): along the ridge as drawn,
+> across stretched to the published 450 (the plan is the pitched tarp, foreshortened across). New vertex
+> role `mid` = wing centre: free cloth (no rope) or a 140 Wing Pole + 7 m 二又; stored in `pitch.corners`
+> (null = down), billed as a MAIN pole (TP-140). End corners carry `peg: "main"`: their 3 m rope and the
+> main 二又 leg share one peg (manual), which sets the main rope's reach. Calibration: along-ridge guyed
+> 9.6 m vs published 8.8 (smoke 12%). ACROSS the published 750 is UNREACHABLE (450 cloth + 2 m ropes max
+> 6.56 m, proof in the octa() comment) -- the 750 and the drawing are one schematic; only 450 is trusted.
+> UI: wing-centre chips + the manual's fire rule (warn unless both mains are 280).
+
 > **2026-10-02: tarps + poles on the bill.** Tarp weights in overrides `_add` (`weight_source` says
 > which: the H/tarp-only listing). TP-440 / TP-851 are sold ONLY as sets with their own main poles
 > (`poles_included: ["main"]`): weight = the set, the bill adds no main poles. TAKIBI's are aluminium Wing

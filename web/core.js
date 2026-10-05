@@ -992,9 +992,6 @@ function tarpPoleSkus(n) {
     const p = Object.values(PARTS).find(q => q.role === "pole" && q.pole_mm === mm && q.pole_use?.includes(use));
     if (p) want.set(p.sku, (want.get(p.sku) || 0) + 1);
   }
-  // a tarp with no pitch control (no known cut) bills the poles its manual calls for, if it names them
-  if (!polesOf(n.sku, pitch).length)
-    for (const sku of PARTS[n.sku].poles_default || []) if (PARTS[sku]) want.set(sku, (want.get(sku) || 0) + 1);
   return [...want].flatMap(([sku, k]) => Array(Math.ceil(k / (PARTS[sku].per_set || 1))).fill(sku));
 }
 
