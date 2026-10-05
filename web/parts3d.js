@@ -3582,7 +3582,7 @@ export function shelterOf(p, sku = null) {
  *  red, a pole under every pole-held corner, and the ropes -- two 二又 guys off each main pole along
  *  the ridge, one guy per wing corner out along the line from the centre (the manual's 延長線上).
  *  Millimetres in; the ground at y = 0. Drawn at opacity 0.5 for the same reason as tarpPitchGroup. */
-export function clothTarpGroup(sol, { color = 0x8a7460 } = {}) {
+export function clothTarpGroup(sol, { color = 0x8a7460, letters = false } = {}) {
   const g = new THREE.Group();
   const pos = new Float32Array(sol.pts.length * 3);
   sol.pts.forEach((p, i) => { pos[3 * i] = p.x * MM; pos[3 * i + 1] = p.y * MM; pos[3 * i + 2] = p.z * MM; });
@@ -3628,5 +3628,23 @@ export function clothTarpGroup(sol, { color = 0x8a7460 } = {}) {
   }
   g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(guys),
     new THREE.LineBasicMaterial({ color: 0x9aa0a8, transparent: true, opacity: 0.85 })));
+  // Selected, every pole point wears its letter -- the same A, B, C... the pitch menu uses -- on a
+  // round chip just above it: a pole on it shows blue, a free corner grey.
+  if (letters) for (const a of sol.anchors) {
+    if (!a.letter) continue;
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = 96;
+    const cx = cv.getContext("2d");
+    cx.fillStyle = a.pole ? "rgba(37,99,235,0.92)" : "rgba(18,20,24,0.78)";
+    cx.beginPath(); cx.arc(48, 48, 44, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = "#fff"; cx.font = "700 58px system-ui, sans-serif";
+    cx.textAlign = "center"; cx.textBaseline = "middle";
+    cx.fillText(a.letter, 48, 52);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthTest: false, transparent: true }));
+    sprite.scale.set(0.26, 0.26, 1);
+    sprite.position.set(a.at.x * MM, a.at.y * MM + 0.22, a.at.z * MM);
+    sprite.renderOrder = 11;
+    g.add(sprite);
+  }
   return { group: g };
 }

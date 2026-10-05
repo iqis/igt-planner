@@ -54,6 +54,13 @@
 > 9.6 m vs published 8.8 (smoke 12%). ACROSS the published 750 is UNREACHABLE (450 cloth + 2 m ropes max
 > 6.56 m, proof in the octa() comment) -- the 750 and the drawing are one schematic; only 450 is trusted.
 > UI: wing-centre chips + the manual's fire rule (warn unless both mains are 280).
+> **2026-10-05 Octa calibration = `rope45`** (manual p.4: ropes ~45 deg to the ground): main legs reach = pole
+> top height (pegs 8.89 m apart vs 8.80 published), end corners pulled AT the main peg, side corners' 2 m
+> ropes taken up to 45 deg. Fit to the manual's SIDE ELEVATION (p.11, vector, to scale -- pole spacing 4.93
+> vs our 4.95 ridge): corners 1.47/0.98/1.03 vs drawn 1.27/0.87/1.01 m; smoke holds 25 cm. Pull MAGNITUDE
+> changes nothing (cloth is taut) -- only the pull DIRECTION sets a corner's height. Hexa/recta unchanged.
+> **Corner letters**: `tarp.letterOf(sku, name)` = A.. in ring order from T; pitch menu is one pass round
+> the ring; `clothTarpGroup({letters})` draws them when the tarp is selected (blue = poled).
 
 > **2026-10-02: tarps + poles on the bill.** Tarp weights in overrides `_add` (`weight_source` says
 > which: the H/tarp-only listing). TP-440 / TP-851 are sold ONLY as sets with their own main poles

@@ -113,7 +113,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // says (880 cm, within 12%), and raising the wing centres on 140s buys covered ground and bills two TP-140
   const octaS = tarp.solvePitch("TP-430", {}), octaUp = tarp.solvePitch("TP-430", { corners: { MR: 1400, ML: 1400 } });
   check("tarp: the Octa pegs out along its ridge where Snow Peak says (880 cm)",
-    octaS.ok && Math.abs(octaS.guyed.d / 8800 - 1) < 0.12, `${(octaS.guyed.d / 1000).toFixed(2)} m`);
+    octaS.ok && Math.abs(octaS.guyed.d / 8800 - 1) < 0.04, `${(octaS.guyed.d / 1000).toFixed(2)} m`);
+  // ...and its corners hang where the manual's side elevation draws them (1.27 / 0.87 / 1.01 m)
+  const oy = Object.fromEntries(octaS.anchors.map(a => [a.name, a.at.y]));
+  check("tarp: the Octa's corners hang at the manual's heights (within 25 cm)",
+    Math.abs(oy.ER1 - 1270) < 250 && Math.abs(oy.SR1 - 870) < 250 && Math.abs(oy.MR - 1010) < 250,
+    `end ${oy.ER1.toFixed(0)} side ${oy.SR1.toFixed(0)} centre ${oy.MR.toFixed(0)} mm`);
   const octaUpBill = core.evaluate({ app: "igt-planner", v: 1, nodes: [
     { i: 1, sku: "TP-430", x: 0, z: 0, rot: 0, pitch: { corners: { MR: 1400, ML: 1400 } } }] }).bill;
   check("tarp: the Octa's raised wing centres cover more ground and bill two 140s",

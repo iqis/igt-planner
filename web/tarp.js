@@ -68,12 +68,21 @@ function recta({ len, width, sag = 0.015, source }) {
  *  across it is foreshortened by the falling wings (0.877 = cos 29 deg). So: along the ridge as drawn,
  *  across stretched back to the published 450 cm.
  *
- *  Checked against the published guyed footprint, 880 x 750 cm: ALONG, pitched on two 280s with the end
- *  corners' 3 m ropes sharing the main legs' pegs (manual), it pegs out at ~9.6 m (+9%; smoke holds 12%).
- *  ACROSS, 750 cannot be reached by this cloth at all: a 2 m rope off a corner at most 2.25 m of cloth
- *  from the ridge pegs out at most 3.28 m from it (corner ~1.3 m up) -- 6.56 m in all; 7.5 would need
- *  a 5.26 m-wide cloth. The published 750 and the drawing's across proportions come from the same
- *  schematic and agree with each other, not with the 450. So across, only the 450 is trusted. */
+ *  PITCHED BY THE MANUAL'S 45-DEGREE RULE (`rope45`; p.4: peg out as far as you can, the rope meeting the
+ *  ground at ~45 deg). The main 二又 legs meet the ground as far out as the pole top is high, and the
+ *  end corners' 3 m ropes go to those same pegs (shared, manual). The side corners take up their 2 m
+ *  ropes to 45 deg. Checked against the manual's side elevation (p.11, vector, to scale: its pole
+ *  spacing measures 4.93 m against our 4.95 m ridge):
+ *    main pegs along   8.89 m   vs 8.80 published (9.07 on the elevation)
+ *    end-corner rope   2.59 m at 34 deg  vs ~2.55 m at ~30 deg on the elevation
+ *    corner heights    end 1.47 / side 0.98 / wing centre 1.03 m  vs 1.27 / 0.87 / 1.01 on the elevation
+ *  With every rope at full length instead (the hexa model) the corners rode ~30 cm high and the main
+ *  pegs landed 9.6 m apart: a corner's height is set by the DIRECTION it is pulled, not how hard.
+ *
+ *  ACROSS, the published 750 cannot be reached by this cloth at all: a 2 m rope off a corner at most
+ *  2.25 m of cloth from the ridge pegs out at most 3.28 m from it -- 6.56 m in all; 7.5 would need a
+ *  5.26 m-wide cloth. The 750 and the plan view's across proportions come from one schematic and agree
+ *  with each other, not with the 450. So across, only the 450 is trusted. */
 function octa({ source }) {
   const R = (name, x, z, role, rope, side, peg) => ({ name, x, z, role, rope, side, ...(peg && { peg }) });
   const ring = [
@@ -90,7 +99,7 @@ function octa({ source }) {
   // that shallow V IS the end's cut); end corner -> side corner is the deep curve (6% of its chord);
   // the wing's middle stretch barely curves (1%)
   const sag = [0, 0.06, 0.01, 0.01, 0.06, 0, 0, 0.06, 0.01, 0.01, 0.06, 0];
-  return { family: "octa", ring, sag, source, size: { w: 4500, d: 5100 } };
+  return { family: "octa", ring, sag, source, size: { w: 4500, d: 5100 }, rope45: true };
 }
 const HEXA_L = s => hexa({ len: 5700, narrow: 4000, wide: 5000, zN: 1310, zW: -1240, source: s });
 const HEXA_M = s => hexa({ len: 4750, narrow: 3700, wide: 4200, zN: 1090, zW: -1030, source: s });
@@ -144,6 +153,13 @@ export const pitchOf = (sku, p = {}) => {
     .map(v => [v.name, (p?.corners && v.name in p.corners) ? p.corners[v.name]
       : v.role === "mid" ? null : (P[v.side] ?? null)]));
   return P;
+};
+
+/** Each pole point's LETTER: A at the front tip, then on around the ring (right side, back tip, left
+ *  side) -- what the pitch menu and the 3D labels call it, so "C" in one is "C" in the other. */
+export const letterOf = (sku, name) => {
+  const i = PATTERNS[sku]?.ring.findIndex(v => v.name === name);
+  return i >= 0 ? String.fromCharCode(65 + i) : "";
 };
 
 /** The poles a pitch stands on, by length: the two mains (a, b) and one per sub-poled corner -- what
@@ -227,6 +243,12 @@ const meshOf = sku => {
   return meshCache.get(sku);
 };
 
+// How far out a guyed corner's rope meets the ground: the full rope, taut -- or, under the 45-degree rule,
+// as far out as the corner is high (the rope taken up to fit), never further than the rope reaches.
+const reachOf = (pat, a, h) => {
+  const full = Math.sqrt(Math.max(0, (a.rope || 2000) ** 2 - h * h));
+  return pat.rope45 && a.peg !== "main" ? Math.min(h, full) : full;
+};
 const solveCache = new Map();
 /** Pitch a tarp. -> { ok, why?, pts (mesh nodes, mm, y up), tris, outline (outer ring node ids),
  *  anchors [{name, role, pole, at, pull}], ridgeLow, area_m2, span, source } */
@@ -268,6 +290,12 @@ export function solvePitch(sku, pitch) {
   const C3 = Lr / (1 + 8 * sagR * sagR / 3);
   const dip = sagR * C3;
   const D = Math.sqrt(Math.max(0, C3 * C3 - (hA - hB) ** 2));
+  // Under the 45-degree rule a main pole's 二又 legs meet the ground as far out as its top is high,
+  // 45 deg either side of the ridge. A corner that shares a leg's peg (peg: "main") is pulled to it.
+  const mainPeg = c => {
+    const s = Math.sign(c.z - cz) || 1, h = s > 0 ? hA : hB, side = Math.sign(c.x) || 1;
+    return { x: side * h * Math.SQRT1_2, z: s * D / 2 + cz + s * h * Math.SQRT1_2 };
+  };
   const fixed = new Map();            // node -> [x, y, z] (full pin)
   for (const i of mesh.ridge) {
     const s = (mesh.pts[i].z - zB) / Lr;
@@ -315,9 +343,21 @@ export function solvePitch(sku, pitch) {
     for (const { a, near } of patches) {
       const f = TUNE.guy * g * per;
       let down = 0;
+      if (pat.rope45 && a.peg === "main" && !a.pole) {
+        // pulled straight at the main leg's peg (fixed by the main rope's own 45 degrees)
+        const pg = mainPeg(a), dx = pg.x - x[3 * a.node], dy = -x[3 * a.node + 1], dz = pg.z - x[3 * a.node + 2];
+        const l = Math.hypot(dx, dy, dz) || 1;
+        for (const [i, w] of near) {
+          force[3 * i] += f * w * dx / l; force[3 * i + 1] += f * w * dy / l; force[3 * i + 2] += f * w * dz / l;
+        }
+        continue;
+      }
       if (!a.pole) {
         const h = Math.max(0, x[3 * a.node + 1]), L = a.rope || 2000;
         down = h / Math.sqrt(Math.max(L * L - h * h, (0.05 * L) ** 2));
+        // a pattern pitched by its manual's 45-degree rule: the rope is taken up on its adjuster until
+        // it meets the ground at ~45 deg -- steeper only if the rope is too short for that
+        if (pat.rope45 && a.peg !== "main") down = Math.max(1, down);
       }
       const k = Math.hypot(1, down);
       for (const [i, w] of near) {
@@ -401,14 +441,15 @@ export function solvePitch(sku, pitch) {
       const cl = Math.hypot(at.x, at.z) || 1, ox = at.x / cl, oz = at.z / cl;
       let pegs;
       if (a.role === "tip") {
-        const reach = Math.sqrt(Math.max(0, MAIN_ROPE_LEG ** 2 - at.y ** 2)), s = a.name === "T" ? 1 : -1;
+        const reach = pat.rope45 ? at.y : Math.sqrt(Math.max(0, MAIN_ROPE_LEG ** 2 - at.y ** 2)), s = a.name === "T" ? 1 : -1;
         pegs = [-1, 1].map(side => {
+          if (pat.rope45) return { x: at.x + side * reach * Math.SQRT1_2, z: at.z + s * reach * Math.SQRT1_2 };
           // A corner whose rope SHARES this leg's peg (the Octa's end corners: 3 m rope and 二又 leg on
           // one peg, manual p.4): the peg is where that rope, taut, meets the 45-degree leg -- the
           // corner's rope length decides the main rope's reach, not the other way round.
           const c = anchors.find(q => q.peg === "main" && Math.sign(q.x) === side && Math.sign(q.z) === s);
           if (c && !c.pole) {
-            const cp = pts[c.node], r2 = Math.max(0, c.rope ** 2 - cp.y ** 2);
+            const cp = pts[c.node], r2 = reachOf(pat, c, cp.y) ** 2;
             // P = at + t (side, s)/sqrt2 on the ground; |P - cp|^2 = r2 -> t^2 + 2 b t + (|d|^2 - r2) = 0
             const dx = at.x - cp.x, dz = at.z - cp.z, b = (dx * side + dz * s) * Math.SQRT1_2;
             const t = -b + Math.sqrt(Math.max(0, b * b - (dx * dx + dz * dz - r2)));
@@ -425,16 +466,17 @@ export function solvePitch(sku, pitch) {
       } else if (a.peg === "main" && !a.pole) {
         pegs = null;     // shares the main pole's peg: filled in below, once the tips have theirs
       } else {
-        const reach = a.pole ? at.y : Math.sqrt(Math.max(0, (a.rope || 2000) ** 2 - at.y ** 2));
+        const reach = a.pole ? at.y : reachOf(pat, a, at.y);
         pegs = [{ x: at.x + ox * reach, z: at.z + oz * reach }];
       }
-      if (!a.pole) return { name: a.name, role: a.role, side: a.side, pole: null, rope: a.rope, at, pegs };
+      const letter = String.fromCharCode(65 + pat.ring.findIndex(v => v.name === a.name));
+      if (!a.pole) return { name: a.name, letter, role: a.role, side: a.side, pole: null, rope: a.rope, at, pegs };
       // the foot: inboard of the top, along the pull -- the ridge for a main pole, the line from the
       // centre through the corner for a sub-pole
       let ux = 0, uz = a.name === "T" ? 1 : -1;
       if (a.role !== "tip") { const l = Math.hypot(at.x, at.z) || 1; ux = at.x / l; uz = at.z / l; }
       const off = a.pole * Math.sin(lean);
-      return { name: a.name, role: a.role, side: a.side, pole: a.pole, rope: a.rope, at, pegs,
+      return { name: a.name, letter, role: a.role, side: a.side, pole: a.pole, rope: a.rope, at, pegs,
         foot: { x: at.x - ux * off, y: 0, z: at.z - uz * off } };
     }),
     ridgeLow, cornerLow, area_m2: Math.abs(area) / 2 / 1e6,

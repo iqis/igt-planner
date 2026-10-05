@@ -34,7 +34,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group,
          propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox, burnerOf,
          tarpPitchGroup, landLockGroup, pentaTarpGroup, figureGroup, clothTarpGroup } from "./parts3d.js";
-import { PATTERNS as TARP_PATTERNS, solvePitch, pitchOf, MAIN_POLES, SUB_POLES, MID_POLES, LEANS } from "./tarp.js";
+import { PATTERNS as TARP_PATTERNS, solvePitch, pitchOf, letterOf, MAIN_POLES, SUB_POLES, MID_POLES, LEANS } from "./tarp.js";
 
 // Millimetres everywhere, scaled once on the way into the scene. The catalog speaks
 // mm; converting at the boundary keeps every number here readable against the spec
@@ -910,7 +910,7 @@ function drawFootprint(g, n) {
     ground.body.userData.node = n;
     nodeMeshes.push(ground.body);
     g.add(ground.group);
-    const cloth = clothTarpGroup(sol, { color: COLORS[n.sku]?.color_hex || 0x8a7460 });
+    const cloth = clothTarpGroup(sol, { color: COLORS[n.sku]?.color_hex || 0x8a7460, letters: state.sel === n.id });
     cloth.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(cloth.group);
     return;
@@ -1560,30 +1560,31 @@ function fillActions(box, n) {
     const fam = TARP_PATTERNS[n.sku].family, P = pitchOf(n.sku, tarpPitch(n)), hexa = fam === "hexa";
     const set = patch => { n.pitch = { ...P, ...patch }; delete n.config; render(); openToolPop("actions", n); };
     const label = text => { const d = document.createElement("div"); d.className = "plabel"; d.textContent = text; box.append(d); };
-    for (const [end, key] of [["a", hexa ? "tarp.end.narrow" : "tarp.end.front"], ["b", hexa ? "tarp.end.wide" : "tarp.end.back"]]) {
-      label(t(key));
-      for (const mm of MAIN_POLES)
-        box.append(chip(`${mm / 10}`, P[end] === mm, t("tarp.pole.tip", { cm: mm / 10 }), () => set({ [end]: mm })));
-    }
-    // every wing corner on its own: guyed, or a sub-pole of its own height
-    const corners = TARP_PATTERNS[n.sku].ring.filter(v => v.role === "corner")
-      .sort((u, v) => (u.side === v.side ? 0 : u.side === "left" ? -1 : 1) || v.z - u.z);
-    for (const c of corners) {
-      const cur = P.corners[c.name];
-      const setC = h => set({ corners: { ...P.corners, [c.name]: h } });
-      label(t(`tarp.corner.${fam}.${c.name}`));
-      box.append(chip(t("tarp.guyed"), cur == null, t("tarp.guyed.tip"), () => setC(null)));
-      for (const mm of SUB_POLES)
-        box.append(chip(`${mm / 10}`, cur === mm, t("tarp.sub.tip", { cm: mm / 10 }), () => setC(mm)));
-    }
-    // an octa's wing centres: down in the cloth (no pole, no rope), or raised on a 140 Wing Pole
-    for (const c of TARP_PATTERNS[n.sku].ring.filter(v => v.role === "mid").sort((u, v) => (u.side === "left" ? -1 : 1) - (v.side === "left" ? -1 : 1))) {
-      const cur = P.corners[c.name];
-      const setC = h => set({ corners: { ...P.corners, [c.name]: h } });
-      label(t(`tarp.corner.${fam}.${c.name}`));
-      box.append(chip(t("tarp.mid.none"), cur == null, t("tarp.mid.none.tip"), () => setC(null)));
-      for (const mm of MID_POLES)
-        box.append(chip(`${mm / 10}`, cur === mm, t("tarp.mid.tip", { cm: mm / 10 }), () => setC(mm)));
+    // One row per pole point, in letter order around the ring -- A at the front tip, on round the right
+    // side to the back tip and up the left -- the letters the 3D view puts on the cloth while selected.
+    const ends = { T: ["a", hexa ? "tarp.end.narrow" : "tarp.end.front"], B: ["b", hexa ? "tarp.end.wide" : "tarp.end.back"] };
+    for (const v of TARP_PATTERNS[n.sku].ring) {
+      const L = letterOf(n.sku, v.name), cur = P.corners[v.name];
+      const setC = h => set({ corners: { ...P.corners, [v.name]: h } });
+      if (v.role === "tip") {
+        // the two main poles
+        const [end, key] = ends[v.name];
+        label(`${L} · ${t(key)}`);
+        for (const mm of MAIN_POLES)
+          box.append(chip(`${mm / 10}`, P[end] === mm, t("tarp.pole.tip", { cm: mm / 10 }), () => set({ [end]: mm })));
+      } else if (v.role === "mid") {
+        // an octa's wing centre: down in the cloth (no pole, no rope), or raised on a 140 Wing Pole
+        label(`${L} · ${t(`tarp.corner.${fam}.${v.name}`)}`);
+        box.append(chip(t("tarp.mid.none"), cur == null, t("tarp.mid.none.tip"), () => setC(null)));
+        for (const mm of MID_POLES)
+          box.append(chip(`${mm / 10}`, cur === mm, t("tarp.mid.tip", { cm: mm / 10 }), () => setC(mm)));
+      } else {
+        // a wing corner on its own: guyed, or a sub-pole of its own height
+        label(`${L} · ${t(`tarp.corner.${fam}.${v.name}`)}`);
+        box.append(chip(t("tarp.guyed"), cur == null, t("tarp.guyed.tip"), () => setC(null)));
+        for (const mm of SUB_POLES)
+          box.append(chip(`${mm / 10}`, cur === mm, t("tarp.sub.tip", { cm: mm / 10 }), () => setC(mm)));
+      }
     }
     label(t("tarp.lean"));
     for (const deg of LEANS)

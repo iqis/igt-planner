@@ -13,6 +13,12 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
   corners, and raise either wing centre on a 140 cm Wing Pole; the bill carries the poles. The end
   corners' ropes share the main poles' pegs, as the manual has it, and the planner says when a pitch
   breaks the manual's rule for a fire underneath (two 280s, inner roof on, one fire pit in the centre).
+- **The Octa hangs the way its manual draws it**: every rope is pegged at the manual's ~45 degrees, the end
+  corners rope to the main poles' pegs, and the corners now sit where the manual's side elevation puts
+  them (side corners under a metre) -- so a raised wing centre stands out. The guyed length is within 1%
+  of Snow Peak's 880 cm.
+- **Tarp corners have letters**: the pitch menu names every pole point A, B, C... around the tarp, and a
+  selected tarp shows the same letters in 3D (blue where a pole stands).
 
 ## [1.1.1] — 2026-10-04
 
