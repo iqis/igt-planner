@@ -75,10 +75,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // raising the wings on sub-poles buys covered ground
   const tarp = await import("../web/tarp.js");
   const hexaL = tarp.solvePitch("TP-862", {}), raised = tarp.solvePitch("TP-862", { left: 1900, right: 1900 });
-  const ridgeOff = (() => { const T = hexaL.anchors.find(a => a.name === "T").at, B = hexaL.anchors.find(a => a.name === "B").at;
-    return Math.max(...hexaL.ridge.map(i => hexaL.pts[i]).map(p => {
+  // pitched taut (mains first -- no longer the default), the ridge is locked nearly straight
+  const tautL = tarp.solvePitch("TP-862", { order: "mains" });
+  const ridgeOff = (() => { const T = tautL.anchors.find(a => a.name === "T").at, B = tautL.anchors.find(a => a.name === "B").at;
+    return Math.max(...tautL.ridge.map(i => tautL.pts[i]).map(p => {
       const s = (p.z - B.z) / (T.z - B.z); return Math.abs(p.y - (B.y + s * (T.y - B.y))); })); })();
-  check("tarp: a taut ridge dips only gently", hexaL.ok && ridgeOff > 50 && ridgeOff < 200, `${ridgeOff.toFixed(0)} mm below the pole-to-pole line`);
+  check("tarp: a taut ridge dips only gently", tautL.ok && ridgeOff > 50 && ridgeOff < 200, `${ridgeOff.toFixed(0)} mm below the pole-to-pole line`);
   const one = tarp.solvePitch("TP-862", { corners: { NR: 1900 } });
   const ys = Object.fromEntries(one.anchors.filter(a => a.role === "corner").map(a => [a.name, Math.round(a.at.y)]));
   const y0 = Object.fromEntries(hexaL.anchors.filter(a => a.role === "corner").map(a => [a.name, Math.round(a.at.y)]));

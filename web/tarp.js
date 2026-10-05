@@ -118,12 +118,15 @@ export const PATTERNS = {
 // Snow Peak's recommended pitch per family (manuals): poles at the two tips; a hexa's wings guyed,
 // a recta's corners on sub-poles. `left` / `right` = a sub-pole height for that side's corners, or
 // null = guyed.
+// Every family pitched the way its manual says: wings first, then the mains (owner, 2026-10-05) -- how
+// hard the mains go is the one figure fitted per family (see RIDGES): the Hexa's every-rope-alike puts its
+// guyed footprint on Snow Peak's published one, the Octa's firm puts its ridge where its manual draws it.
 export const DEFAULTS = {
-  hexa: { a: 2800, b: 2400, left: null, right: null, lean: 5 },
-  recta: { a: 2800, b: 2800, left: 1700, right: 1700, lean: 5 },
+  hexa: { a: 2800, b: 2400, left: null, right: null, lean: 5, order: "wings", mainPull: 1 },
+  recta: { a: 2800, b: 2800, left: 1700, right: 1700, lean: 5, order: "wings", mainPull: 1 },
   // the Octa's manual: two 280s (and 280 is REQUIRED with a fire under it), every corner guyed, the
   // wing centres down
-  octa: { a: 2800, b: 2800, left: null, right: null, lean: 5 },
+  octa: { a: 2800, b: 2800, left: null, right: null, lean: 5, order: "wings", mainPull: 4 },
 };
 // How the ropes were tightened, as the pitch menu offers it. "taut": mains first, the ridge locked straight
 // (a 2% dip). The others: wings first, as the manuals have it, then the mains taken up `mainPull` times as
@@ -133,13 +136,15 @@ export const DEFAULTS = {
 //   firm (4x): the Octa as its manual's side elevation draws it -- ridge dip 0.22 m, poles 4.95 m apart,
 //     side corners 0.94 m, wing centres 0.97 m (drawn: 0.20 / 4.93 / 0.87 / 1.01)
 // Past ~15x the solver's own give (it holds the cloth inextensible only to within a few %) starts to show.
+// "taut" is stored as order "mains" -- spelled out, because the default is now the manual's order and an
+// absent key would read back as that.
 export const RIDGES = [
-  { key: "taut" },
+  { key: "taut", order: "mains" },
   { key: "soft", order: "wings", mainPull: 1 },
   { key: "medium", order: "wings", mainPull: 2 },
   { key: "firm", order: "wings", mainPull: 4 },
 ];
-export const ridgeOf = P => RIDGES.find(r => r.order === P.order && (r.mainPull ?? null) === (P.mainPull ?? null))?.key || "taut";
+export const ridgeOf = P => P.order !== "wings" ? "taut" : RIDGES.find(r => r.order === "wings" && r.mainPull === P.mainPull)?.key || "custom";
 
 // The wing-centre pole (an octa's `mid` vertex): the manual's 140 cm Wing Pole, or none.
 export const MID_POLES = [1400];
@@ -374,11 +379,11 @@ export function solvePitch(sku, pitch, { fast = false } = {}) {
   // a main pole's legs: which corners share their pegs (the Octa's ends, guyed)
   for (const a of anchors) if (a.role === "tip")
     a.share = anchors.filter(q => q.peg === "main" && !q.pole && Math.sign(q.z - cz) === (a.name === "T" ? 1 : -1));
-  // THE RIDGE IS STRAIGHT. Pitched taut -- the way nearly everyone pitches -- the ridge tape runs
-  // pole top to pole top as a line, and it does not stretch: so the two poles stand exactly as far
-  // apart (in plan) as the ridge's length allows for their height difference, and every node on the
-  // ridge sits on that line. The cloth only decides the WINGS. (An earlier version let the ridge sag
-  // under the wings' pull; a taut hexa's ridge does not, and the owner called it.)
+  // TAUT (order "mains"): the ridge tape runs pole top to pole top as a line, and it does not stretch:
+  // so the two poles stand exactly as far apart (in plan) as the ridge's length allows for their height
+  // difference, and every node on the ridge sits on that line; the cloth only decides the wings. Not
+  // the default any more -- see `free` below: the manuals tighten the wings first, and the ridge then
+  // is free.
   const iTn = anchors.find(a => a.name === "T").node, iBn = anchors.find(a => a.name === "B").node;
   const zT = mesh.pts[iTn].z, zB = mesh.pts[iBn].z, Lr = zT - zB;
   // A taut ridge is ALMOST straight: pitched well it keeps a slight, soft dip -- `sag` of its span

@@ -45,6 +45,10 @@
 > **2026-10-02: AI entry = under development.** The header's AI link stays `hidden`; README and
 > docs/AI.md (-> /llms.txt, /web/ai) now say so. The engine + `scripts/igt.mjs` are the working part.
 
+> **2026-10-05: DEFAULT = THE MANUAL'S ORDER (owner).** `DEFAULTS[family]` carry order "wings" + mainPull:
+> hexa 1, recta 1, octa 4. TAUT is stored EXPLICITLY as order "mains" (an absent key now reads back as the
+> default). `ridgeOf`: order !== "wings" -> taut. This supersedes the 2026-10-02 "taut = straight with a
+> slight dip" default (still available as the taut chip). Smoke's taut-ridge check now asks for "mains".
 > **2026-10-05: RIDGE ORDER + WOVEN MESH.** `pitch.order = "wings"` (+ `mainPull`): ridge NOT pinned; pole tops
 > pinned in x/y, free along z, pulled at their two 二又 legs' pegs (staked at the taut pitch's place) with
 > mainPull x a wing rope's tension. Ridge dip + pole spacing + horns are outputs. Presets `tarp.RIDGES`:
