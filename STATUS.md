@@ -46,7 +46,9 @@
 > docs/AI.md (-> /llms.txt, /web/ai) now say so. The engine + `scripts/igt.mjs` are the working part.
 
 > **2026-10-02: tarps + poles on the bill.** Tarp weights in overrides `_add` (`weight_source` says
-> which: the H/tarp-only listing; TP-440 / TP-851 DERIVED = published set minus its 280+240 Wing Poles).
+> which: the H/tarp-only listing). TP-440 / TP-851 are sold ONLY as sets with their own main poles
+> (`poles_included: ["main"]`): weight = the set, the bill adds no main poles. TAKIBI's are aluminium Wing
+> Poles; the Amenity's are STEEL (owner caught both, 2026-10-04).
 > Poles are catalog parts, role `pole` (never a node, no library row, no part page): TP-001/002/003/140
 > Wing Poles, TP-022 Alu 170 (main 170 AND sub 170 -- no 170 Wing Pole is listed), TP-080 / TP-161 sold
 > as pairs (`per_set` 2). `core.bomLines` bills a footprint node only if it is a tarp: cloth +

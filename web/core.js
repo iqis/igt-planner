@@ -986,11 +986,15 @@ export function freeBlock(n, cell) {
  *  "pole": `pole_mm`, `pole_use` main/sub); a pole sold in pairs (`per_set` 2) bills one set per two. */
 function tarpPoleSkus(n) {
   const pitch = n.pitch || (typeof n.config === "number" ? { a: n.config, b: n.config } : {});
-  const want = new Map();
+  const want = new Map(), own = PARTS[n.sku].poles_included || [];   // a set's own poles are in its weight
   for (const { use, mm } of polesOf(n.sku, pitch)) {
+    if (own.includes(use)) continue;
     const p = Object.values(PARTS).find(q => q.role === "pole" && q.pole_mm === mm && q.pole_use?.includes(use));
     if (p) want.set(p.sku, (want.get(p.sku) || 0) + 1);
   }
+  // a tarp with no pitch control (no known cut) bills the poles its manual calls for, if it names them
+  if (!polesOf(n.sku, pitch).length)
+    for (const sku of PARTS[n.sku].poles_default || []) if (PARTS[sku]) want.set(sku, (want.get(sku) || 0) + 1);
   return [...want].flatMap(([sku, k]) => Array(Math.ceil(k / (PARTS[sku].per_set || 1))).fill(sku));
 }
 

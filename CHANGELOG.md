@@ -6,6 +6,14 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-10-04
+
+- **Tarps sold with their own poles**: the TAKIBI Hexa M and the Amenity Hexa L come only as sets,
+  poles included (the Amenity's are steel, not the Wing Poles sold apart). They now weigh what the set
+  weighs and no longer add main poles to the bill a second time.
+- **TAKIBI Tarp Octa** is sold without poles: its bill now carries the two 280cm Wing Poles its
+  manual requires (the minimum pitch, and the only one allowed with a fire under it).
+
 ## [1.1.0] — 2026-10-04
 
 - **Tarps weigh in, poles and all**: every tarp now has a weight, and a pitched tarp puts its poles

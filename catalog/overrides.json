@@ -1246,8 +1246,11 @@
     "w": 7800,
     "d": 12200
    },
-   "weight_g": 5600,
-   "weight_source": "DERIVED: only the set is published -- TP-851SR 7.9kg (Snow Peak UK) minus its two Wing Poles (280 1.2kg + 240 1.1kg); still includes stakes and ropes"
+   "weight_g": 7900,
+   "weight_source": "The set TP-851S(R), poles included: its own STEEL poles 280 + 240 (hinata set contents: スチールポール 280cm, 240cm) -- not the aluminium Wing Poles sold apart (owner). Published weights disagree: 7.0kg (hinata, JP), 7.9kg (Snow Peak UK, TP-851SR), 9.8kg (Snow Peak US, TP-851S); the UK figure is used. The bill adds no main poles.",
+   "poles_included": [
+    "main"
+   ]
   },
   "TP-841": {
    "role": "shelter",
@@ -1428,8 +1431,11 @@
     "w": 6900,
     "d": 11200
    },
-   "weight_g": 6500,
-   "weight_source": "DERIVED: only the set is published -- TP-440S-US 8.8kg minus its two Wing Poles (280 1.2kg + 240 1.1kg); still includes the inner roof, 8 steel stakes and ropes"
+   "weight_g": 8800,
+   "weight_source": "The set TP-440S-US, 8.8kg (JP listing), poles included: sold only as a set, with its own aluminium Wing Poles 280 + 240 (JP set contents: ウイングポール 280cm x1, 240cm x1). Double-layer -- the poly-cotton inner roof is part of the tarp's own weight. A US retailer (Big Tent) gives 11 kg; the JP figure is used. The bill adds no main poles.",
+   "poles_included": [
+    "main"
+   ]
   },
   "TP-430": {
    "role": "shelter",
@@ -1484,7 +1490,12 @@
     "jp": null,
     "uk": null
    },
-   "reason": "Snow Peak TAKIBI Tarp Octa (TP-430): shelter FOOTPRINT for scale reference — fire-resistant. fabric 510x450cm stretched octagon on 2 centre poles. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm."
+   "reason": "Snow Peak TAKIBI Tarp Octa (TP-430): shelter FOOTPRINT for scale reference — fire-resistant. fabric 510x450cm stretched octagon on 2 centre poles. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "poles_default": [
+    "TP-001",
+    "TP-001"
+   ],
+   "weight_source": "JP listing 8.9kg: the tarp and its poly-cotton inner roof (double layer). Sold WITHOUT poles (JP set contents list none). Manual (TP-430_manual_web.pdf): minimum pitch = Wing Pole 280 x2 -- and 280 is REQUIRED with a fire under it; the full pitch adds Wing Pole 140 x2. There is no pitch control for the Octa yet, so the bill carries the minimum: two TP-001."
   },
   "GR-006": {
    "role": "accessory",

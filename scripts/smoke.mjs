@@ -98,6 +98,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("tarp: the bill carries the cloth and its poles",
     carried.total_weight_kg === 8.8 && carried.lines.map(l => l.sku).sort().join() === "TP-002,TP-003,TP-022,TP-080,TP-862",
     JSON.stringify(carried));
+  // the Amenity Hexa L comes with its own main poles (not the Wing Poles sold apart): they are in its
+  // weight, so only a raised corner's upright is added
+  const amenity = core.evaluate({ app: "igt-planner", v: 1, nodes: [
+    { i: 1, sku: "TP-851", x: 0, z: 0, rot: 0, pitch: { corners: { NR: 1700 } } }] }).bill;
+  check("tarp: a set's own poles are not billed twice",
+    amenity.total_weight_kg === 8.3 && amenity.lines.map(l => l.sku).sort().join() === "TP-022,TP-851",
+    JSON.stringify(amenity));
+  // the Octa is sold without poles and has no pitch control: it bills its manual's two 280s
+  const octa = core.evaluate({ app: "igt-planner", v: 1, nodes: [{ i: 1, sku: "TP-430", x: 0, z: 0, rot: 0 }] }).bill;
+  check("tarp: the Octa carries the two 280s its manual asks for",
+    octa.total_weight_kg === 11.3 && octa.lines.find(l => l.sku === "TP-001")?.qty === 2, JSON.stringify(octa));
   const tarpBad = Object.keys(tarp.PATTERNS).filter(sku => !tarp.solvePitch(sku, {}).ok);
   check("tarp: every known cut pitches at its defaults", !tarpBad.length, tarpBad.join(", "));
   // every starter layout is a real design: buildable by the rules, nothing dropped
