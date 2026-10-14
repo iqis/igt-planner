@@ -7,6 +7,7 @@ import { proceduralGrain } from "./proctex.js";
 import { icon, brand } from "./icons.js";
 import qrcode from "./vendor/qrcode.mjs";
 import { TEMPLATES } from "./templates.js";
+import { initTour, startTour, tourTick, tourSeen, tourActive } from "./tour.js";
 import { t, getLang, setLang, applyStatic, LANGS } from "./i18n.js";
 import {
   BY_ROLE, CAT, COLORS, CONN, CONN_TABLE, EDGE_IFACES, EDGE_KEYS, FIGURES,
@@ -1813,10 +1814,12 @@ function placementBtn(n) {
   // One pair of words for one switch: "place" WAS lock under another name (it set exactly the same
   // state), and two names for one thing read as two things. The word stays visible while the part is
   // still floating, because that is when the button matters.
-  return toolBtn(fixed ? ib("unlock", t("tool.unlock")) : ib("lock", t("tool.lock")),
+  const b = toolBtn(fixed ? ib("unlock", t("tool.unlock")) : ib("lock", t("tool.lock")),
     fixed ? t("tool.unlock.tip") : t("tool.lock.tip"),
     n.floating && !fixed ? "ib keep" : "ib",
     () => { if (fixed) { n.locked = false; n.floating = true; } else { n.locked = true; n.floating = false; } render(); });
+  b.dataset.act = "place";            // the tour points at it
+  return b;
 }
 
 function paintSelTools() {
@@ -1842,9 +1845,12 @@ function paintSelTools() {
     // Placement first: is this thing floating, placed, locked, hooked? -- the leading decision.
     selTools.append(placementBtn(n));
     // This part's OWN controls, at the part: height, then whatever it can be configured into.
-    if (legAdjustable(n) && PARTS[n.leg])
-      selTools.append(toolBtn(`${icon("height")}<span class="num">${PARTS[n.leg].height_mm}</span>`, t("tool.height.tip"), "ib keep",
-        () => openToolPop("legs", n)));
+    if (legAdjustable(n) && PARTS[n.leg]) {
+      const hb = toolBtn(`${icon("height")}<span class="num">${PARTS[n.leg].height_mm}</span>`, t("tool.height.tip"), "ib keep",
+        () => openToolPop("legs", n));
+      hb.dataset.act = "height";        // the tour points at it
+      selTools.append(hb);
+    }
     if (hasActions(n)) selTools.append(toolBtn(ib("options", t("tool.options")), t("tool.options.tip", { name: nameOf(PARTS[n.sku]) }), "ib", () => openToolPop("actions", n)));
     if (!n.host) {
       selTools.append(toolBtn(ib("rotate", t("tool.rotate")), t("tool.rotate.tip"), "ib", () => rotateNode(n)));
@@ -3524,7 +3530,7 @@ function paintHint() {
   if (sel() && edgeMeshes.length) el.innerHTML = t(COARSE ? "hint.dot.touch" : "hint.dot");
   else el.innerHTML = t(COARSE ? "hint.frame.touch" : "hint.frame");
 }
-function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); paintBlocks(); paintRulers(); paintHint(); paintEmpty(); }
+function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); paintSelTools(); paintOutliner(); paintDimHud(); paintTransform(); paintBlocks(); paintRulers(); paintHint(); paintEmpty(); tourTick(); }
 
 // ---- starter layouts
 // A template is a layout document; opening one is opening a file (a new page if this one has work).
@@ -3544,16 +3550,22 @@ function paintEmpty() {
   if (emptyShown) return;
   emptyShown = true;
   box.innerHTML = "";
+  // New here? The tour is offered first: the cards below are answers, the tour is how to ask.
+  if (!tourActive()) box.append(cardBtn(`${icon("play")} ${t("tour.cta")}`, () => startTour(), "primary etour"));
   box.append(el("div", "ehead", t("tpl.head")));
+  box.append(templateGrid(), el("div", "eor", t("tpl.or")));
+}
+/** The starter layouts as picture cards, drawn by the planner (docShot caches each one). */
+function templateGrid(after) {
   const grid = el("div", "egrid");
   for (const tp of TEMPLATES) {
     const b = el("button", "ecard");
     const shot = docShot(tp.doc, `tpl:${tp.id}`, 480, 300, "image/jpeg", [.7, .55, .9]);
     b.innerHTML = (shot ? `<img src="${shot}" alt="">` : "") + `<b>${t(`tpl.${tp.id}`)}</b><span>${t(`tpl.${tp.id}.sub`)}</span>`;
-    b.onclick = () => openTemplate(tp);
+    b.onclick = () => { openTemplate(tp); after?.(); };
     grid.append(b);
   }
-  box.append(grid, el("div", "eor", t("tpl.or")));
+  return grid;
 }
 
 /** Put a read layout on screen. */
@@ -4547,6 +4559,48 @@ $("infobtn").onclick = () => { closeCard(); infoModal.showModal(); };
 infoModal.addEventListener("click", e => { if (e.target === infoModal) infoModal.close(); });
 $("infomodal").querySelector(".iclose").innerHTML = icon("x");
 $("sharebtn").onclick = e => { e.stopPropagation(); openShareCard(e.currentTarget); };
+// The examples: the starter layouts as pictures, a click from anywhere -- not only from an empty page.
+$("tplbtn").onclick = e => {
+  e.stopPropagation();
+  openCard(e.currentTarget, c => {
+    c.classList.add("wide");
+    c.append(cardHead(t("tpl.head"), t("tpl.card.sub")), templateGrid(closeCard));
+  });
+};
+$("tourbtn").onclick = () => { closeCard(); fileMenu.hidden = true; startTour(); };
+$("tourbtn2").onclick = () => { infoModal.close(); startTour(); };
+
+// ---- the guided tour (web/tour.js): what it may read, and the few things it may do
+initTour({
+  nodes: () => state.nodes,
+  sel,
+  coarse: COARSE,
+  phone: () => PHONE.matches,
+  setSheet,
+  newPage,
+  fit: () => fitAll(),
+  // The blue tab on an END of the selected frame, in client px -- "click here". The nearest one to the
+  // camera, so the dot it points at is the one in front.
+  endDot() {
+    const r = canvas.getBoundingClientRect();
+    let best = null;
+    for (const m of edgeMeshes) {
+      const e = m.userData.edge;
+      if (!(m.geometry instanceof THREE.SphereGeometry) || !e?.key?.startsWith("end")) continue;
+      const v = m.position.clone().project(camera);
+      if (v.z > 1) continue;
+      if (!best || v.z < best.z) best = { x: r.left + (v.x * .5 + .5) * r.width, y: r.top + (-v.y * .5 + .5) * r.height, z: v.z };
+    }
+    return best;
+  },
+  // The first frame's middle, in client px: where "click the frame" points when nothing is selected.
+  frameCentre() {
+    const n = state.nodes.find(m => m.kind === "frame");
+    if (!n) return null;
+    const s = toScreen({ x: n.x, y: topOf(n), z: n.z }), r = canvas.getBoundingClientRect();
+    return s.behind ? null : { x: r.left + s.x, y: r.top + s.y };
+  },
+});
 $("pngbtn").onclick = e => { e.stopPropagation(); openPhotoCard(e.currentTarget); };
 // The AI link stays a real link (middle-click, open in new tab still go to the guide); a plain click
 // opens the card instead.
@@ -4979,6 +5033,7 @@ applyStatic();
 for (const [id, html] of [
   ["filebtn", `${icon("folder")}<span>${t("hdr.layouts")}</span>`], ["sharebtn", `${icon("share")}<span>${t("hdr.share")}</span>`],
   ["pngbtn", `${icon("camera")}<span>${t("hdr.photo")}</span>`], ["langbtn", icon("lang")],
+  ["tplbtn", `${icon("grid")}<span>${t("hdr.examples")}</span>`], ["tourbtn", `${icon("play")}<span>${t("hdr.tour")}</span>`],
   ["undo", icon("undo")], ["redo", icon("redo")], ["edgebtn", icon("plus", 15)],
   ["infobtn", icon("info")],
   ["bandtool", `${icon("select")}<span>${t("view.band")}</span>`], ["rulertool", `${icon("ruler")}<span>${t("view.ruler")}</span>`],
@@ -4996,6 +5051,7 @@ paintFiles();
 //   your book       -- every page you had, and the one you were on; a reload loses nothing
 //   a legacy scene  -- the single scene from before pages existed, migrated into page 1
 //   a 4-unit frame  -- a blank page is not a starting point
+let firstVisit = false;
 (async () => {
   const savedBook = lsGet(LS_PAGES, null);
   const hasBook = !!savedBook?.pages?.length;
@@ -5058,4 +5114,10 @@ paintFiles();
   if (legacy) { try { loadLayout(legacy); } catch { addNode("CK-150", false); } }
   else addNode("CK-150", false);
   adoptAsBook(t("page.n", { n: 1 }));
-})().then(() => partFromHash());
+  if (!tourSeen()) firstVisit = true;
+})().then(() => {
+  partFromHash();
+  // #tour opens the guided tour (a link to send someone); a first visit is offered it once.
+  if (location.hash === "#tour") { history.replaceState(null, "", location.pathname); startTour(); }
+  else if (firstVisit && !partModal.open) startTour();
+});

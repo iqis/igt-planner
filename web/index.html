@@ -44,6 +44,7 @@
 <link rel="modulepreload" href="proctex.js">
 <link rel="modulepreload" href="icons.js">
 <link rel="modulepreload" href="i18n.js">
+<link rel="modulepreload" href="tour.js">
 </head>
 <body>
 
@@ -56,6 +57,9 @@
        an internal measuring tool that writes annotation files, still answering at /web/part.html
        for whoever knows to type it -- neither belongs in front of someone laying out a table. -->
   <div class="filebar">
+    <!-- For a first-timer: the guided tour (web/tour.js), and the starter layouts as pictures. -->
+    <button id="tourbtn" class="chip" data-i18n-title="hdr.tour.tip" title="a guided tour: click here, then here">▶ tour</button>
+    <button id="tplbtn" class="chip" data-i18n-title="hdr.examples.tip" title="open a ready-made layout">▦ examples</button>
     <button id="filebtn" class="chip" data-i18n-title="hdr.layouts.tip" title="layouts — save, open, share, export">▤ layouts</button>
     <button id="sharebtn" class="chip" data-i18n-title="hdr.share.tip" title="copy a link that carries the whole design">⇗ share</button>
     <button id="pngbtn" class="chip" data-i18n-title="hdr.photo.tip" title="export this page as one PNG picture — the view, a plan, and the part list">▣ snapshot</button>
@@ -103,6 +107,7 @@
         slots inside take burners and trays. Click a dot to see what fits there.</li>
       <li data-i18n="about.step3"><b>Read the Build panel</b> on the right: the parts you'd carry, their weight, and anything to fix.</li>
     </ol>
+    <p><button id="tourbtn2" class="cbtn primary" type="button" data-i18n="tour.cta">Take the 2-minute tour</button></p>
     <p data-i18n="about.tabs">Each tab is its own design, with its own scene. <b>Share</b> sends a link that carries the whole
       design; <b>Snapshot</b> makes a picture of it.</p>
 

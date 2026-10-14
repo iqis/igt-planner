@@ -6,6 +6,14 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+- **A guided tour.** "Click here, then here", on the real planner: nine short steps build a small camp
+  kitchen (a frame, setting it down, a burner, a tray, a bamboo board on the blue dot, the height, the
+  view, the bill, sharing). Each step waits until you have done it. It runs on a page of its own, is
+  offered once on a first visit, and lives in the header (**tour**), in About, on any empty page, and at
+  `#tour`.
+- **Ten examples, one click away.** Six new starter layouts -- a first table, an L-shaped kitchen, stand &
+  sit (a height adjuster between two heights), a slide-in board, solo & light, and a family kitchen under
+  a tarp -- and an **examples** button in the header that shows them all as pictures.
 - **Ridge: how the ropes were tightened.** Every tarp now has a "Ridge" row: taut (mains first, the
   ridge pulled straight -- as before), or wings first, the way both Snow Peak manuals say to pitch, with
   the mains taken up soft, medium or firm. Wings first, the ridge is free: it curves, and the pole tips

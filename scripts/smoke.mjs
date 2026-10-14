@@ -221,6 +221,8 @@ try {
   // a first run seeds a frame; a returning run restores the book -- either way, nodes exist
   const seeded = await page.evaluate(() => window.__igt.state.nodes.length);
   check("planner boots with a scene", seeded >= 1, `nodes=${seeded}`);
+  // A first visit is offered the guided tour; its hello card sits there, harmless, through what follows.
+  check("tour: offered on a first visit", await page.evaluate(() => !!document.querySelector("#tour:not([hidden]) .tcard")));
 
   // THE IDLE INVARIANT: the on-demand renderer must go quiet when nothing happens
   await sleep(600);
@@ -434,6 +436,34 @@ try {
   check("every listed part opens its page", pp.n > 50 && !pp.bad.length, `${pp.n} parts; ${pp.bad.slice(0, 3).join(" | ")}`);
   check("a module's page shows its drawing and its frames", pp.img && pp.chips >= 3, JSON.stringify(pp));
   check("drawing a part leaves the scene alone", pp.same);
+
+  // THE TOUR, from its header button: each step waits for the real action -- walk the first five by
+  // clicking what each one points at.
+  const tour = await page.evaluate(async () => {
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const card = () => document.querySelector("#tour:not([hidden]) .tcard");
+    const seen = [];
+    document.getElementById("tourbtn").click(); await wait(50);
+    if (!card()) return { offered: false };
+    const pages = window.__igt.pages().pages.length;
+    card().querySelector(".cbtn.primary").click(); await wait(100);              // Start
+    seen.push(card()?.textContent.match(/Step (\d+)/)?.[1]);
+    document.querySelector('#add [data-sku="CK-150"]').click(); await wait(100);  // 1 frame
+    seen.push(card()?.textContent.match(/Step (\d+)/)?.[1]);
+    document.querySelector("#seltools [data-act=place]").click(); await wait(100); // 2 lock it down
+    seen.push(card()?.textContent.match(/Step (\d+)/)?.[1]);
+    document.querySelector('#cooking [data-sku="GS-450R-US"]').click(); await wait(100); // 3 burner
+    seen.push(card()?.textContent.match(/Step (\d+)/)?.[1]);
+    document.querySelector('#trays [data-sku="CK-085"]').click(); await wait(100); // 4 tray
+    seen.push(card()?.textContent.match(/Step (\d+)/)?.[1]);
+    const dot = !document.querySelector("#tour .tdot").hidden;                    // 5 points at the blue dot
+    [...card().querySelectorAll(".cbtn.link")].pop().click();                     // end tour
+    return { offered: true, seen, dot, newPage: window.__igt.pages().pages.length === pages + 1,
+      closed: document.getElementById("tour").hidden, remembered: localStorage.getItem("igt.tour") === "1" };
+  });
+  check("tour: waits for each action, on a page of its own",
+    tour.offered && tour.seen?.join() === "1,2,3,4,5" && tour.dot && tour.newPage && tour.closed && tour.remembered,
+    JSON.stringify(tour));
 
   check("planner console is clean", errors.length === 0, errors.slice(0, 3).join(" | "));
   if (PUBLIC) {

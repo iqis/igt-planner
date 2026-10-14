@@ -45,6 +45,15 @@
 > **2026-10-02: AI entry = under development.** The header's AI link stays `hidden`; README and
 > docs/AI.md (-> /llms.txt, /web/ai) now say so. The engine + `scripts/igt.mjs` are the working part.
 
+> **2026-10-13: onboarding (users found it hard to start).** `web/tour.js` = guided tour: STEPS each
+> point at one element (or a 3D point, `api.endDot()` = projected end-edge tab) and WAIT on `done()`
+> (reads the design), so actions advance it, not a Next button. Spotlight takes no pointer events -- the
+> app stays live. Runs on a new "Tutorial" page. Offered once on first visit (`igt.tour` in localStorage),
+> header **tour** (hidden on phones -- no room), About, empty state, `#tour`. Has a "place" step because a
+> library-added part lands FLOATING (ghost) -- the first thing newcomers don't get. Templates 4 -> 10; header
+> **examples** card (`templateGrid`). Toolbar buttons carry `data-act` (place/height) for the tour. Smoke:
+> offered on first visit + walks steps 1-5.
+
 > **2026-10-05: SYMMETRY FIX.** A square lattice is cocircular everywhere, so Delaunay picked every
 > square's diagonal ONE way -> one-handed bias + lopsided area weights: a symmetric pitch hung up to 23 cm
 > lopsided (Octa). Fix: lattice coords warped mirror-symmetrically (x *= 1 + 1e-4 j^2, z *= 1 + 1e-4 i^2):

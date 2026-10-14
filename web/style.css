@@ -1268,3 +1268,42 @@ body.compact header h1.brand img { width: 26px; height: 26px; }
   .tm-view { border-right: 0; border-bottom: 1px solid var(--line); }
   .tm-side { overflow: visible; }
 }
+
+/* ---- the examples card, and the guided tour (web/tour.js) --------------------------------------- */
+#popcard.wide { width: min(700px, calc(100vw - 16px)); max-height: calc(100vh - 80px); overflow: auto; }
+#popcard.wide .egrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+#emptystate { overflow: auto; justify-content: safe center; }
+#emptystate .egrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); width: min(100%, 780px); }
+#emptystate .etour { font-size: .86rem; padding: .55rem 1rem; }
+.cbtn svg { width: 15px; height: 15px; }
+
+#tour[hidden] { display: none; }
+#tour { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+/* The spotlight: a hole in a dim, cut with a huge shadow. It takes no clicks -- the app underneath
+   stays live, which is the point: the tour waits for the person to do the thing. */
+.tring { position: fixed; border-radius: var(--r-pop); border: 2px solid var(--accent);
+  box-shadow: 0 0 0 9999px rgba(10, 12, 16, .28), 0 0 0 5px var(--accent-soft);
+  transition: left .18s, top .18s, width .18s, height .18s; animation: tpulse 1.6s ease-in-out infinite; }
+.tring[hidden], .tdot[hidden] { display: none; }
+/* A point in the 3D view (the blue dot to click): a pulsing ring around it. */
+.tdot { position: fixed; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
+  border: 3px solid var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); animation: tping 1.2s ease-out infinite; }
+@keyframes tpulse { 50% { border-color: var(--accent-hi); } }
+@keyframes tping { 0% { transform: scale(.6); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .tring, .tdot { animation: none; transition: none; } }
+.tcard { position: fixed; pointer-events: auto; width: min(320px, calc(100vw - 16px));
+  padding: .85rem .9rem .7rem; background: var(--panel); color: var(--ink);
+  border: 1px solid var(--accent); border-radius: var(--r-pop); box-shadow: 0 14px 40px var(--shadow);
+  display: flex; flex-direction: column; gap: .5rem; font: .84rem/1.5 var(--sans); }
+.tcard .tcount { font-size: .7rem; color: var(--dim); letter-spacing: .02em; }
+.tcard .ttext b { font-weight: 650; }
+.tcard .tbtns { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; }
+.tcard .tbtns .cbtn.link { color: var(--dim); font-size: .76rem; }
+.tcard .tbtns .cbtn.link:hover { color: var(--accent); }
+.tcard .twait { font-size: .74rem; color: var(--accent); margin-right: auto; }
+.tcard .cbtn.primary { margin-right: auto; }
+/* No room for the tour button in a phone's header; the tour is still offered on a first visit, on an
+   empty page, and in About. */
+body.compact #tourbtn { display: none; }
+/* Below ~390px not even the examples fit; they are in the layouts menu and on any empty page. */
+@media (max-width: 389px) { body.compact #tplbtn { display: none; } }
