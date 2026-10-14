@@ -6,6 +6,8 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-10-13
+
 - **A guided tour.** "Click here, then here", on the real planner: nine short steps build a small camp
   kitchen (a frame, setting it down, a burner, a tray, a bamboo board on the blue dot, the height, the
   view, the bill, sharing). Each step waits until you have done it. It runs on a page of its own, is
