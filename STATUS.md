@@ -55,6 +55,13 @@
 > 2026-10-14: only BOARDS (kind ext) land floating from the library now; frames/tables/props are set down
 > (still draggable). The ghost frame waiting for "lock" was the newcomer trap, so the tour's "place" step
 > is gone (8 steps).
+> 2026-10-15: library board click hooks onto the selected table (`boardTarget`/`addBoard`: end before rail,
+> nearer end first; hover preview shows it hooked); falls back to floating. Examples' pictures prebuilt by
+> part_pages.mjs into dist/web/tpl/<id>.jpg (grid open 3.5 s -> 5 ms). Anonymous counts: `count()` in app.js
+> (PUBLIC only, sendBeacon) -> Worker POST /api/e -> Analytics Engine datasets igt_events / igt_events_dev
+> (blob1 = event name, nothing else). Events: tour.offer.auto|button, tour.step.N, tour.end.N, tour.later,
+> tour.done, tpl.open.<id>. Query: AE SQL API `SELECT blob1, count() FROM igt_events GROUP BY blob1`.
+> Page views: Cloudflare Web Analytics (auto-install on iqis.app zone, already on). serve.py swallows /api/e.
 
 > **2026-10-05: SYMMETRY FIX.** A square lattice is cocircular everywhere, so Delaunay picked every
 > square's diagonal ONE way -> one-handed bias + lopsided area weights: a symmetric pitch hung up to 23 cm
