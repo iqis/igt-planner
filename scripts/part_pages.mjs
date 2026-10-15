@@ -1,5 +1,6 @@
 // The public part pages: dist/p/<SKU>/index.html, one per part the planner lists, plus the planner's
-// own drawing of each part, sitemap.xml and robots.txt. Run by build_public.py after dist/ is built.
+// own drawing of each part, sitemap.xml and robots.txt -- and web/tpl/<id>.jpg, each example's
+// picture. Run by build_public.py after dist/ is built.
 //
 //   node scripts/part_pages.mjs [dist]
 //
@@ -14,6 +15,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer-core";
 import * as core from "../web/core.js";
+import { TEMPLATES } from "../web/templates.js";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const DIST = resolve(ROOT, process.argv[2] || "dist");
@@ -164,6 +166,13 @@ try {
     for (const p of parts) {
       const data = await pg.evaluate(s => window.__igt.partShot(s, 1200, 630, "image/jpeg"), p.sku);
       if (data) shots[p.sku] = Buffer.from(data.split(",")[1], "base64");
+    }
+    // The examples' pictures too: the planner's grid loads these instead of drawing ten scenes.
+    mkdirSync(join(DIST, "web", "tpl"), { recursive: true });
+    for (const tp of TEMPLATES) {
+      const data = await pg.evaluate(id => window.__igt.templateShot(id), tp.id);
+      if (!data) throw new Error(`template ${tp.id} drew nothing`);
+      writeFileSync(join(DIST, "web", "tpl", `${tp.id}.jpg`), Buffer.from(data.split(",")[1], "base64"));
     }
   } finally { await b.close(); }
 } finally { srv.kill(); }

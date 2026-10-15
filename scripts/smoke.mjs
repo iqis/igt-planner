@@ -497,6 +497,16 @@ try {
     const pageHtml = await (await fetch(`${BASE}/p/CK-150/`)).text();
     const shotOk = (await fetch(`${BASE}/p/CK-160/shot.jpg`)).ok;
     check("public part pages carry their facts and picture", /Fits onto/.test(pageHtml) && /CK-150/.test(pageHtml) && shotOk);
+    // The examples grid loads pictures drawn at build time instead of drawing ten scenes on open.
+    const tplImgs = await page.evaluate(async () => {
+      document.getElementById("tplbtn").click();
+      const imgs = [...document.querySelectorAll("#popcard .ecard img")];
+      await Promise.all(imgs.map(i => i.decode().catch(() => {})));
+      const ok = imgs.filter(i => i.naturalWidth > 0 && /\/tpl\//.test(i.src)).length;
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      return { n: imgs.length, ok };
+    });
+    check("public examples load their prebuilt pictures", tplImgs.n >= 10 && tplImgs.ok === tplImgs.n, JSON.stringify(tplImgs));
   }
   await page.close();
 

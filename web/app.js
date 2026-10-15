@@ -3592,12 +3592,16 @@ function paintEmpty() {
   box.append(templateGrid(), el("div", "eor", t("tpl.or")));
 }
 /** The starter layouts as picture cards, drawn by the planner (docShot caches each one). */
+// A template's picture. Drawing all ten took the page ~3.5 s with nothing else able to run, so the
+// public builds draw them once, at build time (part_pages.mjs writes web/tpl/<id>.jpg), and the grid
+// just loads those. The working copy has no such files and still draws them here.
+const tplShot = tp => docShot(tp.doc, `tpl:${tp.id}`, 480, 300, "image/jpeg", tp.view || [.7, .55, .9], tp.zoom);
 function templateGrid(after) {
   const grid = el("div", "egrid");
   for (const tp of TEMPLATES) {
     const b = el("button", "ecard");
-    const shot = docShot(tp.doc, `tpl:${tp.id}`, 480, 300, "image/jpeg", tp.view || [.7, .55, .9], tp.zoom);
-    b.innerHTML = (shot ? `<img src="${shot}" alt="">` : "") + `<b>${t(`tpl.${tp.id}`)}</b><span>${t(`tpl.${tp.id}.sub`)}</span>`;
+    const shot = PUBLIC ? `tpl/${tp.id}.jpg?v=${VERSION}` : tplShot(tp);
+    b.innerHTML = (shot ? `<img src="${shot}" alt="" width="480" height="300">` : "") + `<b>${t(`tpl.${tp.id}`)}</b><span>${t(`tpl.${tp.id}.sub`)}</span>`;
     b.onclick = () => { openTemplate(tp); after?.(); };
     grid.append(b);
   }
@@ -5058,7 +5062,7 @@ window.__igt = { THREE, scene, camera, controls, state, PARTS, TEXTURES, render,
   serializeLayout, readLayout, loadLayout, saveNamed, openNamed, savedAll, blocksAll,
   saveBlock, addBlock, shareLink, exportFile,
   newPage, switchPage, deletePage, renamePage, pages: () => book,
-  renderStats, invalidate, exportPng, openPartPage, partShot, openTemplate, openTarpModeFor,
+  renderStats, invalidate, exportPng, openPartPage, partShot, openTemplate, templateShot: id => tplShot(TEMPLATES.find(tp => tp.id === id)), openTarpModeFor,
   top() { camera.position.set(0.001, 3.6, 0.001); controls.target.set(0.6, 0.8, 0); invalidate(); } };
 
 // Fixed text into the interface's language first (index.html carries data-i18n keys), then icons.
