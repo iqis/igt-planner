@@ -437,7 +437,7 @@ try {
   check("a module's page shows its drawing and its frames", pp.img && pp.chips >= 3, JSON.stringify(pp));
   check("drawing a part leaves the scene alone", pp.same);
 
-  // THE TOUR, from its header button: each step waits for the real action -- walk the first five by
+  // THE TOUR, from its header button: each step waits for the real action -- walk the first four by
   // clicking what each one points at.
   const tour = await page.evaluate(async () => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -450,19 +450,19 @@ try {
     seen.push(card()?.textContent.match(/Step (\d+)/)?.[1]);
     document.querySelector('#add [data-sku="CK-150"]').click(); await wait(100);  // 1 frame
     seen.push(card()?.textContent.match(/Step (\d+)/)?.[1]);
-    document.querySelector("#seltools [data-act=place]").click(); await wait(100); // 2 lock it down
+    // A frame from the library is set down, not a see-through ghost waiting for "lock".
+    const solid = window.__igt.state.nodes.filter(n => n.kind === "frame").every(n => !n.floating);
+    document.querySelector('#cooking [data-sku="GS-450R-US"]').click(); await wait(100); // 2 burner
     seen.push(card()?.textContent.match(/Step (\d+)/)?.[1]);
-    document.querySelector('#cooking [data-sku="GS-450R-US"]').click(); await wait(100); // 3 burner
+    document.querySelector('#trays [data-sku="CK-085"]').click(); await wait(100); // 3 tray
     seen.push(card()?.textContent.match(/Step (\d+)/)?.[1]);
-    document.querySelector('#trays [data-sku="CK-085"]').click(); await wait(100); // 4 tray
-    seen.push(card()?.textContent.match(/Step (\d+)/)?.[1]);
-    const dot = !document.querySelector("#tour .tdot").hidden;                    // 5 points at the blue dot
+    const dot = !document.querySelector("#tour .tdot").hidden;                    // 4 points at the blue dot
     [...card().querySelectorAll(".cbtn.link")].pop().click();                     // end tour
-    return { offered: true, seen, dot, newPage: window.__igt.pages().pages.length === pages + 1,
+    return { offered: true, seen, solid, dot, newPage: window.__igt.pages().pages.length === pages + 1,
       closed: document.getElementById("tour").hidden, remembered: localStorage.getItem("igt.tour") === "1" };
   });
   check("tour: waits for each action, on a page of its own",
-    tour.offered && tour.seen?.join() === "1,2,3,4,5" && tour.dot && tour.newPage && tour.closed && tour.remembered,
+    tour.offered && tour.seen?.join() === "1,2,3,4" && tour.solid && tour.dot && tour.newPage && tour.closed && tour.remembered,
     JSON.stringify(tour));
 
   check("planner console is clean", errors.length === 0, errors.slice(0, 3).join(" | "));

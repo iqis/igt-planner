@@ -49,10 +49,12 @@
 > point at one element (or a 3D point, `api.endDot()` = projected end-edge tab) and WAIT on `done()`
 > (reads the design), so actions advance it, not a Next button. Spotlight takes no pointer events -- the
 > app stays live. Runs on a new "Tutorial" page. Offered once on first visit (`igt.tour` in localStorage),
-> header **tour** (hidden on phones -- no room), About, empty state, `#tour`. Has a "place" step because a
-> library-added part lands FLOATING (ghost) -- the first thing newcomers don't get. Templates 4 -> 10; header
-> **examples** card (`templateGrid`). Toolbar buttons carry `data-act` (place/height) for the tour. Smoke:
-> offered on first visit + walks steps 1-5.
+> header **tour** (hidden on phones -- no room), About, empty state, `#tour`. Templates 4 -> 10; header
+> **examples** card (`templateGrid`; a template may set `view`/`zoom` for its thumbnail -- the tarp does).
+> The height button carries `data-act=height` for the tour. Smoke: offered on first visit + walks steps 1-4.
+> 2026-10-14: only BOARDS (kind ext) land floating from the library now; frames/tables/props are set down
+> (still draggable). The ghost frame waiting for "lock" was the newcomer trap, so the tour's "place" step
+> is gone (8 steps).
 
 > **2026-10-05: SYMMETRY FIX.** A square lattice is cocircular everywhere, so Delaunay picked every
 > square's diagonal ONE way -> one-handed bias + lopsided area weights: a symmetric pitch hung up to 23 cm

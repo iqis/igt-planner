@@ -1,7 +1,8 @@
 // Starter layouts: a few complete, buildable designs to open instead of a bare frame. Each is an
 // ordinary layout document (the same intent-only JSON a share link carries), so opening one is
 // opening a file -- and every one is checked buildable by the smoke test, against the rules.
-// Names and blurbs are i18n keys: tpl.<id> and tpl.<id>.sub.
+// Names and blurbs are i18n keys: tpl.<id> and tpl.<id>.sub. Optional view (camera direction) and
+// zoom (< 1 = closer) set the thumbnail's camera.
 const doc = (scene, nodes) => ({ app: "igt-planner", v: 1, scene, nodes });
 
 export const TEMPLATES = [
@@ -94,6 +95,9 @@ export const TEMPLATES = [
     // A family kitchen under a Takibi Tarp Hexa M: the tarp is drawn to size, so you can see
     // the table, the chairs and the people fit under it.
     id: "tarp",
+    // Its guy ropes reach metres out, so "all of it" would leave the table a speck: frame in close,
+    // low enough to see under the roof.
+    view: [.8, .3, 1], zoom: .4,
     doc: doc("meadow", [
       { i: 1, sku: "TP-440", x: 0, z: 0, rot: 0 },
       { i: 2, sku: "CK-150", leg: "CK-113", x: 0, z: 0, rot: 0, placements: [

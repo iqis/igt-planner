@@ -1818,7 +1818,6 @@ function placementBtn(n) {
     fixed ? t("tool.unlock.tip") : t("tool.lock.tip"),
     n.floating && !fixed ? "ib keep" : "ib",
     () => { if (fixed) { n.locked = false; n.floating = true; } else { n.locked = true; n.floating = false; } render(); });
-  b.dataset.act = "place";            // the tour points at it
   return b;
 }
 
@@ -2572,10 +2571,13 @@ function addNode(sku, float = true) {
   }
 
   if (float) {
-    // A clear spot in front of the layout, staggered so repeats don't stack. Provisional -- nothing
-    // auto-hooks, nothing lands flush. floatSpot() is shared with the hover preview, so the ghost you
-    // see is exactly where the click will drop it.
-    n.floating = true;
+    // A clear spot in front of the layout, staggered so repeats don't stack. Nothing auto-hooks,
+    // nothing lands flush. floatSpot() is shared with the hover preview, so the ghost you see is
+    // exactly where the click will drop it.
+    // Only a board lands FLOATING (see-through): it is not done until it hangs off an edge. Anything
+    // that stands on its own -- a frame, a table, a chair -- is set down on the ground, still free to
+    // drag. A ghost frame waiting for "lock" was the first thing newcomers did not understand.
+    if (kind === "ext") n.floating = true;
     Object.assign(n, floatSpot(n));
   }
   // else: the first-run frame, placed at the origin and committed.
@@ -3560,7 +3562,7 @@ function templateGrid(after) {
   const grid = el("div", "egrid");
   for (const tp of TEMPLATES) {
     const b = el("button", "ecard");
-    const shot = docShot(tp.doc, `tpl:${tp.id}`, 480, 300, "image/jpeg", [.7, .55, .9]);
+    const shot = docShot(tp.doc, `tpl:${tp.id}`, 480, 300, "image/jpeg", tp.view || [.7, .55, .9], tp.zoom);
     b.innerHTML = (shot ? `<img src="${shot}" alt="">` : "") + `<b>${t(`tpl.${tp.id}`)}</b><span>${t(`tpl.${tp.id}.sub`)}</span>`;
     b.onclick = () => { openTemplate(tp); after?.(); };
     grid.append(b);
@@ -4650,7 +4652,9 @@ function partShot(sku, w = 760, h = 460, type = "image/png") {
   return doc ? docShot(doc, `${sku}@${w}x${h}/${type}`, w, h, type) : null;
 }
 /** Draw any layout document once, off to the side of the live one, and return it as a data URL. */
-function docShot(doc, key, w, h, type = "image/png", view = [.62, .5, .78]) {
+// zoom < 1 moves the camera in from "all of it in frame" -- for a layout whose ropes and pegs reach far
+// out around what the picture is about (a tarp over a table).
+function docShot(doc, key, w, h, type = "image/png", view = [.62, .5, .78], zoom = 1) {
   if (shotCache.has(key)) return shotCache.get(key);
   const keep = { nodes: state.nodes, nextId: state.nextId, sel: state.sel, selSet: state.selSet, rulers: state.rulers };
   const keepHover = hoverPreview, fog = scene.fog;
@@ -4664,7 +4668,7 @@ function docShot(doc, key, w, h, type = "image/png", view = [.62, .5, .78]) {
     if (!box.isEmpty()) {
       const c = box.getCenter(new THREE.Vector3()), r = box.getBoundingSphere(new THREE.Sphere()).radius;
       const cam = new THREE.PerspectiveCamera(30, w / h, 0.01, 80);
-      const dist = r / Math.sin(cam.fov * Math.PI / 360) * 1.02;
+      const dist = r / Math.sin(cam.fov * Math.PI / 360) * 1.02 * zoom;
       cam.position.copy(c).add(new THREE.Vector3(...view).normalize().multiplyScalar(dist));
       cam.lookAt(c);
       scene.fog = null;

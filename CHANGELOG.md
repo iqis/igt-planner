@@ -6,6 +6,11 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+- **A frame from the library is set down straight away**, not left as a see-through ghost waiting for
+  **lock** -- the step newcomers stumbled on. Tables and chairs too. Only a board still lands floating,
+  until you hook it onto an edge. The guided tour is one step shorter for it.
+- **The "Under the tarp" example's picture** is framed in close, so the table under the roof shows.
+
 ## [1.3.0] — 2026-10-13
 
 - **A guided tour.** "Click here, then here", on the real planner: nine short steps build a small camp

@@ -30,15 +30,7 @@ const STEPS = [
     id: "frame", sheet: "parts",
     at: () => row("#add", "CK-150"),
     done: () => frames().length > 0,
-    then: () => api.fit(),             // a floating frame lands off to one side; bring it to the middle
-  },
-  {
-    // A part added from the library lands FLOATING -- a ghost -- until it is locked or hooked. That
-    // see-through look is the first thing a newcomer does not understand, so it gets its own step.
-    id: "place", sheet: null,
-    at: () => document.querySelector("#seltools [data-act=place]") || frameAnchor(),
-    key: () => isFrame(api.sel()) ? "tour.place" : "tour.selframe",
-    done: () => frames().some(n => !n.floating),
+    then: () => api.fit(),             // a new frame lands in front of the layout; bring it to the middle
   },
   {
     id: "burner", sheet: "parts",
