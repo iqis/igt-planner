@@ -6,9 +6,12 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-10-15
+
+- **Anonymous counts.** The site now counts how far people get through the tour and which examples
+  they open -- an event name and nothing else: no cookie, no address, no id.
 - **The examples open at once.** Their pictures are drawn when the site is built, not in your browser
   each time: opening **examples** went from about 3.5 seconds of a frozen page to instant.
-
 - **Click a board, it goes on.** With a table selected, clicking a bamboo board (or a slide-in) in the
   library hooks it straight onto a free edge of that table -- an end before a long rail, the end nearer
   you first. Hovering shows it there before you click. Nothing selected and only one frame on the
