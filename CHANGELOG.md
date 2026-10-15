@@ -6,6 +6,8 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+## [1.3.1] — 2026-10-14
+
 - **A frame from the library is set down straight away**, not left as a see-through ghost waiting for
   **lock** -- the step newcomers stumbled on. Tables and chairs too. Only a board still lands floating,
   until you hook it onto an edge. The guided tour is one step shorter for it.
