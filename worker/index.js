@@ -63,6 +63,9 @@ async function open(id, url, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // Plain http never gets an answer, only the way to https. The zone's "Always Use HTTPS" does this
+    // at the edge for everything; this is the same rule kept in the code, so it holds without it.
+    if (url.protocol === "http:") { url.protocol = "https:"; return Response.redirect(url.toString(), 301); }
     if (url.pathname === "/api/s") {
       return request.method === "POST" ? mint(request, env) : json({ error: "POST only" }, 405);
     }

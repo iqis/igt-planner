@@ -54,6 +54,8 @@ PHOTO_FREE = {"brushed_steel.jpg", "canvas.jpg", "chair_mesh.png"}
 BENCH = {"part.html", "part.js", "part.css"}
 CATALOG = ["igt-catalog.json", "colors.json", "textures.json", "frame_fittings.json"]
 
+# HSTS: once a browser has seen the site over https it never tries plain http again (a year). The
+# http -> https redirect itself is the zone's "Always Use HTTPS", plus the Worker for its own paths.
 HEADERS = """\
 /catalog/*
   Cache-Control: no-cache
@@ -64,6 +66,7 @@ HEADERS = """\
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000
 """
 REDIRECTS = "/  /web/  302\n"
 

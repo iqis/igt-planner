@@ -6,6 +6,11 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+## [1.3.2] — 2026-10-15
+
+- **https only.** Plain http now always forwards to https, and browsers are told (HSTS) to use https
+  from then on.
+
 ## [1.3.1] — 2026-10-14
 
 - **A frame from the library is set down straight away**, not left as a see-through ghost waiting for
