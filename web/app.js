@@ -1348,13 +1348,13 @@ function rebuild() {
   if (hoverPreview && PARTS[hoverPreview]) {
     const n = previewNode(hoverPreview);
     const g = new THREE.Group();
-    g.position.set(n.x * MM, n.kind === "footprint" ? 0 : GHOST_LIFT * MM, n.z * MM);
+    g.position.set(n.x * MM, n.kind === "footprint" || n.hooked ? 0 : GHOST_LIFT * MM, n.z * MM);
     g.rotation.y = -n.rot;
     const keep = [nodeMeshes.length, slotMeshes.length, edgeMeshes.length, slotHandleMeshes.length];
     (n.kind === "frame" ? drawFrame : n.kind === "prop" ? drawProp : n.kind === "footprint" ? drawFootprint : drawTable)(g, n);
     nodeMeshes.length = keep[0]; slotMeshes.length = keep[1]; edgeMeshes.length = keep[2]; slotHandleMeshes.length = keep[3];
     ghostify(g, 0.26);
-    if (n.kind !== "footprint") addGhostFootprint(n);
+    if (n.kind !== "footprint" && !n.hooked) addGhostFootprint(n);
     build.add(g);
   }
 
@@ -2597,6 +2597,16 @@ function previewNode(sku) {
     ...(expDef(sku) ? { config: expDef(sku).default } : {}),
     ...(p.chair === "cushion" ? { config: "round" } : {}),
   };
+  const to = boardTarget(sku);
+  if (to) {
+    // The click would hook it: show it ON that edge. place() positions a node from its host alone.
+    const slide = isSlide(p);
+    Object.assign(n, { host: to.host.id, edge: to.key, rail: to.key.startsWith("rail"), hooked: true,
+      leg: (slide || to.key === "opening") ? null : to.host.leg,
+      ...(to.key.startsWith("rail") ? { slide: slide ? initialSlide(to.host, to.key, sku) : 0 } : {}) });
+    place(n);
+    return n;
+  }
   Object.assign(n, kind === "footprint" ? footprintSpot(n) : floatSpot(n));
   return n;
 }
@@ -2620,6 +2630,30 @@ function attach(sku, host, key) {
   state.nodes.push(n);
   selectOnly(n.id);
   render();
+}
+
+/** Where a board clicked in the library would go. With a table selected (or only one frame on the
+ *  page) and a free edge on it that legally takes this board, straight onto that edge -- what a
+ *  newcomer means by clicking it. null = it lands floating, to be dragged onto an edge, as before.
+ *  An end edge beats a long rail, and of two ends the one nearer the camera: the one you can see. */
+function boardTarget(sku) {
+  if (kindOf(PARTS[sku]) !== "ext") return null;
+  const s = sel(), fr = state.nodes.filter(n => n.kind === "frame");
+  const host = s && s.kind !== "footprint" && s.kind !== "prop" ? s : !s && fr.length === 1 ? fr[0] : null;
+  if (!host) return null;
+  const eye = { x: camera.position.x / MM, z: camera.position.z / MM };
+  const rootSku = rootOf(host).sku;
+  const fits = openEdges(host).filter(e =>
+    legalOn(e).some(p => p.sku === sku) && compat(sku, rootSku).level !== "blocked");
+  fits.sort((a, b) => (a.rail - b.rail)
+    || Math.hypot(a.mid.x - eye.x, a.mid.z - eye.z) - Math.hypot(b.mid.x - eye.x, b.mid.z - eye.z));
+  return fits.length ? { host, key: fits[0].key } : null;
+}
+function addBoard(sku) {
+  const to = boardTarget(sku);
+  if (!to) { addNode(sku); return; }
+  hoverPreview = null;
+  attach(sku, to.host, to.key);
 }
 
 let dropHint = null;
@@ -3011,14 +3045,14 @@ function paintPalette() {
   for (const p of BY_ROLE.frame)
     add.append(partRow(p, () => addNode(p.sku), false, null, `${p.units}u`));
 
-  // Hook-on boards. Since float-first, "add" no longer needs a free edge -- the board comes in
-  // floating and you drag it onto an edge (or use an edge's own + menu to hook it straight on).
-  // So the rows are always live; the tooltip just says which.
+  // Hook-on boards. With a table selected, a click hooks the board straight onto a free edge of it
+  // (addBoard); with nothing to hook onto, it comes in floating and you drag it onto an edge (or use
+  // an edge's own + menu). So the rows are always live; the tooltip just says which.
   const ext = $("extensions"); ext.innerHTML = "";
   const open = anyOpenEdge();
   for (const p of HOOKABLE)
-    ext.append(partRow(p, () => addNode(p.sku), false,
-      open ? `${p.sku} — adds as a floating board; drag it onto a highlighted edge to hook it (or use that edge's + menu).`
+    ext.append(partRow(p, () => addBoard(p.sku), false,
+      open ? `${p.sku} — hooks onto the selected table's free edge; with nothing to hook onto it floats -- drag it onto an edge.`
            : `${p.sku} — adds as a floating board. Put a frame down and drag it onto an edge to hook it.`));
   // Two different gaps, and they deserve two different sentences. One part has no copy
   // saying how it attaches; the other says it hooks on but has no plan view, so WHICH
@@ -3029,12 +3063,12 @@ function paintPalette() {
         + `edge carries the hooks is unmeasured. The planner will not guess.`
       : `${p.sku} — Snow Peak never documents how this attaches. The planner will not guess.`));
 
-  // Slide-in extensions: same float-first flow, different rail. They were only reachable
+  // Slide-in extensions: the same flow, different rail. They were only reachable
   // through a long rail's + menu -- a whole attach mechanism the library never showed.
   const sl = $("slides"); sl.innerHTML = "";
   for (const p of SLIDE_IN)
-    sl.append(partRow(p, () => addNode(p.sku), false,
-      `${p.sku} — adds as a floating board; drag it onto a frame's LONG rail. It slides along it, and tiles.`));
+    sl.append(partRow(p, () => addBoard(p.sku), false,
+      `${p.sku} — goes onto the selected frame's LONG rail (or floats -- drag it onto one). It slides along it, and tiles.`));
 
   // The freestanding surfaces, split the way the connection graph splits them: layout tables
   // are part of the system (frames hook onto them), standalone IGTs just stand there.

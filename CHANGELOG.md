@@ -6,6 +6,11 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+- **Click a board, it goes on.** With a table selected, clicking a bamboo board (or a slide-in) in the
+  library hooks it straight onto a free edge of that table -- an end before a long rail, the end nearer
+  you first. Hovering shows it there before you click. Nothing selected and only one frame on the
+  page: onto that frame. Nowhere for it: it floats as before, to be dragged onto an edge.
+
 ## [1.3.2] — 2026-10-15
 
 - **https only.** Plain http now always forwards to https, and browsers are told (HSTS) to use https

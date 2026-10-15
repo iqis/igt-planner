@@ -465,6 +465,29 @@ try {
     tour.offered && tour.seen?.join() === "1,2,3,4" && tour.solid && tour.dot && tour.newPage && tour.closed && tour.remembered,
     JSON.stringify(tour));
 
+  // A board clicked in the library goes ONTO the selected table, not floating on the ground beside it.
+  // With nothing to hook onto (two frames, none selected) it still floats, to be dragged on.
+  const board = await page.evaluate(async () => {
+    const app = window.__igt, s = app.state, wait = ms => new Promise(r => setTimeout(r, ms));
+    const last = () => s.nodes[s.nodes.length - 1];
+    app.newPage("board test"); await wait(50);
+    document.querySelector('#add [data-sku="CK-150"]').click(); await wait(50);
+    const frame = last().id;
+    const row = document.querySelector("#extensions [data-sku]");
+    row.click(); await wait(50);
+    const onFrame = last().host === frame && !last().floating;
+    const first = last().id;
+    row.click(); await wait(50);                    // the new board is selected: the next one chains on
+    const chained = last().host === first;
+    s.sel = null; s.selSet = new Set();
+    document.querySelector('#add [data-sku="CK-149"]').click(); await wait(50);
+    s.sel = null; s.selSet = new Set();
+    row.click(); await wait(50);
+    return { onFrame, chained, floats: last().host == null && !!last().floating, sku: row.dataset.sku };
+  });
+  check("a board from the library hooks onto the selected table", board.onFrame && board.chained && board.floats,
+    JSON.stringify(board));
+
   check("planner console is clean", errors.length === 0, errors.slice(0, 3).join(" | "));
   if (PUBLIC) {
     const photos = await page.evaluate(() => performance.getEntriesByType("resource").map(e => e.name)
