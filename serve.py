@@ -60,6 +60,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     # points/pairs as mm and px -- instead of living only in the browser's localStorage.
     # One file per part, anno/<sku>.json, so the marks can be read straight off the disk.
     def do_POST(self):
+        # The public Worker's anonymous counts (worker/index.js): a built dist/ served here sends
+        # them too. Nothing to count locally -- swallow them, as the Worker would accept them.
+        if self.path == "/api/e":
+            self.rfile.read(int(self.headers.get("Content-Length") or 0))
+            self.send_response(204)
+            self.end_headers()
+            return
         if self.path.rstrip("/") != "/anno":
             self.send_error(404)
             return

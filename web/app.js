@@ -3570,7 +3570,15 @@ function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); pa
 
 // ---- starter layouts
 // A template is a layout document; opening one is opening a file (a new page if this one has work).
+// An anonymous count for the public site (worker/index.js count()): an event name and nothing else --
+// no id, no cookie -- so we can see how far people get through the tour and which examples they open.
+// The working copy never sends.
+function count(name) {
+  if (!PUBLIC) return;
+  try { navigator.sendBeacon("/api/e", name); } catch {}
+}
 function openTemplate(tp) {
+  count(`tpl.open.${tp.id}`);
   openDocAsPage(structuredClone(tp.doc), t(`tpl.${tp.id}`));
   if (activePage()) { renamePage(activePage().id, t(`tpl.${tp.id}`)); }
   fitAll();
@@ -4619,6 +4627,7 @@ initTour({
   setSheet,
   newPage,
   fit: () => fitAll(),
+  count,
   // The blue tab on an END of the selected frame, in client px -- "click here". The nearest one to the
   // camera, so the dot it points at is the one in front.
   endDot() {
@@ -5161,5 +5170,5 @@ let firstVisit = false;
   partFromHash();
   // #tour opens the guided tour (a link to send someone); a first visit is offered it once.
   if (location.hash === "#tour") { history.replaceState(null, "", location.pathname); startTour(); }
-  else if (firstVisit && !partModal.open) startTour();
+  else if (firstVisit && !partModal.open) startTour("auto");
 });

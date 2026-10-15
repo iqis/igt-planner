@@ -1,8 +1,9 @@
-// The public site's only code: short links. Everything else is static assets (dist/), and the
+// The public site's only code: short links, and anonymous counts. Everything else is static assets (dist/), and the
 // Worker is not even invoked for them -- wrangler.jsonc routes only /api/* and /s/* through here.
 //
 //   POST /api/s   body = the #d= payload (gzipped layout JSON, base64url)  ->  { id, url }
 //   GET  /s/<id>  -> 302 to /web/#d=<payload>
+//   POST /api/e   body = an event name  ->  204 (an anonymous count; see count())
 //
 // A short link is a pointer to the SAME payload the long link carries, so the app needs nothing new
 // to open one, and every short link can be expanded back into a long one that needs no server.
@@ -54,6 +55,19 @@ async function mint(request, env) {
   return json({ error: "could not mint" }, 500);
 }
 
+// Counting, not tracking: POST /api/e with an event name ("tour.step.3", "tpl.open.lshape") adds one
+// to that name in Workers Analytics Engine. Nothing else is written -- no IP, no id, no cookie, no
+// user agent -- so a count can say how far people get through the tour, and never who.
+const EVENT = /^[a-z0-9]+(\.[a-z0-9-]+){1,3}$/;
+async function count(request, env) {
+  const name = (await request.text()).trim();
+  if (!EVENT.test(name) || name.length > 48) return new Response(null, { status: 400 });
+  const ip = request.headers.get("cf-connecting-ip") || "?";
+  if (env.EVT_LIMIT && !(await env.EVT_LIMIT.limit({ key: ip })).success) return new Response(null, { status: 429 });
+  env.EVENTS?.writeDataPoint({ blobs: [name], indexes: [name.split(".")[0]] });
+  return new Response(null, { status: 204 });
+}
+
 async function open(id, url, env) {
   const payload = /^[A-Za-z0-9]{8,12}$/.test(id) ? await env.SHORT.get(id) : null;
   if (!payload) return Response.redirect(`${url.origin}/web/#missing=${encodeURIComponent(id)}`, 302);
@@ -66,6 +80,9 @@ export default {
     // Plain http never gets an answer, only the way to https. The zone's "Always Use HTTPS" does this
     // at the edge for everything; this is the same rule kept in the code, so it holds without it.
     if (url.protocol === "http:") { url.protocol = "https:"; return Response.redirect(url.toString(), 301); }
+    if (url.pathname === "/api/e") {
+      return request.method === "POST" ? count(request, env) : new Response(null, { status: 405 });
+    }
     if (url.pathname === "/api/s") {
       return request.method === "POST" ? mint(request, env) : json({ error: "POST only" }, 405);
     }

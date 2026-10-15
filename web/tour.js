@@ -91,19 +91,24 @@ export const tourActive = () => step >= 0;
 export function tourSeen() { try { return !!localStorage.getItem(LS_SEEN); } catch { return true; } }
 function markSeen() { try { localStorage.setItem(LS_SEEN, "1"); } catch {} }
 
-/** Start from the top: the hello card, whose "not now" ends it (and counts as seen). */
-export function startTour() {
+/** Start from the top: the hello card, whose "not now" ends it (and counts as seen). `how` says who
+ *  opened it -- "auto" on a first visit, otherwise a button -- for the anonymous counts. */
+export function startTour(how = "button") {
+  api.count(`tour.offer.${how}`);
   step = 0;
   root.hidden = false;
   paintCard();
   loop();
 }
+// How far people get: one count per step reached, and where they stopped.
 function stop() {
+  if (step >= 0) api.count(step === 0 ? "tour.later" : `tour.end.${step}`);
   step = -1; root.hidden = true; cancelAnimationFrame(raf); raf = 0; markSeen();
 }
 function go(i) {
   step = i;
-  if (step >= STEPS.length) { stop(); return; }
+  if (step >= STEPS.length) { api.count("tour.done"); step = -1; stop(); return; }
+  api.count(`tour.step.${step}`);
   const s = STEPS[step];
   // The tour's own page, made when the person says go -- not before, so "not now" leaves no trace.
   if (s.id === "frame" && api.nodes().length) api.newPage(t("tour.page"));
