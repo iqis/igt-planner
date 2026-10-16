@@ -122,6 +122,7 @@ ul.not { list-style: none; padding: 0; display: grid; gap: .35rem; }
 footer { color: var(--dim); font-size: .8rem; padding-top: 2rem; padding-bottom: 2rem; }
 footer a { color: var(--dim); }
 </style>
+<script src="/web/stats.js"></script>
 </head>
 <body>
 <header><a href="/web/"><img src="/web/favicon.svg" width="30" height="30" alt=""><span><small>Siqi's</small>IGT Planner</span></a></header>

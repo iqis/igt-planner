@@ -6,6 +6,12 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+## [1.4.1] — 2026-10-15
+
+- **Opting out of the counts.** Open the site once with `?notrack=1` and this browser sends neither the
+  anonymous counts nor page views; `?notrack=0` turns them back on. Page views now load only on
+  igt.iqis.app, from the page itself, instead of being injected by Cloudflare into every page.
+
 ## [1.4.0] — 2026-10-15
 
 - **Anonymous counts.** The site now counts how far people get through the tour and which examples

@@ -104,6 +104,7 @@ blockquote p { margin: .3rem 0; }
 table { border-collapse: collapse; width: 100%; font-size: .92rem; display: block; overflow-x: auto; }
 th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 </style>
+<script src="/web/stats.js"></script>
 </head>
 <body>
 <nav><b>Siqi's IGT Planner</b><a href="./">Open the planner</a><a href="https://github.com/iqis/igt-planner">Source</a><a href="/llms.txt">llms.txt</a></nav>

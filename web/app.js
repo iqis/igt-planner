@@ -3572,10 +3572,10 @@ function paint() { paintPalette(); paintSlots(); paintBOM(); paintWarnings(); pa
 // A template is a layout document; opening one is opening a file (a new page if this one has work).
 // An anonymous count for the public site (worker/index.js count()): an event name and nothing else --
 // no id, no cookie -- so we can see how far people get through the tour and which examples they open.
-// The working copy never sends.
+// The working copy never sends, and neither does a browser opted out with ?notrack=1 (web/stats.js).
 function count(name) {
   if (!PUBLIC) return;
-  try { navigator.sendBeacon("/api/e", name); } catch {}
+  try { if (localStorage.getItem("igt.notrack")) return; navigator.sendBeacon("/api/e", name); } catch {}
 }
 function openTemplate(tp) {
   count(`tpl.open.${tp.id}`);

@@ -61,7 +61,9 @@
 > (PUBLIC only, sendBeacon) -> Worker POST /api/e -> Analytics Engine datasets igt_events / igt_events_dev
 > (blob1 = event name, nothing else). Events: tour.offer.auto|button, tour.step.N, tour.end.N, tour.later,
 > tour.done, tpl.open.<id>. Query: AE SQL API `SELECT blob1, count() FROM igt_events GROUP BY blob1`.
-> Page views: Cloudflare Web Analytics (auto-install on iqis.app zone, already on). serve.py swallows /api/e.
+> Page views: Cloudflare Web Analytics, loaded by web/stats.js on igt.iqis.app only (zone auto-install
+> turned OFF 2026-10-15 so it is not counted twice). `?notrack=1` sets localStorage igt.notrack: no page
+> views, no counts (count() checks it); `?notrack=0` clears it. serve.py swallows /api/e.
 
 > **2026-10-05: SYMMETRY FIX.** A square lattice is cocircular everywhere, so Delaunay picked every
 > square's diagonal ONE way -> one-handed bias + lopsided area weights: a symmetric pitch hung up to 23 cm

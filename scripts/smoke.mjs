@@ -507,6 +507,23 @@ try {
       return { n: imgs.length, ok };
     });
     check("public examples load their prebuilt pictures", tplImgs.n >= 10 && tplImgs.ok === tplImgs.n, JSON.stringify(tplImgs));
+    // ?notrack=1 silences the anonymous counts in this browser (web/stats.js); ?notrack=0 undoes it.
+    const np = await browser.newPage();
+    await np.evaluateOnNewDocument(() => {
+      window.__beacons = [];
+      navigator.sendBeacon = (u, b) => { window.__beacons.push(String(b)); return true; };
+    });
+    const opened = async q => {
+      await np.goto(`${BASE}/web/${q}`, { waitUntil: "networkidle2" });
+      return np.evaluate(() => {
+        document.getElementById("tplbtn").click();
+        document.querySelector("#popcard .ecard")?.click();
+        return window.__beacons.filter(b => b.startsWith("tpl.open.")).length;
+      });
+    };
+    const off = await opened("?notrack=1"), on = await opened("?notrack=0");
+    check("?notrack=1 stops the counts, ?notrack=0 brings them back", off === 0 && on === 1, JSON.stringify({ off, on }));
+    await np.close();
   }
   await page.close();
 
