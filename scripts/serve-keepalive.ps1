@@ -27,7 +27,22 @@ function Test-Serving {
   } catch { return $false }
 }
 
-if (Test-Serving) { exit 0 }
+function Get-Listener {
+  Get-NetTCPConnection -State Listen -LocalPort $Port -LocalAddress 127.0.0.1 -ErrorAction SilentlyContinue |
+    ForEach-Object { Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue } |
+    Where-Object { $_.ProcessName -in @('python', 'pythonw') }
+}
+
+# Listening is not enough: a server up for days keeps the serve.py it started with. The 10-13
+# instance never got the 10-15 /api/e handler. Restart when serve.py is newer than the process.
+$stale = $null
+$running = Get-Listener | Select-Object -First 1
+if ($running -and (Get-Item (Join-Path $Root "serve.py")).LastWriteTime -gt $running.StartTime) {
+  $stale = "pid $($running.Id) started $($running.StartTime.ToString('s')), older than serve.py"
+}
+
+if ((Test-Serving) -and -not $stale) { exit 0 }
+if ($stale) { Write-Output "restarting stale server: $stale" }
 
 $serveTask = 'IgtPlannerServe'
 $task = Get-ScheduledTask -TaskName $serveTask -ErrorAction SilentlyContinue
@@ -46,6 +61,10 @@ if ((Get-ScheduledTask -TaskName $serveTask).State -eq 'Running') {
   Stop-ScheduledTask -TaskName $serveTask -ErrorAction SilentlyContinue
   Start-Sleep -Milliseconds 700
 }
+# A server started outside the task is not in its job, so Stop-ScheduledTask misses it.
+Get-Listener | ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue }
+# Wait for the old listener to go, or the check below would pass on it.
+foreach ($i in 1..10) { if (-not (Get-Listener)) { break }; Start-Sleep -Milliseconds 500 }
 Start-ScheduledTask -TaskName $serveTask
 
 $up = $false
