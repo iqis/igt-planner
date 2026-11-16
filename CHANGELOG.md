@@ -6,6 +6,8 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+## [1.4.2] — 2026-11-15
+
 - **The frame is drawn as it is.** The seat a module's rim rests in is on the inside of each rail; it
   had been cut into the outside, which left a step down the outer edge of every table. The black end
   pieces are solid blocks the height of the rail, the frame is its published length (it was 16 mm

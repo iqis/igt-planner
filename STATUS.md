@@ -1,5 +1,5 @@
 # Status — 2026-08-02, end of the launch/modeling phase
-> **2026-11-15: model audit, batch 1 of about 3 fixed; on dev, not yet released.** The audit of
+> **2026-11-15: model audit, batch 1 of about 3 fixed; released as v1.4.2.** The audit of
 > 2026-11-11 set every part beside Snow Peak's photographs (116 parts on the bench, 37 layouts, 985
 > photos): 92 graded, 8 faithful / 40 minor / 43 wrong. Findings with file:line are in
 > `data/runs/20261111_model-audit/findings.md` (local, gitignored) with the render scripts that
