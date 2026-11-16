@@ -290,16 +290,19 @@
   ]
  },
  "GS-450R-US": {
-  "what": "Flat Burner: a low, flat single-burner stove sized to drop into two IGT units (270x410), sitting flush in the frame like a tabletop.",
-  "model": "burnerGroup's flat450 branch -- fully procedural: a bright plate with the round bowl CUT THROUGH it, the head and brass port ring standing in the recess, four W-kinked grate wires over it, a shallow 18mm skirt below, and the gas port stub out a SHORT edge (the manual forbids the long edges). The old photo top (an oblique a016 detail crop baked flat) is retired: it was skewed from every angle but the photo's own, and it painted the 3D grate flat.",
-  "fits": "Drops into the frame as a 2-unit slot module -- its rim rests on the rails and almost nothing hangs below the rail line, which is the point of a flat burner.",
-  "confidence": "medium",
+  "what": "Flat Burner: a low, flat single-burner stove. The part that drops into two IGT units is its top plate, 250 x 360 (plate_mm); the published 270 x 410 x 110 is the stove standing on its two plug-in wire leg frames.",
+  "model": "burnerGroup's flat450 branch -- fully procedural, built at plate_mm: a satin plate with a round hole (dia 164) cut through it and its long edges folded down 10; a skirt under the plate carrying an eight-sided dish, the head standing in it with its top 8 below the plate; a grate of four continuous dia-5 rods (the outer pair straight with their tips turned down, the inner pair pinched together over the head) on two kinked cross rods; the valve block under the dish and the gas port stub out a SHORT edge (the manual forbids the long edges). The part bench adds the two wire leg frames and stands it at the published size; in a frame it has none.",
+  "fits": "Drops into the frame as a 2-unit slot module: the plate's short edges rest in the rails' rebates so it lies flush, the grate stands about 11 proud, and the dish and valve block hang about 60 below.",
+  "confidence": "medium-high",
   "derived": [
-   "270x410 = 2 units wide",
-   "plate/bowl/wire layout from the JP a002 photo; side hose port from a003 (the regulator rides the REMOTE canister -- the body has no knob)"
+   "plate 250 x 360: 01_GS-450R_detail_03 (the parts laid flat) measures the plate 1 : 1.43; the 270 x 410 is the leg span (04_GS-450R_alt_03, side elevation)",
+   "hole dia 164, dish 184 across and eight-sided, rods on a 52mm pitch (x = +/-26, +/-78), outer rods 302 long, inner rods 334 long pinched to +/-12, cross rods 234 apart -- all scaled off detail_03 at 360mm = 270px",
+   "fold 10, skirt to -22, dish to -39, valve block 92 x 19 off-centre toward the hose, grate top 11 above the plate, plate top 99 above the ground on its legs -- scaled off alt_03",
+   "side hose port from the JP a003 photo (the regulator rides the REMOTE canister -- the body has no knob)"
   ],
   "assumed": [
-   "bowl depth ~26mm and wire gauge 5mm -- read off the photos, not published"
+   "the head's own height and the valve block's width (40) -- neither shows in a measurable view",
+   "rod gauge 5mm -- read off the photos, not published"
   ],
   "unknown": []
  },
@@ -354,8 +357,8 @@
   "products (dropped): 'Minimalists' (closest: Lago 1) and 'Takibi Tarp Wing' (tent-Mark DESIGNS)."
  ],
  "CK-160": {
-  "what": "Double BBQ Box (リフトアップBBQ BOX, 'lift-up'): a charcoal BBQ that drops into an IGT frame. Its manual (セット内容 + steps 1-6) is the authority: 本体 (stainless box, vent row low in each long wall), インナートレー/炭床 (a perforated dark charcoal bed inside), 昇降フレーム (a LIFT frame on links, raised by a crank), 焼き網 x2 (TWO grill nets, side by side, half the top each -- this is what 'Double' means), plus フタ, スタンド x2, ハンドル.",
-  "model": "bbqBoxGroup. Body built at the 収納 size W500 x H120, NOT the published W605 x H175: step 6 mounts it to the frame by REMOVING the handle and stands, and 500 = exactly two IGT units, one per net. The 55 that H175 has over the packed 120 is the lift frame standing up. D360 is real -- it is the rim, landing on the rail lip (RAIL_SPAN: clear span 317, lip |z| 158.5..182.5 from frame_fittings.json CK-149). The lid/stands/handle are not built (step 1 removes the lid; step 6 the other two).",
+  "what": "Double BBQ Box (リフトアップBBQ BOX, 'lift-up'): a charcoal BBQ that drops into an IGT frame. Its manual (セット内容 + steps 1-6) is the authority: 本体 (stainless box, vents in its two short ends), インナートレー/炭床 (a perforated bright charcoal bed inside), 昇降フレーム (a LIFT frame on links, raised by a crank), 焼き網 x2 (TWO grill nets, side by side, half the top each -- this is what 'Double' means), plus フタ, スタンド x2, ハンドル.",
+  "model": "bbqBoxGroup. Body built 500 wide, NOT the published W605: step 6 mounts it to the frame by REMOVING the handle and stands, and 500 = exactly two IGT units, one per net. It hangs about 80 below the rim -- the packed 120 includes the lid, whose skirt stands about 42 over the rim (gallery 06_2: lid skirt 85px + body 155px = 240px = 120). The 55 that H175 has over the packed 120 is the lift frame standing up, and the nets are drawn there. Vents are in the two short ends, two groups of five holes with a slot under each (JP a001); the long walls are plain. The inner tray is bright stainless. D360 is real -- it is the rim, landing on the rail lip (RAIL_SPAN: clear span 317, lip |z| 158.5..182.5 from frame_fittings.json CK-149). The nets are an orthogonal weave at a 15mm pitch (S-029HA's plan view, gallery 08_a007); the two S-029HA halves lie side by side, each 206 along the rails and 339 across. The lid/stands/handle are not built (step 1 removes the lid; step 6 the other two).",
   "fits": "span 4 HALF-units = 2 units = 500mm, which the catalog already had right. Rim on the rails, body below, lift frame + surfaces above -- the documented exception to 'a module embeds flush'.",
   "corrected": "It used to be modelled as BURNERS['CK-160'] = {bbq:true} -> burnerGroup's bbq branch, which drew 'a grate half and a griddle half'. There is no griddle in the box: the dark slab in the gallery is the LID resting inverted on the nets ('rest the lid on the grate to hold in heat'), and step 1 takes it off. That branch is deleted; CK-160 is not a burner.",
   "owner_notes": "OWNER (2026-07-16): (1) the cooking surface SWAPS -- 可以用铁板换烤网. (2) its size is interchangeable with the TAKIBI FIRE & GRILL L. BOTH CONFIRMED, and not just by the owner -- Snow Peak prints it in both directions: CK-160's 関連アイテム are exactly GR-006 (グリルプレート黒皮鉄板) and S-029HA (焼アミハーフ Pro.), while GR-006's own page names 焚火台グリルブリッジL AND リフトアップBBQ BOX, and 焼アミPro.L (ST-032MAR) lists ST-032GBR / ST-032R / CK-160 together. THE SHARED NUMBER IS THE 500 -- the two-IGT-unit number: GR-006 is not approximately this box's 500, it IS it. What is NOT shared is the Takibi's own 455 rim; these surfaces overhang that bowl and bear on the Grill Bridge's rails, and it is a coincidence of the useful kind that the size which spans a 445 bridge also drops into a 500 x 360 box.",
@@ -363,7 +366,7 @@
  },
  "GS-1000": {
   "what": "GigaPower LI Stove 剛炎 (ギガパワーLIストーブ剛炎) -- a single high-output burner, 8500kcal, that stands on FOUR splayed adjustable legs rather than sitting on anything. 'LI' is LIQUID INJECTION, and it is the whole shape of the thing: the canister mounts UPSIDE DOWN beneath the burner (manual: 「容器を逆さまにして容器底部の淵(凸)を容器取付け溝(2箇所)にはめ込み」), hanging inside the cage the legs make, so liquid rather than vapour feeds the generator. Its spec table calls it カセットこんろ(分離式) -- a separated-type stove.",
-  "model": "gs1000Group -- a ported wind-screen bowl with a ported burner head and brass centre on its floor, four 回転式ゴトク arms with teeth radiating over the rim, a cone down to the leg/spindle hub, and four legs (脚A x2, 脚B x2 -- named apart because they fold opposite ways, same tube) each with an upper section, a lower telescoping section carrying the 脚長さ調節 hole row, and a rubber foot. The 器具栓 (火力調整ツマミ) sits out on its stalk. Built at floor y=0 like any prop; kind `prop`, so it is placed and dragged, never hooked into the grid.",
+  "model": "gs1000Group -- a wind-screen BAND, dia 240 x 33, with one row of 18 ports and a rolled rim at about 378; a shallow dish under it and a second, lower ring round the head; the burner head a disc about dia 100 with six oval holes, its top level with the rim; four serrated 回転式ゴトク plates pivoting on the rim and rising outward to the published 420; under the dish a stem and the valve block; four legs (脚A x2, 脚B x2), each hung from a pressed plate that runs in from under the band to a waist at the valve block and spreads again to the leg's hinge, then an upper tube, a lower telescoping tube with the 脚長さ調節 hole row, and a rubber foot. The 器具栓 is a wire lever on a stalk. Built at floor y=0 like any prop; kind `prop`, so it is placed and dragged, never hooked into the grid.",
   "fits": "TWO INDEPENDENT ROUTES, and they are not a chain -- I once wrote them as one and it was false twice over. (a) It STANDS IN a fire ring's aperture: the `hearth` port on ST-050's opening. φ350 < the compact ring's 365 opening, which is exactly the owner's 定番 -- 大圈放takibi, 小圈放GS1000 -- and it falls out of fitsOpening measuring the part, not out of a list. It also fits the spread 600, and is offered there too, because 350 < 600 is just as true. (b) It ALSO mounts in an ordinary IGT bay via GP-040, the 1.5-Unit (span 3, 375mm) LI Stove Joint Frame -- which needs a real 2u/3u/4u frame. GP-040 is the part that occupies units; this stove never does. Nothing about (a) and (b) interacts.",
   "confidence": "high on the envelope, medium on everything inside it",
   "derived": [
@@ -371,19 +374,22 @@
    "The FEET reach φ350: 使用時 is the widest thing on the stove, and on a splayed four-leg stand that is the legs. It is an OUTER envelope, so the outside of the rubber foot lands on 175, not the foot's centre -- built and measured at 349.3 x 350 x 420 against a published 350 x 350 x 420.",
    "The BODY is φ240: fold the legs in and the wind screen is what is left, which is what 収納時 measures.",
    "The GOTOKU reach ~φ300: they have to carry a φ31cm pot and nothing wider. φ350 > φ300 > φ240 falls straight out of the published spec -- none of the three was chosen.",
-   "The GOTOKU are what reach h420: a pot sits on them and the wind screen stands below shielding the flame, so the teeth top out at the published height and everything else hangs down from there.",
-   "FOUR legs, not three: the 各部の名称 drawing labels 脚A twice and 脚B twice."
+   "FOUR legs, not three: the 各部の名称 drawing labels 脚A twice and 脚B twice.",
+   "The GOTOKU are what reach h420, and the rim sits 42 below them: in the hero (595px = 420) the band's rim is at about 378. That puts the ring about 22 below a Jikaro deck at 400, with only the supports through.",
+   "The wind screen is a BAND 33 tall with ONE row of ports: 06_a002 is a side-on shot of the folded stove, the ring 925px = dia 240, the band 127px.",
+   "The head's top is level with the rim, and the head is a disc with six oval holes inside a lower ring (02, the bowl from above).",
+   "The legs hang from pressed plates that pinch in to the valve block (about 272 up) and spread to the hinges (about 200 up): read off the hero."
   ],
   "assumed": [
-   "Every HEIGHT inside the envelope -- bowl 86 deep, the cone to the hub, where the legs meet it, the knee. Read off the 各部の名称 drawing's proportions, not published anywhere.",
-   "The port count, size and spacing in the wind screen (2 rows x 14 tall ovals). The drawing shows two rows of tall ovals; the exact number is a read, not a count.",
-   "The gotoku teeth (4 per arm, 22mm pitch). The drawing shows serrations; their pitch is not legible.",
-   "The rubber foot, the hub bracket, the spindle and the knob stalk -- shapes read off the drawing at a size where the drawing is a few pixels."
+   "The dish's depth under the band (12) and the lower ring's size -- seen from above only.",
+   "The pressed leg plates are drawn as two flat straps each; their real outline (ribs, holes, the hooks under the band) is not modelled.",
+   "The gotoku plates' exact outline and tooth count, and the lever's reach -- read at a size where they are a few pixels.",
+   "The rubber foot and the leg tubes' diameters (18 and 14) -- scaled off the hero."
   ],
   "unknown": [
-   "The CANISTER. It is 専用容器 -- GP-250S / GP-500S / GP-500BL, bought separately, and NOT in the 1,800g -- so it is a TOGGLE (off by default), the same way the Takibi's bridge and coal bed are. NO OD can is in the catalog and none of the three is in the JP scrape, so its size has no source at all: it is proportioned off the drawing against the known φ240 body. It is the least trustworthy thing in this part, and it is optional precisely so that nothing depends on it.",
    "Whether the fuel HOSE is external. The safety sheet warns about a フューエルホース but the 各部の名称 drawing shows the canister clamped directly under the burner. Not modelled either way rather than guessed.",
-   "Whether a bridged Jikaro and a fire in the same opening is a real setup. Geometrically they clear each other (a bridge sits at 400, this stove tops at 420, a Takibi L at 315), so the planner does not forbid it -- but nothing says anyone does it."
+   "Whether a bridged Jikaro and a fire in the same opening is a real setup. Geometrically they clear each other (a bridge sits at 400, this stove tops at 420, a Takibi L at 315), so the planner does not forbid it -- but nothing says anyone does it.",
+   "The CANISTER is 専用容器 -- GP-250S / GP-500S / GP-500BL, bought separately, and NOT in the 1,800g -- so it stays a TOGGLE (off by default). It is drawn as the 500 can, dia 108 and 150 from base to valve: in the hero the can measures 127 from its base to the end of its shoulder. No can is in the catalog, so nothing else depends on it."
   ]
  }
 }

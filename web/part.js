@@ -13,6 +13,7 @@ import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
 import { legGroup, connectionHookGroup, heightAdjusterGroup, frameConnectorGroup } from "./parts3d.js";   // frames
 import { unitClampGroup } from "./parts3d.js";   // standalone
 import { hookBoardGroup } from "./parts3d.js";   // boards
+import { burnerGroup, gs230Group, burnerOf } from "./parts3d.js";   // cooking
 
 /* The bench.
  *
@@ -279,6 +280,16 @@ function benchGeo(p, box) {
   // grillNetGroup); solid cast plates (S-029HD) keep the ridged slab.
   if (role === "accessory" && !moduleGroup(p, w, d, h, color) && h < 40)
     return (sku === "S-029HA" ? grillNetGroup(w, d, h, color) : gridPlateGroup(w, d, h, color)).group;
+
+  // cooking: two stoves the bench stands AS PUBLISHED, which is not how they sit in a frame. The
+  // Flat Burner's 270 x 410 x 110 is the stove on its two wire leg frames (the plate itself is
+  // plate_mm, 250 x 360); the GS-230's 563 x 383 x 293 is the body with its windscreen up. The
+  // planner draws both bare, through moduleGroup.
+  const bspec = burnerOf(sku);
+  if (bspec?.flat450)
+    return burnerGroup(bspec, p.plate_mm?.w ?? 250, p.plate_mm?.d ?? 360, h, null, { legs: { w, d } }).group;
+  if (bspec?.gs230)
+    return gs230Group(p.along_rail_mm || p.span * 125, { windscreen: true }).group;
 
   // Slot modules, storage boxes, gear bags, burners, mesh trays -- moduleGroup knows them.
   // A slot module goes in ALONG-RAIL FIRST, the way the planner hands it over (core.railW /

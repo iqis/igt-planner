@@ -10,13 +10,15 @@
 // GS-230 mounts its two canisters under the knob face. All three need one long side of their
 // span left open, and a slide-in board over both sides leaves the gas nowhere to go.
 export const BURNERS = {
-  "GS-355":  { plate: true, knobs: 1, hose: true },
+  // No knob on the body (it carried `knobs: 1`): the 器具栓 rides the remote canister, at the
+  // end of the hose -- JP a002 shows it clamped to the rail's outside.
+  "GS-355":  { plate: true, hose: true },
   // Fully procedural, NO photo top and NO knob. The old top was an OBLIQUE detail crop baked
   // onto a flat plane -- the burner head's own side was in the picture, so it read skewed
   // from every angle but the photo's -- and the front knob was invented: the real regulator
   // rides the REMOTE canister at the end of a braided hose (JP a003), the body only carries
-  // a side port. Geometry from the JP photos: a thin plate, a recessed bowl, a small head,
-  // four W-kinked grate wires, a side valve stub.
+  // a side port. Geometry from the parts photo and the side elevation: a thin plate with a
+  // hole, an eight-sided dish hung under it, a small head, four grate rods, a valve block.
   "GS-450R": { flat450: true, hose: true },
   // Its own builder -- an appliance, not a box. Kept here so burnerOf still says "yes, a burner".
   "GS-230":  { gs230: true, heads: 2, knobs: 2, hose: true },

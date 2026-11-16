@@ -252,91 +252,71 @@ export function hookBoardGroup(role, t, w, d, { boardMm = 14, total = 25, mat, d
 }
 
 /** LI Stove Joint Kit (GP-040; JP IGT剛炎ジョイントフレーム): the 1.5-unit frame that puts the
- *  GS-1000 in the grid -- and it is nothing but WIRE. The hero (web/img/GP-040.jpg, = JP item
- *  photo) shows the whole bill of material: a rounded-square rod outline, a centre ring, five
- *  slender bent runs holding it. It spent its life in burnerGroup's generic branch wearing a
- *  solid housing, an invented head and a knob; the product has none of them.
+ *  GS-1000 in the grid -- and it is nothing but WIRE: a square outline, a ring, and two arms.
+ *  It spent its life in burnerGroup's generic branch wearing a solid housing, an invented head
+ *  and a knob; the product has none of them.
  *
- *  Measured, against the numbers this part publishes:
- *  - GAUGE. The hero's rods measure ~5mm, but polished rod on white always measures thin (the
- *    highlight blows out and the eye keeps the dark core). The published 1,020g does not:
- *    spread over the ~2.9m of rod the photo shows (outline ~1.41m + ring ~0.69m + arms ~0.8m),
- *    stainless at 7.9 g/cm3 comes back φ7.5. The in-use shot (JP a001) sides with the weight:
- *    the arms crossing the rails read pencil-stout, not wire.
- *  - The OUTLINE IS SQUARE, 362 on a side -- the hero reads square, and 362 is the along-rail
- *    number the span evidence already pinned (2.90 half-units, 1.5U by its label). The 377
- *    across is the ENVELOPE: the two stub tips poke ~11mm past the wire on ONE side (the hero
- *    shows them), so (d - w) / 2 = 7.5 is the square sitting that far off-centre in its own
- *    envelope. The offset is derived, not styled.
- *  - The RING is φ227 outside -- 0.43 of the frame diagonal in the hero, same as built. That is
- *    SMALLER than the stove's 収納時 φ240: the body does not drop through, it STANDS IN it. The
- *    bowl's base (φ228 at the foot of its taper, gs1000Group's own numbers) lands on the ring
- *    and the cone under it noses ~2mm in and centres. Seated so, the ゴトク ride ~69mm above the
- *    tabletop -- which is what a001 shows: wind screen half-proud, pot at hand height. A ring
- *    the φ240 body passed would sink the stove until its gotoku sat BELOW the table.
- *  - h=33 is the rim plane to the ring's underside: the ring hangs ~29mm into the bay. The hero
- *    is shot UPSIDE-DOWN (resting on its outline, ring arched up -- the only stable way to lay
- *    it); every height here is that photo flipped.
+ *  Everything below is measured off the big studio shot (gallery 05_c101, the hero at 1500px),
+ *  rectified to plan through the outline's own four corners:
+ *  - The OUTLINE is a straight-sided square with tight corners: each side fits a straight line
+ *    to within one pixel, corner radius about 12. Its OUTSIDE is the published 362. (It was a
+ *    closed spline through eight corner points, which bowed every side out 13mm.)
+ *  - The 377 is the ENVELOPE across the rails: the two arms poke about 15 past the outline on
+ *    ONE side, lying on top of the rod there. In a frame (JP a001) that is the stub riding out
+ *    over the rail's top face while the outline sits in the rebate. So the outline is centred
+ *    between the rails and the envelope is not; the builder takes 362 / 377 from the part's own
+ *    assembled_mm, not from the slot it is dropped in.
+ *  - The two ARMS are mirror images, one each side of centre. From its stub (x = +/-120) an arm
+ *    runs in and DOWN to the ring, crosses under it as a chord at x = +/-82, climbs back out to
+ *    a knee near the far side and ends against the inside of that rod (x = +/-120). In the
+ *    rectified photo the two chords land at +66 and -94: they are the same +/-80 seen 14mm
+ *    nearer the camera, which is what a rod lying about 15-18mm below the outline does. The
+ *    published h = 33 says the same thing: stub top to chord underside. (It had five runs --
+ *    two stub arms, a long diagonal "Y" and a single arm -- and no chords.)
+ *  - The RING lies on the chords, centred on the square, 220 across its centreline (dia 212
+ *    inside): the stove's bowl stands in it. Its fitted radius in the rectified photo is 104, a
+ *    little small for the same reason the chords are displaced.
+ *  - GAUGE dia 7.5: the published 1,020g over the ~2.9m of rod the photo shows, stainless at
+ *    7.9 g/cm3. Polished rod on white measures thinner than it is.
  *
- *  The five runs, traced off the hero: TWO near-parallel arms cross UNDER the perimeter 62mm in
- *  from the two corners of one side, each ending in the poked-out stub; on the opposite side two
- *  legs converge in a Y whose joined tail elbows up to lie alongside the perimeter near one
- *  corner, and a single arm does the same near the other. Mostly air, so a faint ghost box
- *  carries picking (meshTrayGroup's trick). Rim at y = 0, everything hanging below. */
+ *  Mostly air, so a faint ghost box carries picking (meshTrayGroup's trick). The outline's top
+ *  at y = 0; the stubs lie 7.5 proud of it, on the rail; the chords hang to 7.5 - h. */
 export function gp040Group(w = 362, d = 377, h = 33) {
   const g = new THREE.Group();
-  const steel = metal(0xd3d7db, 0.9, 0.25);      // polished rod, the finish burnerGroup's wires wear
-  const gauge = 7.5, r = gauge / 2;              // φ7.5 -- bought by the published 1,020g, above
-  const hw = w / 2, cr = 20;                     // square half-side; corner radius, off the hero
-  const ringR = 110;                             // ring centreline: OD 227.5, ID 212.5 (see above)
-  const z0 = (d - w) / 2;                        // the square, off-centre in its envelope: +7.5
-  const zB = z0 - hw, zF = z0 + hw;              // its stub side and its landing side
-  const rimY = -r;                               // perimeter centreline -- rod TOP at y = 0
-  const ringY = -(h - r);                        // ring centreline -- rod BOTTOM at y = -h
-  const underY = rimY - gauge;                   // an arm crossing UNDER the perimeter rod
+  const steel = metal(0xd3d7db, 0.7, 0.28);      // polished rod
+  const gauge = 7.5, r = gauge / 2;
+  const side = w / 2 - r;                        // the outline's centreline: its outside is w
+  const ringR = 110;
+  const rimY = -r, armY = r;                     // the outline, and an arm lying on it
+  const lowY = gauge - h + r, ringY = lowY + gauge;   // a chord, and the ring lying on the chords
+  const zStub = -(d - w / 2);                    // the stub tips: the far edge of the envelope
 
   // A faint ghost box, full envelope: it carries picking (dropModule tags only `body`) and
   // nothing else. The rods are the read.
   const ghost = box(g, w, h, d, 2,
     new THREE.MeshStandardMaterial({ color: new THREE.Color(0xd3d7db), transparent: true, opacity: 0.05, depthWrite: false }),
-    0, -h / 2, 0);
+    0, gauge - h / 2, -(d - w) / 2);
 
-  // A bent rod swept along its centreline -- meshTrayGroup's idiom, at joint-frame stock.
-  const wire = (pts, closed = false) =>
-    g.add(new THREE.Mesh(new THREE.TubeGeometry(
-      new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0] * MM, p[1] * MM, p[2] * MM)), closed),
-      closed ? 96 : pts.length * 8, r * MM, 10, closed), steel));
+  // The outline: four straight rods, four tight corners.
+  bentTube(g, [[side, rimY, side], [-side, rimY, side], [-side, rimY, -side], [side, rimY, -side]],
+    r, steel, { rad: 12, closed: true, radial: 8 });
 
-  // The rounded-square outline, flat at the rim.
-  wire([[hw, rimY, zB + cr], [hw, rimY, zF - cr], [hw - cr, rimY, zF], [-hw + cr, rimY, zF],
-        [-hw, rimY, zF - cr], [-hw, rimY, zB + cr], [-hw + cr, rimY, zB], [hw - cr, rimY, zB]],
-       true);
-
-  // The ring, centred on the square, hanging at the bottom of the envelope.
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(ringR * MM, r * MM, 10, 64), steel);
+  // The ring, on the chords.
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(ringR * MM, r * MM, 8, 48), steel);
   ring.rotation.x = Math.PI / 2;
-  ring.position.set(0, ringY * MM, z0 * MM);
+  ring.position.y = ringY * MM;
   g.add(ring);
 
-  // The two stub arms: off the ring toward the back corners, under the back rod 62mm in from
-  // each corner (17% of the side, measured), tips poked out to the envelope's far edge -- the
-  // 15mm that makes 362 into 377.
+  // The two arms: stub over the back rod, down to the ring, the chord, up to the knee, the end
+  // butted against the inside of the front rod.
+  const chord = Math.sqrt(ringR * ringR - 82 * 82);          // where x = 82 crosses the ring: 73
   for (const s of [-1, 1])
-    wire([[s * 78, ringY, z0 - 78], [s * 119, underY, zB], [s * 126, underY - 3, zB - 11]]);
-
-  // The Y: two legs converging toward the far corner, the joined tail elbowed up to lie
-  // alongside the perimeter -- the hero shows it as a doubled rod at the rail.
-  wire([[108.7, ringY, z0 - 17.2], [128, -20, 78], [146, underY, 163.5]]);
-  wire([[-21, ringY, z0 + 108], [62, -20, 140], [146, underY, 163.5]]);
-  wire([[146, underY, 163.5], [142, rimY - 1, zF - 9.5], [112, rimY, zF - gauge]]);
-
-  // The single arm to the fourth corner, same elbow-and-lie-alongside ending.
-  wire([[-78, ringY, z0 + 78], [-99, -18, 135], [-112, underY, 172],
-        [-115, rimY - 1, zF - 9.5], [-88, rimY, zF - gauge]]);
+    bentTube(g, [[s * 120, armY, zStub], [s * 120, armY, -166], [s * 82, lowY, -chord],
+                 [s * 82, lowY, chord + 3], [s * 117, rimY, 146], [s * 120, rimY, side - r]],
+      r, steel, { rad: 14, radial: 8 });
 
   return { group: g, body: ghost };
 }
-
 
 const metal = (color, m = 0.85, r = 0.35) =>
   new THREE.MeshStandardMaterial({ color: new THREE.Color(color), metalness: m, roughness: r });
@@ -396,22 +376,96 @@ function bentTube(g, pts, r, mat, { rad = 0, closed = false, radial = 6 } = {}) 
   return m;
 }
 
+/** Many small axis-aligned boxes as ONE mesh -- a griddle's ribs, a net's wires. Each entry is
+ *  [w, h, d, x, y, z] in mm (size, then centre). One draw call where a mesh apiece was a hundred. */
+function boxesInto(g, list, mat) {
+  const pos = [], nor = [];
+  for (const [w, h, d, x, y, z] of list) {
+    const b = new THREE.BoxGeometry(w * MM, h * MM, d * MM).toNonIndexed();
+    b.translate(x * MM, y * MM, z * MM);
+    for (const v of b.attributes.position.array) pos.push(v);
+    for (const v of b.attributes.normal.array) nor.push(v);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  const m = new THREE.Mesh(geo, mat);
+  g.add(m);
+  return m;
+}
+
+/** A pressed pan: a flat floor and a wall flaring out to a rounded-rectangle rim, as one
+ *  double-sided sheet (mm). `w` x `d` is the rim, `fw` x `fd` the floor, `h` the depth, `r` the
+ *  rim's corner radius; the rim's edge is at y = `top`, centred on (x, z). `mat` is made
+ *  double-sided here, so hand it a material of its own. */
+function panInto(g, mat, { w, d, fw, fd, h, r = 20, top = 0, x = 0, z = 0 }) {
+  // A rounded rectangle as a ring of points. The corners are the same quadratic turns bentTube
+  // makes, so a rim wire laid round the same rectangle follows the wall's edge exactly.
+  const ring = (hw, hd, rr, y) => {
+    const C = [[hw, hd], [-hw, hd], [-hw, -hd], [hw, -hd]], out = [];
+    for (let i = 0; i < 4; i++) {
+      const [vx, vz] = C[i], [px, pz] = C[(i + 3) % 4], [nx, nz] = C[(i + 1) % 4];
+      const ax = vx + Math.sign(px - vx) * rr, az = vz + Math.sign(pz - vz) * rr;
+      const bx = vx + Math.sign(nx - vx) * rr, bz = vz + Math.sign(nz - vz) * rr;
+      for (let k = 0; k <= 5; k++) {
+        const t = k / 5, u = 1 - t;
+        out.push([x + u * u * ax + 2 * u * t * vx + t * t * bx, y,
+                  z + u * u * az + 2 * u * t * vz + t * t * bz]);
+      }
+    }
+    return out;
+  };
+  const T = ring(w / 2, d / 2, r, top);
+  const B = ring(fw / 2, fd / 2, Math.max(2, r - (w - fw) / 2), top - h);
+  const n = T.length, pos = [], idx = [];
+  for (const p of [...T, ...B, ...B]) pos.push(p[0] * MM, p[1] * MM, p[2] * MM);   // wall top, wall foot, floor edge
+  pos.push(x * MM, (top - h) * MM, z * MM);                                        // floor centre
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    idx.push(i, n + j, j, i, n + i, n + j, 2 * n + j, 2 * n + i, 3 * n);           // faces look in and up
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  mat.side = THREE.DoubleSide;
+  const m = new THREE.Mesh(geo, mat);
+  g.add(m);
+  return m;
+}
+
 // The burners, by what their photographs show -- one round head or two, a flat grill plate,
 // or a charcoal BBQ with a split top. `spec` is the same object app.js keys by SKU.
-export function burnerGroup(spec, w, d, h, topTex = null) {
+// `legs` ({ w, d } = the published standing footprint) stands the Flat Burner on its two wire
+// leg frames, the way the part bench shows it; in a frame it has none.
+export function burnerGroup(spec, w, d, h, topTex = null, { legs = null } = {}) {
   const g = new THREE.Group();
   const steel = 0x9aa0a8, dark = 0x26292e;
 
-  // The Flat Burner (GS-450R): everything the eye checks is above the rim, so the body is a
-  // shallow pan, not a full-depth box -- in the frame the real thing nearly disappears
-  // below the rail line (JP a003 shows a pot ON it and daylight UNDER it).
+  // The Flat Burner (GS-450R). `w` x `d` here is the top plate, 250 x 360 (the catalogue's
+  // plate_mm): the published 270 x 410 x 110 is the stove STANDING on its plug-in wire legs, and
+  // drawn 410 deep the plate lay 25mm onto each rail. Everything is measured off two photographs:
+  //
+  //   detail_03 (the parts laid flat, plate 270px = 360mm): plate 1 : 1.43; the hole 164 across;
+  //     the dish 184 across, eight-sided, four slots, the head on a raised disc; the grate's four
+  //     rods on a 52mm pitch (x = +/-26 and +/-78), the outer pair 302 long with their tips turned
+  //     down into the plate's slots, the inner pair 334 long and pinched to +/-12 over the head;
+  //     two cross rods 234 apart, each kinked up between the inner pair.
+  //   alt_03 (side elevation, plate 416px): long edges folded down 10; a skirt under the plate to
+  //     -22; the dish hanging from it to -39; the valve block 92 x 19 under the dish, off-centre
+  //     toward the hose; the grate's highest point (the kinks) 11 above the plate; plate top 99
+  //     above the ground on its legs.
+  //
+  // It was a capped cylinder for a bowl (its lid plugged the hole at y = 0, burying the head), a
+  // solid skirt box, and a grate of twelve separate dashes at three heights.
   if (spec.flat450) {
-    const bright = metal(0xc9cdd2, 0.9, 0.25);
-    const R = Math.min(w, d) * 0.40;
-    // The plate, WITH THE HOLE IN IT: a solid slab over the bowl would bury the recess
-    // that makes this a burner. Rounded rectangle, circular cutout, 3mm of steel.
+    const sus = metal(0xa2a7ac, 0.5, 0.45);          // the satin top, looking up
+    const side = metal(0xb9bec3, 0.45, 0.5);         // stainless seen side-on mirrors the dark half
+    const wire = metal(0xdfe2e5, 0.9, 0.2);
+    const R = 82, FOLD = 10, GRATE = 11.5;
+    // The plate, WITH THE HOLE IN IT. Rounded rectangle, circular cutout, 1.5mm of steel.
     const sh = new THREE.Shape();
-    const hw = (w / 2) * MM, hd = (d / 2) * MM, cr = 8 * MM;
+    const hw = (w / 2) * MM, hd = (d / 2) * MM, cr = 4 * MM;
     sh.moveTo(-hw + cr, -hd);
     sh.lineTo(hw - cr, -hd); sh.quadraticCurveTo(hw, -hd, hw, -hd + cr);
     sh.lineTo(hw, hd - cr); sh.quadraticCurveTo(hw, hd, hw - cr, hd);
@@ -421,62 +475,169 @@ export function burnerGroup(spec, w, d, h, topTex = null) {
     hole.absarc(0, 0, R * MM, 0, Math.PI * 2, true);
     sh.holes.push(hole);
     const plate = new THREE.Mesh(
-      new THREE.ExtrudeGeometry(sh, { depth: 3 * MM, bevelEnabled: false, curveSegments: 40 }), bright);
+      new THREE.ExtrudeGeometry(sh, { depth: 1.5 * MM, bevelEnabled: false, curveSegments: 40 }), sus);
     plate.rotation.x = -Math.PI / 2;
-    plate.position.y = -3 * MM;                    // top face lands at the rim, y = 0
+    plate.position.y = -1.5 * MM;                  // top face at the rim, y = 0
     g.add(plate);
     const body = plate;
-    box(g, w - 8, 16, d - 8, 3, metal(0x9aa0a8, 0.8, 0.4), 0, -11, 0);   // the shallow skirt
-    // The bowl seen THROUGH the hole: tapering wall, floor, the head standing on it.
-    cyl(g, R, R * 0.86, 26, 40, metal(0xaeb4bb, 0.85, 0.35), 0, -13, 0);
-    cyl(g, R * 0.85, R * 0.85, 3, 40, metal(0x878d95, 0.8, 0.45), 0, -26, 0);
-    cyl(g, 30, 38, 16, 24, metal(0x4a4d52, 0.6, 0.5), 0, -17, 0);        // the head's body
-    cyl(g, 27, 27, 5, 24, metal(0xb98a4a, 0.75, 0.4), 0, -7, 0);         // brass port ring
-    cyl(g, 10, 10, 2, 12, metal(0x2b2e33, 0.4, 0.6), 0, -4, 0);          // the jet cap
-    // Four grate wires along the depth, each dipping toward the bowl in a shallow W (a002).
-    const wire = metal(0xd3d7db, 0.9, 0.25);
-    const seg = d * 0.30, dip = seg * 0.55;
-    for (const i of [-1.5, -0.5, 0.5, 1.5]) {
-      const x = i * (w * 0.22);
-      for (const s of [-1, 1]) {
-        box(g, 5, 5, seg, 2, wire, x, 10, s * (d / 2 - seg / 2 - 8));
-        const a = new THREE.Mesh(roundedBox(5 * MM, 5 * MM, dip * MM, 2 * MM), wire);
-        a.position.set(x * MM, 7.5 * MM, s * (d / 2 - seg - 8 + dip / 2 - 4) * MM);
-        a.rotation.x = s * 0.10;
-        g.add(a);
-      }
-      box(g, 5, 5, d * 0.16, 2, wire, x, 5, 0);      // the low centre run over the bowl
+    // The long edges fold down 10 -- the depth of the rail's rebate, so the plate sits flush --
+    // and a skirt under the plate carries the dish.
+    for (const sx of [-1, 1]) box(g, 1.5, FOLD, d, 0, side, sx * (w / 2 - 0.75), -FOLD / 2, 0);
+    for (const sx of [-1, 1]) box(g, 1.5, 12, 258, 0, side, sx * 112, -16, 0);
+    for (const sz of [-1, 1]) box(g, 224, 12, 1.5, 0, side, 0, -16, sz * 129);
+    // The dish seen THROUGH the hole: eight-sided, open, its rim under the plate.
+    const dishGeo = new THREE.LatheGeometry(
+      [[0, -39], [78, -39], [92, -22]].map(p => new THREE.Vector2(p[0] * MM, p[1] * MM)), 8).toNonIndexed();
+    dishGeo.computeVertexNormals();
+    const dishMat = metal(0xbfc4c9, 0.5, 0.42);
+    dishMat.side = THREE.DoubleSide;
+    const dish = new THREE.Mesh(dishGeo, dishMat);
+    dish.rotation.y = Math.PI / 8;                 // flats square to the plate, as in detail_03
+    g.add(dish);
+    cyl(g, 50, 50, 3, 28, metal(0xd2d6da, 0.55, 0.35), 0, -37.5, 0);     // the raised disc the head stands on
+    const punch = metalE(0x0e0f12, 0.2, 0.8);
+    for (let k = 0; k < 4; k++) {                  // the dish's four air slots, on the diagonals
+      const a = Math.PI / 4 + (k * Math.PI) / 2;
+      box(g, 31, 0.8, 4, 0, punch, Math.cos(a) * 64, -38.7, Math.sin(a) * 64, -a - Math.PI / 2);
     }
-    // The gas port: out a SHORT (270mm) edge, under the plate -- the manual's own warning
-    // diagram ("バーナー本体の器具栓及びホースは、トッププレートの短辺側から出してください").
-    // In the frame that edge faces a long rail; the hose ducks under it to the canister.
-    const port = new THREE.Mesh(new THREE.CylinderGeometry(7 * MM, 7 * MM, 26 * MM, 12),
-      metal(0x63676d, 0.7, 0.4));
-    port.rotation.x = Math.PI / 2;
-    port.position.set(w * 0.18 * MM, -14 * MM, (d / 2 + 6) * MM);
-    g.add(port);
+    // The head: a stem, the dark ported band, and the pale cap -- its top 8 under the plate.
+    cyl(g, 20, 22, 12, 20, metal(0x4a4d52, 0.6, 0.5), 0, -30, 0);
+    cyl(g, 29.5, 29.5, 14, 28, metal(0x5e4630, 0.6, 0.5), 0, -17, 0);
+    cyl(g, 20, 22, 2, 28, metal(0xe3d2a6, 0.35, 0.5), 0, -9, 0);
+    // The grate: four continuous rods on two cross rods. dia 5.
+    for (const s of [-1, 1]) {
+      bentTube(g, [[s * 78, -1, -151], [s * 78, 7.5, -151], [s * 78, 7.5, 151], [s * 78, -1, 151]],
+        2.5, wire, { rad: 3 });
+      bentTube(g, [[s * 26, 7.5, -167], [s * 26, 7.5, -36], [s * 12, 7.5, -4], [s * 12, 7.5, 4],
+                   [s * 26, 7.5, 36], [s * 26, 7.5, 167]], 2.5, wire, { rad: 6 });
+      bentTube(g, [[-80, 2.5, s * 117], [-20, 2.5, s * 117], [0, GRATE - 2.5, s * 124],
+                   [20, 2.5, s * 117], [80, 2.5, s * 117]], 2.5, wire, { rad: 4 });
+    }
+    // The valve block under the dish, and the gas port: out a SHORT (250mm) edge, under the plate
+    // -- the manual's own warning diagram ("バーナー本体の器具栓及びホースは、トッププレートの
+    // 短辺側から出してください"). In the frame that edge faces a long rail; the hose ducks under it
+    // to the canister, where the regulator is.
+    box(g, 40, 19, 92, 0, metal(0x8d9298, 0.5, 0.5), 0, -51.5, 36);
+    cyl(g, 5, 5, 12, 10, metal(0xb08a4a, 0.8, 0.35), 0, -52, 88, Math.PI / 2);
+    bentTube(g, [[0, -52, 94], [0, -52, d / 2 - 8]], 6, metal(0x9a9da0, 0.5, 0.5), { radial: 8 });
+    // The two wire leg frames, plugged over the short edges: each a U whose uprights lean out to
+    // the published footprint, with the pale silicone sleeves the photographs show at its bends.
+    if (legs) {
+      const footY = -(h - GRATE) + 2.5, fx = legs.w / 2 - 2.5, tx = w / 2 - 8;
+      const sleeve = new THREE.MeshStandardMaterial({ color: 0xc3d6e8, metalness: 0, roughness: 0.5 });
+      const part = (a, b, t0, t1) => bentTube(g,                 // a sleeve over part of the run a -> b
+        [t0, t1].map(t => a.map((v, i) => v + (b[i] - v) * t)), 3.6, sleeve, { radial: 8 });
+      for (const sz of [-1, 1]) {
+        const zt = sz * (d / 2 - 3), zf = sz * (legs.d / 2 - 2.5), zj = zf - sz * 8;
+        const pts = [[-tx, -4, zt - sz * 14], [-tx, -4, zt + sz * 3], [-fx, footY, zf], [-60, footY, zj],
+                     [60, footY, zj], [fx, footY, zf], [tx, -4, zt + sz * 3], [tx, -4, zt - sz * 14]];
+        bentTube(g, pts, 2.5, wire, { rad: [0, 5, 8, 20, 20, 8, 5, 0] });
+        part(pts[2], pts[1], 0.1, 0.5); part(pts[5], pts[6], 0.1, 0.5);
+        part(pts[2], pts[3], 0.12, 0.6); part(pts[5], pts[4], 0.12, 0.6);
+      }
+    }
     return { group: g, body };
   }
 
-  // The Grill Burner (GS-355 雪峰苑). Its catalog h=175 is the STANDALONE height -- it measures
-  // over the fold-out wire stand the hero shows splayed under the pan -- so hanging the full h
-  // below the rim buried a 175mm slab under the rails that the real module doesn't have. In
-  // the frame the stand folds away and only the drip pan drops in, a shallow ~65mm band (the
-  // hero's pan is a narrow strip against the stand's 175). And the plate does not LIE in the
-  // pan: it RIDES on corner posts with daylight under it, the bright pan rim showing beneath
-  // the black casting from every side (hero; clearest in the JP in-frame shot a004). Flush it
-  // read as a dark tray insert; the air gap is what says grill. Knob at the front-RIGHT
-  // corner -- the hero puts it under the pan's right end, not centred.
+  // The Grill Burner (GS-355 雪峰苑), 250 x 360 x 175 -- and the whole 175 is there in a frame.
+  // Top to bottom, off the hero (standing alone; 580px = 175mm down its near corner post) and JP
+  // a002 (seated in a frame, seen from below the rail):
+  //
+  //   グリドル   the cast-iron griddle, about 240 x 340 (a004: a finger of gap all round it in its
+  //             slot), level with the end piece and the neighbouring lid -- drawn 5 proud. Its
+  //             ribs run down four falls to the drain slot in the middle, like a hipped roof.
+  //   本体      the stainless housing: an end plate across each short end (41mm tall in the hero)
+  //             and a 風防 leaning in down each long side to about 76 below the table, its lower
+  //             corners cut off -- so the section is a trough. Four ears off the end plates land
+  //             on the rail lips. No knob anywhere: the 器具栓 rides the remote canister, at the
+  //             end of the hose that leaves one short end.
+  //   水皿      the black enamel water tray, tucked right under the 風防 (a002). Rim about
+  //             220 x 290 -- its two far corners sit 211 x 272 apart in the hero -- and 36 deep.
+  //             It is always fitted (manual p.5: 「水皿はいかなる場合においても必ず水を入れ」) and
+  //             slides in from a short end (04_9: a hand pulling it out from under the rail; two
+  //             grooves pressed along its floor ride the stand's wires).
+  //   脚        the wire stand, to 170 below the table: one wire down each long side, a post at
+  //             each corner, a hairpin at the ground, then up and inward to a run under the
+  //             tray. Three of the four hairpins show in the hero, and solved together they
+  //             rise about 40 while coming in about 76.
+  //
+  // It was a 65mm box with a knob, its plate riding 38mm above the table on four posts, on the
+  // belief that the stand folds away in a frame. It does not: it is what carries the tray.
   if (spec.plate) {
-    const panH = 65, lift = 38;             // pan below the rim; the plate's underside above it
-    const body = box(g, w, panH, d, 3, metal(steel, 0.85, 0.35), 0, -panH / 2, 0);
-    box(g, w - 4, 4, d - 4, 1.5, metal(0xaeb4bb, 0.85, 0.35), 0, 2, 0);   // the pan's bright lip
-    for (const sx of [-1, 1]) for (const sz of [-1, 1])                   // the posts it rides on
-      cyl(g, 4, 4, 34, 10, metal(0x63676d, 0.7, 0.4), sx * (w / 2 - 20), 21, sz * (d / 2 - 20));
-    box(g, w - 8, 10, d - 8, 4, metal(dark, 0.3, 0.6), 0, lift + 5, 0);   // the cast plate, aloft
-    for (let i = -2; i <= 2; i++)        // its ridge bars -- the real casting is a herringbone
-      box(g, w - 24, 3, 5, 1, metal(0x1b1e22, 0.2, 0.7), 0, lift + 10, i * (d / 6));
-    cyl(g, 9, 9, 10, 16, metal(0x1c1f24, 0.4, 0.6), w / 2 - 30, -panH * 0.45, d / 2 + 4, Math.PI / 2);
+    const GW = 240, GD = 340, proud = 5, faceY = proud - 2;
+    const iron = metal(0x1c1e21, 0.2, 0.7);
+    const body = new THREE.Mesh(flatRect(GW * MM, GD * MM, 10 * MM, 14 * MM), iron);
+    body.position.y = faceY * MM;                  // the casting's face; the ribs stand 2 above it
+    g.add(body);
+    const ribs = [], pitch = 14, hip = (GD - GW) / 2;   // the hips run in from the corners at 45
+    for (let z = -140; z <= 140; z += pitch) {     // the two long falls: ribs across
+      const x0 = Math.max(9, Math.abs(z) - hip + 6), x1 = GW / 2 - 9;
+      if (x1 - x0 >= 12) for (const s of [-1, 1]) ribs.push([x1 - x0, 2, 5, (s * (x0 + x1)) / 2, proud - 1, z]);
+    }
+    for (let x = -98; x <= 98; x += pitch) {       // the two end falls: ribs along
+      const z0 = Math.abs(x) + hip + 6, z1 = GD / 2 - 9;
+      if (z1 - z0 >= 12) for (const s of [-1, 1]) ribs.push([5, 2, z1 - z0, x, proud - 1, (s * (z0 + z1)) / 2]);
+    }
+    boxesInto(g, ribs, metal(0x25272b, 0.25, 0.6));
+    const punch = metalE(0x0e0f12, 0.2, 0.8);
+    box(g, 8, 0.6, 34, 0, punch, 0, faceY + 0.1, 0);                             // the drain slot
+
+    // 本体: the trough. Stainless seen side-on, so not mirror-metal (it would render black).
+    const sus = metal(0xc9cdd1, 0.35, 0.55);
+    const topY = -8, endY = -47, botY = -76, xTop = 123, xBot = 96, zEnd = 153;
+    const slant = Math.hypot(xTop - xBot, topY - botY), lean = Math.atan2(xTop - xBot, topY - botY);
+    const xAt = y => xTop - ((xTop - xBot) * (topY - y)) / (topY - botY);        // the 風防's face at height y
+    // one 風防: a long hexagon in its own plane (along z, and down the slope), leaned in
+    const s1 = (slant * (topY - endY)) / (topY - botY), cut = 28, gs = new THREE.Shape();
+    gs.moveTo(-zEnd * MM, 0); gs.lineTo(zEnd * MM, 0); gs.lineTo(zEnd * MM, -s1 * MM);
+    gs.lineTo((zEnd - cut) * MM, -slant * MM); gs.lineTo(-(zEnd - cut) * MM, -slant * MM);
+    gs.lineTo(-zEnd * MM, -s1 * MM); gs.closePath();
+    const guardGeo = new THREE.ExtrudeGeometry(gs, { depth: 1.5 * MM, bevelEnabled: false });
+    guardGeo.translate(0, 0, -0.75 * MM);
+    guardGeo.rotateY(Math.PI / 2);                 // the shape's x runs along z; its sheet faces +/-x
+    for (const sx of [-1, 1]) {
+      const guard = new THREE.Mesh(guardGeo, sus);
+      guard.position.set(sx * xTop * MM, topY * MM, 0);
+      guard.rotation.z = -sx * lean;
+      g.add(guard);
+      box(g, 12, 1.5, 2 * zEnd, 0, sus, sx * (w / 2 - 6), topY, 0);              // its lip, beside the griddle
+    }
+    const hole = cyl(g, 6, 6, 3, 12, punch, xAt(-38), -38, 0);                   // 点火穴, in one 風防
+    hole.rotation.z = -(Math.PI / 2 + lean);
+    const end = new THREE.Shape();
+    end.moveTo(-xTop * MM, topY * MM); end.lineTo(xTop * MM, topY * MM);
+    end.lineTo(xAt(endY) * MM, endY * MM); end.lineTo(-xAt(endY) * MM, endY * MM); end.closePath();
+    const endGeo = new THREE.ExtrudeGeometry(end, { depth: 1.5 * MM, bevelEnabled: false });
+    for (const sz of [-1, 1]) {
+      const m = new THREE.Mesh(endGeo, sus);
+      m.position.z = (sz * zEnd - 0.75) * MM;
+      g.add(m);
+      for (const sx of [-1, 1])                                                  // the ears, on the rail lips
+        box(g, 26, 2, d / 2 - zEnd, 0, sus, sx * (xTop - 13), -9, (sz * (d / 2 + zEnd)) / 2);
+    }
+    // the burner tube in the trough, and at one short end the hose bracket and the start of the hose
+    bentTube(g, [[-45, -42, -130], [-45, -42, 118], [45, -42, 118], [45, -42, -130]], 9,
+      metal(0x3b3e43, 0.5, 0.55), { rad: 40, radial: 8 });
+    box(g, 96, 30, 1.5, 0, sus, -34, endY - 15, zEnd);
+    bentTube(g, [[-34, endY - 20, zEnd], [-34, endY - 20, d / 2 - 6]], 6, metal(0x9a9da0, 0.5, 0.5), { radial: 8 });
+
+    // 水皿: glossy black enamel, flared, with its two grooves.
+    const enamel = metal(0x101114, 0.3, 0.25);
+    const trayW = 220, trayD = 290, trayTop = -88, trayH = 36, grooveX = 40;
+    panInto(g, enamel, { w: trayW, d: trayD, fw: trayW - 48, fd: trayD - 50, h: trayH, r: 24, top: trayTop });
+    bentTube(g, [[trayW / 2, trayTop, trayD / 2], [-trayW / 2, trayTop, trayD / 2],
+                 [-trayW / 2, trayTop, -trayD / 2], [trayW / 2, trayTop, -trayD / 2]],
+      2, enamel, { rad: 24, closed: true });                                     // its rolled rim
+    for (const sx of [-1, 1]) box(g, 8, 3, trayD - 90, 0, enamel, sx * grooveX, trayTop - trayH + 1.5, 0);
+
+    // 脚: dia 5 wire. Down a post at each corner to the ground, a hairpin, then up and in to the
+    // run the tray's groove rides.
+    const wire = metal(0xd6dade, 0.6, 0.3);
+    const px = 116, pz = 146, footY = -(h - proud) + 0.3, runY = trayTop - trayH - 2.5;
+    for (const sx of [-1, 1])
+      bentTube(g, [[sx * px, -12, pz], [sx * px, footY, pz], [sx * grooveX, runY, pz - 44],
+                   [sx * grooveX, runY, -(pz - 44)], [sx * px, footY, -pz], [sx * px, -12, -pz]],
+        2.5, wire, { rad: [0, 4, 14, 14, 4, 0] });
     return { group: g, body };
   }
 
@@ -844,8 +1005,9 @@ const LID_PROUD = 15;
  *  frame. Its manual settles what it is, and it is NOT the grate-half + griddle-half the old bbq
  *  branch drew. There is no griddle:
  *
- *    本体            the stainless box, vents low in its long walls
- *    インナートレー(炭床)  the charcoal bed: a perforated dark tray sitting INSIDE the box (step 3)
+ *    本体            the stainless box, vents in its two SHORT ends (JP a001: two groups of five
+ *                    holes and a slot under each; the long walls are plain)
+ *    インナートレー(炭床)  the charcoal bed: a perforated bright tray sitting INSIDE the box (step 3)
  *    昇降フレーム       the LIFT frame, which stands up on links and carries the nets
  *    焼き網 x2        TWO grill nets, side by side, half the top each -- this is the "Double"
  *    フタ / スタンド x2 / ハンドル   a lid, two stands, and a crank handle
@@ -857,8 +1019,11 @@ const LID_PROUD = 15;
  *  W605 x D360 x H175 is the STANDALONE form. The IGT form is smaller, and the manual says so:
  *  step 6 mounts it by REMOVING the handle and the stands. What is left is the 収納 size,
  *  W500 x D370 x H120 -- and 500 is exactly two IGT units, one per net, which is what "Double Unit
- *  BBQ Box" has been saying all along. So the body is built at 500 x 120; the 55 that H175 has over
- *  the packed 120 is the lift frame standing up; and `w` is deliberately unused, because the 605
+ *  BBQ Box" has been saying all along. So the body is built 500 wide; the 55 that H175 has over
+ *  the packed 120 is the lift frame standing up, which is where the nets are drawn. The box itself
+ *  hangs about 80, not the packed 120 it was drawn at: the 120 includes the lid, whose skirt stands
+ *  about 42 over the rim (06_2, the box packed: lid skirt 85px + body 155px = 240px = 120). And `w`
+ *  is deliberately unused, because the 605
  *  measures across the splayed stands and the stands come off. D360 is real -- it is the rim, and
  *  it lands on the rail lip like any module.
  *
@@ -868,25 +1033,29 @@ const LID_PROUD = 15;
  *
  *  Rim at y = 0 hanging to -bodyH, and the surfaces RISE ABOVE it -- the exception this file's
  *  header already names. */
-export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 120,
+export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 80, packedH = 120,
                                        surface = "nets" } = {}) {
   const wallD = wallSpan(d), wall = 2;
   const { group: g, body } = binGroup(bodyW, wallD, bodyH, { open: true, color, wall });
   const mat = metal(color, 0.8, 0.4);
   railRimInto(g, bodyW, d, mat);
 
-  // The vents: a row of round holes low in each long wall. Punched dark, the way frameGroup does
-  // its hook holes.
+  // The vents, in the two SHORT ends: each end has two groups of five round holes with a slot
+  // under each (JP a001 looks straight at one). Punched dark, the way frameGroup does its hook
+  // holes. (They were a row of ten along each long wall, which is plain.)
   const punch = metalE(0x0e0f12, 0.2, 0.8);
-  for (const sz of [-1, 1]) for (let i = 0; i < 10; i++)
-    cyl(g, 5, 5, wall + 3, 12, punch, -bodyW * 0.4 + (i * bodyW * 0.8) / 9, -bodyH + 32,
-        sz * (wallD / 2 - wall / 2), Math.PI / 2);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const x = sx * (bodyW / 2 - wall / 2);
+    for (let i = 0; i < 5; i++)
+      cyl(g, 6, 6, wall + 0.6, 12, punch, x, -bodyH + 44 - i * 2, sz * (28 + i * 24), 0).rotation.z = Math.PI / 2;
+    box(g, wall + 0.6, 5, 100, 0, punch, x, -bodyH + 20, sz * 76);
+  }
 
   // インナートレー -- the charcoal bed: a shallow pan set inboard of the lift frame (step 3), its
-  // floor punched in two hole sizes so ash drops through. It reads DARK in every photo: that is the
-  // coated steel of the 材質, not the stainless of the box.
-  const trayMat = metal(0x2b2e33, 0.35, 0.62);
-  const trW = bodyW - 56, trD = wallD - 52, trY = -bodyH + 66, trH = 22;
+  // floor punched in two hole sizes so ash drops through. It is BRIGHT (07_3, the nets lifted off
+  // it); it only looks dark in the shade of the black plate, and was drawn dark throughout.
+  const trayMat = surface === "plate" ? metal(0x2b2e33, 0.35, 0.62) : metal(0xc9cdd2, 0.45, 0.5);
+  const trW = bodyW - 56, trD = wallD - 52, trY = -bodyH + 40, trH = 22;
   box(g, trW, 2, trD, 1, trayMat, 0, trY, 0);
   for (const sz of [-1, 1]) box(g, trW, trH, 2, 0.5, trayMat, 0, trY + trH / 2, sz * (trD / 2 - 1));
   for (const sx of [-1, 1]) box(g, 2, trH, trD, 0.5, trayMat, sx * (trW / 2 - 1), trY + trH / 2, 0);
@@ -894,8 +1063,9 @@ export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 12
     cyl(g, i % 2 ? 4 : 6.5, i % 2 ? 4 : 6.5, 4, 10, punch,
         -trW * 0.42 + (i * trW * 0.84) / 10, trY, r * trD * 0.26);
 
-  // 昇降フレーム + 焼き網 x2, drawn at the RAISED height -- which is exactly what H175 measures.
-  const lift = Math.max(h - bodyH, 0), netT = 5, barT = 12;
+  // 昇降フレーム + 焼き網 x2, drawn at the RAISED height -- which is exactly what H175 measures:
+  // the published 175 less the packed 120.
+  const lift = Math.max(h - packedH, 0), netT = 5, barT = 12;
   const lfW = bodyW - 14, lfD = wallD - 14, lfY = lift - netT - barT / 2;
   for (const sz of [-1, 1]) box(g, lfW, barT, 10, 1.5, mat, 0, lfY, sz * (lfD / 2 - 5));
   for (const sx of [-1, 1]) box(g, 10, barT, lfD, 1.5, mat, sx * (lfW / 2 - 5), lfY, 0);
@@ -918,15 +1088,16 @@ export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 12
   }
 
   // The cooking surface, laid on the lift frame. Each option is a real part at its published size,
-  // so what you see is what you'd buy: a net is a wire grid in a thin border at the real ~11mm
-  // pitch (the S-029HA photo counts it out, and its spec prints ネット φ2.5mm), a 鉄板 is a solid
-  // slab with a raised lip to hold the fat in, and it reads DARK -- it is not stainless.
-  const netMat = metal(0xd0d4d9, 0.92, 0.24);
+  // so what you see is what you'd buy: a net is a wire grid in a thin border at the real 15mm
+  // pitch (see `net`; its spec prints ネット φ2.5mm), a 鉄板 is a solid slab with a raised lip to
+  // hold the fat in, and it reads DARK -- it is not stainless.
+  const netMat = metal(0xd0d4d9, 0.5, 0.4);       // half-metal: mirror-metal wires rendered near black
   const plateMat = metal(0x33373d, 0.42, 0.55);
   const net = (nw, nd, cx) => {
-    // 11mm pitch, φ2.5 wire -- the real numbers (S-029HA's spec prints the gauge, its hero
-    // counts ~30 openings across 339, and the CK-160 hero's own nets read the same weave).
-    const rim = 6, pitch = 11;
+    // 15mm pitch, φ2.5 wire, square to the frame. S-029HA's spec prints the gauge, and its
+    // plan view (gallery 08_a007) puts a column every 62px across the 1412px that is its 339mm.
+    // (It was 11, from a count of the hero's oblique view.)
+    const rim = 6, pitch = 15;
     for (const sz of [-1, 1]) box(g, nw, 4, rim, 1, netMat, cx, lift - 2, sz * (nd / 2 - rim / 2));
     for (const sx of [-1, 1]) box(g, rim, 4, nd, 1, netMat, cx + sx * (nw / 2 - rim / 2), lift - 2, 0);
     const iw = nw - 2 * rim, id = nd - 2 * rim;
@@ -940,7 +1111,9 @@ export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 12
     for (const sz of [-1, 1]) box(g, 500, 27, 4, 1, plateMat, 0, lift + 9.5, sz * 163);
     for (const sx of [-1, 1]) box(g, 4, 27, 330, 1, plateMat, sx * 248, lift + 9.5, 0);
   } else if (surface === "halves") {
-    for (const sx of [-1, 1]) net(339, 206, sx * 106);   // S-029HA x2, at their published 339 x 206
+    // S-029HA x2, side by side: each lies 206 along the rails and 339 across. (They were turned
+    // the other way, 339 along, and overlapped into one 551 x 206 strip.)
+    for (const sx of [-1, 1]) net(206, 339, sx * 106);
   } else {
     for (const sx of [-1, 1]) net(lfW / 2 - 3, lfD - 8, sx * (lfW / 4 + 1.5));   // the 焼き網 it ships with
   }
@@ -965,7 +1138,8 @@ export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 12
  *      any other unit. Not a deep box: 70mm below the rim (packed 110 less its ~40mm cover).
  *    - TWO brass-ported heads down in the well on 233mm centres -- measured against the frame's own
  *      published geometry, and 23cm is the manual's biggest pot: the burners sit one pot apart.
- *    - TWO wire ゴトク, one per burner (p.11 flips them 180 degrees for HIGH/LOW; this is LOW).
+ *    - TWO wire ゴトク, one per burner (p.11 flips them 180 degrees for HIGH/LOW; this is LOW):
+ *      racks about 220 x 275 that cover the well, not the two small asterisks they were drawn as.
  *    - TWO knobs on the FRONT face, standing proud of it -- what makes the deployed DEPTH 383
  *      against a 360 body.
  *    - TWO canisters clamped INVERTED under the front deck, one dead under each knob -- the
@@ -973,21 +1147,25 @@ export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 12
  *      toggle: without its cans this stove is not itself.
  *    - a THREE-panel windscreen: the carry COVER stood up at the back, a wing hinged off each end
  *      swinging forward. Folded, the wings lie inside the cover -- which is why packed width is 500
- *      and deployed width 563: the wings swing out PAST the body.
+ *      and deployed width 563: the wings swing out PAST the body. Drawn only when asked for
+ *      (`windscreen`, which the part bench does): every photograph of the stove in a frame has
+ *      the screen off, and its wings reach 31mm past each end of the body, into the neighbour.
  *
  *  `w` is the along-rail width -- 500, two units, which is what railW(span 4) gives and what the
  *  in-frame photo measures. The d/h a caller derives from assembled_mm describe the DEPLOYED
  *  envelope, not the body, so this builder does not take them. Rim at y = 0, pan hanging to -bodyH,
- *  windscreen standing above. */
-export function gs230Group(w = 500, { seat = 360, h = 293, bodyH = 70, lid = false } = {}) {
+ *  windscreen (if asked for) standing above. */
+export function gs230Group(w = 500, { seat = 360, h = 293, bodyH = 70, lid = false, windscreen = false } = {}) {
   const g = new THREE.Group();
   const steel = 0x9aa0a8, dark = 0x26292e, screen = 0xb4b9bf;
   const SPACING = 233;                       // head centres, measured in the frame
-  const wellW = 460, wellD = 264, wellY = -48;
+  // The well, off the plan view in a frame (02_5: the body 657px = 500): the deck is a narrow
+  // 11mm strip at each end and about 35 front and back. (It was drawn 460 x 264.)
+  const wellW = 478, wellD = 290, wellY = -48;
   const screenH = h - bodyH;                 // 223 -- what stands ABOVE the tabletop
 
   // The housing: a shallow pan, built as a deck flange round a sunken well rather than a solid
-  // block, because the well IS what you see. Flange outer 500x360, inner 460x264.
+  // block, because the well IS what you see. Flange outer 500x360, inner 478x290.
   const deck = metal(steel, 0.85, 0.35);
   const endW = (w - wellW) / 2, sideD = (seat - wellD) / 2;
   const body = box(g, w, 6, sideD, 1, deck, 0, -3, (wellD + sideD) / 2);   // front deck: the knobs
@@ -1000,17 +1178,26 @@ export function gs230Group(w = 500, { seat = 360, h = 293, bodyH = 70, lid = fal
   for (const sx of [-1, 1]) box(g, 8, bodyH, seat, 1, skin, sx * (w / 2 - 4), -bodyH / 2, 0);
   box(g, wellW, 4, wellD, 1, metal(dark, 0.4, 0.6), 0, wellY, 0);
 
+  const rackMat = metal(0xdfe2e5, 0.9, 0.2);
   for (const sx of [-1, 1]) {
     const hx = sx * (SPACING / 2);
     // the head: an 88mm ported ring round a brass centre, with its nozzle below at 6 o'clock
     cyl(g, 44, 44, 16, 28, metal(0x4c5259, 0.5, 0.55), hx, wellY + 10, 0);
     cyl(g, 25, 25, 10, 24, metal(0x9c6b3a, 0.75, 0.4), hx, wellY + 18, 0);
     cyl(g, 5, 5, 22, 10, metal(0xb08a4a, 0.8, 0.35), hx, wellY - 4, 34);
-    // the ゴトク. The real one is an hourglass wire frame pinched either side of the head; four
-    // crossed bars is what that reads as at this size, and is the same shorthand burnerGroup uses.
-    for (let a = 0; a < 4; a++)
-      box(g, 118, 4, 5, 1, metal(steel, 0.9, 0.3), hx, 35, 0, (a * Math.PI) / 4);
-    for (const c of [-1, 1]) box(g, 4, 80, 4, 1, metal(steel, 0.9, 0.3), hx + c * 52, -5, 0);
+    // the ゴトク: a wire rack over each burner, about 15 above the deck (hero). Traced off 02_5:
+    // three dia 5 rods along z, 275 long on a 78 pitch -- the outer two pinched in to 38 either
+    // side of the head, the middle one broken over it -- lying on a U-shaped loop 224 x 160 that
+    // is open toward the middle of the stove. The rods' ends turn down into the well's edge.
+    const rackY = 15, zR = 137;
+    for (const c of [-1, 1]) {
+      const xo = hx + c * 78, xi = hx + c * 38;
+      bentTube(g, [[xo, -8, -zR], [xo, rackY, -zR], [xo, rackY, -56], [xi, rackY, -4], [xi, rackY, 4],
+                   [xo, rackY, 56], [xo, rackY, zR], [xo, -8, zR]], 2.5, rackMat, { rad: 5 });
+      bentTube(g, [[hx, -8, c * zR], [hx, rackY, c * zR], [hx, rackY, c * 50]], 2.5, rackMat, { rad: 5 });
+    }
+    bentTube(g, [[hx - sx * 112, rackY - 5, -80], [hx + sx * 112, rackY - 5, -80],
+                 [hx + sx * 112, rackY - 5, 80], [hx - sx * 112, rackY - 5, 80]], 2.5, rackMat, { rad: 10 });
     // the knob, out under its own burner
     cyl(g, 13, 13, 23, 16, metal(0x1c1f24, 0.4, 0.6), hx, -40, seat / 2 + 11.5, Math.PI / 2);
     // The CANISTER, clamped INVERTED under the deck -- the 液出し of the product's own name,
@@ -1018,15 +1205,17 @@ export function gs230Group(w = 500, { seat = 360, h = 293, bodyH = 70, lid = fal
     // this stove without its two cans is not itself (the hero mounts both). Measured off the
     // hero against the 500mm face (152px): body 33px = φ108 -- the φ110-class can gs1000Group
     // already draws at r=54, NOT a slim bottle -- hung dead under its knob (centres read
-    // ±115 ≈ SPACING/2, a second, independent scale check), top against the pan floor, ~110
-    // of hang. The brass feed valve is at the BOTTOM, under the domed shoulder -- valve-down
-    // is what liquid feed IS; the dark ring above is the socket the can twists up into.
+    // ±115 ≈ SPACING/2, a second, independent scale check), top against the pan floor. It is
+    // the 500 can, the only one the manual allows: in the hero (428px = the 500 face) its
+    // shoulder ends 194 below the deck and the valve 210, so the body is 105 long (it was 68,
+    // and stopped at -182). The brass feed valve is at the BOTTOM, under the domed shoulder --
+    // valve-down is what liquid feed IS; the dark ring above is the socket the can twists up into.
     const canMat = metal(0xc8ccd0, 0.7, 0.4);
     const canZ = 150;                       // under the front deck, a little proud of the wall
     cyl(g, 30, 30, 14, 18, metal(dark, 0.5, 0.5), hx, -bodyH - 5, canZ);       // the socket ring
-    cyl(g, 54, 54, 68, 24, canMat, hx, -bodyH - 46, canZ);                     // the can, base up
-    cyl(g, 54, 34, 22, 24, canMat, hx, -bodyH - 91, canZ);                     // shoulder, now down
-    cyl(g, 7, 7, 10, 10, metal(0xb08a4a, 0.8, 0.35), hx, -bodyH - 107, canZ);  // the brass feed valve
+    cyl(g, 54, 54, 105, 24, canMat, hx, -bodyH - 64.5, canZ);                  // the can, base up
+    cyl(g, 54, 34, 22, 24, canMat, hx, -bodyH - 128, canZ);                    // shoulder, now down
+    cyl(g, 7, 7, 10, 10, metal(0xb08a4a, 0.8, 0.35), hx, -bodyH - 144, canZ);  // the brass feed valve
   }
 
   // COVER ON -- the third state, the one the manual never dimensions. The windscreen panel IS the
@@ -1042,20 +1231,24 @@ export function gs230Group(w = 500, { seat = 360, h = 293, bodyH = 70, lid = fal
     box(g, w, LID_PROUD, seat, 2, metal(screen, 0.8, 0.4), 0, LID_PROUD / 2, 0);
     return { group: g, body };
   }
+  if (!windscreen) return { group: g, body };      // in a frame: the screen is off
 
   // The windscreen, DEPLOYED. The back panel is the cover, 500 wide, standing on the back deck; each
   // wing hinges at its end and swings forward, splayed just enough to put its free edge at
   // x = +/-281.5 -- which is the published 563. Each wing TAPERS, tall at the hinge and falling to
   // its free edge (the fold-away plan p.7 and the hero both show the slope), so it is extruded from
   // an outline rather than boxed.
-  box(g, w, screenH, 3, 1, metal(screen, 0.8, 0.4), 0, screenH / 2, -(seat / 2 - 1.5));
+  // Half-metal: a mirror-metal panel standing upright reflects the dark half of the room and
+  // rendered near black.
+  const screenMat = metal(screen, 0.4, 0.5);
+  box(g, w, screenH, 3, 1, screenMat, 0, screenH / 2, -(seat / 2 - 1.5));
   const WING = 250, TIP = 130, SPLAY = Math.asin((563 / 2 - w / 2) / WING);
   const wing = new THREE.Shape();
   wing.moveTo(0, 0); wing.lineTo(WING * MM, 0);
   wing.lineTo(WING * MM, TIP * MM); wing.lineTo(0, screenH * MM); wing.closePath();
   const wingGeo = new THREE.ExtrudeGeometry(wing, { depth: 3 * MM, bevelEnabled: false });
   for (const sx of [-1, 1]) {
-    const m = new THREE.Mesh(wingGeo, metal(screen, 0.8, 0.4));
+    const m = new THREE.Mesh(wingGeo, screenMat);
     m.rotation.y = -Math.PI / 2 + sx * SPLAY;      // local +x runs hinge -> free edge, splayed out
     m.position.set(sx * (w / 2) * MM, 0, -(seat / 2) * MM);
     g.add(m);
@@ -1089,13 +1282,19 @@ export function moduleGroup(p, w, d, h, color, topTex = null, cfg = null) {
   const bspec = burnerOf(p.sku);
   // GP-040 is not a burner -- it is the bare wire frame the GS-1000 stands in. Its own shape,
   // ahead of the generic branches that used to dress it in a housing, a head and a knob.
-  if (bspec?.gp040) return gp040Group(w, d, h);
+  // Its own 362 x 377, never the slot's: the caller's numbers are the 375 rail run and whichever
+  // of the two published dimensions lies nearer it, and built from those the frame came out 408.
+  if (bspec?.gp040) return gp040Group(p.assembled_mm?.w ?? 362, p.assembled_mm?.d ?? 377, h);
   // GS-230 is an appliance, and its assembled_mm describes the DEPLOYED envelope (563 over the
   // splayed windscreen, 383 over the knobs) rather than the body -- so the d/h the caller derives
   // cannot be used. It takes only the along-rail width, the one number that is right:
   // railW(span 4) = 500 = the two units the in-frame photo measures. Its own stand is not built:
   // that is for standing on the ground, and on the IGT you take it off (owner).
   if (bspec?.gs230) return gs230Group(w, { lid: cfg === "closed" });
+  // The Flat Burner is built at its PLATE size (plate_mm, 250 x 360): its assembled_mm is the
+  // stove standing on its wire legs, which it does not have in a frame.
+  if (bspec?.flat450)
+    return burnerGroup(bspec, p.plate_mm?.w ?? 250, p.plate_mm?.d ?? 360, h, topTex);
   if (bspec) return burnerGroup(bspec, w, d, h, topTex);
   // A mesh SLOT MODULE -- the four draining baskets. The role guard matters: isMesh is /mesh/i on
   // the title, which also catches the Mesh Folding Chair and Bench (mesh FABRIC). app.js routes
@@ -3776,13 +3975,13 @@ export function grillNetGroup(w, d, h, color) {
  *    plate   GR-006     グリルプレート黒皮鉄板  500 x 330 x 35   2.5mm black steel
  *    halves  S-029HA x2 焼アミハーフ Pro.     339 x 206 x 18   two side by side */
 function surfaceInto(g, kind, y) {
-  const netMat = metal(0xd0d4d9, 0.92, 0.24), plateMat = metal(0x33373d, 0.42, 0.55);
+  const netMat = metal(0xd0d4d9, 0.5, 0.4), plateMat = metal(0x33373d, 0.42, 0.55);
   const net = (nw, nd, cx) => {
-    // 11mm pitch, φ2.5 wire -- the S-029HA hero counts ~30 openings across its published 339
-    // and its spec prints the gauge (ネット／ステンレス φ2.5mm); same weave on the Pro.L. The
-    // old 22 drew an oven rack. (The real weave runs diagonal -- grillNetGroup draws that for
-    // the bench close-up; at planner distance the density is the read, not the angle.)
-    const rim = 6, pitch = 11;
+    // 15mm pitch, φ2.5 wire, square to the frame -- S-029HA's plan view (gallery 08_a007) puts
+    // a column every 62px across the 1412px that is its 339mm, and its spec prints the gauge
+    // (ネット／ステンレス φ2.5mm); same weave on the Pro.L. (It was 11, off the hero's oblique
+    // view, and the weave was believed to run diagonal.)
+    const rim = 6, pitch = 15;
     for (const sz of [-1, 1]) box(g, nw, 4, rim, 1, netMat, cx, y - 2, sz * (nd / 2 - rim / 2));
     for (const sx of [-1, 1]) box(g, rim, 4, nd, 1, netMat, cx + sx * (nw / 2 - rim / 2), y - 2, 0);
     const iw = nw - 2 * rim, id = nd - 2 * rim;
@@ -3791,7 +3990,9 @@ function surfaceInto(g, kind, y) {
     for (let j = 1; j < nz; j++) box(g, iw, 2, 2.5, 0, netMat, cx, y - 3.5, -id / 2 + (j * id) / nz);
   };
   if (kind === "net") return net(484, 352, 0);
-  if (kind === "halves") { net(339, 206, -106); net(339, 206, 106); return; }
+  // two half nets side by side, each 206 along the bridge's rails and 339 across them (they
+  // were turned the other way and overlapped into one strip)
+  if (kind === "halves") { net(206, 339, -106); net(206, 339, 106); return; }
   if (kind === "plate") {
     box(g, 500, 8, 330, 1.5, plateMat, 0, y - 4, 0);
     for (const sz of [-1, 1]) box(g, 500, 27, 4, 1, plateMat, 0, y + 9.5, sz * 163);
@@ -4003,10 +4204,23 @@ export function takibiGroup(w, d, h, { steel = 0x9aa0a8, depth = TAKIBI_DEPTH, b
 // against the known φ240 body, and it is the least trustworthy thing in here.
 export const GS1000 = { span: 350, body: 240, gotoku: 300, h: 420 };
 
+// What is INSIDE that envelope is measured off the photographs, not the manual's line drawing:
+//   06_a002 (folded, side-on; the ring 925px = dia 240): the wind screen is a BAND 33mm tall with
+//     ONE row of ports, a shallow dish under it, and the legs hang from pressed plates.
+//   00_hero_01 (standing; 595px = 420): the band's rim sits at about 378, the pot supports rise
+//     42 above it, the head's top is level with the rim, the leg plates pinch in to the valve
+//     block at about 272 and spread again to the leg hinges at about 200; the can is 127 long
+//     from its base to the end of its shoulder (the 500 can: 150 with its valve).
+//   02 (the bowl from above): the head is a disc about dia 100 with six oval holes, inside a
+//     second, lower ring; a brass tube loops over its side.
+// It was a drum 86 tall with two port rows and its rim at 408, flat pot-support bars, the head
+// down on the floor, and four straight legs off a central hub.
 export function gs1000Group(w = GS1000.span, d = GS1000.span, h = GS1000.h, { canister = false } = {}) {
   const g = new THREE.Group();
-  const steel = 0x9aa0a8, alu = 0xb4b9bf, dark = 0x30343a, brass = 0x9c6b3a, foot = 0x71767d;
-  const shell = metal(steel, 0.8, 0.36), bright = metal(alu, 0.88, 0.28);
+  const dark = 0x30343a, brass = 0xb08a4a;
+  // Bright stainless that mostly faces sideways or down: at high metalness it mirrors the dark
+  // half of the room and renders black, so it is kept half-metal.
+  const shell = metal(0xc8ccd0, 0.45, 0.45), bright = metal(0xd4d8dc, 0.55, 0.35);
   const punch = metalE(0x0e0f12, 0.2, 0.8);        // a hole, punched dark -- frameGroup's trick
 
   // 使用時 φ350 is an OUTER ENVELOPE, so it is the OUTSIDE of the rubber foot that lands on it, not
@@ -4015,14 +4229,9 @@ export function gs1000Group(w = GS1000.span, d = GS1000.span, h = GS1000.h, { ca
   const footR = 13, R = w / 2, toeR = R - footR;   // 175 published; toes at 162 so the feet reach it
   const bodyR = GS1000.body / 2;                   // 120 -- PUBLISHED, via 収納時 φ240.
   const gotokuR = GS1000.gotoku / 2;               // 150 -- from 使用鍋径 φ31cm以下.
-  // h = 420 is the OVERALL height, and it is the GOTOKU that reach it: they are what a pot sits on,
-  // and the wind screen stands below them shielding the flame. So the teeth top out AT h and every
-  // other height hangs down from there. Sitting the arms on top of the rim instead put the teeth at
-  // 427 -- 7mm outside the one number on this part that is published.
-  // Everything from here down is read off the manual's 各部の名称 drawing and is NOT published.
-  const teethTop = h, armTop = h - 10, rimY = h - 12;
-  const bowlH = 86, floorY = rimY - bowlH;
-  const hubR = 52, hubY = floorY - 38;
+  // h = 420 is the OVERALL height, and it is the pot supports that reach it.
+  const rimY = h - 42, bandH = 33, bandY = rimY - bandH, dishY = bandY - 12;
+  const waistY = 272, waistR = 48, hingeY = 200, hingeR = 74;   // the leg plates, off the hero
 
   const tube = (a, b, r, mat) => {
     const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
@@ -4031,100 +4240,125 @@ export function gs1000Group(w = GS1000.span, d = GS1000.span, h = GS1000.h, { ca
     m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
     g.add(m); return m;
   };
+  const open = (color, m, r) => { const mat = metal(color, m, r); mat.side = THREE.DoubleSide; return mat; };
 
-  // ---- the wind screen: an open bowl, φ240, ported all round. The drawing shows two rows of ovals.
+  // ---- the wind screen: a band, φ240 x 33, one row of ports, open top and bottom
   const wall = new THREE.Mesh(
-    new THREE.CylinderGeometry(bodyR * MM, (bodyR - 6) * MM, bowlH * MM, 40, 1, true),
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(steel), metalness: 0.8, roughness: 0.36,
-                                     side: THREE.DoubleSide }),
-  );
-  wall.position.y = (floorY + bowlH / 2) * MM;
+    new THREE.CylinderGeometry(bodyR * MM, bodyR * MM, bandH * MM, 48, 1, true), open(0xc8ccd0, 0.45, 0.45));
+  wall.position.y = (bandY + bandH / 2) * MM;
   g.add(wall);
   const body = wall;
   // The rolled top rim -- a TORUS, because `cyl` makes a capped cylinder and a capped cylinder here
-  // is a LID: it sealed the bowl over with a solid disc and the burner head vanished behind it. A
-  // rolled edge is a ring, and a ring is the one thing a cylinder cannot be.
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(bodyR * MM, 3.5 * MM, 8, 48), bright);
-  rim.rotation.x = Math.PI / 2; rim.position.y = (rimY - 3.5) * MM;
+  // is a LID: it sealed the bowl over with a solid disc and the burner head vanished behind it.
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(bodyR * MM, 2.5 * MM, 6, 48), bright);
+  rim.rotation.x = Math.PI / 2; rim.position.y = (rimY - 2.5) * MM;
   g.add(rim);
-  cyl(g, bodyR - 6, bodyR - 6, 4, 40, metal(dark, 0.5, 0.5), 0, floorY + 2, 0);   // the bowl floor
-  // The ports. A punched dark disc only READS as a hole while it stays flush and small: at r=7,
-  // 8 long and 16-per-row these stood 4mm proud and covered half the band, so the wind screen came
-  // out a ring of black studs with slivers of steel between -- the wall looked unlit, and it was
-  // just buried. Small, barely proud, and with gaps is what makes a hole a hole.
-  // Orientation, the part that is easy to get backwards: a cylinder's axis is local +y, so after
-  // rotation.z = PI/2 it is local X that stands up in the world -- scale THAT to make the oval tall.
-  // Scaling local z (the intuitive guess) lays it on its side, which is what the drawing does not show.
-  for (let row = 0; row < 2; row++) {
-    const hy = floorY + 26 + row * 32;
-    for (let i = 0; i < 14; i++) {
-      const a = (i / 14) * Math.PI * 2 + (row ? Math.PI / 14 : 0);
-      const o = new THREE.Mesh(new THREE.CylinderGeometry(5 * MM, 5 * MM, 5 * MM, 10), punch);
-      o.scale.set(1.8, 1, 1);                       // a TALL oval port -- local x is the vertical one
-      o.rotation.z = Math.PI / 2; o.rotation.y = -a;
-      o.position.set(Math.cos(a) * bodyR * MM, hy * MM, Math.sin(a) * bodyR * MM);
-      g.add(o);
-    }
-  }
-
-  // ---- the burner head: a ported disc on a brass centre, down on the bowl floor
-  cyl(g, 74, 74, 12, 32, metal(0x4c5259, 0.5, 0.55), 0, floorY + 10, 0);
-  cyl(g, 30, 30, 8, 24, metal(brass, 0.75, 0.4), 0, floorY + 17, 0);
+  // The ports: 18 round holes at mid-band. A punched dark disc only READS as a hole while it stays
+  // flush and small. A cylinder's axis is local +y; rotation.z = PI/2 lays it radial.
   for (let i = 0; i < 18; i++) {
-    const a = (i / 18) * Math.PI * 2;
-    cyl(g, 3, 3, 6, 8, punch, Math.cos(a) * 55, floorY + 16, Math.sin(a) * 55);
+    const a = ((i + 0.5) / 18) * Math.PI * 2;
+    const o = new THREE.Mesh(new THREE.CylinderGeometry(4.5 * MM, 4.5 * MM, 3 * MM, 10), punch);
+    o.rotation.z = Math.PI / 2; o.rotation.y = -a;
+    o.position.set(Math.cos(a) * bodyR * MM, (bandY + bandH * 0.45) * MM, Math.sin(a) * bodyR * MM);
+    g.add(o);
   }
+  // the shallow dish under the band, and the lower ring round the head
+  const lathe = pts => new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0] * MM, p[1] * MM)), 32);
+  g.add(new THREE.Mesh(lathe([[0, dishY], [64, dishY], [bodyR - 1, bandY]]), open(0xbfc4c9, 0.45, 0.45)));
+  g.add(new THREE.Mesh(lathe([[75, dishY], [75, rimY - 22]]), open(0xc8ccd0, 0.45, 0.45)));
 
-  // ---- 回転式ゴトク: four arms out to φ300, serrated on top. They ROTATE to meet the pot, so they
-  // sit at 45deg to the legs -- which is also the only way they read as separate at this size.
+  // ---- the burner head: a disc with six oval holes over a perforated skirt, its top at the rim
+  cyl(g, 20, 26, rimY - 24 - dishY, 16, shell, 0, (rimY - 24 + dishY) / 2, 0);        // its pedestal
+  cyl(g, 50, 43, 16, 32, metal(0x7d8288, 0.6, 0.5), 0, rimY - 16, 0);                 // the perforated skirt
+  cyl(g, 50, 50, 8, 32, bright, 0, rimY - 4, 0);
+  cyl(g, 10, 10, 1, 16, metal(0x8a8f96, 0.6, 0.5), 0, rimY + 0.3, 0);
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const o = cyl(g, 6, 6, 1, 12, punch, Math.cos(a) * 29, rimY + 0.3, Math.sin(a) * 29);
+    o.scale.set(1.5, 1, 1); o.rotation.y = -a;                                        // an oval, long axis radial
+  }
+  // the brass tube that loops over the head's side
+  bentTube(g, [[20, rimY - 26, 62], [14, rimY + 5, 60], [-14, rimY + 5, 60], [-20, rimY - 26, 62]],
+    2, metal(brass, 0.8, 0.35), { rad: 8 });
+
+  // ---- 回転式ゴトク: four serrated plates pivoting on the rim, rising outward to the published
+  // height. They turn to meet the pot, so they sit at 45deg to the legs. One outline, four plates:
+  // drawn in its own (radius, height above the rim) plane, the slot cut through it.
+  const gs = new THREE.Shape(), r0 = 104, top = r => 27 + ((h - rimY - 27) * (r - r0)) / (gotokuR - r0);
+  gs.moveTo(r0 * MM, 2 * MM); gs.lineTo(gotokuR * MM, 30 * MM); gs.lineTo(gotokuR * MM, top(gotokuR) * MM);
+  for (let r = gotokuR - 5; r > r0 + 8; r -= 7) {                                     // the teeth
+    gs.lineTo(r * MM, (top(r) - 4) * MM); gs.lineTo((r - 3) * MM, top(r - 3) * MM);
+  }
+  gs.lineTo(r0 * MM, top(r0) * MM); gs.closePath();
+  const slot = new THREE.Path();
+  slot.moveTo(116 * MM, 16 * MM); slot.lineTo(140 * MM, 29 * MM); slot.lineTo(140 * MM, 34 * MM);
+  slot.lineTo(116 * MM, 23 * MM); slot.closePath();
+  gs.holes.push(slot);
+  const gotokuGeo = new THREE.ExtrudeGeometry(gs, { depth: 3 * MM, bevelEnabled: false });
+  gotokuGeo.translate(0, 0, -1.5 * MM);
   for (let i = 0; i < 4; i++) {
     const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-    box(g, gotokuR - 40, 5, 16, 1, bright,
-        Math.cos(a) * (gotokuR + 40) / 2, armTop - 2.5, Math.sin(a) * (gotokuR + 40) / 2, -a);
-    for (let t = 0; t < 4; t++) {                   // the teeth a pot settles down between
-      const rr = 70 + t * 22;
-      box(g, 5, 7, 14, 0.5, bright, Math.cos(a) * rr, teethTop - 3.5, Math.sin(a) * rr, -a);
-    }
+    const m = new THREE.Mesh(gotokuGeo, bright);
+    m.rotation.y = -a; m.position.y = rimY * MM;
+    g.add(m);
+    const px = Math.cos(a) * (r0 + 6), pz = Math.sin(a) * (r0 + 6), tx = -Math.sin(a) * 3, tz = Math.cos(a) * 3;
+    tube([px - tx, rimY + 12, pz - tz], [px + tx, rimY + 12, pz + tz], 4, shell);       // its pivot
   }
 
-  // ---- under-body: the cone down off the bowl, then the hub the legs and the spindle hang from
-  cyl(g, bodyR - 8, hubR + 8, floorY - hubY, 28, shell, 0, (floorY + hubY) / 2, 0);
-  cyl(g, hubR, hubR, 22, 20, metal(dark, 0.6, 0.45), 0, hubY - 4, 0);
-  cyl(g, 7, 7, 34, 10, bright, 0, hubY - 24, 0);                        // スピンドル, down the middle
+  // ---- under the dish: the stem, the bell, and the valve block the leg plates pinch in to
+  cyl(g, 10, 10, dishY - waistY - 22, 14, bright, 0, (dishY + waistY + 22) / 2, 0);
+  cyl(g, 12, 30, 14, 20, shell, 0, waistY + 19, 0);
+  box(g, 44, 24, 44, 0, metal(0xb4b9be, 0.5, 0.45), 0, waistY, 0, Math.PI / 4);
 
-  // ---- the four legs. 脚A x2 and 脚B x2 -- named apart because they fold opposite ways, but the
-  // same tube. An upper leg off the hub, a lower one telescoping inside it with the row of holes the
-  // 脚長さ調節ボタン drops into, and a rubber foot on the ground.
+  // ---- the four legs. Each hangs from a pressed plate that runs in from under the band to a waist
+  // at the valve block and spreads again to the leg's hinge -- an X when you look at the stove,
+  // and the cage the canister hangs in. A plate here is two flat straps in the leg's radial plane.
+  const strap = (a, ra, ya, wa, rb, yb, wb) => {
+    const L = Math.hypot(rb - ra, yb - ya), s = new THREE.Shape();
+    s.moveTo((-wa / 2) * MM, 0); s.lineTo((wa / 2) * MM, 0);
+    s.lineTo((wb / 2) * MM, -L * MM); s.lineTo((-wb / 2) * MM, -L * MM); s.closePath();
+    const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: 2.5 * MM, bevelEnabled: false }), plateMat);
+    const rad = new THREE.Vector3(Math.cos(a), 0, Math.sin(a)), tan = new THREE.Vector3(-Math.sin(a), 0, Math.cos(a));
+    const up = rad.clone().multiplyScalar((ra - rb) / L).setY((ya - yb) / L);
+    m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(tan, up, new THREE.Vector3().crossVectors(tan, up)));
+    m.position.set(rad.x * ra * MM, ya * MM, rad.z * ra * MM);
+    g.add(m);
+  };
+  const plateMat = metal(0xcdd1d5, 0.25, 0.55);    // their outer faces look DOWN: barely metal, or they go black
+  const rubber = new THREE.MeshStandardMaterial({ color: 0x2a2c2f, metalness: 0, roughness: 0.8 });
   for (let i = 0; i < 4; i++) {
     const a = (i / 4) * Math.PI * 2;
     const cs = Math.cos(a), sn = Math.sin(a);
-    const top = [cs * hubR, hubY, sn * hubR];
-    const knee = [cs * (hubR + (toeR - hubR) * 0.46), hubY * 0.54, sn * (hubR + (toeR - hubR) * 0.46)];
-    const toe = [cs * toeR, 28, sn * toeR];
-    tube(top, knee, 8, shell);                       // upper: the fat section, off the hub bracket
-    tube(knee, toe, 6.5, bright);                    // lower: slides inside it
-    box(g, 26, 20, 12, 2, shell, cs * (hubR + 16), hubY + 6, sn * (hubR + 16), -a);   // hub bracket
-    for (let k = 0; k < 6; k++) {                    // 脚長さ調節 holes, up the lower leg
-      const t = 0.16 + k * 0.13;
-      cyl(g, 2.2, 2.2, 16, 8, punch,
-          knee[0] + (toe[0] - knee[0]) * t, knee[1] + (toe[1] - knee[1]) * t,
-          knee[2] + (toe[2] - knee[2]) * t, Math.PI / 2);
+    strap(a, 106, bandY - 2, 46, waistR, waistY, 18);
+    strap(a, waistR, waistY, 18, hingeR, hingeY - 22, 40);
+    // 脚: an upper tube off the hinge, a lower one telescoping inside it with the row of holes the
+    // 脚長さ調節ボタン drops into, and a rubber foot on the ground.
+    const hip = [cs * hingeR, hingeY, sn * hingeR], toe = [cs * toeR, 28, sn * toeR];
+    const knee = hip.map((v, k) => v + (toe[k] - v) * 0.46);
+    tube(hip, knee, 9, shell);
+    tube(knee, toe, 7, bright);
+    for (let k = 0; k < 5; k++) {                    // the holes, punched through the tube sideways
+      const p = knee.map((v, j) => v + (toe[j] - v) * (0.18 + k * 0.14));
+      tube([p[0] + sn * 7, p[1], p[2] - cs * 7], [p[0] - sn * 7, p[1], p[2] + cs * 7], 2.2, punch);
     }
-    cyl(g, 11, footR, 30, 14, metal(foot, 0.25, 0.75), cs * toeR, 15, sn * toeR);   // the rubber foot,
-                                                          // sat ON the ground: centre 15 = half of 30
+    cyl(g, 11, footR, 30, 14, rubber, cs * toeR, 15, sn * toeR);     // sat ON the ground: centre 15 = half of 30
   }
 
-  // ---- 器具栓 (火力調整ツマミ) -- the flame knob, out on its stalk where a hand reaches it
-  tube([0, hubY - 10, 0], [0, hubY - 10, hubR + 54], 5, bright);
-  cyl(g, 13, 13, 20, 16, metal(0x1c1f24, 0.4, 0.6), 0, hubY - 10, hubR + 66, Math.PI / 2);
+  // ---- 器具栓: the flame lever, a wire triangle on a stalk off the valve block, out between two legs
+  const wire = metal(0xd6dade, 0.6, 0.3), q = Math.SQRT1_2;
+  bentTube(g, [[q * 20, waistY + 14, q * 20], [q * 92, waistY + 20, q * 92], [q * 124 + q * 16, waistY + 20, q * 124 - q * 16],
+               [q * 124 - q * 16, waistY + 20, q * 124 + q * 16], [q * 92, waistY + 20, q * 92]], 1.6, wire, { rad: 3 });
 
-  // ---- 専用容器, INVERTED: not part of the stove, so only when asked for. Proportioned off the
-  // drawing against the known φ240 body -- the one thing in here with no number behind it.
+  // ---- 専用容器, INVERTED: not part of the stove, so only when asked for. The 500 can, dia 108:
+  // its base up under the valve block, its shoulder and brass valve down, the valve's own wire
+  // lever beside it -- 150 from base to valve.
   if (canister) {
-    const canR = 54, canH = 112, canTop = hubY - 30;
-    cyl(g, canR, canR, canH, 24, metal(0xc8ccd0, 0.7, 0.4), 0, canTop - canH / 2, 0);
-    cyl(g, canR - 8, canR, 14, 24, metal(0xc8ccd0, 0.7, 0.4), 0, canTop - canH - 6, 0);  // the domed BASE, now down
-    cyl(g, 18, 18, 12, 16, metal(dark, 0.5, 0.5), 0, canTop + 5, 0);                     // the valve, now up
+    const canR = 54, canTop = waistY - 22, canMat = metal(0xc8ccd0, 0.5, 0.45);
+    cyl(g, canR, canR, 116, 24, canMat, 0, canTop - 58, 0);
+    cyl(g, canR, 22, 22, 24, canMat, 0, canTop - 127, 0);                        // the shoulder, now down
+    cyl(g, 8, 8, 12, 12, metal(brass, 0.8, 0.35), 0, canTop - 144, 0);           // the brass valve
+    bentTube(g, [[6, canTop - 146, 0], [30, canTop - 150, 0], [62, canTop - 144, 14], [62, canTop - 144, -14],
+                 [30, canTop - 150, 0]], 1.4, wire, { rad: 2 });
   }
 
   return { group: g, body };

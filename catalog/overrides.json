@@ -1964,6 +1964,11 @@
  },
  "GS-450R": {
   "span": 2,
+  "plate_mm": {
+   "w": 250.0,
+   "d": 360.0
+  },
+  "plate_mm_reason": "The top plate, which is what drops into a frame. The published 270 x 410 x 110 (kept as assembled_mm) is the stove STANDING on its two plug-in wire leg frames. Measured: 01_GS-450R_detail_03 lays the parts flat and the plate is 190 x 272 px = 1 : 1.43 (360 / 250 = 1.44); 04_GS-450R_alt_03 is a side elevation in which the leg span, 467 px, is the 410. Drawn 410 deep the plate lay 25 mm onto each rail. burnerGroup builds the plate from this; the part bench adds the legs and stands it at assembled_mm.",
   "reason": "Along-rail 270mm against a 250mm unit. The extra 20mm is the rim resting on the rails, the way any drop-in cooktop overlaps its cutout -- the burner body drops through one unit. Snow Peak's own copy says only 'compatible with the Iron Grill Table System' and never states a count.",
   "confidence": "high"
  },
