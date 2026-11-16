@@ -689,12 +689,15 @@ function drawFrame(g, n) {
       spots = spots.filter(([lx]) => Math.sign(lx) !== jointX);
     }
     const FOOT = 33, WAIST = 16, CAP = 12;   // the black stack, off CK-113's hero at 1.12mm/px
+    // The tube stops 2mm under the rail's top face. Run to the very top it lay coplanar with the
+    // rail and flickered as a speckled disc; the socket's dark stud hole (frameGroup) sits over it.
+    const LEG_TOP = 2;
     for (const [lx, lz] of spots) {
       const shaft = stock(
-        new THREE.CylinderGeometry(LEG_R * MM, LEG_R * MM, (h - FOOT) * MM, 16),
+        new THREE.CylinderGeometry(LEG_R * MM, LEG_R * MM, (h - FOOT - LEG_TOP) * MM, 16),
         new THREE.Color(legColorOf(n)), 0.85, 0.3,
       );
-      shaft.position.set(lx, (h + FOOT) / 2, lz).multiplyScalar(MM);
+      shaft.position.set(lx, (h - LEG_TOP + FOOT) / 2, lz).multiplyScalar(MM);
       g.add(shaft);
       // the adjuster's waist, a shade narrower than the tube (21.5px against the tube's 23)
       const waist = stock(
@@ -1004,7 +1007,7 @@ function drawTable(g, n) {
     const f = footprint(n), tp = topOf(n);
     const built = n.sku === "CK-180"
       ? slimIgtGroup(f.w, f.d, tp, { tex: woodGrain("teak", 1, 2, TEAK_GRAIN) })   // the same grain instance its top wears
-      : entryIgtGroup(f.w, f.d, tp);
+      : entryIgtGroup(f.w, f.d, tp, { black: n.sku === "CK-080R-EC" });
     built.group.position.y = tp * MM;
     built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(built.group);
@@ -1030,7 +1033,11 @@ function drawTable(g, n) {
   const isSel = state.sel === n.id;
   // The board's REAL thickness. A hook-on board was being drawn 30mm thick because that is
   // what the frame's rail is; the spec says 25mm, and the spec is right there.
-  const thick = p.assembled_mm?.h ?? 25;
+  // A layout table that is NOT a board publishes its HEIGHT in h -- the Takibi My Table's is
+  // 400. Taken as a thickness, that drew the table as a solid block and left its legs no
+  // length. Until such a table has a builder of its own it gets a 30mm top, as on the bench.
+  const isBoard = n.kind === "ext" || !!TEXTURES[p.sku]?.outline_mm;
+  const thick = isBoard ? (p.assembled_mm?.h ?? 25) : Math.min(p.assembled_mm?.h ?? 25, 30);
 
   // The shape comes from flatBoardGeo -- trace the corners and the notched bamboo, build the
   // rectangles (and punch their finger holes) from dimensions. A layout table that isn't a

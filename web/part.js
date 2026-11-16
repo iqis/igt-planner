@@ -206,7 +206,7 @@ function benchGeo(p, box) {
     const wrap = new THREE.Group();
     wrap.add((sku === "CK-180"
       ? slimIgtGroup(w, d, h, { tex: woodGrain("teak", 1, 2, TEAK_GRAIN) })   // the same grain instance its top wears
-      : entryIgtGroup(w, d, h)).group);
+      : entryIgtGroup(w, d, h, { black: sku === "CK-080R-EC" })).group);
     const teak = si.top === "teak";
     wrap.add(igtWoodTop({ units: si.units, color: teak ? 0xffffff : 0xd8bd86,
       pieces: teak ? null : [1, 2, 1, 2],   // the Entry's real piece split -- see igtWoodTop
@@ -263,7 +263,16 @@ function benchGeo(p, box) {
     return (sku === "S-029HA" ? grillNetGroup(w, d, h, color) : gridPlateGroup(w, d, h, color)).group;
 
   // Slot modules, storage boxes, gear bags, burners, mesh trays -- moduleGroup knows them.
-  const mod = moduleGroup(p, w, d, h, color, burnerTop(sku));
+  // A slot module goes in ALONG-RAIL FIRST, the way the planner hands it over (core.railW /
+  // depthOf). The catalogue's own w/d are not consistent -- the half-unit mesh trays publish the
+  // 356 first -- and handed over raw they were built turned a quarter turn: end panels along the
+  // long sides, a different object from the one the planner draws.
+  let mw = w, md = d;
+  if (role === "slot_module" && p.span) {
+    const run = p.along_rail_mm || p.span * 125;
+    if (Math.abs(d - run) < Math.abs(w - run)) { mw = d; md = w; }
+  }
+  const mod = moduleGroup(p, mw, md, h, color, burnerTop(sku));
   if (mod) return mod.group;
 
   // What is left is a genuinely thin, flat thing (a sliding bamboo extension, a wood insert,

@@ -5061,8 +5061,8 @@
    "collections": [],
    "region_exclusive": "jp",
    "assembled_mm": {
-    "w": 9200,
-    "d": 11600,
+    "w": 5650,
+    "d": 6400,
     "h": 2770
    },
    "packed_mm": null,
@@ -5079,39 +5079,43 @@
     "us": null,
     "jp": null
    },
-   "curated_reason": "Snow Peak HD Tarp Shield Hexa Evo Pro (TP-260): shelter FOOTPRINT for scale reference — fabric shade 1160x920cm (large). US TP-250R. Guys extend beyond ridge ends. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "curated_reason": "Snow Peak HD Tarp Shield Hexa Evo Pro (TP-260): shelter FOOTPRINT for scale reference — fabric shade about 640x565cm (Snow Peak US lists the TP-260IV as L 20.9' x W 18.5'; its 4.5kg agrees with that area against the 3.6kg, 570x500 Hexa L). The 1160x920cm some listings give is the GUYED setup; until 2026-11 it was drawn here as the fabric, 1.8x too large. US TP-250R. A hexagon in the Hexa L's proportions; the Evo's own cut is not traced. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
    "shelter_type": "tarp",
    "geometry": {
     "kind": "polygon",
     "vertices": [
      [
       0,
-      5800
+      3200
      ],
      [
-      4600,
-      2600
+      2825,
+      1435
      ],
      [
-      4600,
-      -2600
+      2825,
+      -1435
      ],
      [
       0,
-      -5800
+      -3200
      ],
      [
-      -4600,
-      -2600
+      -2825,
+      -1435
      ],
      [
-      -4600,
-      2600
+      -2825,
+      1435
      ]
     ]
    },
    "capacity": 6,
    "peak_h_mm": 2770,
+   "guyed_mm": {
+    "w": 9200,
+    "d": 11600
+   },
    "weight_source": "TP-250R, the HD Hexa Evo Pro. tarp alone (JP 4.5kg; the ivory TP-260IV is 5.3kg)"
   },
   {

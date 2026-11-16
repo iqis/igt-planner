@@ -1,4 +1,26 @@
 # Status — 2026-08-02, end of the launch/modeling phase
+> **2026-11-15: model audit, batch 1 of about 3 fixed; on dev, not yet released.** The audit of
+> 2026-11-11 set every part beside Snow Peak's photographs (116 parts on the bench, 37 layouts, 985
+> photos): 92 graded, 8 faithful / 40 minor / 43 wrong. Findings with file:line are in
+> `data/runs/20261111_model-audit/findings.md` (local, gitignored) with the render scripts that
+> produced them (`render_bench.mjs`, `render_scenes.mjs`, `make_sheets.py`); the photos are buffered
+> in `data/buffer/gallery/<sku>/`. **Batch 1 (the small fixes with the widest reach) is in:** rail
+> seat on the inner edge (`materials.js railProfile`); frame end pieces as solid blocks, frame at its
+> published length, rivets in the rail (`frameGroup`); wood no longer tinted twice (`grainMaterial`,
+> `igtWoodTop`, `extIgtGroup`, `bambooShelfGroup`); `roundedBox` and `slab` no longer grow by their
+> bevel; wires as straight runs with fillets (`bentTube`) in the mesh trays, half-unit tray rebuilt;
+> pick boxes no longer write depth (CK-220); a non-board layout table no longer takes its height as
+> its thickness (LV-039); TP-260 at its fabric size; self-contained tables' feet on the ground;
+> CK-080R-EC black; the bench hands slot modules over along-rail first.
+> **Still open, batch 2 (shapes to rebuild):** GS-450R (open bowl, 250 x 360 plate), GS-355 (flush,
+> tray below), GS-1000, GP-040, CK-090 legs on the stand, CK-080R frame section, CK-180 length and
+> teak, collapsible frames' silver end bars, Takibi bowl/legs/colour, Jikaro legs, corner outlines
+> re-traced, CK-153/154 brackets under the board, board thickness, LV-039's own builder, the chairs.
+> **Owner to rule:** joint legs default (the CK-175 photo shows two, not four), board thickness
+> 14/9, bags open or closed in a frame, the Double Burner's windscreen, catalogue numbers the photos
+> dispute. `roundedBox` still leaves any radius of 10 mm or less sharp (its guards are in metres);
+> left alone on purpose, since rounding them changes the look of the whole catalogue.
+
 > **2026-08-02 post-wrap:** the parked queue's #1 shipped — **scale figures** (adult ~7.5-head
 > / toddler ~4.5-head canons, standing/seated, height chips off published medians, BOM-exempt,
 > pose in INTENT; smoke 18 checks). Also fixed: palette search had silently dropped every

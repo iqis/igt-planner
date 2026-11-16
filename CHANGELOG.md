@@ -6,6 +6,25 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+- **The frame is drawn as it is.** The seat a module's rim rests in is on the inside of each rail; it
+  had been cut into the outside, which left a step down the outer edge of every table. The black end
+  pieces are solid blocks the height of the rail, the frame is its published length (it was 16 mm
+  over), and the rivets and leg socket sit in the rail, where the leg stands.
+- **Bamboo is bamboo-coloured.** Every bamboo top on this site was orange-brown: the wood's colour was
+  being applied twice. Boards, inserts, the slide-in extensions and the Entry and Extension IGT tops
+  are pale honey now.
+- **Mesh trays stay in their own slot.** The one-unit trays have straight rims at the published
+  245 x 356 (they bulged, and overlapped the tray beside them). The half-unit trays no longer hang
+  loose wires under their neighbours, and are the real basket: 110 x 288 under black end panels.
+- **Takibi My Table is a table**, not a solid block.
+- **Hanging Rack 2 Frame shows both its sides.** The near one was not being drawn.
+- **HD Tarp Hexa Evo Pro is its real size**, about 6.4 x 5.65 m. It was drawn at 11.6 x 9.2 m, the
+  space its ropes take up.
+- **Sizes that ran over**: gear bags (40 mm long), the cooler (24 mm wide and tall) and the bamboo
+  boards (5 mm each way) are now the size Snow Peak publishes.
+- **Entry IGT, Extension IGT and IGT Slim stand on the ground** (their feet stopped 10-20 mm above
+  it), and the black Entry IGT is black.
+
 ## [1.4.1] — 2026-10-15
 
 - **Opting out of the counts.** Open the site once with `?notrack=1` and this browser sends neither the

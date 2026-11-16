@@ -62,6 +62,9 @@ export function materialFor(p, colors, selected) {
  *  none of them has a mathematically sharp arris, and hard cubes are the single biggest
  *  reason a render reads as a diagram instead of an object. */
 export function roundedBox(w, h, d, radius = 2) {
+  // Sizes arrive in METRES, so these guards mean "a radius of 10mm or less stays a plain box".
+  // That is how the function has always behaved (most callers pass 1-3mm and get sharp, exact
+  // boxes); it is left alone here, because rounding them all is a look for the whole catalogue.
   const r = Math.min(radius, w / 2 - 0.01, h / 2 - 0.01, d / 2 - 0.01);
   if (r <= 0.01) return new THREE.BoxGeometry(w, h, d);
 
@@ -77,9 +80,13 @@ export function roundedBox(w, h, d, radius = 2) {
   shape.lineTo(-x, -y + r);
   shape.quadraticCurveTo(-x, -y, -x + r, -y);
 
+  // three's bevel grows OUTWARD from the shape: bevelSize r made every rounded box 2r too wide
+  // and 2r too tall (a 360 gear bag built 400, the cooler 24 over its published width).
+  // bevelOffset -r starts the bevel r inside, so the walls land on the shape and the box is
+  // exactly w x h x d.
   const g = new THREE.ExtrudeGeometry(shape, {
     depth: d - r * 2, bevelEnabled: true,
-    bevelThickness: r, bevelSize: r, bevelSegments: 2, curveSegments: 4,
+    bevelThickness: r, bevelSize: r, bevelOffset: -r, bevelSegments: 2, curveSegments: 4,
   });
   g.translate(0, 0, -(d - r * 2) / 2);
   return g;
@@ -218,8 +225,13 @@ export function railProfile(length, thickness, section, outward = 1) {
   // swap -- otherwise the rail hangs off one end of the frame by its whole length,
   // which is exactly what it did.
   g.translate(0, 0, -length / 2);
-  g.rotateY(Math.PI / 2);                              // extrusion axis z -> x, the frame's run
-  if (outward > 0) g.rotateY(Math.PI);                 // outer wall faces +z
+  // Extrusion axis z -> x, the frame's run. This turn alone sends the shape's +x -- its INNER
+  // edge, where the seat is cut -- to world -z, which is inward for the rail on the +z side.
+  // Only the -z rail needs the half turn. The test read `outward > 0` until 2026-11, which
+  // put the seat on the OUTER edge of both rails: a step down the outside of every frame, and
+  // module rims lying over the full-height inner edge.
+  g.rotateY(Math.PI / 2);
+  if (outward < 0) g.rotateY(Math.PI);
   return g;
 }
 
@@ -425,12 +437,16 @@ export function boardFromOutline(points, thickness, mm = 0.001) {
  *
  *  So: put the TOP FACE at y = 0. A tabletop is defined by its working surface, and now
  *  the caller sets `position.y = <the height of that surface>` and cannot get it wrong.
+ *
+ *  3. The bevel also grows SIDEWAYS, outside the shape: every board came out 2 x bt too long
+ *     and too wide (an 846 board built 851). bevelOffset -bt starts it bt inside, so the
+ *     edge of the board is the outline it was given.
  */
 function slab(shape, thickness, bevel = 0.14) {
   const depth = thickness / (1 + 2 * bevel);
   const bt = depth * bevel;
   const g = new THREE.ExtrudeGeometry(shape, {
-    depth, bevelEnabled: true, bevelThickness: bt, bevelSize: bt,
+    depth, bevelEnabled: true, bevelThickness: bt, bevelSize: bt, bevelOffset: -bt,
     bevelSegments: 2, curveSegments: 6,
   });
   g.rotateX(-Math.PI / 2);        // shape lies in the ground plane, extruded up
@@ -451,9 +467,15 @@ export function grainMaterial(p, colors, grain, wMM, dMM, selected, tileMM = 320
   grain.repeat.set(Math.max(1, wMM / tileMM), Math.max(1, dMM / tileMM));
   if (grain.image) grain.needsUpdate = true;   // see boardMaterial: no image yet, no warning
 
+  // A map is MULTIPLIED by the colour. A crop of bamboo already is bamboo-coloured, so tinting
+  // it with the bamboo swatch squared the colour: pale honey came out orange-brown (#c29570 x
+  // #cca880 = about #9b6034). The plan photo laid over the top hid it here; the public build
+  // has no photo and showed every board orange. Wood takes no tint. A stainless lid's crop is
+  // near white -- only the brushing -- and still takes its tone from the swatch.
+  const wood = /竹|木/.test(p.material || "");
   return surface(r, {
     map: grain,
-    color: new THREE.Color(colors[p.sku]?.color_hex || 0xb98b53),
+    color: new THREE.Color(wood ? 0xffffff : (colors[p.sku]?.color_hex || 0xb98b53)),
     metalness: r.metalness,
     roughness: r.roughness,
     emissive: new THREE.Color(selected ? 0x0a1a3a : 0x000000),

@@ -136,7 +136,7 @@ export function gp040Group(w = 362, d = 377, h = 33) {
   // A faint ghost box, full envelope: it carries picking (dropModule tags only `body`) and
   // nothing else. The rods are the read.
   const ghost = box(g, w, h, d, 2,
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(0xd3d7db), transparent: true, opacity: 0.05 }),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(0xd3d7db), transparent: true, opacity: 0.05, depthWrite: false }),
     0, -h / 2, 0);
 
   // A bent rod swept along its centreline -- meshTrayGroup's idiom, at joint-frame stock.
@@ -191,6 +191,45 @@ function cyl(g, rTop, rBot, h, seg, mat, x, y, z, rx = 0) {
   const m = new THREE.Mesh(new THREE.CylinderGeometry(rTop * MM, rBot * MM, h * MM, seg), mat);
   m.position.set(x * MM, y * MM, z * MM);
   if (rx) m.rotation.x = rx;
+  g.add(m);
+  return m;
+}
+
+/** A polyline handed to TubeGeometry knot by knot. u IS the knot parameter (not arc length), so
+ *  a tube of knots-1 segments puts one ring on every knot: none wasted on the straights, none
+ *  missing from a bend. */
+class KnotCurve extends THREE.Curve {
+  constructor(knots, closed) { super(); this.knots = knots; this.closed = closed; }
+  getPoint(t, target = new THREE.Vector3()) {
+    const k = this.knots, n = k.length, segs = this.closed ? n : n - 1;
+    const u = Math.min(Math.max(t, 0), 1) * segs, i = Math.min(Math.floor(u), segs - 1);
+    return target.copy(k[i]).lerp(k[(i + 1) % n], u - i);
+  }
+  getPointAt(u, target) { return this.getPoint(u, target); }
+  getTangentAt(u, target) { return this.getTangent(u, target); }
+}
+
+/** A bent wire through `pts` (mm): STRAIGHT runs, each corner turned through a fillet of radius
+ *  `rad` (one number, or one per point; 0 = a sharp corner; the ends of an open wire never
+ *  turn). A Catmull-Rom spline through the same corners -- what the wire parts used -- bows
+ *  out along every straight run: a 245 x 356 basket rim came out 275 x 380 and lay over its
+ *  neighbour. A real wire is straight between its bends. */
+function bentTube(g, pts, r, mat, { rad = 0, closed = false, radial = 6 } = {}) {
+  const P = pts.map(p => new THREE.Vector3(p[0], p[1], p[2]).multiplyScalar(MM));
+  const n = P.length, knots = [];
+  for (let i = 0; i < n; i++) {
+    const v = P[i];
+    const rho = (closed || (i > 0 && i < n - 1)) ? (Array.isArray(rad) ? rad[i] || 0 : rad) * MM : 0;
+    const din = P[(i - 1 + n) % n].clone().sub(v), dout = P[(i + 1) % n].clone().sub(v);
+    // how far back along each run a true arc of that radius starts; never past half a run
+    const cut = rho ? Math.min(rho / Math.tan(din.angleTo(dout) / 2), din.length() / 2, dout.length() / 2) : 0;
+    if (!(cut > 1e-5)) { knots.push(v); continue; }
+    const turn = new THREE.QuadraticBezierCurve3(
+      v.clone().addScaledVector(din.normalize(), cut), v, v.clone().addScaledVector(dout.normalize(), cut));
+    for (let k = 0; k <= 4; k++) knots.push(turn.getPoint(k / 4));
+  }
+  const m = new THREE.Mesh(new THREE.TubeGeometry(new KnotCurve(knots, closed),
+    closed ? knots.length : knots.length - 1, r * MM, radial, closed), mat);
   g.add(m);
   return m;
 }
@@ -370,54 +409,56 @@ export function meshTrayGroup(w, d, h, color, { panels = false } = {}) {
   const g = new THREE.Group();
   const steel = metal(color, 0.9, 0.25);            // polished, not the satin the boxes wear
   const gauge = panels ? 2.5 : 4;                   // wire, measured off the manuals' line art
-  const seat = 20, side = 9;                        // rim overhang: across the rails / along it
-  const lift = 6;                                   // floor above the envelope's bottom
+  // Rim overhang: across the rails / along it. The half unit's basket is 110 x 288 under its
+  // 120 x 356 rim (CK-226's side and end elevations, scaled on the 356) -- 34mm of black panel
+  // stands past each end of it, and those panels are its seat.
+  const seat = panels ? 34 : 20, side = panels ? 5 : 9;
+  const lift = panels ? 9 : 6;                      // floor above the envelope's bottom
   const cw = w - 2 * side, cd = d - 2 * seat;       // the cavity in plan
   const fy = -(h - lift);                           // the floor
-  const bend = Math.min(21, (h - lift - 14) * 0.9); // the hairpin's radius into the floor
+  const bend = Math.min(9, (h - lift) * 0.3);       // the turn into the floor: tight, ~9mm
   const flange = Math.min(10, (h - lift) * 0.3);    // where a wire leaves the wall for the rim
+  const rimR = gauge * 1.15 / 2;                    // the rim is heavier stock than the mat
 
   // A faint ghost box, full envelope: it carries picking (dropModule tags only `body`) and nothing
   // else. The wires are the read.
   const ghost = box(g, w, h, d, 2,
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06, depthWrite: false }),
     0, -h / 2, 0);
 
-  // A bent wire, swept along its centreline. Straight sticks butted at 90 degrees read as a diagram;
-  // every wire in these photographs turns through a generous radius.
-  const wire = (pts, r = gauge / 2, closed = false) =>
-    g.add(new THREE.Mesh(new THREE.TubeGeometry(
-      new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0] * MM, p[1] * MM, p[2] * MM)), closed),
-      closed ? 96 : pts.length * 6, r * MM, 6, closed), steel));
+  // A bent wire: straight runs, a small fillet at each bend (bentTube). These were Catmull-Rom
+  // splines through the corner points, and a spline bows out between its points -- the 1-unit
+  // rim swelled to 275 x 380 and overlapped the tray beside it by 26mm.
+  const wire = (pts, r = gauge / 2, rad = 0, closed = false) => bentTube(g, pts, r, steel, { rad, closed });
 
-  // A rounded-rectangle loop -- every corner here is a generous radius, not a mitre, and the top
-  // view shows two concentric ones: the rim and the body's own top frame.
-  const loop = (hw, hd, y, r, rad) => wire([
-    [hw, y, -hd + r], [hw, y, hd - r], [hw - r, y, hd], [-hw + r, y, hd],
-    [-hw, y, hd - r], [-hw, y, -hd + r], [-hw + r, y, -hd], [hw - r, y, -hd]], rad, true);
+  // A rounded-rectangle loop whose OUTSIDE is 2hw x 2hd: the centreline runs a wire radius in.
+  const loop = (hw, hd, y, corner, r) => wire([[hw - r, y, -hd + r], [hw - r, y, hd - r],
+    [-hw + r, y, hd - r], [-hw + r, y, -hd + r]], r, corner, true);
 
   // One hairpin, rim to rim. `spans` is the axis its two arms straddle, `t` its station on the
   // other. The arms leave the wall at -flange and finish OUT on the rim: that outward kick is what
   // holds the rim off the basket, and it is the row of little peaks along every near edge.
   const hairpin = (spans, halfA, rimA, t) => {
     const P = (a, y) => (spans === "z" ? [t, y, a] : [a, y, t]);
-    wire([P(-rimA, 0), P(-halfA, -flange), P(-halfA, fy + bend), P(-halfA + bend, fy),
-          P(halfA - bend, fy), P(halfA, fy + bend), P(halfA, -flange), P(rimA, 0)]);
+    wire([P(-rimA, 0), P(-halfA, -flange), P(-halfA, fy), P(halfA, fy), P(halfA, -flange), P(rimA, 0)],
+      gauge / 2, [0, 3, bend, bend, 3, 0]);
   };
   // A plain wall wire: over the rim, down, and stopped at the floor.
   const post = (spans, halfA, rimA, t, s) => {
     const P = (a, y) => (spans === "z" ? [t, y, a] : [a, y, t]);
-    wire([P(s * rimA, 0), P(s * halfA, -flange), P(s * halfA, fy + bend * 0.5), P(s * (halfA - 2), fy)]);
+    wire([P(s * rimA, 0), P(s * halfA, -flange), P(s * halfA, fy)], gauge / 2, [0, 3, 0]);
   };
 
-  loop(w / 2, d / 2, 0, 22, gauge * 1.15 / 2);      // the rim -- heavier stock than the mat
-  loop(cw / 2, cd / 2, -flange, 16, gauge / 2);     // the body's top frame, inboard of it
+  // The rim, its outside on the published plan; then the body's own top frame, inboard of it.
+  // On the half unit the rim rides inside the end panels' thickness, so the panels cap it.
+  loop(w / 2, d / 2, panels ? -3.5 : 0, 12, rimR);
+  loop(cw / 2, cd / 2, -flange, 8, gauge / 2);
 
   if (!panels) {
     // CK-225 / CK-250. The mat spans the 356 and is spaced along the 245: 16 wires at 13.6mm over
     // 204mm, leaving the ~11mm margin to each long wall that the top view shows.
     const pitch = 13.6, spread = cw - 23, n = Math.round(spread / pitch);
-    for (let i = 0; i <= n; i++) hairpin("z", cd / 2, d / 2, -spread / 2 + (i * spread) / n);
+    for (let i = 0; i <= n; i++) hairpin("z", cd / 2, d / 2 - rimR, -spread / 2 + (i * spread) / n);
 
     // The two long walls: 13 verticals at 26.3mm across the 316 cavity. Measured off the manual's
     // line art as a dead-regular projected pitch, which then puts the 13th wire on 316.6mm -- the
@@ -425,7 +466,7 @@ export function meshTrayGroup(w, d, h, color, { panels = false } = {}) {
     // none and 121mm of wall does not ask for any.
     const nw = Math.round(cd / 26.3);
     for (let i = 0; i <= nw; i++) for (const s of [-1, 1])
-      post("y", cw / 2, w / 2, -cd / 2 + (i * cd) / nw, s);
+      post("x", cw / 2, w / 2 - rimR, -cd / 2 + (i * cd) / nw, s);
 
     // Four transverse ribs UNDER the mat, at the stations measured off the top view (+/-0.171 and
     // +/-0.376 of the depth, dead symmetric). They are what the floor rides on, and their undersides
@@ -433,25 +474,30 @@ export function meshTrayGroup(w, d, h, color, { panels = false } = {}) {
     for (const f of [-0.376, -0.171, 0.171, 0.376])
       wire([[-cw / 2 + 6, fy - gauge, f * d], [cw / 2 - 6, fy - gauge, f * d]]);
   } else {
-    // CK-226 / CK-251. The mat is turned 90 degrees: the U's span the narrow 120 and are spaced
-    // along the 356, ~27 of them -- a finer, denser weave than the 1-unit's.
+    // CK-226 / CK-251. The mat is turned 90 degrees: the U's span the narrow 110 and are spaced
+    // along the 288 -- a finer, denser weave than the 1-unit's.
     const nu = Math.round(cd / 12.2);
-    for (let i = 0; i <= nu; i++) hairpin("x", cw / 2, w / 2, -cd / 2 + (i * cd) / nu);
+    for (let i = 0; i <= nu; i++) hairpin("x", cw / 2, w / 2 - rimR, -cd / 2 + (i * cd) / nu);
     for (const f of [-0.33, 0, 0.33])                 // long floor wires tying the mat together
       wire([[f * cw, fy, -cd / 2 + 4], [f * cw, fy, cd / 2 - 4]]);
 
-    // Horizontal courses up each long wall -- the half unit is narrow and tall and carries them
-    // where the 1-unit carries none. Four on the deep one; the shallow has room for one.
-    const nc = Math.max(1, Math.round((h - lift) / 30));
-    for (let i = 1; i <= nc; i++) for (const s of [-1, 1])
-      wire([[s * cw / 2, fy + ((h - lift) * i) / (nc + 1), -cd / 2], [s * cw / 2, fy + ((h - lift) * i) / (nc + 1), cd / 2]]);
-    for (let i = 0; i <= 4; i++) for (const s of [-1, 1])   // the capped 102mm ends
-      post("y", cd / 2, d / 2, -cw / 2 + (i * cw) / 4, s);
+    // Horizontal courses, each a closed ring round the basket: three on the deep tray at 30, 63
+    // and 97 below the top (CK-226's side elevation), one on the shallow. The end walls carry
+    // nothing else -- the ten "end posts" drawn here before were built on the wrong axis and
+    // stood 158mm either side of the tray, inside the neighbouring slots.
+    const courses = h > 100 ? [30, 63, 97].map(v => v * h / 139) : [25 * h / 48];
+    for (const cy of courses) loop(cw / 2, cd / 2, -cy, 8, gauge / 2);
 
-    // The two polypropylene end panels: THE SEAT. Flat caps over the 120mm ends, logo printed on
-    // them, a bossed hole for the TTA 300mm shaft. Their tops are the tray's top, so they land in
-    // the rails' recess and the tray hangs off them.
-    const pd = 30, pt = 7, pp = metal(0x1c1e22, 0.05, 0.65);
+    // Two wire feet under the floor; their undersides are the -h the catalogue publishes.
+    const footY = -h + gauge / 2;
+    for (const fz of [-0.3, 0.3])
+      wire([[-cw / 2 + 12, fy, fz * cd], [-cw / 2 + 12, footY, fz * cd],
+            [cw / 2 - 12, footY, fz * cd], [cw / 2 - 12, fy, fz * cd]], gauge / 2, [0, 4, 4, 0]);
+
+    // The two polypropylene end panels: THE SEAT. Flat caps over the 120mm ends, wholly outboard
+    // of the basket, logo printed on them, a bossed hole for the TTA 300mm shaft. Their tops are
+    // the tray's top, so they land in the rails' recess and the tray hangs off them.
+    const pd = seat + 1, pt = 7, pp = metal(0x1c1e22, 0.05, 0.65);
     for (const sz of [-1, 1]) {
       const pz = sz * (d / 2 - pd / 2);
       box(g, w, pt, pd, 3, pp, 0, -pt / 2, pz);
@@ -526,7 +572,12 @@ export function gearBagGroup(w, d, h, { color = 0xa8acac } = {}) {
   box(t, L + 2, COLLAR, S + 2, 12, collar, 0, -COLLAR / 2, 0);
   // The moulded base tray: a slight flare with its seam ~13mm up, and the foot the bag
   // stands on -- dropped 1.5 so its underside is not coplanar with the tub's.
-  box(t, L + 3, 13, S + 3, 6, evaDark, 0, -h + 5, 0);
+  // A rounded-rectangle slab in PLAN, corners matching the tub's: as a plain box its square
+  // corners stood out past the tub's rounded ones like a plinth (hidden until 2026-11 only
+  // because roundedBox built the tub 40mm too long).
+  const tray = new THREE.Mesh(flatRect((L + 3) * MM, (S + 3) * MM, 13 * MM, 21 * MM), evaDark);
+  tray.position.y = (-h + 11.5) * MM;
+  t.add(tray);
 
   // The lid: a black slab inset ~11mm all round, its mesh face 2.5mm proud of the rim.
   box(t, L - 22, 5, S - 22, 2.5, lidTop, 0, 0, 0);
@@ -946,7 +997,7 @@ export function lv310Group(w, d, h, color) {
 
   // The ghost pick box, full published envelope: picking for a part that is mostly air.
   const ghost = box(g, w, h, d, 2,
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06, depthWrite: false }),
     0, h / 2 - LV310_TOP, 0);
 
   const strut = (a, b, r, mat) => {
@@ -1043,7 +1094,7 @@ function rivetsInto(g, pts, y, color = ALU_) {
  *  the rails + ends, for the planner to tag for selection; the bench ignores it. */
 export function frameGroup({ w, d, thick, collapsible = false, section, hookHoles = null,
                              holeInset = 16.5, railColor, endColor = BLK_, plateColor = ALU_,
-                             glow = 0x000000 }) {
+                             legInset = 75.5, legSide = 40.5, glow = 0x000000 }) {
   const g = new THREE.Group();
   const pick = [];
   const railWidth = section.rail_width_mm;
@@ -1055,62 +1106,67 @@ export function frameGroup({ w, d, thick, collapsible = false, section, hookHole
     channel: (section.channel_mm[1] - section.channel_mm[0]) * MM,
     lip: (section.lip_mm[1] - section.lip_mm[0]) * MM,
   };
+  // The rails run BETWEEN the end pieces, not under them. The joint photograph (CK-175 a001)
+  // shows each rail butting a solid black block, and CK-149's plan view measures the silver at
+  // 748 of the 846. The block is drawn 48 long -- the unit grid's own end allowance (W = 250n +
+  // 96) -- so the rail is exactly the run of units; the measured 49.4 would tuck 1.4mm of block
+  // under the first module's rim.
+  const blockW = Math.min(endW, 48);
   for (const s of [-1, 1]) {
     // Black rails (the collapsible's) are the same anodised coating as the ends -- matte.
     const anodised = railColor === BLK_;
     const railMat = metalE(railColor, anodised ? 0.3 : 0.8, anodised ? 0.6 : 0.42, glow);
     railMat.vertexColors = true;   // the baked seat-crease shadow railProfile carries -- rails only
-    const r = new THREE.Mesh(railProfile(w * MM, thick * MM, prof, s), railMat);
+    const r = new THREE.Mesh(railProfile((w - 2 * blockW) * MM, thick * MM, prof, s), railMat);
     r.position.set(0, -thick / 2 * MM, s * (d / 2 - railWidth / 2) * MM);
     g.add(r); pick.push(r);
   }
-  // End pieces -- anodised black on the standard frame; the hook holes live in them.
-  // NOT a full-height block: the photos (CK-149, the in-use a002) show a THIN top plate
-  // capping the rail ends -- slightly proud of the rails, overhanging the end a touch,
-  // a short folded skirt down its outer edge, and OPEN underneath: you see straight
-  // through the frame below it. The airy end is the empty frame's identity, and a solid
-  // 30mm block was the single biggest lie in the shell. Matte, like all the anodising.
+  // End pieces -- anodised black on the standard frame; the hook holes live in them. A SOLID
+  // block the full height of the rail, its top flush with the rail top and its outer face the
+  // end of the frame. (From 2026-07 to 2026-11 this was a thin cap with a skirt, overhanging
+  // 8mm each end, read off an in-use photo; the frame built 862 long against a published 846.
+  // CK-175 a001 looks straight at the end of one: a block.) Matte, like all the anodising.
   for (const sx of [-1, 1]) {
-    const xc = sx * ((w - endW) / 2 + 4);              // +4: half of the 8mm overhang past the end
-    const plate = new THREE.Mesh(roundedBox((endW + 8) * MM, 10 * MM, d * MM, 3 * MM),
+    const block = new THREE.Mesh(roundedBox(blockW * MM, thick * MM, d * MM, 3 * MM),
       metalE(endColor, 0.28, 0.62, glow));
-    plate.position.set(xc * MM, -3 * MM, 0);           // top at +2: proud of the rails, like the corner plates
-    g.add(plate); pick.push(plate);
-    // The folded outer edge, dropping past the plate -- the cap's short skirt.
-    const skirt = new THREE.Mesh(roundedBox(5 * MM, 16 * MM, d * MM, 2 * MM),
-      metalE(endColor, 0.28, 0.62, glow));
-    skirt.position.set((sx * (w / 2 + 8) - sx * 2.5) * MM, -14 * MM, 0);
-    g.add(skirt);
-    // Two silver rivets in the top face, near the corners (the photos show them plainly).
-    rivetsInto(g, [[xc, -(d / 2 - 14)], [xc, d / 2 - 14]], 3.5, plateColor);
+    block.position.set(sx * (w - blockW) / 2 * MM, -thick / 2 * MM, 0);
+    g.add(block); pick.push(block);
   }
-  // The hook holes in the end pieces, where an extension's wire hooks drop in. They punch
-  // the PLATE now, not a block -- same centres as ever, the measured ones.
-  const holes = hookHoles || [
-    [-(w / 2 - holeInset), -143.9], [-(w / 2 - holeInset), 143.9],
-    [w / 2 - holeInset, -143.9], [w / 2 - holeInset, 143.9],
-  ];
-  for (const [hx, hz] of holes) {
-    const x = Math.sign(hx) * (w / 2 - holeInset);
-    const hole = new THREE.Mesh(new THREE.CylinderGeometry(6 * MM, 6 * MM, 13 * MM, 10),
+  // The hook holes in the end pieces, where an extension's wire hooks drop in: two per end, at
+  // the measured spacing. Always four -- the detector found only three of CK-149's, and a
+  // frame has no end with one hole. A dark plug, a hair proud of the top face.
+  const zs = (hookHoles || []).map(hh => Math.abs(hh[1]));
+  const holeZ = zs.length ? zs.reduce((a, b) => a + b, 0) / zs.length : 143.9;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const hole = new THREE.Mesh(new THREE.CylinderGeometry(6 * MM, 6 * MM, 12 * MM, 10),
       metalE(0x0e0f12, 0.2, 0.8));
-    hole.position.set(x * MM, -3 * MM, hz * MM);
+    hole.position.set(sx * (w / 2 - holeInset) * MM, -5.8 * MM, sz * holeZ * MM);
     g.add(hole);
   }
-  // Corner plates: leg-socket plates on the standard frame, larger fold hinges on the
-  // collapsible. Sit ON top of the rails, rivetted.
-  const cornerX = w / 2 - (collapsible ? 34 : 26);
-  const cornerZ = d / 2 - railWidth / 2;
+  // The leg sockets. On the standard frame there is NO plate: four rivets and the leg stud's
+  // hole sit in the rail's own top face, where the leg stands (CK-149 hero, CK-175 a001). The
+  // collapsible carries a silver hinge plate there instead.
+  const sockX = w / 2 - legInset, sockZ = d / 2 - legSide;
+  const cornerX = w / 2 - 34, cornerZ = d / 2 - railWidth / 2;
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const plate = new THREE.Mesh(
-      roundedBox((collapsible ? 60 : 46) * MM, 4 * MM, (collapsible ? railWidth - 4 : 44) * MM, 2 * MM),
-      metalE(plateColor, 0.85, 0.35, glow));
-    plate.position.set(sx * cornerX * MM, 2 * MM, sz * cornerZ * MM);
-    g.add(plate);
-    rivetsInto(g, [
-      [sx * (cornerX - 16), sz * (cornerZ - 12)], [sx * (cornerX + 16), sz * (cornerZ - 12)],
-      [sx * (cornerX - 16), sz * (cornerZ + 12)], [sx * (cornerX + 16), sz * (cornerZ + 12)],
-    ], 3, plateColor);
+    if (collapsible) {
+      const plate = new THREE.Mesh(roundedBox(60 * MM, 4 * MM, (railWidth - 4) * MM, 2 * MM),
+        metalE(plateColor, 0.85, 0.35, glow));
+      plate.position.set(sx * cornerX * MM, 2 * MM, sz * cornerZ * MM);
+      g.add(plate);
+      rivetsInto(g, [
+        [sx * (cornerX - 16), sz * (cornerZ - 12)], [sx * (cornerX + 16), sz * (cornerZ - 12)],
+        [sx * (cornerX - 16), sz * (cornerZ + 12)], [sx * (cornerX + 16), sz * (cornerZ + 12)],
+      ], 3, plateColor);
+      continue;
+    }
+    const cx = sx * sockX, cz = sz * sockZ;
+    rivetsInto(g, [[cx - 17, cz - 12], [cx + 17, cz - 12], [cx - 17, cz + 12], [cx + 17, cz + 12]],
+      -0.7, plateColor);
+    const stud = new THREE.Mesh(new THREE.CylinderGeometry(5.5 * MM, 5.5 * MM, 3 * MM, 12),
+      metalE(0x0e0f12, 0.2, 0.8));
+    stud.position.set(cx * MM, -1.3 * MM, cz * MM);
+    g.add(stud);
   }
   return { group: g, pick };
 }
@@ -1175,9 +1231,10 @@ function foldLeg(g, { ex, w, d, top, footY, mat, r, splay, inset, zIn, feet = fa
  *  folding TUBE legs. Its bamboo top is REMOVABLE (2x one-unit + 2x half-unit pieces, no SKU) so
  *  IGT units drop in; the top itself is drawn by igtWoodTop, per free half-unit, so this builds
  *  only the frame + legs. Top at y = 0. */
-export function entryIgtGroup(w, d, height) {
+export function entryIgtGroup(w, d, height, { black = false } = {}) {
   const g = new THREE.Group();
-  const alu = metalE(0xd0d3d7, 0.85, 0.35);
+  // CK-080R-EC is the same table anodised black throughout -- frame, end plates and legs.
+  const alu = black ? metalE(0x26282c, 0.3, 0.6) : metalE(0xd0d3d7, 0.85, 0.35);
   const thick = 26, bar = 12;
   // the aluminium frame: a shallow ring of four bars round the top edge
   for (const sz of [-1, 1]) {
@@ -1189,9 +1246,9 @@ export function entryIgtGroup(w, d, height) {
     b.position.set(sx * (w / 2 - bar / 2) * MM, -thick / 2 * MM, 0); g.add(b);
   }
   // two built-in folding tube legs
-  const legMat = metalE(0xc6c9cd, 0.85, 0.32);
+  const legMat = black ? metalE(0x1e2024, 0.3, 0.6) : metalE(0xc6c9cd, 0.85, 0.32);
   for (const ex of [-1, 1])
-    foldLeg(g, { ex, w, d, top: -thick, footY: -(height - thick), mat: legMat, r: 6, splay: 18, inset: 34, zIn: 26, feet: true });
+    foldLeg(g, { ex, w, d, top: -thick, footY: -(height - 6), mat: legMat, r: 6, splay: 18, inset: 34, zIn: 26, feet: true });
   return { group: g, body: g.children[0] };
 }
 
@@ -1207,8 +1264,10 @@ export function entryIgtGroup(w, d, height) {
  *  per half-unit, which is the Slim's six panels. Tiles hang just below y = 0. */
 export function igtWoodTop({ units, color, skip = [], d, thick = 14, tex = null, pieces = null }) {
   const g = new THREE.Group();
-  // `tex` (a grain map configured by the caller) gives the wood its figure; `color` tints it.
-  const wood = new THREE.MeshStandardMaterial({ color, map: tex || null, roughness: 0.62, metalness: 0.03 });
+  // `tex` is a crop of the wood itself and already carries its colour, so a textured top takes NO
+  // tint -- multiplying bamboo by a bamboo `color` squared it to orange. `color` is the untextured
+  // fallback only.
+  const wood = new THREE.MeshStandardMaterial({ color: tex ? 0xffffff : color, map: tex || null, roughness: 0.62, metalness: 0.03 });
   const HALF = 125, run = units * 250, tileD = Math.min(d - 40, 360), gap = 4;
   const skipSet = new Set(skip);
   const board = (i, span) => {                        // one board over half-slots i..i+span-1
@@ -1266,7 +1325,7 @@ export function slimIgtGroup(w, d, height, { tex = null } = {}) {
   // two built-in folding thin-wire legs, splayed wide -- the one part that IS the black steel
   const wire = metalE(0x1c1e22, 0.4, 0.5);
   for (const ex of [-1, 1])
-    foldLeg(g, { ex, w, d, top: -thick, footY: -(height - thick), mat: wire, r: 3, splay: 44, inset: 13, zIn: 12, feet: true });
+    foldLeg(g, { ex, w, d, top: -thick, footY: -(height - 6), mat: wire, r: 3, splay: 44, inset: 13, zIn: 12, feet: true });
   return { group: g, body: g.children[0] };
 }
 
@@ -1278,7 +1337,7 @@ export function slimIgtGroup(w, d, height, { tex = null } = {}) {
 export function extIgtGroup(w, d, height, { bayW = 0, bayD = 360, tex = null } = {}) {
   const g = new THREE.Group();
   const alu = metalE(0x26282c, 0.7, 0.45);   // BLACK frame -- the real CK-090 stand is matte black
-  const bamboo = new THREE.MeshStandardMaterial({ color: 0xd8bd86, map: tex || null, roughness: 0.62, metalness: 0.03 });
+  const bamboo = new THREE.MeshStandardMaterial({ color: tex ? 0xffffff : 0xd8bd86, map: tex || null, roughness: 0.62, metalness: 0.03 });   // a map carries the colour; see igtWoodTop
   const thick = 22, bar = 12;
   const topW = (w - bayW) / 2;                        // each bamboo top's slice of the width
   // aluminium stand: a shallow ring of four bars round the whole footprint
@@ -1321,7 +1380,7 @@ export function extIgtGroup(w, d, height, { bayW = 0, bayD = 360, tex = null } =
   // cylinders.
   const legMat = metalE(0x1e2024, 0.6, 0.5);
   for (const ex of [-1, 1])
-    foldLeg(g, { ex, w, d, top: -thick, footY: -(height - thick), mat: legMat, r: 9,
+    foldLeg(g, { ex, w, d, top: -thick, footY: -(height - 6), mat: legMat, r: 9,
                  splay: 88, inset: 12, zIn: 82, feet: true, barY: 0.58, stay: 170 });
   return { group: g, body: g.children[0], bay: bayW > 0 ? { w: bayW, d: bayD } : null };
 }
@@ -1597,7 +1656,7 @@ export function foldingBenchGroup(w, d, h, { frame = 0x232528, fabric = 0x8c8279
 export function bambooShelfGroup(w, d, h, { frame = 0xcfd3d7, wood = 0xcaa96b, woodTex = null } = {}) {
   const g = new THREE.Group();
   const tubeMat = metalE(frame, 0.85, 0.3);   // stainless
-  const woodMat = new THREE.MeshStandardMaterial({ color: wood, map: woodTex || null, roughness: 0.6, metalness: 0.03 });
+  const woodMat = new THREE.MeshStandardMaterial({ color: woodTex ? 0xffffff : wood, map: woodTex || null, roughness: 0.6, metalness: 0.03 });   // a map carries the colour; see igtWoodTop
   const tube = (a, b, r = 9) => {
     const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
     const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), tubeMat);
@@ -1918,7 +1977,7 @@ export function hangRackGroup({ w, d, drop, tiers = 1, hasSurface = false, color
 
   // The ghost pick box: the full envelope, faint, and the only mesh the planner tags.
   const ghost = box(g, w, drop, d, 2,
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06, depthWrite: false }),
     0, -drop / 2, 0);
 
   // Four rail hooks, two per side frame: a riser in the panel's plane, an arm laid outward
@@ -2597,7 +2656,7 @@ export function boxHangerGroup(w, d, h, color) {
   const alu = metal(0xc4c8ca, 0.85, 0.35);
   for (const s of [-1, 1]) box(g, 22, 18, 16, 2, alu, s * (hx - 26), -9, zR + 2);
   const ghost = box(g, w, h, d, 2,
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06, depthWrite: false }),
     0, -h / 2, 0);
   return { group: g, body: ghost };
 }
@@ -2726,7 +2785,7 @@ export function lanternHangerGroup(w, d, h, color) {
   cyl(g, r + 1.5, r + 1.5, 18, 12, metalE(0x6d7175, 0.25, 0.65), tipX, -h + 9, 0);
   // a faint ghost sliver: a 6mm tube is no picking target
   const ghost = box(g, w, h, Math.max(d, 30), 2,
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06, depthWrite: false }),
     0, -h / 2, 0);
   return { group: g, body: ghost };
 }
@@ -2756,7 +2815,7 @@ export function ttaFrameGroup(w, d, h, color) {
   for (const sx of [-1, 1]) for (const fy of [-0.11 * h, -0.90 * h])   // the ferrule joints
     cyl(g, r * 1.7, r * 1.7, 26, 12, metal(color, 0.85, 0.3), sx * x1, fy, 0);
   const ghost = box(g, w, h, Math.max(d, 26), 2,
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06, depthWrite: false }),
     0, -h / 2, 0);
   return { group: g, body: ghost };
 }
@@ -2863,6 +2922,12 @@ export function slideExtGroup(w, d, h, color, grainTex = null) {
   // The bamboo grain, laid on the top face as a thin decal (the roundedBox has no clean UVs
   // to map onto). It is the same bamboo as every other board, so it wears the same grain.
   if (grainTex) {
+    // A photograph is sRGB. Left untagged it was read as linear light and the board came out
+    // near white beside every other bamboo part.
+    if (grainTex.colorSpace !== THREE.SRGBColorSpace) {
+      grainTex.colorSpace = THREE.SRGBColorSpace;
+      if (grainTex.image) grainTex.needsUpdate = true;
+    }
     const decal = new THREE.Mesh(new THREE.PlaneGeometry(w * MM, d * MM),
       new THREE.MeshStandardMaterial({ map: grainTex, metalness: 0.03, roughness: 0.72 }));
     decal.rotation.x = -Math.PI / 2;                  // lay it flat, facing up
@@ -3041,7 +3106,7 @@ export function grillNetGroup(w, d, h, color) {
   }
   // The ghost pick box: the part is mostly air, and this is what the caller tags.
   const ghost = box(g, w, h, d, 2,
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06 }),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06, depthWrite: false }),
     0, -h / 2, 0);
   return { group: g, body: ghost };
 }
