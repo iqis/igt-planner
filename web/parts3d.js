@@ -47,13 +47,19 @@ function sheetGeo(line, thk, depth) {
   s.moveTo(up[0][0] * MM, up[0][1] * MM);
   for (let i = 1; i < n; i++) s.lineTo(up[i][0] * MM, up[i][1] * MM);
   for (let i = n - 1; i >= 0; i--) s.lineTo(dn[i][0] * MM, dn[i][1] * MM);
-  return new THREE.ExtrudeGeometry(s, { depth: depth * MM, bevelEnabled: false });
+  const geo = new THREE.ExtrudeGeometry(s, { depth: depth * MM, bevelEnabled: false });
+  // An extrusion's UVs are its own metres, which lays the canvas weave (and the mesh's holes)
+  // 10-12 mm coarse: polka dots from a metre off. Scaled to a 2 mm weave, which is what both are.
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 6, uv.getY(i) * 6);
+  return geo;
 }
 
 /** A sling panel: cloth spanning `span` between two rails, bellied `sag` mm at mid-span (a
  *  negative sag bows it the other way -- a chair back bulging away from the sitter), `depth`
  *  along the rails. With `lip`, the cloth rides the crest of an r10 end rail at each side and
- *  hangs a short hem outside it, the way the folding bench's sling wraps its end loops.
+ *  hangs a short hem outside it (no builder asks for it now: the folding bench's cloth is sleeved
+ *  on its rails and draws its own profile).
  *  Profile in local x/y (span across x, belly in -y), extruded 0..depth along local z. */
 function slingPanel(span, sag, thk, depth, lip = 0) {
   const half = span / 2, crest = lip > 0 ? 9 : 0, line = [];
@@ -2052,10 +2058,22 @@ export function extIgtGroup(w, d, height, { bayW = 0, bayD = 360, tex = null } =
   return { group: g, body: g.children[0], bay: bayW > 0 ? { w: bayW, d: bayD, y: -TOP } : null };
 }
 
-/** Snow Peak Folding Chair (LV-077): a director's chair -- a black aluminium X-frame (it folds
- *  side to side, so the crossing X sits in the front and back faces) carrying a taupe canvas seat,
- *  back and armrests. The FIRST non-IGT prop: free-standing, feet on the ground at y = 0. Faces
- *  +z (back panel at -z). Modelled from the LV-077GY product photo. */
+/** Snow Peak Folding Chair (LV-077): a director's chair that folds side to side. A crossing X in
+ *  the front face and one in the back face, each member running from a seat corner down to the
+ *  OPPOSITE side's floor skid; the skids are long tubes lying on the ground, projecting ahead of
+ *  the front X and behind the back one. Seat rails, arm tubes in padded sleeves, and back posts
+ *  that stand plumb to the arms and then rake. Canvas (or mesh) seat sling and back panel.
+ *  Feet at y = 0, faces +z.
+ *
+ *  (The X was drawn widest at the floor, 566, on rails only as long as the seat, and the back
+ *  leaned 7 degrees.)
+ *
+ *  Off the LV-077GY set: alt_06, side-on, is 417 px deep by 591 tall, so the published 594 runs
+ *  from the skid's front end to the top of the raked back; the skid is about 545 long (the
+ *  packed 580 agrees), 64 past each X; the X's stand 415 apart and are plumb in this view down to
+ *  about 150, then sweep out to the skid's ends; the back rakes 23 degrees above the arms, its
+ *  top 110 behind the rear X. alt_05, front-on: skids 396 apart against 504 at the seat corners,
+ *  so the X NARROWS to the floor; arm sleeves are the 566. */
 export function foldingChairGroup(w, d, h, { frame = 0x232528, fabric = 0x8c8279, seatH = 457, canvasTex = null, meshAlpha = null } = {}) {
   const g = new THREE.Group();
   const tubeMat = metalE(frame, 0.5, 0.45);
@@ -2063,183 +2081,215 @@ export function foldingChairGroup(w, d, h, { frame = 0x232528, fabric = 0x8c8279
   const cloth = meshAlpha
     ? new THREE.MeshStandardMaterial({ color: fabric, alphaMap: meshAlpha, transparent: true, alphaTest: 0.12, roughness: 0.85, side: THREE.DoubleSide })
     : new THREE.MeshStandardMaterial({ color: fabric, map: canvasTex || null, roughness: 0.92, metalness: 0.0, side: THREE.DoubleSide });
-  const cyl = (a, b, r, mat) => {
-    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), mat);
-    m.position.copy(va).add(vb).multiplyScalar(0.5);
-    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
-    g.add(m); return m;
-  };
-  const tube = (a, b, r = 9) => cyl(a, b, r, tubeMat);
-  const roll = (a, b, r) => cyl(a, b, r, cloth);          // a fabric/foam sleeve over the frame
-  const sw = w / 2 - 35, fw = w / 2, sd = 195, armH = seatH + 150;
-
-  // front & back X-frames -- each crosses a top seat corner to the opposite foot; the two sit at
-  // z = +/-sd and, seen head-on, overlap into the single X the photo shows.
-  for (const zc of [sd, -sd]) {
-    tube([-sw, seatH, zc], [fw, 8, zc]);
-    tube([sw, seatH, zc], [-fw, 8, zc]);
+  const R = 9, tube = (pts, rad = 0, r = R) => bentTube(g, pts, r, tubeMat, { rad, radial: 8 });
+  const sw = 252, fx = 198;                           // half-widths: seat corners, floor skids
+  const zF = d / 2 - 64, zB = zF - 415;               // the front and back X planes
+  const zS0 = d / 2 + 2, zS1 = zB - 64;                 // skid ends: the corners its rounded ends turn about
+  const armH = seatH + 150, xa = w / 2 - 25, padR = 25, rake = 23 * Math.PI / 180;
+  const kneeY = 150, kx = t => -sw + (fx + sw) * t;   // an X member's x, t = how far down it is
+  for (const s of [-1, 1]) {
+    // One tube per floor side: down the front X from the far seat corner, along the floor, up the back X.
+    const k = (seatH - kneeY) / (seatH - R);
+    // (the two members of each X lap, a tube's width apart)
+    const o = s * (R + 0.5);
+    tube([[-s * sw, seatH, zF + o], [s * kx(k), kneeY, zF + o], [s * fx, R, zS0], [s * fx, R, zS1], [s * kx(k), kneeY, zB + o], [-s * sw, seatH, zB + o]],
+      [0, 70, 40, 40, 70, 0]);
+    tube([[s * sw, seatH, zF], [s * sw, seatH, zB]]);                                   // seat rail
+    // arm: up from the seat's front corner, back along the arm, into the back post
+    tube([[s * sw, seatH, zF], [s * xa, armH, zF], [s * xa, armH, zB]], 28, 8);
+    cyl(g, padR, padR, zF - zB - 70, 12, cloth, s * xa, armH, (zF + zB) / 2 - 5, Math.PI / 2);   // the padded sleeve
+    // back post: plumb to the arm, then raked
+    tube([[s * sw, seatH, zB], [s * sw, armH - 7, zB], [s * sw, h - 4, zB - (h - 4 - (armH - 7)) * Math.tan(rake)]], 30, 8);
   }
-  // side foot rails + seat side rails tie the front frame to the back frame
-  for (const sx of [-1, 1]) {
-    tube([sx * fw, 8, sd], [sx * fw, 8, -sd]);
-    tube([sx * sw, seatH, sd], [sx * sw, seatH, -sd]);
-  }
-  // seat sling: bellied ~15mm between the side rails -- the hero shows a hang, not a board
-  const seat = new THREE.Mesh(slingPanel(2 * sw, 15, 12, 2 * sd), cloth);
-  seat.position.set(0, (seatH + 7) * MM, -sd * MM);
+  // seat sling: bellied ~15mm between the side rails
+  const seat = new THREE.Mesh(slingPanel(2 * sw, 15, 12, zF - zB), cloth);
+  seat.position.set(0, (seatH + 7) * MM, zB * MM);
   g.add(seat);
-
-  // back posts (tilt back) + the back panel, the chair's dominant surface. Measured on the
-  // LV-077GY hero against the 838 spec height: ~215mm tall (a quarter of the chair), its top
-  // edge flush with the post tops, raked WITH the posts, bowed ~10mm around them away from
-  // the sitter. The old 165mm vertical board matched neither the rake nor the proportion.
-  for (const sx of [-1, 1]) tube([sx * sw, seatH, -sd], [sx * sw, h, -sd - 45], 8);
-  const rake = Math.atan(45 / (h - seatH)), bh = 215;
-  const yb = h - bh * Math.cos(rake), zb = -sd - 45 * (yb - seatH) / (h - seatH);
+  // the back panel: 215 tall, raked WITH the posts, bowed ~10 around them away from the sitter,
+  // its top edge at the post tops
+  const bh = 215;
+  const yb = h - 3 - bh * Math.cos(rake), zb = zB - (yb - (armH - 7)) * Math.tan(rake);
   const back = new THREE.Mesh(slingPanel(2 * sw + 20, -10, 14, bh), cloth);
   back.rotation.x = -Math.PI / 2 - rake;   // stand the panel up, leaning with the posts
   back.position.set(0, yb * MM, zb * MM);  // bottom edge on the posts, top landing at h
   g.add(back);
-
-  // armrests: a front support up, the arm tube back to the post, and a fabric+foam SLEEVE that
-  // wraps the arm tube (a cylinder round the frame, not a flat pad).
-  for (const sx of [-1, 1]) {
-    tube([sx * sw, seatH, sd], [sx * sw, armH, sd - 5], 8);
-    tube([sx * sw, armH, sd - 5], [sx * sw, armH, -sd + 20], 8);
-    roll([sx * sw, armH, sd - 14], [sx * sw, armH, -sd + 28], 18);
-  }
-  return { group: g, body: g.children[0] };
+  return { group: g, body: seat };
 }
 
-/** Snow Peak Low Beach Chair (LV-091): a low, reclined beach chair -- a SILVER aluminium tube
- *  frame, a khaki canvas sling (seat + high reclined back), and two straight laminated-BAMBOO
- *  armrests. Low seat (~300mm), feet on the ground at y = 0, faces +z. From the LV-091KH photo. */
+/** Snow Peak Low Beach Chair (LV-091) and Luxury Low Beach Chair (LV-093): a low reclined
+ *  sling chair that folds on a side scissor and a lateral X. Each side: a FRONT LEG raked back
+ *  from its foot to a steel bracket under the bamboo arm; a SEAT BAR pivoted on the seat rail,
+ *  crossing the leg and running down and back to a short floor skid; a seat rail and a back
+ *  post inside the cloth's edges. Across the back, two bars from the back hinges down to the
+ *  opposite skids. One canvas runs from a roll over the front tube, through the seat, up the
+ *  back and over the top tube. Feet at y = 0, faces +z; the lip is the front of the box and the
+ *  skid ends the rear.
+ *
+ *  (It stood on four splayed legs joined by two full-width floor tubes -- neither exists -- at
+ *  a depth hard-coded whatever `d` said, the arms 76 low, the back top 21 short.)
+ *
+ *  From the side view in the LV-091 gallery (LowPng, black frame, scaled by the 400 mm table
+ *  standing beside it): front foot 57 behind the lip, leg top 365 behind it and 419 up; seat
+ *  pivot 95 behind the lip at 322; leg and bar cross about 220 up; back hinge 391 behind the
+ *  lip; skid 127 long, its end 579 behind the lip (the published depth); arm top 468, arm
+ *  244 long; back 24 degrees off plumb. The rear views (lv-091_reverse, LV-093 alt_07) show the
+ *  lateral X and the plumb-looking front legs outboard of it. The back leans its 24 degrees
+ *  unless that would carry its top past the skids, in which case the depth wins. */
 export function lowBeachChairGroup(w, d, h, { frame = 0xbfc3c7, fabric = 0xc6b487, wood = 0xd8bd86, seatH = 300, canvasTex = null } = {}) {
   const g = new THREE.Group();
-  const tubeMat = metalE(frame, 0.7, 0.35);
+  const tubeMat = metalE(frame, 0.45, 0.42);
+  const steel = metal(0xc9ccd0, 0.6, 0.35);
+  const rubber = metalE(0x1c1e22, 0.1, 0.85);
   const cloth = new THREE.MeshStandardMaterial({ color: fabric, map: canvasTex || null, roughness: 0.92, side: THREE.DoubleSide });
   const woodMat = new THREE.MeshStandardMaterial({ color: wood, roughness: 0.55, metalness: 0.03 });
-  const cyl = (a, b, r, mat) => {
-    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), mat);
-    m.position.copy(va).add(vb).multiplyScalar(0.5);
-    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
-    g.add(m); return m;
-  };
-  const tube = (a, b, r = 9) => cyl(a, b, r, tubeMat);
-  const box = (bw, bh, bd, x, y, z, mat, rx = 0) => {
-    const m = new THREE.Mesh(roundedBox(bw * MM, bh * MM, bd * MM, 3 * MM), mat);
-    m.position.set(x * MM, y * MM, z * MM); m.rotation.x = rx; g.add(m); return m;
-  };
-  const sw = w / 2 - 30;
-  // side-profile joints as [z, y]: front foot, seat front, hinge, back top, back foot. The back
-  // top rides off `h`, so a lower-backed sibling (the Luxury chair) falls out of its dimensions.
-  const FF = [270, 0], SF = [175, 305], HB = [-115, 285], BT = [-255, h - 45], BF = [-175, 0];
+  const R = 9, z0 = d / 2;
+  const tube = (pts, rad = 0) => bentTube(g, pts, R, tubeMat, { rad, radial: 8 });
+  const xa = w / 2 - 22.5, xs = xa - 23;                // front legs under the arms; seat rails just inboard
+  // side-profile stations as [z, y]
+  const FF = [z0 - 57, 8], LT = [z0 - 365, 432];        // front foot, leg top at the arm bracket
+  const SF = [z0 - 16, seatH + 62], SP = [z0 - 95, seatH + 54], HB = [z0 - 391, seatH + 24];   // seat front tube, seat pivot, back hinge
+  const KB = [-z0 + 127, R], KE = [-z0 + 6, R];         // the skid: where the seat bar meets the floor, and its end
+  const topY = h - 15.5;                                // top tube centre: tube + cloth over it = h
+  const lean = Math.min(Math.tan(24 * Math.PI / 180), (HB[0] - 16 - (-z0)) / (topY - HB[1]));
+  const BT = [HB[0] - lean * (topY - HB[1]), topY];
+  const hingeY = Math.min(seatH + 258, topY - 40), XT = [HB[0] - lean * (hingeY - HB[1]), hingeY];   // where the lateral X takes the back posts
   for (const sx of [-1, 1]) {
-    const X = sx * sw;
-    tube([X, FF[1], FF[0]], [X, SF[1], SF[0]]);   // front leg
-    tube([X, SF[1], SF[0]], [X, HB[1], HB[0]]);   // seat rail
-    tube([X, HB[1], HB[0]], [X, BT[1], BT[0]]);   // reclined back rail
-    tube([X, HB[1], HB[0]], [X, BF[1], BF[0]]);   // back leg
-    tube([X, SF[1], 150], [X, 376, 132], 8);      // armrest front support
-    box(46, 16, 270, X, 384, -4, woodMat);        // straight wood armrest
-    for (const f of [FF, BF]) {                    // black feet
-      const cap = new THREE.Mesh(new THREE.CylinderGeometry(13 * MM, 15 * MM, 12 * MM, 10), metalE(0x1c1e22, 0.1, 0.85));
-      cap.position.set(X * MM, 6 * MM, f[0] * MM); g.add(cap);
-    }
+    const P = (p, x) => [sx * x, p[1], p[0]];
+    tube([P(FF, xa), P(LT, xa)]);                                           // front leg
+    tube([P(SF, xs), P(HB, xs), P(BT, xs)], 18);                            // seat rail into back post
+    tube([P(SP, xs - 2 * R), P(KB, xs - 2 * R), P(KE, xs - 2 * R)], 30);    // seat bar and its floor skid, inside the rail
+    tube([[sx * xs, XT[1], XT[0] + sx * R], [-sx * (xs - 2 * R), 2 * R + 4, -z0 + 60 + sx * R]]);   // lateral X, to the opposite skid (the pair lapped)
+    cyl(g, 12.5, 14, 14, 10, rubber, sx * xa, 7, FF[0]);                    // front foot
+    box(g, 22, 14, 26, 2, rubber, sx * (xs - 2 * R), 7, -z0 + 13);          // skid end cap
+    box(g, 4, 20, 96, 1, steel, sx * (xa - 14), 440, LT[0] - 8);            // the bracket the leg hangs from
+    box(g, 45, 16, 244, 3, woodMat, sx * xa, 460, z0 - 348);                // arm, top at 468
   }
-  // cross rails tie the two side frames together
-  tube([-sw, FF[1], FF[0]], [sw, FF[1], FF[0]]);
-  tube([-sw, BF[1], BF[0]], [sw, BF[1], BF[0]]);
-  tube([-sw, SF[1], SF[0]], [sw, SF[1], SF[0]]);
-  tube([-sw, BT[1], BT[0]], [sw, BT[1], BT[0]]);
-  tube([-sw, HB[1], HB[0]], [sw, HB[1], HB[0]]);
-  // canvas: ONE continuous run. The LV-091 hero shows a single cloth starting at the front
-  // lip, sagging ~10mm between the side rails, sweeping up the reclined back with no crease
-  // at the hinge, and wrapping over the top cross tube into a short tail behind (the sewn
-  // sleeve in the photo). The old pair of flat boxes met at a hard crease with a gap -- a
-  // deck chair, not this chair. Sampled (z,y) centreline, thickened and extruded across.
+  tube([[-xs, SF[1], SF[0]], [xs, SF[1], SF[0]]]);                           // seat front tube
+  tube([[-xs, BT[1], BT[0]], [xs, BT[1], BT[0]]]);                           // top tube
+
+  // Canvas: ONE run -- rolled over the front tube, a seat sagging to the seat height two thirds
+  // back, a rounded knee at the hinge, taut up the back, over the top tube into a short tail.
   const bl = Math.hypot(BT[0] - HB[0], BT[1] - HB[1]);
-  const bd = [(BT[0] - HB[0]) / bl, (BT[1] - HB[1]) / bl];   // unit vector up the back rails
-  const bnv = [bd[1], -bd[0]];                               // its normal, off the rails frontward
-  const at = (P, a, b) => [P[0] + bnv[0] * a + bd[0] * b, P[1] + bnv[1] * a + bd[1] * b];
-  const line = [];
-  qpts([SF[0] + 14, SF[1] + 10], [55, SF[1] - 23], [HB[0] + 45, 290], 8, line);  // seat, ~10mm belly
-  qpts([HB[0] + 45, 290], at(HB, 11, 0), at(HB, 11, 85), 6, line);  // the knee, rounded not creased
-  line.push(at(BT, 11, 0));                                         // taut up the back
-  for (let i = 1; i <= 6; i++) {                                    // over the top tube
-    const p = Math.PI * i / 6;
-    line.push([BT[0] + 11 * (bnv[0] * Math.cos(p) + bd[0] * Math.sin(p)),
-               BT[1] + 11 * (bnv[1] * Math.cos(p) + bd[1] * Math.sin(p))]);
+  const bd = [(BT[0] - HB[0]) / bl, (BT[1] - HB[1]) / bl], bnv = [bd[1], -bd[0]];   // up the back posts; off them, frontward
+  const at = (Q, a, b) => [Q[0] + bnv[0] * a + bd[0] * b, Q[1] + bnv[1] * a + bd[1] * b];
+  const line = [[SF[0] - 6, SF[1] - 13], [SF[0] + 9, SF[1] - 9], [SF[0] + 12, SF[1]], [SF[0] + 7, SF[1] + 10]];
+  qpts([SF[0], SF[1] + 12], [(SF[0] + HB[0]) / 2 - 40, seatH - 46], [HB[0] + 45, HB[1] + 6], 8, line);
+  qpts([HB[0] + 45, HB[1] + 6], at(HB, 11, 0), at(HB, 11, 85), 6, line);
+  line.push(at(BT, 11, 0));
+  for (let i = 1; i <= 6; i++) {
+    const a = Math.PI * i / 6;
+    line.push([BT[0] + 11 * (bnv[0] * Math.cos(a) + bd[0] * Math.sin(a)), BT[1] + 11 * (bnv[1] * Math.cos(a) + bd[1] * Math.sin(a))]);
   }
-  line.push(at(BT, -11, -42));                                      // the tail, hanging behind
-  const sheet = new THREE.Mesh(sheetGeo(line, 9, 2 * sw - 10), cloth);
+  line.push(at(BT, -11, -42));
+  const cw = 2 * xs - 2 * R + 4, sheet = new THREE.Mesh(sheetGeo(line, 9, cw), cloth);
   sheet.rotation.y = -Math.PI / 2;    // profile plane -> the scene's z-y plane
-  sheet.position.x = (sw - 5) * MM;   // extrusion ran off along -x; recentre on the frame
+  sheet.position.x = cw / 2 * MM;     // extrusion ran off along -x; recentre on the frame
   g.add(sheet);
-  return { group: g, body: g.children[0] };
+  return { group: g, body: sheet };
 }
 
-/** Snow Peak Campfield Futon (SET-200) in its basic SOFA form: a low two-seat loveseat -- taupe
- *  seat + reclined back cushions on a dark plastic slat deck, natural-wood armrests on the ends.
- *  There is NO X-frame anywhere in the hero: the deck stands on silver U-HAIRPIN loop legs (a bent
- *  tube dropping from the deck, sweeping a wide floor bend, running the floor, climbing back up),
- *  one hoop front + rear per deck module, three modules, tied by thin black diagonal braces. The
- *  real set reconfigures many ways (bed / chairs / shelves); we model only the sofa.
- *  Feet at y = 0, faces +z. */
-export function campfieldSofaGroup(w, d, h, { frame = 0xbfc3c7, fabric = 0xa08d80, wood = 0xcbb083, canvasTex = null } = {}) {
+/** Snow Peak Campfield Futon (SET-200) in its basic SOFA form (the set also makes a bed, chairs
+ *  and shelves; only the sofa is drawn). Three brown plastic deck modules side by side, each on a
+ *  front and a rear aluminium hairpin hoop; two seat cushions flush with the deck's front and two
+ *  more stood up behind them against black backrests on poles; a wooden arm board on a scissor X
+ *  at each end. Feet at y = 0, faces +z.
+ *
+ *  It was a chunky low box: a 195 slab on 138 legs, 626 deep, back top 619, the arms on two posts.
+ *
+ *  Scaled off the side view (set-220 alt_06) by the 749 deck depth, and the front view (alt_03)
+ *  by the 1494 across the two seat cushions:
+ *  - DECK. A thin slab the whole 749 deep, underside 240 up, top 297. Three modules of 498 make
+ *    the published 1494; so do two cushions, 747 x 507 each -- the same cushion stands up as the
+ *    back (507 tall) and four of them make the bed (alt_03 of set-200). The ARM BOARDS sit
+ *    astride the deck's ends, half of each outside it, so the sofa over all is 104 wider than
+ *    the published number: `w` here is that over-all width.
+ *  - SEAT top 367 (cushion 70 thick, measured; its back edge 507 behind the deck front).
+ *  - BACK. The cushion leans 10 degrees, its top at 795 -- the published 650 fits no sofa
+ *    photograph -- with about 175 of bare deck behind its foot. Its rear face is black (rear
+ *    view, alt_04), and behind each a black backrest panel hangs between two poles leaning 13
+ *    degrees out of the deck.
+ *  - ARMS. Board 491 x 104 x 18, top at 471, on two flat 24 mm bars crossed in the side view:
+ *    feet on the deck's end 520 apart, pinned at 373 up.
+ *  - HOOPS. 20 mm tube, uprights 396 apart under each module, in planes 40 inside the deck's
+ *    front and rear edges; the floor run rises 24 in the middle (front view), so each hoop
+ *    stands on two points. Black sockets at the deck, black clamps 114 up, and from clamp to
+ *    clamp a LEVEL black webbing front to rear (side view) -- not the diagonal it was drawn as. */
+export function campfieldSofaGroup(w, d, h, { frame = 0xbfc3c7, fabric = 0x72615a, wood = 0xc8a074, canvasTex = null } = {}) {
   const g = new THREE.Group();
-  const tubeMat = metalE(frame, 0.7, 0.35);
-  const cushion = new THREE.MeshStandardMaterial({ color: fabric, map: canvasTex || null, roughness: 0.96, side: THREE.DoubleSide });
+  const tubeMat = metalE(frame, 0.35, 0.45);
+  const cushion = new THREE.MeshStandardMaterial({ color: fabric, map: canvasTex || null, roughness: 0.96 });
   const woodMat = new THREE.MeshStandardMaterial({ color: wood, roughness: 0.55, metalness: 0.03 });
-  const cyl = (a, b, r, mat) => {
-    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), mat);
-    m.position.copy(va).add(vb).multiplyScalar(0.5);
-    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
-    g.add(m); return m;
+  const plastic = new THREE.MeshStandardMaterial({ color: 0x574a40, roughness: 0.9, metalness: 0.05 });   // #62554b lit, #44372e shaded in the photos
+  const black = new THREE.MeshStandardMaterial({ color: 0x1f2022, roughness: 0.85 });
+  const armW = 104, dw = w - armW, hd = d / 2;        // dw: the deck and the cushions
+  const deckY0 = 240, deckY1 = 297, cushT = 70, cushD = 507, mod = dw / 3;
+  const pillow = (bw, bh, bd) => {                   // a cushion: soft edges, and the weave at cloth scale
+    const geo = roundedBox(bw * MM, bh * MM, bd * MM, 22 * MM), uv = geo.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 6, uv.getY(i) * 6);
+    return geo;
   };
-  const tube = (a, b, r = 9) => cyl(a, b, r, tubeMat);
-  const box = (bw, bh, bd, x, y, z, mat, rx = 0) => {
-    const m = new THREE.Mesh(roundedBox(bw * MM, bh * MM, bd * MM, 8 * MM), mat);
-    m.position.set(x * MM, y * MM, z * MM); m.rotation.x = rx; g.add(m); return m;
-  };
-  const sw = w / 2, hd = d / 2, deckY = 200, fd = hd - 70;
-  // the dark-brown plastic slat deck: the hero shows a deep fascia band under the cushions
-  // (#5a4f49 sampled off it), the legs socketed into its underside. First mesh in, so the slab is
-  // also the pick body -- it raycasts far better than the leg tube that used to be children[0].
-  const plastic = new THREE.MeshStandardMaterial({ color: 0x5a4f49, roughness: 0.9, metalness: 0.05 });
-  const blackMat = metalE(0x1f2124, 0.3, 0.6);
-  box(w - 60, 75, d - 150, 0, 175.5, 0, plastic);       // fascia band, 138 up to just under the seats
-  // NO X anywhere in the hero: the futon stands on silver U-HAIRPIN loops in the width-height
-  // plane -- one hoop at the front + one at the rear of EACH of the three deck modules. Uprights
-  // ~350 apart per module and a ~15-dia tube (measured against the published 1494 width); the
-  // floor bends are generous factory sweeps, not mitres, so the hoop is swept along its centreline.
-  const bent = (pts, r, mat) => g.add(new THREE.Mesh(new THREE.TubeGeometry(
-    new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0] * MM, p[1] * MM, p[2] * MM))),
-    pts.length * 8, r * MM, 10), mat));
-  const lz = fd - 20;                                   // loop planes tuck just behind the fascia
-  for (const mx of [-w / 3, 0, w / 3]) {
-    const uL = mx - 175, uR = mx + 175;
-    for (const zc of [lz, -lz]) {
-      bent([[uL, 140, zc], [uL, 66, zc], [uL + 4, 28, zc], [uL + 34, 8, zc], [mx, 8, zc],
-            [uR - 34, 8, zc], [uR - 4, 28, zc], [uR, 66, zc], [uR, 140, zc]], 8, tubeMat);
-      for (const ux of [uL, uR]) cyl([ux, 140, zc], [ux, 108, zc], 10.5, blackMat); // deck sockets
+
+  // The deck: three modules, a seam between them. First mesh in, so it is the pick body.
+  for (const k of [-1, 0, 1]) box(g, mod - 3, deckY1 - deckY0, d, 3, plastic, k * mod, (deckY0 + deckY1) / 2, 0);
+  // the bare strip behind the backs is ribbed, with black webbing laid in the grooves
+  for (const k of [-1, 0, 1]) for (const z of [-hd + 40, -hd + 85, -hd + 130])
+    box(g, mod - 60, 8, 16, 2, black, k * mod, deckY1 + 3, z);
+
+  // Hoops: front and rear under each module.
+  const zh = hd - 40, ux = 198, clampY = 114;
+  for (const k of [-1, 0, 1]) {
+    const mx = k * mod;
+    for (const zc of [zh, -zh]) {
+      bentTube(g, [[mx - ux, deckY0, zc], [mx - ux, 10, zc], [mx - 95, 10, zc], [mx, 34, zc], [mx + 95, 10, zc],
+        [mx + ux, 10, zc], [mx + ux, deckY0, zc]], 10, tubeMat, { rad: [0, 42, 60, 130, 60, 42, 0], radial: 8 });
+      for (const sx of [-1, 1]) {
+        cyl(g, 13, 13, 30, 10, black, mx + sx * ux, deckY0 - 13, zc);        // deck socket
+        cyl(g, 12, 12, 22, 10, black, mx + sx * ux, clampY, zc);            // webbing clamp
+      }
     }
-    for (const ux of [uL, uR]) {
-      cyl([ux, 60, lz], [ux, 130, -lz], 3.5, blackMat); // thin black diagonal: front leg mid -> rear top (hero, right end)
-      cyl([ux, 70, lz], [ux, 50, lz], 9.5, blackMat);   // the clamp collar the brace grips on the front leg
-    }
+    for (const sx of [-1, 1])                                               // level webbing, front clamp to rear clamp
+      box(g, 3, 25, 2 * zh, 1, black, mx + sx * (ux + 11), clampY, 0);
   }
-  for (const sx of [-1, 1]) box(w / 2 - 50, 120, d - 250, sx * (w / 4), deckY + 75, 55, cushion);   // seats
-  const bBot = deckY + 130, bTop = h - 40;
-  for (const sx of [-1, 1]) box(w / 2 - 50, bTop - bBot, 95, sx * (w / 4), (bBot + bTop) / 2, -hd + 120, cushion, -0.14);  // backs
-  for (const sx of [-1, 1]) {                            // wood armrests on the ends
-    const X = sx * (sw - 25);
-    tube([X, deckY, fd - 40], [X, 400, fd - 60], 9);
-    tube([X, deckY, -fd + 60], [X, 400, -fd + 40], 9);
-    box(52, 22, d - 210, X, 412, -10, woodMat);
+
+  // Cushions: two on the deck, two stood up behind them.
+  const rake = 10 * Math.PI / 180, backT = 65, backL = cushD, cw = dw / 2 - 4;
+  const zSeatBack = hd - cushD;                                             // the seat's rear edge = the back's front foot
+  const yFoot = h - backL * Math.cos(rake) - backT / 2 * Math.sin(rake) + 4; // the back's top front edge is h (4: its rounded corner)
+  const zFoot = zSeatBack - backT / 2 * Math.cos(rake);
+  const prake = 13 * Math.PI / 180, zPole = zFoot - backT / 2 - 10;
+  for (const sx of [-1, 1]) {
+    const cx = sx * dw / 4;
+    const seat = new THREE.Mesh(pillow(cw, cushT, cushD), cushion);
+    seat.position.set(cx * MM, (deckY1 + cushT / 2) * MM, (hd - cushD / 2) * MM);
+    g.add(seat);
+    const back = new THREE.Group();                                         // pivots about the cushion's foot
+    back.position.set(cx * MM, yFoot * MM, zFoot * MM);
+    back.rotation.x = -rake;
+    const pad = new THREE.Mesh(pillow(cw, backL, backT), cushion);
+    pad.position.y = backL / 2 * MM;
+    back.add(pad);
+    const lining = new THREE.Mesh(new THREE.BoxGeometry((cw - 40) * MM, (backL - 40) * MM, 4 * MM), black);
+    lining.position.set(0, backL / 2 * MM, -(backT / 2 + 1) * MM);
+    back.add(lining);
+    g.add(back);
+    // the backrest: two poles out of the deck, a black panel hung between their tops
+    const rest = new THREE.Group();
+    rest.position.set(cx * MM, deckY1 * MM, zPole * MM);
+    rest.rotation.x = -prake;
+    for (const px of [-205, 205]) cyl(rest, 9, 9, 300, 10, tubeMat, px, 150, 0);
+    box(rest, 500, 240, 34, 12, black, 0, 335, 0);
+    g.add(rest);
+  }
+
+  // Arms: a board astride each end of the deck, on two flat bars crossed in the side view.
+  for (const sx of [-1, 1]) {
+    const board = new THREE.Mesh(flatRect(armW * MM, 491 * MM, 18 * MM, 14 * MM), woodMat);
+    board.position.set(sx * dw / 2 * MM, 471 * MM, 106 * MM);
+    g.add(board);
+    const X = sx * (dw / 2 + 14);
+    flatBar(g, [X - sx * 6.5, 272, 306], [X - sx * 6.5, 450, -118], 24, 12, [1, 0, 0], tubeMat, true);
+    flatBar(g, [X + sx * 6.5, 448, 295], [X + sx * 6.5, 272, -214], 24, 12, [1, 0, 0], tubeMat, true);
+    cyl(g, 4.5, 4.5, 30, 8, tubeMat, X, 373, 52).rotation.z = Math.PI / 2;   // the pin where they cross
   }
   return { group: g, body: g.children[0] };
 }
@@ -2274,55 +2324,81 @@ export function loungeCushionGroup(w, d, h, { fabric = 0xcf6a20, folded = false,
   return { group: g, body: pad };
 }
 
-/** Snow Peak Folding Bench (LV-071): the folding chair's bench sibling -- BACKLESS and armless, a
- *  long canvas (or mesh) sling on two end X-frames tied by a lengthwise stretcher. Seat at y = h,
- *  faces +z. From the LV-071GY photo. Supports canvas + mesh like the chair. */
+/** Snow Peak Folding Bench (LV-071): two full-length tubes and a cloth. Each tube is ONE piece --
+ *  a rail running inside a long edge of the cloth, turned down through a rounded shoulder at
+ *  each end into a leg -- and the two cross as an X at each end: the front rail stands on the
+ *  back feet, the back rail on the front feet, pinned where they cross, a thin rod tying the
+ *  two pins. The cloth is sleeved on the rails, so it sags ACROSS the depth and its short ends
+ *  hang free. Canvas or mesh, like the chair. Feet at y = 0, cloth top at h, faces +z.
+ *
+ *  (It was drawn the other way round: the cloth wrapped two short end loops with its long edges
+ *  free, on legs splayed 50 outboard to feet 76 too deep.)
+ *
+ *  Off the LV-071GY set: the hero shows the tube leaving the sleeve and turning into the leg;
+ *  alt_03, square-on, has the legs plumb in the length and the cloth 700 of the 829 px over
+ *  all, so 925 of the published 1095; alt_05, end-on, has rails and feet the same 330 apart with
+ *  the pin at half height. The back tube is the outer one, the front tube nests a tube's width
+ *  inside it (alt_03: two legs side by side at each end). 20 mm tube, by its width against the
+ *  rail spacing in alt_05. The published 358 is the top of the cloth; the packed 1095 x 470 is
+ *  one tube lying flat, and a leg here is 470 from rail top to foot. */
 export function foldingBenchGroup(w, d, h, { frame = 0x232528, fabric = 0x8c8279, canvasTex = null, meshAlpha = null } = {}) {
   const g = new THREE.Group();
   const tubeMat = metalE(frame, 0.5, 0.45);
+  const rubber = metalE(0x1c1e22, 0.1, 0.85);
   const cloth = meshAlpha
     ? new THREE.MeshStandardMaterial({ color: fabric, alphaMap: meshAlpha, transparent: true, alphaTest: 0.12, roughness: 0.85, side: THREE.DoubleSide })
     : new THREE.MeshStandardMaterial({ color: fabric, map: canvasTex || null, roughness: 0.92, side: THREE.DoubleSide });
-  const cyl = (a, b, r, mat) => {
-    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), mat);
-    m.position.copy(va).add(vb).multiplyScalar(0.5);
-    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
-    g.add(m); return m;
-  };
-  const tube = (a, b, r = 10) => cyl(a, b, r, tubeMat);
-  const seatH = h, sw = w / 2 - 55, sd = d / 2 - 15, fd = d / 2 + 25, fx = sw + 50;
-  // two end X-frames (in the depth-height plane) + the seat-end loops the canvas wraps. In
-  // the LV-071GY hero the feet stand clearly WIDER than the seat: each leg splays ~50mm
-  // outboard along the length on its way down, so the stance reads the catalog 1095 while
-  // the sling spans only the end loops
-  for (const sx of [-1, 1]) {
-    const X = sx * sw;
-    tube([X, seatH, sd], [sx * fx, 8, -fd]);   // front leg -> back foot, splayed outboard
-    tube([X, seatH, -sd], [sx * fx, 8, fd]);   // back leg -> front foot, splayed outboard
-    tube([X, seatH, sd], [X, seatH, -sd]);  // seat-end loop
-    for (const z of [-fd, fd]) {
-      const cap = new THREE.Mesh(new THREE.CylinderGeometry(11 * MM, 13 * MM, 12 * MM, 10), metalE(0x1c1e22, 0.1, 0.85));
-      cap.position.set(sx * fx * MM, 6 * MM, z * MM); g.add(cap);
+  const R = 10, CL = 4;                              // tube radius; cloth thickness round it
+  const zr = d / 2 - R - CL, yr = h - R - CL;        // rail centreline: the sleeve's outside is the d and the h
+  // A leg ends in a rubber cap on its own axis; the cap's lowest edge is the ground and its
+  // outer edge the published depth, which fixes where the tube's end is.
+  const capR = 12.5, capL = 36;
+  let lean = Math.atan(2 * zr / yr), ey = 0, ez = 0;
+  for (let i = 0; i < 3; i++) {
+    ey = capR * Math.sin(lean); ez = d / 2 - capR * Math.cos(lean);
+    lean = Math.atan((zr + ez) / (yr - ey));
+  }
+  const yPin = yr - (yr - ey) * zr / (zr + ez);      // the two legs cross at z = 0
+  const xOut = w / 2 - capR, xIn = xOut - 2 * R - 1; // the caps are the length; the front tube nests inside the back one
+  for (const [sz, xl] of [[-1, xOut], [1, xIn]]) {   // sz: which long edge this tube's rail is in
+    bentTube(g, [[-xl, ey, -sz * ez], [-xl, yr, sz * zr], [xl, yr, sz * zr], [xl, ey, -sz * ez]], R, tubeMat, { rad: 50, radial: 10 });
+    for (const sx of [-1, 1]) {
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(capR * MM, capR * MM, capL * MM, 12), rubber);
+      const up = new THREE.Vector3(0, yr - ey, sz * (zr + ez)).normalize();
+      cap.position.set(sx * xl * MM, ey * MM, -sz * ez * MM).addScaledVector(up, capL / 2 * MM);
+      cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up);
+      g.add(cap);
     }
   }
-  // one thin rod ties the two X crossings -- the only lengthwise member the hero shows (the
-  // old front/back seat rails do not exist on the product; the fabric edges hang free)
-  const tc = sd / (sd + fd), yc = seatH - (seatH - 8) * tc, xc = sw + 50 * tc;
-  tube([-xc, yc, 0], [xc, yc, 0], 4);
-  // the sling wraps over each end loop (a hem hanging outside it) and sags ~12mm mid-span --
-  // the old dead-flat slab read as a wooden bench, not canvas
-  const seat = new THREE.Mesh(slingPanel(2 * sw, 12, 10, 2 * sd, 26), cloth);
-  seat.position.set(0, seatH * MM, -sd * MM); g.add(seat);
-  return { group: g, body: g.children[0] };
+  // the tie rod through the two pins, a bolt head outside each
+  cyl(g, 3.5, 3.5, 2 * xOut, 8, tubeMat, 0, yPin, 0).rotation.z = Math.PI / 2;
+  for (const sx of [-1, 1]) cyl(g, 6, 6, 3, 10, metal(0xc9ccd0, 0.7, 0.35), sx * (xOut + R - 1.5), yPin, 0).rotation.z = Math.PI / 2;
+
+  // The cloth: sewn round each rail, 18 of sag between them. Profile across the depth (u) and up
+  // (v, from the rail centreline), run 925 along the length.
+  const rs = R + CL / 2, line = [], arc = (cx, a0, a1) => {
+    for (let a = a0; a >= a1 - 1e-6; a -= 23) line.push([cx + rs * Math.cos(a * Math.PI / 180), rs * Math.sin(a * Math.PI / 180)]);
+  };
+  arc(-zr, 320, 113);                                // under the back rail, up its outside to the crest
+  qpts([-zr, rs], [0, rs - 36], [zr, rs], 12, line);
+  arc(zr, 67, -140);                                 // over the front rail and back under
+  const len = 925 / 1095 * w, seat = new THREE.Mesh(sheetGeo(line, CL, len), cloth);
+  seat.rotation.y = Math.PI / 2;                     // profile plane -> the scene's z-y plane, run along x
+  seat.position.set(-len / 2 * MM, yr * MM, 0);
+  g.add(seat);
+  return { group: g, body: seat };
 }
 
 /** Snow Peak Bamboo Folding Shelf / Bench (LV-066TR & siblings): a rigid laminated-BAMBOO top on
  *  folding stainless end X-frames -- a multi-use narrow table / bench / storage shelf. Top at
- *  y = h, faces +z. `woodTex` grains the bamboo. From the LV-066TR photo. */
+ *  y = h, faces +z. `woodTex` grains the bamboo. From the LV-066TR set: alt_03, square-on, has the
+ *  legs plumb in the length and about 40 inside the board's ends; alt_05, end-on, has the board
+ *  320 px against 295 across the feet, so the feet stand INSIDE the 330 board (304 over all), and
+ *  the board 12 thick. (It was 22 thick on legs splayed 40 past the ends and 20 past the edges:
+ *  a 1128 x 394 footprint under a 1095 x 330 top.) */
 export function bambooShelfGroup(w, d, h, { frame = 0xcfd3d7, wood = 0xcaa96b, woodTex = null } = {}) {
   const g = new THREE.Group();
-  const tubeMat = metalE(frame, 0.85, 0.3);   // stainless
+  const tubeMat = metalE(frame, 0.35, 0.45);   // matte white-silver in every photo; high metalness read as dark chrome
   const woodMat = new THREE.MeshStandardMaterial({ color: woodTex ? 0xffffff : wood, map: woodTex || null, roughness: 0.6, metalness: 0.03 });   // a map carries the colour; see igtWoodTop
   const tube = (a, b, r = 9) => {
     const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
@@ -2331,119 +2407,208 @@ export function bambooShelfGroup(w, d, h, { frame = 0xcfd3d7, wood = 0xcaa96b, w
     m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
     g.add(m); return m;
   };
-  const topThk = 22, sw = w / 2 - 35, sd = d / 2 - 10, fd = d / 2 + 20, railY = h - topThk - 10;
+  const topThk = 12, sw = w / 2 - 40, sd = d / 2 - 10, fd = d / 2 - 25, railY = h - topThk - 10;
   const top = new THREE.Mesh(roundedBox(w * MM, topThk * MM, d * MM, 3 * MM), woodMat);
   top.position.y = (h - topThk / 2) * MM; g.add(top);
-  for (const sx of [-1, 1]) {                  // end X-frames
+  for (const sx of [-1, 1]) {                  // end X-frames, plumb in the length
     const X = sx * sw;
-    tube([X, railY, sd - 4], [sx * (sw + 40), 8, -fd]);
-    tube([X, railY, -(sd - 4)], [sx * (sw + 40), 8, fd]);
+    tube([X, railY, sd - 4], [X, 8, -fd]);
+    tube([X, railY, -(sd - 4)], [X, 8, fd]);
     for (const z of [-fd, fd]) {
       const cap = new THREE.Mesh(new THREE.CylinderGeometry(10 * MM, 12 * MM, 12 * MM, 10), metalE(0x1c1e22, 0.1, 0.85));
-      cap.position.set(sx * (sw + 40) * MM, 6 * MM, z * MM); g.add(cap);
+      cap.position.set(X * MM, 6 * MM, z * MM); g.add(cap);
     }
   }
   // the lengthwise members run directly UNDER the top's long edges -- the LV-066TR hero
   // shows two bright rails hugging the underside end to end, and NO bar lower down (the old
-  // mid-air stretcher at y=130 floated a silver line where the real product is open). The
-  // legs splay ~40mm out along the length; the hero's feet land just past the top edge.
+  // mid-air stretcher at y=130 floated a silver line where the real product is open).
   for (const zc of [sd - 4, -(sd - 4)]) tube([-sw, railY, zc], [sw, railY, zc]);
   return { group: g, body: top };
 }
 
-/** Snow Peak Take! Bamboo Chair (LV-085): a BUTTERFLY chair, and the JP photo set says how it
- *  is put together. The a003 side elevation: each side is TWO continuous laminated-bamboo
- *  battens crossing scissor-fashion mid-height -- front foot straight up to the back canvas
- *  corner, back foot straight up to the front corner -- nothing splits at the seat, and each
- *  foot ends in a flat bamboo skid. The aluminium is thinner stock and lives BETWEEN the
- *  sides: a front and a rear lateral scissor X (a001 front/back views) whose tube ends meet
- *  the batten tips inside the cloth pockets, and that is what folds the chair flat sideways.
- *  One continuous cream canvas hangs off the four tips: wrap-over HORNS at the back posts,
- *  plump wing ROLLS over the front tips, a deep dimpled bucket slung between (US hero, JP
- *  a004). The bucket's low point is the one published number in the drape -- シート高420mm on
- *  the JP spec sheet, 0.56 of the 749 height -- and the sheet is hung from it. Feet at y = 0,
- *  faces +z. */
-export function takeChairGroup(w, d, h, { frame = 0xcfd3d7, fabric = 0xefe6d0, wood = 0xd8bd86, canvasTex = null } = {}) {
+/** A flat bar between two points (mm): `wide` across its face, `thick` through it, the thickness
+ *  laid along `n` (squared to the bar here, so a rough direction will do). With `round` the ends
+ *  are half-rounds in the face plane and a/b are their CENTRES -- a bamboo batten's tip; without,
+ *  the ends are sawn square at a and b -- aluminium flat bar, a steel strap. */
+function flatBar(g, a, b, wide, thick, n, mat, round = false) {
+  const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+  const Y = vb.clone().sub(va), L = Y.length();
+  Y.normalize();
+  const Z = new THREE.Vector3(...n);
+  Z.addScaledVector(Y, -Z.dot(Y)).normalize();
+  const X = new THREE.Vector3().crossVectors(Y, Z);
+  let geo;
+  if (round) {
+    const r = wide / 2 * MM, s = new THREE.Shape();
+    s.absarc(0, L / 2, r, 0, Math.PI, false);
+    s.absarc(0, -L / 2, r, Math.PI, 2 * Math.PI, false);
+    geo = new THREE.ExtrudeGeometry(s, { depth: thick * MM, bevelEnabled: false, curveSegments: 5 });
+    geo.translate(0, 0, -thick / 2 * MM);
+  } else geo = new THREE.BoxGeometry(wide * MM, L, thick * MM);
+  const m = new THREE.Mesh(geo, mat);
+  m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z));
+  m.position.copy(va).add(vb).multiplyScalar(0.5);
+  g.add(m);
+  return m;
+}
+
+/** A cut cloth panel with body: the closed outline `pts` ([u, v] mm), each corner eased to `r` mm
+ *  (one number, or one per point -- a big radius on a mid-edge point turns a kinked edge into a
+ *  curve), `thk` mm thick, its edges rolled over `soft` mm so a sleeve reads stuffed rather than
+ *  sawn. Local x/y carry u/v; the body runs 0..thk along local z. An extrusion's
+ *  UVs are its shape in metres, which lays the canvas weave 12 mm coarse -- polka dots from a
+ *  metre off -- so they are scaled to a 2 mm weave. */
+function clothPanel(pts, r, thk, soft = 0) {
+  const s = new THREE.Shape(), n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const p = pts[i], a = pts[(i - 1 + n) % n], b = pts[(i + 1) % n];
+    const la = Math.hypot(a[0] - p[0], a[1] - p[1]), lb = Math.hypot(b[0] - p[0], b[1] - p[1]);
+    const ri = Array.isArray(r) ? r[i] : r, ca = Math.min(ri, la / 2), cb = Math.min(ri, lb / 2);
+    const x0 = p[0] + (a[0] - p[0]) / la * ca, y0 = p[1] + (a[1] - p[1]) / la * ca;
+    if (i === 0) s.moveTo(x0 * MM, y0 * MM); else s.lineTo(x0 * MM, y0 * MM);
+    s.quadraticCurveTo(p[0] * MM, p[1] * MM, (p[0] + (b[0] - p[0]) / lb * cb) * MM, (p[1] + (b[1] - p[1]) / lb * cb) * MM);
+  }
+  s.closePath();
+  const geo = new THREE.ExtrudeGeometry(s, soft
+    ? { depth: (thk - 2 * soft) * MM, curveSegments: 4, bevelEnabled: true, bevelThickness: soft * MM, bevelSize: soft * MM, bevelOffset: -soft * MM, bevelSegments: 2 }
+    : { depth: thk * MM, bevelEnabled: false, curveSegments: 4 });
+  if (soft) geo.translate(0, 0, soft * MM);
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 6, uv.getY(i) * 6);
+  return geo;
+}
+
+/** Snow Peak Take! Bamboo Chair (LV-085): a folding TUB chair. Each side is two flat bamboo
+ *  battens crossed scissor-fashion (front foot up to the back, rear foot up to the front corner);
+ *  two flat-bar aluminium X's, one across the front and one across the back, tie the sides and
+ *  fold the chair flat sideways. One cream canvas hangs on the four batten tips: a deep tub with
+ *  a level rim, its front corners turned over the front tips as flat triangular pockets, and a
+ *  flat full-width band sleeved over the back tips. Feet at y = 0, faces +z.
+ *
+ *  It was drawn as a shallow hammock narrower than its frame, gripped by four capsule pockets,
+ *  on four foot skids. None of that is on the chair.
+ *
+ *  Where the numbers come from (studio set in the gallery, LV-085_06 side / _03 front / _07 rear,
+ *  the side view scaled by the published 749 height):
+ *  - SIDE SCISSOR, traced by colour along scanlines of the side view: the back batten runs
+ *    34 degrees off plumb from a front foot at 0.44 d to the top of the back band; the front
+ *    batten 46 degrees from the rear foot to a tip at 0.78 h, 0.46 d. They cross at 0.47 h. Both
+ *    are 32 x 15 with plain half-round ends; the front batten rides outboard of the back one.
+ *  - WIDTHS. The front and rear views are shot from above at about 20 degrees, 2.5 m off, so
+ *    near things read wide: a camera fitted to six heights known from the side view gives feet
+ *    370 apart, the band 460 wide and the pockets 470 over all. That 470 is the build width;
+ *    Snow Peak publishes 549, which no view supports (kept in the catalogue as published_mm).
+ *  - CLOTH. Rim at 0.80-0.82 h from pocket to band (side view), the floor at the published
+ *    420 seat height, so the wall is about 190 deep and hides the top third of the frame. The
+ *    front lip is a U in a plumb plane, its centre about 455 up. The rear wall climbs to the
+ *    band, which is 160 long on the battens' rake, 36 thick (it sleeves a 32 batten), its top
+ *    edge dipping about 26 between the tips (rear view). The pockets are triangles 95 deep at
+ *    the front corner tapering to nothing 250 back along the rim (side view). A black webbing
+ *    is sewn along the rear half of the rim.
+ *  - ALUMINIUM: 20 x 10 flat bar. The front X stands plumb 30-55 ahead of the battens on steel
+ *    straps, from the front feet (55 up) to the opposite front batten just under its pocket
+ *    (0.71 h); the rear X leans from the back battens at 0.86 h to the opposite rear feet at
+ *    0.12 h. */
+export function takeChairGroup(w, d, h, { frame = 0xcfd3d7, fabric = 0xe6d5b6, wood = 0xb98a58, seatH = 420, canvasTex = null } = {}) {
   const g = new THREE.Group();
-  const alu = metalE(frame, 0.85, 0.32);
+  const alu = metalE(frame, 0.2, 0.55);              // satin anodised bar: it photographs white-silver, never dark
+  const steel = metal(0xd6d9dc, 0.6, 0.35);
+  const dark = new THREE.MeshStandardMaterial({ color: 0x26272a, roughness: 0.9 });
   const bambooMat = new THREE.MeshStandardMaterial({ color: wood, roughness: 0.55, metalness: 0.03 });
-  const cloth = new THREE.MeshStandardMaterial({ color: fabric, map: canvasTex || null, roughness: 0.9, side: THREE.DoubleSide });
-  const orient = (m, va, vb) => {
-    m.position.copy(va).add(vb).multiplyScalar(0.5);
-    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
-    g.add(m); return m;
-  };
-  const v3 = a => new THREE.Vector3(a[0] * MM, a[1] * MM, a[2] * MM);
-  // the alu is thin round tube; the bamboo is a FLAT batten -- ~34mm face in the side view,
-  // ~13mm edge-on from the front -- so it is an oriented box, not a fatter cylinder
-  const tube = (a, b, r = 5.5) => { const va = v3(a), vb = v3(b);
-    return orient(new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), alu), va, vb); };
-  const batten = (a, b) => { const va = v3(a), vb = v3(b);
-    return orient(new THREE.Mesh(roundedBox(13 * MM, va.distanceTo(vb), 34 * MM, 5 * MM), bambooMat), va, vb); };
+  // Cotton canvas passes light: the shaded outside of the tub stays cream in every photo, so the
+  // cloth carries a little of its own colour as glow instead of going slate under the rim.
+  const cloth = new THREE.MeshStandardMaterial({ color: fabric, map: canvasTex || null, roughness: 0.9, side: THREE.DoubleSide,
+    emissive: new THREE.Color(fabric), emissiveIntensity: 0.26 });
 
-  // Frame stations, measured off a003 against the published 750 height / 630 depth (and a001
-  // for the widths: the sides SPLAY -- feet inboard at 0.38w, batten tips outboard at 0.43w,
-  // the cloth wings at the full w/2).
-  const fx = w / 2 - 68, tx = w / 2 - 37;          // batten planes at foot / at tip
-  const footF = 0.386 * d, footB = -0.5 * d;       // ground contacts: +243 / -315
-  const hingeY = 0.815 * h, hingeZ = -0.248 * d;   // stainless bracket under the horn (a003 top)
-  const hornY = 0.90 * h, hornZ = -0.31 * d;       // back batten tip, inside the horn pocket
-  const wingY = 0.72 * h, wingZ = 0.47 * d;        // front batten tip, inside the wing roll
-
+  // The side scissor, as [x, y, z] end centres on the +x side. A = front foot -> back tip (inboard),
+  // B = rear foot -> front tip (outboard, clear of A by a spacer at the pivot).
+  const R = 16, BT = 15;
+  const A0 = [0.385 * w, R, 0.436 * d], A1 = [0.447 * w, h - 30, -0.321 * d];
+  const B0 = [0.435 * w, R, -0.5 * d + R], B1 = [0.479 * w, 0.776 * h, 0.463 * d];
+  const on = (P, Q, y) => { const t = (y - P[1]) / (Q[1] - P[1]); return [P[0] + (Q[0] - P[0]) * t, y, P[2] + (Q[2] - P[2]) * t]; };
+  const kA = (A1[2] - A0[2]) / (A1[1] - A0[1]), kB = (B1[2] - B0[2]) / (B1[1] - B0[1]);
+  const yP = R + (A0[2] - B0[2]) / (kB - kA);          // where the two cross in the side view
+  const fz = 0.458 * d;                                // the front X's plane
+  const nR = [0, -0.17, 1];                            // the rear X's plane leans back with its bars
   for (const sx of [-1, 1]) {
-    // one CONTINUOUS batten front foot -> horn, one back foot -> wing; they rivet face to
-    // face where they cross (~0.44h in a003), so one rides 6.5mm outboard, the other inboard
-    batten([sx * (fx + 6.5), 14, footF], [sx * (tx + 6.5), hornY, hornZ]);
-    batten([sx * (fx - 6.5), 14, footB], [sx * (tx - 6.5), wingY, wingZ]);
-    // flat bamboo skid shoes running INWARD from each foot (a003 bottom edge)
-    box(g, 34, 14, 140, 5, bambooMat, sx * fx, 7, footF - 48);
-    box(g, 34, 14, 140, 5, bambooMat, sx * fx, 7, footB + 48);
-    box(g, 8, 32, 16, 2, metal(0xd6d9dc, 0.9, 0.3), sx * (tx + 11), hingeY, hingeZ);  // horn hinge strap
-    // the two lateral scissor X's, thin alu tube, each foot to the OPPOSITE side's tip
-    tube([sx * fx, 22, footF], [-sx * tx, wingY, wingZ]);     // front X, up into the wing rolls
-    tube([sx * fx, 22, footB], [-sx * tx, hingeY, hingeZ]);   // rear X, up to the horn brackets
+    const at = p => [sx * p[0], p[1], p[2]];
+    flatBar(g, at(A0), at(A1), 2 * R, BT, [1, 0, 0], bambooMat, true);
+    flatBar(g, at(B0), at(B1), 2 * R, BT, [1, 0, 0], bambooMat, true);
+    const pa = on(A0, A1, yP), pb = on(B0, B1, yP);    // the pivot bolt, through both and the spacer
+    cyl(g, 5, 5, pb[0] - pa[0] + BT + 10, 10, steel, sx * (pa[0] + pb[0]) / 2, yP, pa[2]).rotation.z = Math.PI / 2;
+
+    // front X: this side's foot to the far side's batten, the pair lapped 11 apart
+    const fb = [sx * (A0[0] - 10), 55, fz + sx * 5.5], ft = [-sx * (B1[0] - 16), 0.71 * h, fz + sx * 5.5];
+    flatBar(g, fb, ft, 20, 10, [0, 0, 1], alu);
+    const sa = on(A0, A1, 34), sb = on(B0, B1, 0.70 * h);
+    flatBar(g, [fb[0], 34, sa[2]], [fb[0], 59, fz], 14, 3, [1, 0, 0], steel);                       // foot strap
+    flatBar(g, [-ft[0], sb[1], sb[2]], [-ft[0], 0.71 * h, fz], 14, 3, [1, 0, 0], steel);            // top strap
+    // rear X: this side's back batten down to the far side's rear foot
+    const ra = on(A0, A1, 0.86 * h), rb = on(B0, B1, 0.12 * h);
+    flatBar(g, [sx * (ra[0] - 13), ra[1], ra[2] + sx * 5.5], [-sx * (rb[0] - 13), rb[1], rb[2] - 18 + sx * 5.5], 20, 10, nR, alu);
   }
 
-  // The drape: ONE sheet, front edge -> seat pocket -> waist -> back -> top edge. Per station:
-  // z along the depth, the cloth's height at its EDGES, its HALF-width, how far the centre
-  // SAGS below the edges, and (back panel only) how far the middle bellies rearward. Stations
-  // trace the hero + a004 silhouette hung on three anchors: wings 0.72h, horns ~h, floor 420.
+  // The back band: a sleeve over the two back tips, lying on the battens' rake. Its top FRONT edge
+  // is the chair's highest line, so that is what sits at h.
+  const rake = Math.atan2(A0[2] - A1[2], A1[1] - A0[1]), sr = Math.sin(rake), cr = Math.cos(rake);
+  const BL = 160, BK = 36, soft = 9, bw = 0.485 * w, dip = 26;
+  const yT = h - (BK / 2 - soft) * sr, zT = on(A0, A1, yT)[2];
+  const yB = yT - BL * cr, zB = zT + BL * sr;          // centre of its bottom edge
+  const bandGeo = clothPanel([[-bw, 0], [bw, 0], [bw, BL], [bw / 2, BL - 0.75 * dip], [0, BL - dip],
+    [-bw / 2, BL - 0.75 * dip], [-bw, BL]], [12, 12, 14, 90, 140, 90, 14], BK, soft);
+  bandGeo.translate(0, 0, -BK / 2 * MM);
+  const band = new THREE.Mesh(bandGeo, cloth);
+  band.rotation.x = -rake;
+  band.position.set(0, yB * MM, zB * MM);
+  g.add(band);
+
+  // The tub: ONE sheet, front lip -> floor -> rear wall, as U-sections. Per station: z, the rim's
+  // height, its half-width, how much of the rim-to-seat drop the centre takes, and the section's
+  // power (2 = a parabola; higher = a flatter floor with steeper walls -- the rear wall is the
+  // section flattening out as it climbs to the band's front face).
+  const zL = zB + BK / 2 * cr - 3, yL = yB + BK / 2 * sr + 3, zF = -0.098 * d;
   const S = [
-    //   z/d     yE/h   hw/w  sag belly
-    [ 0.470,  0.695,  0.435,  55,  0],   // front edge, sagging between the wing rolls
-    [ 0.360,  0.675,  0.415,  72,  0],
-    [ 0.240,  0.665,  0.385,  80,  0],
-    [ 0.100,  0.660,  0.355,  76,  0],   // pocket floor: centre 418 = the published 420
-    [-0.020,  0.665,  0.330,  68,  0],
-    [-0.100,  0.685,  0.315,  52,  0],   // bucket rear climbing out
-    [-0.145,  0.730,  0.300,  36,  0],   // the waist -- narrowest, bucket turns into back
-    [-0.175,  0.785,  0.335,  28, 12],
-    [-0.205,  0.845,  0.370,  24, 16],   // back panel widening toward the horns
-    [-0.235,  0.905,  0.400,  26, 18],
-    [-0.265,  0.955,  0.415,  38, 14],
-    [-0.295,  0.985,  0.425,  64,  8],   // top edge: ~65mm dip between the horn peaks (hero)
+    [0.492 * d, 0.750 * h, 0.452 * w, 0.72, 2.4],      // front lip, its ends tucked into the pockets' lower corners
+    [0.455 * d, 0.800 * h, 0.452 * w, 0.82, 2.6],
+    [0.340 * d, 0.806 * h, 0.449 * w, 0.92, 2.9],
+    [0.190 * d, 0.801 * h, 0.443 * w, 0.975, 3.0],
+    [0.050 * d, 0.800 * h, 0.435 * w, 1.0, 3.0],       // lowest: the published seat height
+    [-0.050 * d, 0.803 * h, 0.428 * w, 0.985, 3.2],
+    [zF, 0.808 * h, 0.423 * w, 0.96, 3.6],             // the floor's rear edge
+    [zF + (zL - zF) * 0.35, 0.813 * h, 0.421 * w, 0.80, 4.5],
+    [zF + (zL - zF) * 0.65, 0.817 * h, 0.419 * w, 0.48, 6],
+    [zF + (zL - zF) * 0.90, 0.820 * h, 0.418 * w, 0.10, 8],
+    [zL, yL, 0.418 * w, 0, 8],                         // the band's lower front edge
   ];
-  const cols = 10, geo = new THREE.PlaneGeometry(1, 1, cols, S.length - 1);
-  const pos = geo.attributes.position;
+  const cols = 16, geo = new THREE.PlaneGeometry(1, 1, cols, S.length - 1), pos = geo.attributes.position;
+  const lip = [], rimL = [], rimR = [];
   for (let i = 0; i < S.length; i++) for (let j = 0; j <= cols; j++) {
-    const [zc, ye, hw, sag, belly] = S[i], u = (j / cols) * 2 - 1, dip = 1 - u * u;
-    pos.setXYZ(i * (cols + 1) + j, u * hw * w * MM, (ye * h - sag * dip) * MM, (zc * d - belly * dip) * MM);
+    const [z, rim, hw, fill, n] = S[i], u = Math.sin((j / cols * 2 - 1) * Math.PI / 2);   // columns crowd the walls
+    const p = [u * hw, rim - (rim - seatH) * fill * (1 - Math.abs(u) ** n), z];
+    pos.setXYZ(i * (cols + 1) + j, p[0] * MM, p[1] * MM, p[2] * MM);
+    if (i === 0) lip.push(p);
+    if (i >= 3 && j === 0) rimL.push(p);
+    if (i >= 3 && j === cols) rimR.push(p);
   }
   geo.computeVertexNormals();
+  for (let i = 0, uv = geo.attributes.uv; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 3, uv.getY(i) * 3);   // a finer weave: see clothPanel
   const sheet = new THREE.Mesh(geo, cloth);
   g.add(sheet);
+  bentTube(g, lip, 5, cloth);                          // the lip's rolled hem
+  for (const rim of [rimL, rimR])                      // black webbing sewn outside the rear half of each rim
+    for (let i = 1; i < rim.length; i++) {
+      const o = Math.sign(rim[i][0]) * 1.5;
+      flatBar(g, [rim[i - 1][0] + o, rim[i - 1][1] - 6, rim[i - 1][2]], [rim[i][0] + o, rim[i][1] - 6, rim[i][2]], 7, 2, [1, 0, 0], dark);
+    }
 
-  // The four pockets gripping the batten tips: wrap-over horns peaking at ~the full 749, and
-  // plump forward wing rolls whose crowns ride ~70mm above the sagging front edge.
-  const pocket = (x, y, z, dir, r, len) => {
-    const m = new THREE.Mesh(new THREE.CapsuleGeometry(r * MM, len * MM, 4, 12), cloth);
-    m.position.set(x * MM, y * MM, z * MM);
-    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(...dir).normalize());
-    g.add(m); return m;
-  };
+  // The front corners, turned over the front batten tips: flat triangular pockets on the outside
+  // of the tub, the widest thing on the chair. Outline in [-z, y].
+  const wing = clothPanel([[-0.5 * d, 0.812 * h], [-0.452 * d, 0.848 * h], [-0.10 * d, 0.806 * h], [-0.497 * d, 0.722 * h]], 14, 0.048 * w, 6);
   for (const sx of [-1, 1]) {
-    pocket(sx * 0.425 * w, 0.93 * h, hornZ + 9, [sx * 0.04, 0.836, -0.555], 26, 64);  // horn, along the batten
-    pocket(sx * 0.43 * w, 0.73 * h, 0.40 * d, [sx * 0.12, 0.18, 0.975], 30, 70);      // wing roll, pointing forward
+    const m = new THREE.Mesh(wing, cloth);
+    m.rotation.y = Math.PI / 2;
+    m.position.x = (sx > 0 ? 0.452 : -0.5) * w * MM;
+    g.add(m);
   }
   return { group: g, body: sheet };   // the sheet is the chair's own big pick surface
 }
@@ -2458,7 +2623,7 @@ export function coolerGroup(w, d, h, { frame = 0x8a7e76, fabric = 0xa83832 } = {
   const g = new THREE.Group();
   const poly = new THREE.MeshStandardMaterial({ color: new THREE.Color(frame), metalness: 0, roughness: 0.62 });
   const dark = new THREE.MeshStandardMaterial({ color: new THREE.Color(frame).multiplyScalar(0.55), metalness: 0, roughness: 0.85 });
-  const lidH = h * 0.22, seam = 3, bodyH = h - lidH - seam;
+  const lidH = h * 0.16, seam = 3, bodyH = h - lidH - seam;   // the lid is about a sixth of the height in the hero (it was 0.22: a thick lid)
   const body = new THREE.Mesh(roundedBox((w - 12) * MM, bodyH * MM, (d - 12) * MM, 12 * MM), poly);
   body.position.y = bodyH / 2 * MM; g.add(body);
   // The seam: a slightly recessed dark band, so the lid reads as a separate piece.

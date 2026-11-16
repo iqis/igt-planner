@@ -3259,7 +3259,7 @@
    "curated_reason": "Folding Bench (LV-071GY): the folding chair's bench sibling -- BACKLESS, armless, a long taupe canvas sling on two black end X-frames tied by a lengthwise stretcher. 1095x330x358 (seat height, no back). chair type 'bench'.",
    "seat_h_mm": 358,
    "frame_hex": "0x232528",
-   "fabric_hex": "0x8c8279",
+   "fabric_hex": "0x7f6c62",
    "chair": "bench",
    "fabric_type": "canvas"
   },
@@ -3376,7 +3376,7 @@
    "curated_reason": "First NON-IGT prop: the Snow Peak Folding Chair (director's chair). A free-standing piece placed AROUND the layout -- it does not connect to the IGT grid, occupies no slot, joins no assembly. role 'seating' -> a 'prop' node: draggable, rotatable, billed, nothing else. 566x594x838mm, 457mm seat; BLACK aluminium X-frame + taupe polyester-canvas seat/back/armrests. Modelled from the LV-077GY photo.",
    "seat_h_mm": 457,
    "frame_hex": "0x232528",
-   "fabric_hex": "0x8c8279",
+   "fabric_hex": "0x7f6c62",
    "chair": "folding",
    "fabric_type": "canvas"
   },
@@ -3468,7 +3468,7 @@
    "collections": [],
    "region_exclusive": "jp",
    "assembled_mm": {
-    "w": 549,
+    "w": 470,
     "d": 630,
     "h": 749
    },
@@ -3490,11 +3490,16 @@
     "us": "https://www.snowpeak.com/products/take-bamboo-chair-short-lv-085",
     "jp": null
    },
-   "curated_reason": "Take! Bamboo Chair (LV-085): the signature Snow Peak chair -- a butterfly-chair cream canvas bucket hung from two continuous bamboo scissor battens per side, thin alu lateral scissor X's front and rear. 549x630x749, seat 420 (JP spec sheet). chair type 'take'.",
+   "curated_reason": "Take! Bamboo Chair (LV-085): the signature Snow Peak chair -- a deep cream canvas tub hung on the tips of two crossed bamboo battens per side, its front corners turned over the front tips as flat pockets and a flat band sleeved over the back tips; flat-bar aluminium X's front and rear. WIDTH: Snow Peak publishes 549, but the front and rear studio views (LV-085_03, _07), read through a camera fitted to heights known from the side view, give feet 370 apart, the back band 460 and the pockets 470 over all; the plain pixel ratio against the 749 height gives 470 as well. Built 470 wide; 549 kept as published_mm. 630 deep and 749 high as published, seat 420 (JP spec sheet). Canvas 0xe6d5b6 and bamboo 0xb98a58 re-sampled from the same photos. chair type 'take'.",
+   "published_mm": {
+    "w": 549,
+    "d": 630,
+    "h": 749
+   },
    "seat_h_mm": 420,
    "frame_hex": "0xcfd3d7",
-   "fabric_hex": "0xefe6d0",
-   "wood_hex": "0xd8bd86",
+   "fabric_hex": "0xe6d5b6",
+   "wood_hex": "0xb98a58",
    "chair": "take",
    "fabric_type": "canvas"
   },
@@ -3566,7 +3571,7 @@
    "seat_h_mm": 260,
    "frame_hex": "0x232528",
    "fabric_hex": "0x6e5b54",
-   "wood_hex": "0xd8bd86",
+   "wood_hex": "0xb08560",
    "chair": "lowbeach",
    "fabric_type": "canvas"
   },
@@ -3580,9 +3585,9 @@
    "collections": [],
    "region_exclusive": "jp",
    "assembled_mm": {
-    "w": 1494,
+    "w": 1598,
     "d": 749,
-    "h": 650
+    "h": 795
    },
    "packed_mm": null,
    "weight_g": null,
@@ -3598,11 +3603,16 @@
     "us": "https://www.snowpeak.com/products/racksotto-multi-starter-set-ar",
     "jp": null
    },
-   "curated_reason": "Campfield Futon (SET-200) in its BASIC SOFA form only (owner: the set reconfigures many ways -- bed / chairs / shelves -- but we model just the sofa). A low two-seat loveseat: silver aluminium X-frame base, two taupe seat + two reclined back cushions (0xa08d80 sampled), natural-wood armrests on the ends. chair type 'sofa'; ~1494x749x650. A prop like the chairs.",
-   "seat_h_mm": 320,
+   "curated_reason": "Campfield Futon (SET-200) in its BASIC SOFA form only (owner: the set reconfigures many ways -- bed / chairs / shelves -- but we model just the sofa). Three plastic deck modules on aluminium hairpin hoops, two taupe seat cushions and two more stood up as the back, a wooden arm board on a scissor X at each end. HEIGHT: the published 650 fits no sofa photograph -- scaled by the 749 deck depth, the side view (set-220 alt_06) puts the seat top at 367 and the back top at 795 -- so it is built 795 high. WIDTH: the published 1494 is the deck (three 498 modules, and two 747 cushions); the arm boards sit astride the deck's ends, half of each outside it (front view, alt_03), so the sofa over all is 1598. 1494 x 749 x 650 kept as published_mm. Cushions 0x72615a and arm wood 0xc8a074 re-sampled from the same photos. chair type 'sofa'. A prop like the chairs.",
+   "published_mm": {
+    "w": 1494,
+    "d": 749,
+    "h": 650
+   },
+   "seat_h_mm": 367,
    "frame_hex": "0xbfc3c7",
-   "fabric_hex": "0xa08d80",
-   "wood_hex": "0xcbb083",
+   "fabric_hex": "0x72615a",
+   "wood_hex": "0xc8a074",
    "chair": "sofa",
    "fabric_type": "canvas"
   },
