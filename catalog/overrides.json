@@ -1315,28 +1315,28 @@
     "kind": "polygon",
     "vertices": [
      [
-      -2745,
-      -2135
+      -2750,
+      -2200
      ],
      [
-      2745,
-      -2135
+      2750,
+      -2200
      ],
      [
-      2745,
-      2135
+      2750,
+      2200
      ],
      [
-      -2745,
-      2135
+      -2750,
+      2200
      ]
     ]
    },
    "capacity": 8,
    "peak_h_mm": 2770,
    "assembled_mm": {
-    "w": 5490,
-    "d": 4270,
+    "w": 5500,
+    "d": 4400,
     "h": 2770
    },
    "price": {
@@ -1344,7 +1344,7 @@
     "jp": null,
     "uk": null
    },
-   "reason": "Snow Peak HD Tarp Shield Recta L (TP-842): shelter FOOTPRINT for scale reference — fabric panel 549x427cm; guyed setup 1120x890cm. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
+   "reason": "Snow Peak HD Tarp Shield Recta L (TP-842): shelter FOOTPRINT for scale reference — fabric panel 550x440cm (the JP figure; the 549x427 here until 2026-11 was the US listing's rounded 18' x 14' turned back into cm); guyed setup 1120x890cm. Vertices = setup outline (NOT inner mat), origin=centre, +y=front, mm.",
    "guyed_mm": {
     "w": 11200,
     "d": 8900

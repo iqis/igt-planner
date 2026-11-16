@@ -6,6 +6,33 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+- **Burners.** The Flat Burner is a burner: an open bowl with the head in it under a wire grate,
+  on a one-unit plate (its published 270 x 410 is the stove standing on its own wire legs). The
+  Grill Burner sits level with the table, its water tray and stand hanging below; it had floated on
+  four posts. The Double Burner has wire racks over its well and, in a frame, no windscreen, as in
+  Snow Peak's own pictures. The LI Stove, its joint frame and the BBQ box are redrawn from the photos.
+- **Collapsible frames have silver end bars** with black corner blocks; they were an all-black ring.
+- **Two frames joined end to end share the legs at the joint.** That is what Snow Peak's photo of
+  the Connection Hook shows: two legs under the joint, not four. A joined pair now stands on six
+  legs and the bill carries one leg set fewer; "4 legs" is still a choice on the joined frame. A
+  design saved before this with joined frames now shows the shared joint.
+- **Bamboo boards are their real thickness** (14 mm; 9 on the Light boards) with their brackets,
+  wire hooks and leg blocks. Corner boards are whole (two bites were missing from each). Boards no
+  longer sink into the board they hook onto: they sit 11.5 mm apart, 7.5 from a frame's end.
+  Slide-in extensions carry their brackets underneath, where they are.
+- **Extension IGT's legs stay on its stand** and the two tops overhang them when it is opened.
+  **Entry IGT** has its wide aluminium frame, filled by the boards. **IGT Slim** is 824 long over
+  its top (940 over the feet) in brown teak slats.
+- **Takibi My Table** is the folding table it is. **Takibi Fire & Grill** stands on its real legs
+  in bright steel. The **Jikaro**'s wire legs hang along the slant sides of each panel. The
+  **Connection Table** and the **Grill Bridge** are redrawn.
+- **Chairs on their real frames**: the Take! chair's deep canvas tub, the Folding Bench with its
+  tubes along the cloth, the Folding Chair's raked back and floor skids, the Low Beach Chairs'
+  scissor frames, the Campfield sofa's thin deck and tall back.
+- **Hanging Rack 2 Frame** is solid and its measured size (555 x 354 x 450); the Hanging Shelf
+  passes between the rails.
+- **HD Tarp Recta L** is 550 x 440 cm (it was 549 x 427, feet turned back into centimetres).
+
 ## [1.4.2] — 2026-11-15
 
 - **The frame is drawn as it is.** The seat a module's rim rests in is on the inside of each rail; it

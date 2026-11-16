@@ -1,5 +1,23 @@
 # Status — 2026-08-02, end of the launch/modeling phase
-> **2026-11-15: model audit, batch 1 of about 3 fixed; released as v1.4.2.** The audit of
+> **2026-11-15: model audit, batch 2 merged (on dev; prod is still v1.4.2).** Every planner-visible
+> finding of the 2026-11-11 audit is now fixed: seven family branches (frames, boards, cooking,
+> racks, fire and layout tables, self-contained tables, seating), each rebuilt against the
+> photographs in its own worktree and squashed onto main as one commit per family. See CHANGELOG
+> [Unreleased]. Decisions taken on the evidence, the owner's to overturn: the shared joint is the
+> default for frames joined end to end (`sharedJoint !== false`); GS-450R's plate is 250 x 360
+> (`plate_mm`); boards are 14 / 9 mm (`board_mm`); the GS-230 has no windscreen in a frame;
+> SET-200 is 1598 x 749 x 795 and LV-085 470 wide, vendor numbers kept as `published_mm`; CK-220 is
+> 555 x 354 x 450, still estimated; units in the Extension IGT's bay sit a board's thickness below
+> the tops. **Left open:** the Takibi inside the Jikaro still stands on the ground (the manual
+> wants a base plate and stand; the stand is not in the catalogue); the Jikaro's compact form is
+> 885 / 365 here and 890 / 370 in its manual; LV-091's width and depth may be swapped; the BBQ box's
+> "no mixed halves" rule; gear bags open or closed. **Skipped to save cost (bench pages only, no
+> visitor sees them):** BG-031/032, DB-005, UG-90x, CK-020, GR-006 and S-029HA on the bench, the lid
+> trays' folded sheet, GF-010, GF-015, GF-051/052, the Light boards' finer grain, the cushion seam.
+> `scripts/make_textures.py` would overwrite the hand-corrected board outlines, hooks and leg holes
+> in `catalog/textures.json` (each carries a `hand_note`): do not re-run it over those parts.
+>
+> **2026-11-15: model audit, batch 1 fixed; released as v1.4.2.** The audit of
 > 2026-11-11 set every part beside Snow Peak's photographs (116 parts on the bench, 37 layouts, 985
 > photos): 92 graded, 8 faithful / 40 minor / 43 wrong. Findings with file:line are in
 > `data/runs/20261111_model-audit/findings.md` (local, gitignored) with the render scripts that
