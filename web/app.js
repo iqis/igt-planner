@@ -38,6 +38,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          tarpPitchGroup, landLockGroup, pentaTarpGroup, figureGroup, clothTarpGroup } from "./parts3d.js";
 import { legGroup, connectionHookGroup, heightAdjusterGroup, hookHoleZ } from "./parts3d.js";   // frames
 import { hookBoardGroup } from "./parts3d.js";   // boards
+import { myTableGroup, connTableGroup } from "./parts3d.js";   // fire
 import { PATTERNS as TARP_PATTERNS, solvePitch, pitchOf, letterOf, MAIN_POLES, SUB_POLES, MID_POLES, LEANS, RIDGES, ridgeOf } from "./tarp.js";
 import { openTarpMode } from "./tarpmode.js";
 
@@ -947,12 +948,14 @@ function drawFootprint(g, n) {
   }
 }
 
-/** The Connection Table (LV-381): a black heat-resistant stainless top on black X-frame folding
- *  legs. Reuses the bamboo-shelf builder in black (a top + X-legs + stretcher), at its top height
- *  -- so its surface lines up at the datum with any IGT extension hooked to its edges. */
+/** The Connection Table (LV-381): a charcoal heat-resistant stainless top with clipped corners on
+ *  two crossing leg frames -- its own builder (parts3d.js connTableGroup; it used to borrow the
+ *  bamboo shelf's, whose feet landed outside this top). Built top at y = 0, so it is lifted to its
+ *  top height and its surface lines up at the datum with any IGT extension hooked to its edges. */
 function drawConnTable(g, n) {
   const f = footprint(n), tp = topOf(n);
-  const built = bambooShelfGroup(f.w, f.d, tp, { frame: 0x2a2c30, wood: 0x1c1e22 });
+  const built = connTableGroup(f.w, f.d, tp);
+  built.group.position.y = tp * MM;
   built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
   g.add(built.group);
 }
@@ -971,6 +974,18 @@ function drawTable(g, n) {
     const f = footprint(n);
     const built = lv310Group(f.w, f.d, PARTS[n.sku].assembled_mm?.h ?? 1100, swatchOf(n.sku));
     built.group.position.y = LV310_TOP * MM;
+    built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
+    g.add(built.group);
+    return;
+  }
+
+  // Takibi My Table (LV-039): two hinged stainless leaves on a folding tube stand (parts3d.js
+  // myTableGroup), not the slab on four corner legs the fall-through draws. Top at y = 0 in the
+  // builder, so it is lifted to the table's own height.
+  if (n.sku === "LV-039") {
+    const f = footprint(n), tp = topOf(n);
+    const built = myTableGroup(f.w, f.d, tp, swatchOf(n.sku));
+    built.group.position.y = tp * MM;
     built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(built.group);
     return;

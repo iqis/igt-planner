@@ -14,25 +14,25 @@
   "Fields: what, model, fits, confidence(high|medium|low), derived[], assumed[], unknown[]."
  ],
  "ST-050": {
-  "what": "The Jikaro Fire Ring Table: an octagonal table (1120mm across, 400mm tall) with an open centre for a fire pit or ring, standing on eight wire legs. RECONFIGURABLE: the four trapezoid segments go together two ways -- spread (long edge in: 1120 across, 600 opening) or compact (short edge in: 885 across, 365 opening). The open centre only becomes usable IGT space with an OPTIONAL bridge (2-Unit CPL-JT2U over the 600 opening, or 1-Unit ST-051 over the 365).",
-  "model": "jikaroGroup -- one octagon ring (outer/opening/edge driven by the chosen config, extruded flat) on eight U-hairpin legs. Each hairpin runs ALONG one of the trapezoid's two 285mm slant edges (inner hole corner out to the outer flat corner) -- two per segment, eight in all -- dropping to a foot bar with a shallow centre notch. When a bridge is on, jikaroBridge lays two stainless brackets across the opening with the slide-in bars dividing it into 1 or 2 IGT units.",
+  "what": "The Jikaro Fire Ring Table: an octagonal table (1120mm across, 400mm tall) with an open centre for a fire pit or ring, standing on eight folding wire gates (the manual's four 脚 are the bar pairs under the panels; each carries two gates). RECONFIGURABLE: the four trapezoid segments go together two ways -- spread (long edge in: 1120 across, 600 opening) or compact (short edge in: 885 across, 365 opening). The open centre only becomes usable IGT space with an OPTIONAL bridge (2-Unit CPL-JT2U over the 600 opening, or 1-Unit ST-051 over the 365).",
+  "model": "jikaroGroup -- one octagon ring (outer/opening/edge driven by the chosen config; a 6mm deck with 25mm skirts) on eight wire gates. Each gate hangs ALONG one of a segment's two slant sides -- two per segment, eight in all: a plumb wire at groove A (90 either side of the segment's centre line, 34 in from its SHORT edge), a plumb wire at groove B (245 out, 196 in), and between their feet a bar rising to a shallow centre notch. The stations are measured from the short edge, so the gates follow the segment into either assembly: side by side under each chamfer in the spread form, along the diagonal seams in the compact one. When a bridge is on, jikaroBridge lays two stainless brackets across the opening with the slide-in bars dividing it into 1 or 2 IGT units.",
   "fits": "Standalone. It does not hook to the frame rail; Snow Peak groups it with the layout tables by height (400mm datum). Its OWN centre, bridged, hosts IGT unit accessories (1U compact / 2U spread). A Bamboo IGT Table can also hook to one outer 365mm edge (a011).",
   "confidence": "medium",
   "derived": [
    "octagon outline and the central opening are traced off the top-view photograph",
    "overall 1120mm and height 400mm are from the catalogue",
    "two assembly configs (long-edge-in 1120/600, short-edge-in 885/365) reconstructed from the two plan photos a007/a008 at their two scales, cross-checked against the segment invariant and the spec table",
-   "eight U-hairpin legs running ALONG the trapezoid slant (short) edges, two per segment -- from the disassembled photo a009 AND the user's explicit correction; the pair marks D,E land on the OUTER end of the +x pair of slants, repeated to all eight by the octagon's four-fold symmetry",
+   "eight wire gates running ALONG the trapezoid slant sides, two per segment -- the user's explicit correction, the disassembled photo a009, and the manual (ST-050.pdf): its 裏面 drawing is to scale (it returns the segment's own 600 / 370 / 260) and puts groove A at +/-90, 34 in from the short edge, and groove B at +/-245, 196 in; its step 3 draws a segment standing on one gate at each end",
    "the bridge is a real optional accessory (ST-051 1U / CPL-JT2U 2U); opening size decides which fits (600->2U, 365->1U), confirmed against the IGT W=250n+96 formula",
    "it joins via BUILT-IN SIDE KNOBS (ツマミ, in the material spec), NOT the frame's wire hook -- the `knob` interface, symmetric, no CK-175. This is the SAME joint its four trapezoid segments use, so its outer edges are the same port (owner correction; earlier this was wrongly modelled as the wire hook). Only the Jikaro + Connection Table (LV-381) have it. See layout.connections."
   ],
   "assumed": [
    "opening 600mm and slant-edge 365mm outer / 285mm slant / 260mm depth (ring proportions from the photo + the trapezoid math)",
-   "the two wires sit at 16% and 95% along each slant, dropping vertically (D,E fix the outer end; the inner-wire spot and the foot notch are eyeballed off a009)",
+   "the foot bar's notch height (30mm) is eyeballed off a009 and the manual's step 3; the bars under the deck that the gates hang from are not drawn (the skirts hide them)",
    "the bridge is modelled schematically (2 brackets + N bars); exact bracket profile from the CPL-JT2U spec (635x115 bracket, 360x47 bars)"
   ],
   "unknown": [
-   "exact wire spacing along the slant and how vertical vs splayed the drop is -- two noisy outer marks don't pin the inner wire",
+   "whether the published compact form is 885 or 890 across with a 365 or 370 opening: the manual's spec prints 890 / 370, layout.json carries 885 / 365 (measured off two plan photos) and was left alone because the fit rules read it",
    "the official Snow Peak SKU of the 2-Unit bridge (a SEPPOUSAI festival limited; CPL-JT2U is the after-market equivalent)"
   ]
  },

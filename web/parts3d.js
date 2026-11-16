@@ -1750,6 +1750,126 @@ export function tableGroup(w, d, height, thick, color, legColor = null) {
   return { group: g, body: top };
 }
 
+/** Takibi My Table (LV-039; JP TAKIBI Myテーブル): the folding side table in fire-proof stainless.
+ *  It was drawn as a slab on four round corner legs; it has no corner legs. Its manual names the
+ *  parts (各部の名称: 天板, ピン, スタンド, 支柱, ハンギングバー) and the photographs show each:
+ *
+ *    天板        two stainless leaves hinged across the middle -- the long elevation (JP a001)
+ *               shows the seam at half length -- with a turned-down edge that scales to 12mm
+ *               against the published 496, and a stadium hand slot at each short end: 205 x 22,
+ *               about 12 in from the end (a001, measured against the 332 depth; a002 close up).
+ *    スタンド     two aluminium tube loops, each a U hinged under the seam and raked out to a foot
+ *               bar. a001 solved as a camera (the top's four corners give its scale and a 19 deg
+ *               tilt): pivot 30 below the top face, the foot tube's outer edge 246 from the
+ *               centre, tube dia 18-19. The packed size agrees: pivot to foot 431 plus the tube is
+ *               the published 450. The folded view (a004) gives the loop flat: arms 270 apart at
+ *               the pivot flaring to 310 at the feet, and a foot bar HUMPED ~28mm in the middle,
+ *               so the table stands on four short flats and not on two rails.
+ *    支柱        one dia-4 wire U per end, from under the leaf 40 in from its end down to the
+ *               arms' rivets, ~205 along from the pivot (a001: both wires end on the rivets).
+ *    ハンギングバー a flat bar under each slot (a002 looks down through the slot at it).
+ *
+ *  Top at y = 0, feet at -h. */
+export function myTableGroup(w = 496, d = 332, h = 400, color = 0xd4d4d4) {
+  const g = new THREE.Group();
+  const sheet = metalE(color, 0.6, 0.42);          // the leaves: brushed stainless sheet
+  const alu = metal(0xdde0e3, 0.7, 0.42);          // the stand: satin aluminium tube
+  const wire = metal(0xc9cdd1, 0.85, 0.3);
+  const topT = 12, tubeR = 9.5, seam = 2;
+  const slotL = 205, slotW = 22, slotIn = 12;
+  const slotX = w / 2 - slotIn - slotW / 2;
+
+  // One leaf, built once and turned for the other side: a rectangle from the seam to the end,
+  // the slot punched THROUGH it (the stays and the hanging bar show through, as in the hero).
+  const x0 = seam / 2 * MM, x1 = w / 2 * MM, hz = d / 2 * MM, cr = 4 * MM;
+  const s = new THREE.Shape();
+  s.moveTo(x0, -hz); s.lineTo(x1 - cr, -hz); s.quadraticCurveTo(x1, -hz, x1, -hz + cr);
+  s.lineTo(x1, hz - cr); s.quadraticCurveTo(x1, hz, x1 - cr, hz); s.lineTo(x0, hz); s.closePath();
+  const slot = new THREE.Path(), sr = slotW / 2 * MM, sl = (slotL - slotW) / 2 * MM;
+  slot.absarc(slotX * MM, sl, sr, 0, Math.PI, false);
+  slot.absarc(slotX * MM, -sl, sr, Math.PI, 2 * Math.PI, false);
+  slot.closePath();
+  s.holes.push(slot);
+  const leafGeo = new THREE.ExtrudeGeometry(s, { depth: topT * MM, bevelEnabled: false, curveSegments: 6 });
+  leafGeo.rotateX(-Math.PI / 2);
+  leafGeo.translate(0, -topT * MM, 0);
+  let body = null;
+  for (const turn of [0, Math.PI]) {
+    const leaf = new THREE.Mesh(leafGeo, sheet);
+    leaf.rotation.y = turn;
+    g.add(leaf);
+    if (!body) body = leaf;
+  }
+  // The seam: the hinge knuckles fill it, so it reads as a dark line, not as daylight.
+  box(g, seam + 0.8, topT - 2, d - 8, 0, metal(0x6b6f74, 0.5, 0.6), 0, -1 - (topT - 2) / 2, 0);
+
+  // The stand. Each loop lives in its own raked plane: u runs from the pivot down the arm,
+  // z across. The foot bar's centreline lands one tube radius above the ground.
+  const yp = 30;                                   // pivot, below the top face
+  const footX = w / 2 - 12;                        // foot bar centreline: 236 on the 496
+  const drop = h - tubeR - yp;
+  const L = Math.hypot(footX, drop), sin = footX / L, cos = drop / L;
+  const zf = d / 2 - 11;                           // arm centreline at the foot: 155 on the 332
+  for (const sx of [-1, 1]) {
+    const P = (u, z) => [sx * u * sin, -yp - u * cos, z];
+    // The two loops nest at the pivot, one inside the other by a tube's width.
+    const zt = zf - 20 + sx * tubeR;
+    bentTube(g, [P(-8, zt), P(L, zf), P(L, zf - 57), P(L - 28, 28),
+                 P(L - 28, -28), P(L, -(zf - 57)), P(L, -zf), P(-8, -zt)], tubeR, alu,
+      { rad: [0, 38, 45, 45, 45, 45, 38, 0], radial: 10 });
+    // 支柱: one wire U, its cross run hinged under the leaf, its legs down to the arms.
+    const us = 205, za = zt + (zf - zt) * us / L - tubeR - 2;
+    const T = z => [sx * (w / 2 - 40), -topT - 2, z];
+    bentTube(g, [P(us, za), T(za - 14), T(-(za - 14)), P(us, -za)], 2, wire, { rad: 6 });
+    // ハンギングバー, under the slot.
+    box(g, 12, 3, slotL + 30, 0, wire, sx * (slotX + 4), -topT - 6, 0);
+  }
+  // ピン: the hinge pins the arms turn on, one at each long side.
+  for (const sz of [-1, 1]) cyl(g, 4, 4, 2 * tubeR + 22, 8, wire, 0, -yp, sz * (zf - 20), Math.PI / 2);
+  return { group: g, body };
+}
+
+/** Connection Table (LV-381; JP コネクションテーブル): a heat-proof painted stainless top on two
+ *  folding leg frames, the table that joins the Jikaro. It borrowed the bamboo shelf's builder in
+ *  black, whose end X-frames are wider than this table: the feet landed outside the top on all
+ *  four sides. Its own photographs, against the published 840 x 420 x 400:
+ *
+ *    top     a flat tray-edged sheet about 22 thick with its four corners CLIPPED ~25 (plan view,
+ *            LV-3812). It photographs charcoal, #585855 on a #28292d ground, not black.
+ *    legs    two inverted-U tube frames (LV-3812 shows one laid flat), each a bar under the top
+ *            with a leg at either end, crossing as an X seen from the end. End elevation
+ *            (LV-3811, top 411 px = 420): the bars sit 100 either side of the centre line, the
+ *            feet land 166 the OTHER side. Side elevation (LV-38113): leg tops ~75 in from each
+ *            end, feet ~60 in, the two frames nested one inside the other. Tube dia ~18.
+ *
+ *  Top at y = 0, feet at -h. */
+export function connTableGroup(w = 840, d = 420, h = 400, { top = 0x4a4a48, frame = 0x2a2c30 } = {}) {
+  const g = new THREE.Group();
+  const paint = new THREE.MeshStandardMaterial({ color: new THREE.Color(top), metalness: 0.25, roughness: 0.7 });
+  const tubeMat = metalE(frame, 0.3, 0.6);
+  const rubber = metalE(0x17181b, 0.05, 0.9);
+  const topT = 22, ch = 25, tubeR = 9, capH = 26;
+  const hw = w / 2 * MM, hd = d / 2 * MM, c = ch * MM;
+  const s = new THREE.Shape();
+  s.moveTo(-hw + c, -hd); s.lineTo(hw - c, -hd); s.lineTo(hw, -hd + c); s.lineTo(hw, hd - c);
+  s.lineTo(hw - c, hd); s.lineTo(-hw + c, hd); s.lineTo(-hw, hd - c); s.lineTo(-hw, -hd + c);
+  s.closePath();
+  const geo = new THREE.ExtrudeGeometry(s, { depth: topT * MM, bevelEnabled: false });
+  geo.rotateX(-Math.PI / 2);
+  geo.translate(0, -topT * MM, 0);
+  const body = new THREE.Mesh(geo, paint);
+  g.add(body);
+  const barY = -topT - tubeR - 1, footY = -h + capH - 4;
+  for (const sz of [-1, 1]) {
+    const nest = sz > 0 ? 0 : 2 * tubeR;         // the second frame sits inside the first
+    const tx = w / 2 - 75 - nest, fx = w / 2 - 60 - nest, tz = sz * 100, fz = -sz * 166;
+    bentTube(g, [[-fx, footY, fz], [-tx, barY, tz], [tx, barY, tz], [fx, footY, fz]], tubeR, tubeMat,
+      { rad: 30, radial: 8 });
+    for (const sx of [-1, 1]) cyl(g, 11, 13, capH, 10, rubber, sx * fx, -h + capH / 2, fz);
+  }
+  return { group: g, body };
+}
+
 // ---- the self-contained tables (Entry IGT, IGT Slim, Extension IGT): shared small pieces ----
 
 /** A flat plate cut to an outline. `pts` is the outline in mm as [a, b] in the plate's own
@@ -2648,12 +2768,16 @@ export function coolerGroup(w, d, h, { frame = 0x8a7e76, fabric = 0xa83832 } = {
 }
 
 /** The Jikaro: an octagonal ring of four trapezoid segments with the fire hole in the
- *  middle, standing on folding wire legs. `ringMat` paints the ring; `color` the wire.
- *  Ring top at y = 0, legs to -height. */
+ *  middle, standing on eight folding wire gates (two under each segment, along its slant
+ *  sides). `ringMat` paints the ring; `color` the wire. Ring top at y = 0, legs to -height. */
 export function jikaroGroup({ outer, opening, edge, height, color, ringMat }) {
   const g = new THREE.Group();
   const thick = 6, edgeT = 25;
   const mat = ringMat || metalE(color, 0.85, 0.3);
+  // The deck is a brushed sheet lying face-up: at full metalness it mirrored the horizon and
+  // read #7f7f7f from a low camera, where the photographs sample #c6 to #d5. Mostly diffuse.
+  mat.metalness = Math.min(mat.metalness, 0.3);
+  mat.roughness = Math.max(mat.roughness, 0.5);
   const R = outer / 2, e = edge / 2, o = opening / 2;
   // The top is a folded PAN, not a sheet: the a005 side elevation shows a 25mm edge band
   // (41px against the published 400mm height at 1.63px/mm), and a002 looks straight into
@@ -2693,53 +2817,38 @@ export function jikaroGroup({ outer, opening, edge, height, color, ringMat }) {
     box(g, 16, 1, 7, 0.4, inlay, -rowAt, -0.3, u);
   }
 
-  // FOUR legs, one per panel -- the manual settles it (data/manuals/ST-050.pdf, a scan,
-  // rendered and read): セット内容 counts 脚×4, and the 組立 steps seat ONE wire leg per top --
-  // 脚A辺 into 溝A (2ヶ所), spread the leg (広げすぎ注意: a sprung fold, not a hinge), 脚B辺
-  // into 溝B (2ヶ所) -- four grooves, one leg, per panel. The eight per-slant hairpins drawn
-  // before were this model's reading of the elevations; the manual's own leg figure wins.
-  // What one leg is, off that figure and the JP photos (a002/a005/a009): two rectangular wire
-  // gates spread into a shallow V, top edges PARALLEL to the panel's folds. The wider gate
-  // hangs plumb just inboard of the WIDE fold; the narrower gate hangs from the NARROW fold's
-  // grooves, drops plumb, then elbows inward (the kink in a002) to land its feet astride
-  // mid-panel. Each gate bottoms in its own foot bar with the shallow centre notch (a009),
-  // the two bars lying close and parallel (a005, notches interleaving). Measured from the
-  // folds, both build patterns produce the SAME two gates -- one leg, either table, which is
-  // what a reversible panel demands and a good cross-check that the stations are right.
+  // The legs: EIGHT wire gates, two per panel, each hanging ALONG one of the panel's two slant
+  // sides. The manual (data/manuals/ST-050.pdf, a scan, rendered and read) counts 脚×4 and seats
+  // each in 溝A and 溝B; its 裏面 drawing, which is to scale (it returns the panel's own 600 / 370 /
+  // 260), shows what those are -- two bars under each panel, parallel to the slant sides, with
+  // groove A at +/-90 along the panel and 34 in from its short edge, groove B at +/-245 and 196
+  // in. Step 3 then draws the panel standing on two wire gates, one at each end. So a "脚" is the
+  // bar pair, and each gate you can see is one A wire, one B wire and the foot bar between them:
+  // about 224 long, plumb, its foot bar rising to a shallow notch in the middle (a009).
+  // The photographs agree: the elevations (a003, a005) show the wires clustered at the corners
+  // and none canted, the hero two gates under one chamfer, and the mid-sides clear.
+  // (This was drawn as two gates per panel hung PARALLEL to its long and short edges on the
+  // centreline, one elbowed inward -- wires under the middle of every straight side.)
+  // The stations are measured from the panel's SHORT edge, so they follow the panel into either
+  // assembly: under the chamfers when the short edges face out, along the diagonal seams when
+  // they face the hearth.
   const wire = metalE(color, 0.9, 0.28);
-  const strut = (a, b) => {
-    const va = new THREE.Vector3(...a).multiplyScalar(MM);
-    const vb = new THREE.Vector3(...b).multiplyScalar(MM);
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(3 * MM, 3 * MM, va.distanceTo(vb), 6), wire);
-    m.position.copy(va).add(vb).multiplyScalar(0.5);
-    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
-    g.add(m);
-  };
-  // The panel's half-width at radius z -- the trapezoid the gates must fit under.
-  const halfAt = z => o + (e - o) * (z - o) / (R - o);
-  const zIn = o + 34, zOut = R - 34;             // the groove rows, just inboard of each fold (裏面 fig)
-  const [zWide, zNarrow] = o > e ? [zIn, zOut] : [zOut, zIn];
-  const spanW = 0.46 * halfAt(zWide);            // gate half-spans: the 裏面 drawing's 溝 pairs sit
-  const spanN = 0.46 * halfAt(zNarrow);          //   ~46% of the local panel width apart, both rows
-  const zFeet = (zWide + zNarrow) / 2;           // the narrow gate's feet land astride mid-panel
-  const elbowY = -0.55 * height, notch = 32;     // the a002 kink height; foot-bar centre rise (a009)
+  const wr = 3, notch = 30;
+  const shortOut = edge < opening;               // spread: the 365 edges are the outer straights
+  const rad = v => shortOut ? R - v : o + v;     // v mm in from the short edge -> distance from centre
   for (let k = 0; k < 4; k++) {
     const cs = Math.cos(k * Math.PI / 2), sn = Math.sin(k * Math.PI / 2);
     const at = (x, y, z) => [x * cs + z * sn, y, -x * sn + z * cs];
-    const gate = (half, zTop, zF, elbow) => {
-      const feet = [];
-      for (const sx of [-1, 1]) {
-        if (elbow) {                             // plumb to the kink, then canted in to the foot
-          strut(at(sx * half, -thick, zTop), at(sx * half, elbowY, zTop));
-          strut(at(sx * half, elbowY, zTop), at(sx * half, -height, zF));
-        } else strut(at(sx * half, -thick, zTop), at(sx * half, -height, zF));
-        feet.push(at(sx * half, -height, zF));
-      }
-      const mid = [(feet[0][0] + feet[1][0]) / 2, -height + notch, (feet[0][2] + feet[1][2]) / 2];
-      strut(feet[0], mid); strut(mid, feet[1]);  // the foot bar, dipping to its feet round the notch
-    };
-    gate(spanW, zWide, zWide, false);            // the wide gate, plumb under the wide fold
-    gate(spanN, zNarrow, zFeet, true);           // the narrow gate, elbowed in to mid-panel
+    for (const sx of [-1, 1]) {
+      const ax = sx * 90, az = rad(34), bx = sx * 245, bz = rad(196);
+      // The wire rests ON the ground. Its foot corners are filleted, so the corner itself is
+      // set a hair lower by what the fillet cuts off (the bar leaves each foot already rising).
+      const rise = notch / Math.hypot(Math.hypot(bx - ax, bz - az) / 2, notch);
+      const footY = -height + wr - 10 / Math.tan(Math.acos(rise) / 2) * rise / (1 + rise);
+      bentTube(g, [at(ax, -thick, az), at(ax, footY, az),
+                   at((ax + bx) / 2, footY + notch, (az + bz) / 2),
+                   at(bx, footY, bz), at(bx, -thick, bz)], wr, wire, { rad: [0, 10, 14, 10, 0] });
+    }
   }
   return { group: g, body: ring };
 }
@@ -4168,9 +4277,10 @@ function surfaceInto(g, kind, y) {
 /** 炭床Pro.L (ST-032S), dropped into a group at `y`. A 310x310x20 cast-iron GRATE, not a tray: its
  *  photo is a dense field of parallel slots interrupted by a raised rectangular boss with the logo
  *  on it, and four little feet underneath (the JP copy says so -- 裏には4個の小さな脚 -- which is why
- *  it doubles as a trivet). It reads DARK: clear-coated cast iron, not the stainless of the bowl. */
+ *  it doubles as a trivet). It is clear-coated cast iron and photographs a warm grey-khaki: both
+ *  studio shots sample #a9a28e to #b3ac95. (It was drawn 0x3a3632, near black.) */
 function coalBedInto(g, bed, y) {
-  const iron = metal(0x3a3632, 0.3, 0.68);
+  const iron = metal(0xaea791, 0.3, 0.68);
   const barW = 7, gap = 6, pitch = barW + gap;
   const n = Math.floor((bed - 24) / pitch);
   for (const sx of [-1, 1]) box(g, 12, 20, bed, 1, iron, sx * (bed / 2 - 6), y - 10, 0);
@@ -4182,91 +4292,121 @@ function coalBedInto(g, bed, y) {
     box(g, 14, 10, 14, 1, iron, sx * (bed / 2 - 26), y - 25, sz * (bed / 2 - 26));
 }
 
-/** 焚火台グリルブリッジL (ST-032GBR): two flat stainless RAILS on four folding straps whose inward
- *  lugs hook over the Takibi L's rim. Its manual is unusually blunt about what it is, under 警告:
+/** 焚火台グリルブリッジL (ST-032GBR): a flat stainless frame on two folding end gates that stand it
+ *  over the Takibi L's rim. Its manual is unusually blunt about what it is, under 警告:
  *  「本製品は焚火台Lにセットした場合にのみ安定する構造です。単品で自立させてものを置くと転倒事故の
  *  原因になりますので、必ず焚火台Lにセットした状態でご使用ください」-- only stable ON the Takibi L.
  *  That is why the planner never places it: a part that tips over if you set it down is not a part
  *  with a position.
  *
- *  445 x 440 x 175 packing to x28 -- so 175 is the legs DOWN and 28 is them folded. The straps carry
- *  a three-notch ladder and it is drawn, because you can see it; WHICH notch is engaged is not
- *  offered, because the three heights are not published (see BRIDGE_RISE).
+ *  Off its hero: two rails about 45 wide lying FLAT along the 445, their outer edges the 440; a thin
+ *  bar closing each end; and under each end a gate -- two notched straps tied by one bottom
+ *  stretcher -- that folds flat under the frame (445 x 440 x 175, packing to x28). (The rails were
+ *  drawn as 26 x 9 bars on edge with nothing across the ends, so the nets floated between two
+ *  fences.) The 484 net and the 500 plate are longer than the 445, which is how they bear on it.
+ *
+ *  The straps carry a three-notch ladder, about 50 / 90 / 130 below the rail top in the hero, and
+ *  it is drawn because you can see it; WHICH notch is engaged is not offered, because the three
+ *  heights are not published (see BRIDGE_RISE, the middle one).
  *
  *  Rails at y = 0 -- its working top is where the food goes -- body hanging to -h. */
 export function grillBridgeGroup(w, d, h, { color = 0xb9bec4, surface = null } = {}) {
   const g = new THREE.Group();
-  const mat = metal(color, 0.85, 0.32);
-  const railH = 26, railT = 9, strapW = 20, strapT = 3;
-  const legLen = h - railH;
+  const mat = metal(color, 0.45, 0.42);
+  const railW = 45, railT = 8, strapW = 22, strapT = 3;
 
-  // The two rails. They run the 445 and sit at the 440's edges: that is the span the surfaces are
-  // cut to -- 484 and 500 both OVERHANG this frame, which is how they bear on it.
   let body = null;
-  for (const sz of [-1, 1]) {
-    const r = box(g, w, railH, railT, 1.5, mat, 0, -railH / 2, sz * (d / 2 - railT / 2));
+  for (const sz of [-1, 1]) {                    // the two flat rails
+    const r = box(g, w, railT, railW, 1.5, mat, 0, -railT / 2, sz * (d / 2 - railW / 2));
     if (!body) body = r;
   }
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const x = sx * (w / 2 - strapW / 2), z = sz * (d / 2 - railT / 2);
-    box(g, strapW, legLen, strapT, 1, mat, x, -railH - legLen / 2, z);
-    box(g, strapW * 0.6, strapT, d * 0.34, 1, mat, x, -railH - 14, z - sz * d * 0.19);
-    for (let i = 0; i < 3; i++)                  // the ladder: three lugs, the rim sits on one
-      box(g, 9, 4, strapT + 3, 0.8, mat, x - sx * (strapW / 2 - 4), -railH - 46 - i * 26, z);
+  for (const sx of [-1, 1]) {
+    const x = sx * (w / 2 - 4.5);
+    box(g, 9, 5, d - 2 * railW, 1, mat, x, -2.5, 0);                  // the thin end bar, rail to rail
+    box(g, strapT, 8, d - strapW, 1, mat, x, -(h - 4), 0);            // the gate's bottom stretcher
+    for (const sz of [-1, 1]) {
+      const z = sz * (d / 2 - strapW / 2);
+      box(g, strapT, h - railT, strapW, 1, mat, x, -railT - (h - railT) / 2, z);   // a notched strap
+      for (const drop of [50, 90, 130])          // the ladder: three lugs, the rim sits in one
+        box(g, strapT, 5, 9, 0.8, mat, x, -drop, z - sz * (strapW / 2 + 3));
+    }
   }
   if (surface) surfaceInto(g, surface, 2);
   return { group: g, body };
 }
 
 /** Takibi Fire & Grill L (ST-032RS; JP 焚火台L, US "Pack & Carry L Fireplace"): four stainless
- *  TRIANGLES on a folding tube X. It is a true inverted PYRAMID -- the plates run to a point. Not a
- *  box, and not a truncated pyramid: the manual's セット内容 line drawing, the studio shot and the
- *  elevations all show the same four triangles converging on one vertex.
+ *  plates hinged into an inverted PYRAMID, standing on four bent-tube loops that cross under its
+ *  point. The manual's セット内容 line drawing, the studio shot and the elevations all show the
+ *  same four triangles converging on one vertex.
  *
- *    本体      four identical triangular plates. Each plate's BASE is one whole side of the 455 rim;
- *              each plate's APEX is the bowl's single bottom vertex.
+ *    本体      four identical plates. Each plate's plane meets the next along a slant seam, and the
+ *              four planes close a 455 square at the rim -- that is the published W455 x D455 --
+ *              but the plates' top corners are ROUNDED OFF, so each rim tube is only about 390
+ *              long and the corners of the square stand open. Measured on the face-on elevation
+ *              (JP switch2, scanned row by row): the plate's slant edges run out to 327 px at the
+ *              rim line, the tips of the two side plates stand 317 px apart (= 455), and the rim
+ *              itself spans 273 px = 392. A corner radius of 31 gives exactly that, and it is also
+ *              what lets four such plates fold to the published 640 pack. (Drawn before as sharp
+ *              triangles on the full 455, the bowl read a fifth too wide.)
  *    ヒンジ     adjacent plates are hinged along their slant edges -- which is why the four collapse
  *              to a 32mm pack, and why the slant edges are drawn TWICE below: each plate carries its
  *              own tube and the two lie side by side at the seam.
- *    縁        a rolled tube around each plate's WHOLE perimeter. What reads as "the rim" is four of
- *              those tube bases meeting.
+ *    縁        a rolled tube around each plate's WHOLE perimeter, corners and all.
  *    穴        five holes per plate in a line under the rim: the primary air. Counted (5) and scaled
  *              (~50mm pitch) off two elevations that agree; the diameter is the weakest of the three
  *              and is drawn at 8, not claimed.
- *    脚        two tube loops crossing at the apex and splaying to the ground.
+ *    脚        FOUR tube loops, one per plate, each running from the vertex out to a foot under the
+ *              opposite corner -- so from any side the limbs cross in an X under the point. Two
+ *              kinds, in opposite pairs, read off the hero and the two elevations together:
+ *                - under two opposite plates the limb lands, runs ~67 along the ground and rises as
+ *                  an outer STRUT to the rim corner, where it elbows out and wraps the open corner
+ *                  (the carrying handle; these two corners meet when the pit folds);
+ *                - under the other two it turns in a tight hairpin and climbs back to the seam,
+ *                  where a strap rivets it about two fifths of the way up.
+ *              On the elevation (455 = 317 px): limbs land 111 out along each axis, the strut
+ *              leaves the ground at 178 and elbows at about 193 out, 272 up. The loop that closed
+ *              each pair of limbs with a bar on the floor under the vertex does not exist.
  *
- *  All three published numbers get used and none get invented: 455 is the rim square, 315 is
- *  rim-to-ground, and the bowl is TAKIBI_DEPTH deep -- so the apex lands at 315-200 = 115 above the
- *  ground and the legs make up the rest.
+ *  All three published numbers get used: 455 is the rim square, 315 is rim-to-ground, and the bowl
+ *  is TAKIBI_DEPTH deep -- so the vertex stands 115 above the ground.
  *
  *  Feet at y = 0, rim at y = h -- built the way a prop is built, because a fire pit stands on the
  *  ground and does not hang from a rail. `d` is unused: the rim is square and `w` says so. */
-export function takibiGroup(w, d, h, { steel = 0x9aa0a8, depth = TAKIBI_DEPTH, bridge = false,
+export function takibiGroup(w, d, h, { steel = 0xc8cbce, depth = TAKIBI_DEPTH, bridge = false,
                                        surface = null, coalBed = false, basePlate = false } = {}) {
   const g = new THREE.Group();
-  const half = w / 2;                          // 227.5 -- the rim square's half side
-  const slant = Math.hypot(depth, half);       // 303 -- base to apex, DOWN the plate
-  const tilt = Math.atan2(half, depth);        // the plate's lean off vertical
-  const apexY = h - depth;                     // 115
-  const plateT = 1.6, tubeR = 5;
+  const pit = new THREE.Group();               // all of it but the ground plate, which it stands ON
+  g.add(pit);
+  const tubeR = 5, legR = 4, plateT = 1.6;
+  const half = w / 2 - tubeR;                  // 222.5: the rim tube's centreline; its outer face is the 455
+  const rimY = h - tubeR, apexY = h - depth;   // the rim tube's top is the 315; the vertex at 115
+  const drop = rimY - apexY;
+  const slant = Math.hypot(drop, half);        // base to vertex, DOWN the plate
+  const tilt = Math.atan2(half, drop);         // the plate's lean off vertical
+  const CR = 31;                               // the plates' top-corner radius (see 本体)
+  const edge = Math.hypot(half, slant);        // a slant edge, corner to vertex
+  const cut = CR / Math.tan(Math.atan2(slant, half) / 2);   // where the corner curve leaves the straights
 
-  const shell = metal(steel, 0.72, 0.38);      // the plates: brushed, not mirror
-  const tubeMat = metal(0xb6bcc2, 0.88, 0.28); // the rolled edge tube: brighter than the plate
+  // A high-metalness plate mirrors the dark half of the sky, and the bowl's outside leans its faces
+  // at the ground: it rendered near black (#0e0f11) where the photos sample #b0aba7. So: pale,
+  // mostly diffuse, and a little self-lit so the down-turned faces stay grey.
+  const shell = metalE(steel, 0.2, 0.55, 0x55534f);
+  const tubeMat = metal(0xd0d3d6, 0.5, 0.4);   // the rolled edge tube: a touch brighter than the plate
+  const legMat = metal(0xc4c8cc, 0.6, 0.38);
   const punch = metalE(0x0e0f12, 0.2, 0.8);    // a hole, punched dark -- frameGroup's trick
 
-  const tube = (a, b, r, mat) => {
-    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(r * MM, r * MM, va.distanceTo(vb) || MM, 12), mat);
-    m.position.copy(va).add(vb).multiplyScalar(0.5);
-    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
-    g.add(m); return m;
-  };
-
-  // ONE plate geometry, four plates -- this file's whole point. Built in its own plane with the base
-  // on the x-axis and the apex hanging at -slant, then leaned and swung into place.
+  // ONE plate geometry, four plates. Built in its own plane with the base on the x-axis and the
+  // vertex hanging at -slant, then leaned and swung into place.
+  const ex = half / edge * cut, ey = slant / edge * cut;
   const s = new THREE.Shape();
-  s.moveTo(-half * MM, 0); s.lineTo(half * MM, 0); s.lineTo(0, -slant * MM); s.closePath();
-  const plateGeo = new THREE.ExtrudeGeometry(s, { depth: plateT * MM, bevelEnabled: false });
+  s.moveTo((-half + cut) * MM, 0);
+  s.lineTo((half - cut) * MM, 0);
+  s.quadraticCurveTo(half * MM, 0, (half - ex) * MM, -ey * MM);
+  s.lineTo(0, -slant * MM);
+  s.lineTo((-half + ex) * MM, -ey * MM);
+  s.quadraticCurveTo(-half * MM, 0, (-half + cut) * MM, 0);
+  const plateGeo = new THREE.ExtrudeGeometry(s, { depth: plateT * MM, bevelEnabled: false, curveSegments: 5 });
   plateGeo.translate(0, 0, -plateT * MM / 2);
 
   let body = null;
@@ -4274,71 +4414,79 @@ export function takibiGroup(w, d, h, { steel = 0x9aa0a8, depth = TAKIBI_DEPTH, b
     const rot = (k * Math.PI) / 2;
     const side = new THREE.Group();
     side.rotation.y = rot;
-    // Lean the plate INWARD: its local -Y must run base -> apex, i.e. down by `depth` and in by
+    // Lean the plate INWARD: its local -Y must run base -> vertex, i.e. down by `drop` and in by
     // `half`, from z = +half to z = 0. Rotating about X by +tilt sends local (0,-1,0) to
-    // (0, -cos tilt, -sin tilt) -- exactly that. (It was -tilt, which sends the apex to z = +2*half:
-    // the plates splayed OUTWARD to a mouth 455 wide instead of closing to a point, while the edge
-    // tubes -- drawn straight to the apex -- closed correctly. The owner caught the contradiction.)
+    // (0, -cos tilt, -sin tilt) -- exactly that.
     const plate = new THREE.Mesh(plateGeo, shell);
     plate.rotation.x = tilt;
-    plate.position.set(0, h * MM, half * MM);
+    plate.position.set(0, rimY * MM, half * MM);
     side.add(plate);
     if (!body) body = plate;                   // the caller tags ONE mesh; the first plate is it
 
     // Five air holes, in a line parallel to the base. `t` walks down the plate, so the line follows
     // the lean instead of floating off it.
-    const t = 34 / slant, hy = h - depth * t, hz = half * (1 - t);
+    const t = 34 / slant, hy = rimY - drop * t, hz = half * (1 - t);
     for (let i = -2; i <= 2; i++) {
       const hole = new THREE.Mesh(new THREE.CylinderGeometry(4 * MM, 4 * MM, (plateT + 1) * MM, 10), punch);
       hole.rotation.x = Math.PI / 2 - tilt;    // stand the hole normal to the leaning plate
       hole.position.set(i * 50 * MM, hy * MM, hz * MM);
       side.add(hole);
     }
-    g.add(side);
+    pit.add(side);
 
-    // This plate's rolled edge: base, then both slant edges down to the apex. Every plate draws its
-    // own, so the seams come out double -- which is what the hinge photo shows.
+    // This plate's rolled edge: along the rim, round both corners, down both slant edges to the
+    // vertex. Every plate draws its own, so the seams come out double -- as the hinge photo shows.
     const c = Math.cos(rot), sn = Math.sin(rot);
     const at = (x, y, z) => [x * c + z * sn, y, -x * sn + z * c];
-    const A = at(-half, h, half), B = at(half, h, half), P = [0, apexY, 0];
-    tube(A, B, tubeR, tubeMat);
-    tube(A, P, tubeR, tubeMat);
-    tube(B, P, tubeR, tubeMat);
+    bentTube(pit, [at(-half, rimY, half), at(half, rimY, half), [0, apexY, 0]], tubeR, tubeMat,
+      { rad: [CR, CR, 0], closed: true });
   }
+  cyl(pit, 9, 7, 16, 10, legMat, 0, apexY - 4, 0);   // the boss at the vertex, where the limbs meet
 
-  // The legs. Two loops, each a flat-bottomed U in a vertical plane through one DIAGONAL of the rim
-  // -- the only arrangement that gives all three things the photos show at once: a tube end at each
-  // rim corner, the two loops crossing at the apex, four bends on the ground.
-  //
-  // footRun is DERIVED, not eyeballed. The limbs are straight and riveted at the apex (a002's apex is
-  // a boss with both tubes through it), so a limb is the line from a rim corner through the apex,
-  // extended to the floor -- and where it lands is forced. Nothing here is chosen: if TAKIBI_DEPTH is
-  // ever corrected, the feet move with it, correctly.
-  const u0 = half * Math.SQRT2;
-  const footRun = (u0 * (h - depth)) / depth;
-  const legMat = metal(0xc2c7cc, 0.86, 0.3);
-  for (const sd of [1, -1]) {
-    const ux = sd / Math.SQRT2, uz = 1 / Math.SQRT2;   // the two diagonals
-    const C1 = [u0 * ux, h, u0 * uz], C2 = [-u0 * ux, h, -u0 * uz];
-    const K1 = [-footRun * ux, 0, -footRun * uz], K2 = [footRun * ux, 0, footRun * uz];
-    tube(C1, K1, 4.5, legMat);   // down from one corner, through the apex, out to the far foot
-    tube(K1, K2, 4.5, legMat);   // the flat bottom of the U -- the foot itself
-    tube(K2, C2, 4.5, legMat);   // and back up to the opposite corner
+  // The legs (see 脚). The frame has a half-turn symmetry, not a quarter-turn one: sg = +1 and -1
+  // are the two halves. Every tube rests ON the ground: centrelines at one tube radius.
+  const L0 = 111, strutX = 178, tip = w / 2 - legR;
+  // A tight V-bend's corner, sunk just far enough that the filleted tube touches the ground.
+  const restOn = (a, v, b, rho) => {
+    const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), V = new THREE.Vector3(...v);
+    for (let i = 0; i < 3; i++) {
+      const u1 = A.clone().sub(V).normalize(), u2 = B.clone().sub(V).normalize();
+      const run = rho / Math.tan(u1.angleTo(u2) / 2);
+      V.y = legR - run * u1.y * u2.y / (u1.y + u2.y);
+    }
+    return [V.x, V.y, V.z];
+  };
+  const elbowY = 272, zAt = y => half * (y - apexY) / drop;   // the +z plate's plane, at height y
+  for (const sg of [1, -1]) {
+    // The strut loop: vertex -> foot -> along the ground -> up outside the bowl -> out to the open
+    // rim corner, then back along the neighbouring plate's rim line to where its tube begins.
+    bentTube(pit, [[0, apexY, 0], [-sg * L0, legR, -sg * L0], [-sg * strutX, legR, -sg * L0],
+                   [-sg * 193, elbowY, sg * zAt(elbowY)], [-sg * tip, h - legR, sg * half],
+                   [-sg * tip, h - legR, sg * (half - cut)]], legR, legMat,
+      { rad: [0, 30, 30, 26, 12, 0], radial: 8 });
+    // The hairpin loop: vertex -> foot -> back up to the seam, two fifths of the way to the rim.
+    const up = 0.42, seam = [sg * up * half, apexY + up * drop, sg * up * half];
+    bentTube(pit, [[0, apexY, 0], restOn([0, apexY, 0], [-sg * L0, 0, sg * L0], seam, 14), seam],
+      legR, legMat, { rad: 14, radial: 8 });
   }
 
   // 炭床Pro.L: a 310x310 casting that wedges where the taper is 310. Its height is not a placement
   // choice, it is a consequence -- solve the taper for 310.
   if (coalBed) {
-    const bed = 310, drop = depth * (1 - bed / w);
-    coalBedInto(g, bed, h - drop);
+    const bed = 310;
+    coalBedInto(pit, bed, apexY + (bed / 2) / half * drop);
   }
-  // ベースプレートL: 450x450x9 of black steel, flat on the floor under all of it.
-  if (basePlate) box(g, 450, 9, 450, 2, metal(0x2a2c2f, 0.35, 0.65), 0, 4.5, 0);
+  // ベースプレートL: 450x450x9 of black steel on the floor. The pit's feet land inside it (they
+  // reach 178 from the centre), so the whole pit stands 9 higher when it is there.
+  if (basePlate) {
+    box(g, 450, 9, 450, 2, metal(0x2a2c2f, 0.35, 0.65), 0, 4.5, 0);
+    pit.position.y = 9 * MM;
+  }
   // グリルブリッジL + whatever is laid on it.
   if (bridge) {
     const b = grillBridgeGroup(445, 440, 175, { surface });
     b.group.position.y = (h + BRIDGE_RISE) * MM;
-    g.add(b.group);
+    pit.add(b.group);
   }
   return { group: g, body };
 }

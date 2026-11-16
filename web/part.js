@@ -14,6 +14,7 @@ import { legGroup, connectionHookGroup, heightAdjusterGroup, frameConnectorGroup
 import { unitClampGroup } from "./parts3d.js";   // standalone
 import { hookBoardGroup } from "./parts3d.js";   // boards
 import { burnerGroup, gs230Group, burnerOf } from "./parts3d.js";   // cooking
+import { myTableGroup, grillBridgeGroup, connTableGroup } from "./parts3d.js";   // fire
 
 /* The bench.
  *
@@ -232,6 +233,11 @@ function benchGeo(p, box) {
   // Stainless Kitchen Table (LV-310): an open A-frame stand -- worktop at y=0 with the hanger
   // frame rising above it, everything else hanging below -- not a slab on cylinders.
   if (sku === "LV-310") return lv310Group(w, d, h, color).group;
+
+  // The fire-side tables, each its own object rather than a slab on four round legs.
+  if (sku === "LV-039") return myTableGroup(w, d, h, color).group;   // two leaves on a folding tube stand
+  if (sku === "ST-032GBR") return grillBridgeGroup(w, d, h).group;      // the bridge frame, not an open bin
+  if (sku === "LV-381") return connTableGroup(w, d, h).group;           // clipped charcoal top, crossing leg frames
 
   if (role === "layout_table" || role === "standalone")
     return tableGroup(w, d, h, 30, color).group;
