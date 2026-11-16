@@ -314,15 +314,33 @@ export const HOLE_INSET = 16.5;
 
 // CK-175, IGTコネクションフック. JP-only, no manual, and exactly ONE real photograph in its
 // gallery -- which happens to be of exactly the thing: two IGT frames butted END TO END,
-// their black end pieces face to face, two knurled thumbscrews spanning the joint.
+// their black end pieces face to face, two knurled knobs on one of them at the seam.
 //
 // A frame's end already has the HOLES. CK-175 supplies the other half -- it gives the end
 // a HOOK -- and two frames become one run. The spec table says セット内容 本体x2 (a pair,
 // 45g each), and a frame's end has two holes, so ONE set makes ONE joint.
 //
-// The frames do NOT share legs. Each keeps its own four, and the photograph shows it: two
-// pairs of legs bunched together at the joint.
+// The frames SHARE the legs at the joint. The photograph shows it: the left frame's two
+// joint-end sockets are empty holes, the right frame's carry leg studs, and exactly two legs
+// stand under the seam. (This said "each keeps its own four ... two pairs of legs bunched
+// together at the joint" until 2026-11: a misreading of that photograph.) So a frame hooked
+// flush onto another frame's end drops its pair there unless the user asks for four.
 export const FRAME_HOOK = "CK-175";
+
+/** Is `n` a frame hooked FLUSH onto another frame's END -- the CK-175 joint of the photograph?
+ *  Not a frame on a rail joint or a board's bracket (board-scale ports, which cannot bear it),
+ *  and not a stepped joint: that one hangs on Height Adjusters (CK-151), a different fitting
+ *  that no photograph shows carrying a frame, so it keeps its old default. */
+export function endJoint(n) {
+  const h = byId(n.host);
+  return n.kind === "frame" && !!h && h.kind === "frame" && !n.rail && !(n.step > 0)
+    && (n.edge === "end+x" || n.edge === "end-x");
+}
+/** Does a hooked frame leave out the two legs at its joined end and stand on its host's?
+ *  End to end it does unless `sharedJoint` is explicitly false ("4 legs"); at any other joint
+ *  only when `sharedJoint` is explicitly true. */
+export const sharesJoint = n => n.kind === "frame" && !!byId(n.host)
+  && (endJoint(n) ? n.sharedJoint !== false : n.sharedJoint === true);
 
 /** An attachment edge, resolved in the host's OWN coordinates.
  *
@@ -1008,9 +1026,10 @@ export function bomLines() {
     }
     if (PARTS[n.sku].role === "figure") continue;   // and a person is not for sale
     lines.push({ sku: n.sku, node: n });
-    // A set is two legs. A frame stands on four -- unless it shares a CK-175 joint, in which
-    // case the continuation drops the pair at the joined end and stands on two.
-    const shared = n.host && n.kind === "frame" && n.sharedJoint;
+    // A set is two legs. A frame stands on four -- unless it shares a joint (the default end to
+    // end, see sharesJoint), in which case it drops the pair at the joined end and stands on
+    // two: one leg set fewer per joint.
+    const shared = sharesJoint(n);
     const sets = shared ? 1 : (LEG_SETS[n.kind] ?? 0);
     if (n.leg) for (let i = 0; i < sets; i++)
       lines.push({ sku: n.leg, req: n.kind === "ext" });
@@ -1233,7 +1252,7 @@ export function warnings() {
   for (const n of state.nodes) {
     if (n.kind !== "frame" || !n.host || !boardScalePort(n)) continue;
     const where = n.rail ? "rail" : "bracket";
-    if (n.sharedJoint) add("problem", `w.board.shared.${where}`, { a: n.sku });
+    if (sharesJoint(n)) add("problem", `w.board.shared.${where}`, { a: n.sku });
     else add("note", `w.board.legs.${where}`, { a: n.sku });
   }
 

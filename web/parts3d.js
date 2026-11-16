@@ -1084,17 +1084,82 @@ function rivetsInto(g, pts, y, color = ALU_) {
   }
 }
 
-/** The frame SHELL: two extruded rails, two end pieces, the hook holes, and four corner
- *  plates with rivets. NO legs and NO modules -- those are placement, and the caller adds
- *  them. This is the exact geometry drawFrame used to build inline; it is here so the bench
- *  builds the identical frame (recess and all) instead of a slab.
+// The collapsible frame's END BAR (CK-902 / 903 / 904), measured off the plan photographs
+// (gallery CK-903 02_*08522 and CK-904 02_*08520, both 0.553 px/mm, the frame's published 496
+// across as the ruler) and read against the close-ups 05-09 and the hero:
+//   - a brushed ALUMINIUM bar 42 along the frame (846 less the 762 rails, halved) and 476 long:
+//     it stops 10mm short of the frame's side at each end;
+//   - a black nylon block on the outer half of each end of the bar, 108 long: 26 deep for the
+//     46mm that hold the hook hole (144 from the centre line, 16 from the end -- the standard
+//     frame's hole to the millimetre), then a 15mm chamfer down to a 9mm-deep step for the last
+//     47mm, and round the bar's end as a 3mm cap;
+//   - in that step, a knurled aluminium thumbscrew (dia 20) pointing out along the frame, on the
+//     leg socket's line: it is the bolt that takes the rail's end plate (close-up 08);
+//   - between the blocks the bar's outer face carries a dark slot (hero).
+const CBAR = { w: 42, inset: 10, block: 108, deep: 26, hole: 46, chamfer: 15, step: 9, cap: 3 };
+
+/** One end bar of a collapsible frame, at the `sx` end. Adds to `g`, returns what to pick. */
+function endBarInto(g, sx, { w, d, thick, barColor, blockColor, glow }) {
+  const out = [];
+  // the bar wears the standard rail's brushed finish; the nylon is dead matte
+  const bar = metalE(barColor, 0.8, 0.42, glow), blk = metalE(blockColor, 0.1, 0.8, glow);
+  const half = d / 2 - CBAR.inset;                       // the bar's half length, 238
+  const X = u => sx * (w / 2 - u);                       // u = mm in from the frame's end face
+  const put = (u0, u1, y0, y1, z0, z1, mat) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry((u1 - u0) * MM, (y0 - y1) * MM, (z1 - z0) * MM), mat);
+    m.position.set(X((u0 + u1) / 2) * MM, (y0 + y1) / 2 * MM, (z0 + z1) / 2 * MM);
+    g.add(m); out.push(m);
+  };
+  const zIn = half - CBAR.block;                         // where the blocks stop: 130 from centre
+  // the aluminium: the inner strip runs the whole bar, the outer half only between the blocks
+  put(CBAR.deep, CBAR.w, 0, -thick, -(half - CBAR.cap), half - CBAR.cap, bar);
+  put(0, CBAR.deep, 0, -thick * 0.2, -zIn, zIn, bar);
+  put(1.5, CBAR.deep, -thick * 0.2, -thick * 0.58, -zIn, zIn, blk);    // the slot in the outer face
+  put(0, CBAR.deep, -thick * 0.58, -thick, -zIn, zIn, bar);
+  for (const sz of [-1, 1]) {
+    // the nylon block in plan: hook-hole part, chamfer, step -- extruded the bar's full height
+    const z1 = zIn + CBAR.hole, z2 = z1 + CBAR.chamfer, uS = CBAR.deep - CBAR.step;
+    const s = new THREE.Shape([[0, zIn], [0, z1], [uS, z2], [uS, half], [CBAR.deep, half], [CBAR.deep, zIn]]
+      .map(([u, z]) => new THREE.Vector2(X(u) * MM, sz * z * MM)));
+    const geo = new THREE.ExtrudeGeometry(s, { depth: thick * MM, bevelEnabled: false });
+    geo.rotateX(Math.PI / 2);                            // shape y -> z, the extrusion hangs from y = 0
+    const m = new THREE.Mesh(geo, blk);
+    g.add(m); out.push(m);
+    put(CBAR.deep, CBAR.w, 0, -thick, sz > 0 ? half - CBAR.cap : -half, sz > 0 ? half : -(half - CBAR.cap), blk);
+    // the thumbscrew: a knurled head on a short sprung shaft, out of the step's face
+    const zT = sz * (half - 31), yT = -thick / 2 * MM;   // 207 from the centre line
+    const head = new THREE.Mesh(new THREE.CylinderGeometry(10 * MM, 10 * MM, 5 * MM, 18),
+      metalE(0xd2d5d8, 0.9, 0.3, glow));
+    head.rotation.z = Math.PI / 2;
+    head.position.set(X(5.5) * MM, yT, zT * MM);
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(4.5 * MM, 4.5 * MM, (uS - 8) * MM, 10),
+      metalE(0x9aa0a6, 0.85, 0.4));
+    shaft.rotation.z = Math.PI / 2;
+    shaft.position.set(X((uS + 8) / 2) * MM, yT, zT * MM);
+    g.add(head, shaft);
+  }
+  return out;
+}
+
+/** The frame SHELL: two extruded rails, two ends, the hook holes and the four leg sockets. NO
+ *  legs and NO modules -- those are placement, and the caller adds them. This is the exact
+ *  geometry drawFrame used to build inline; it is here so the bench builds the identical frame
+ *  (recess and all) instead of a slab.
+ *
+ *  Two families. The STANDARD frame is silver rails between two solid black end pieces. The
+ *  COLLAPSIBLE one is black rails between two brushed-aluminium end bars with black nylon
+ *  corner blocks (endBarInto), a silver plate on each rail end where the leg goes. (Until
+ *  2026-11 the collapsible was drawn as the standard frame in black with a silver plate on each
+ *  corner of the ring: an all-black ring, where the real one shows two bright bars.)
  *
  *  `section` is the measured rail cross-section (SECTION); `hookHoles` the measured hole
- *  centres, or null to fall back to the standard inset. Returns { group, pick } -- pick is
- *  the rails + ends, for the planner to tag for selection; the bench ignores it. */
+ *  centres, or null to fall back to the standard inset. `legAt(sx, sz)` says whether a leg
+ *  stands in that corner's socket: its stud then shows bright in the hole, as in CK-175 a001,
+ *  where the legless frame's sockets are empty holes. Returns { group, pick } -- pick is the
+ *  rails + ends, for the planner to tag for selection; the bench ignores it. */
 export function frameGroup({ w, d, thick, collapsible = false, section, hookHoles = null,
                              holeInset = 16.5, railColor, endColor = BLK_, plateColor = ALU_,
-                             legInset = 75.5, legSide = 40.5, glow = 0x000000 }) {
+                             legInset = 75.5, legSide = 40.5, glow = 0x000000, legAt = null }) {
   const g = new THREE.Group();
   const pick = [];
   const railWidth = section.rail_width_mm;
@@ -1111,7 +1176,10 @@ export function frameGroup({ w, d, thick, collapsible = false, section, hookHole
   // 748 of the 846. The block is drawn 48 long -- the unit grid's own end allowance (W = 250n +
   // 96) -- so the rail is exactly the run of units; the measured 49.4 would tuck 1.4mm of block
   // under the first module's rim.
-  const blockW = Math.min(endW, 48);
+  // The collapsible's rails stop at its 42mm end bars instead: w - 84, which is the length the
+  // rails are sold at (CK-902-1 / 903-1 / 904-1: 512 / 762 / 1012). The unit grid still starts
+  // 48 in, so the bay there has 6mm to spare at each end.
+  const blockW = collapsible ? CBAR.w : Math.min(endW, 48);
   for (const s of [-1, 1]) {
     // Black rails (the collapsible's) are the same anodised coating as the ends -- matte.
     const anodised = railColor === BLK_;
@@ -1127,16 +1195,21 @@ export function frameGroup({ w, d, thick, collapsible = false, section, hookHole
   // 8mm each end, read off an in-use photo; the frame built 862 long against a published 846.
   // CK-175 a001 looks straight at the end of one: a block.) Matte, like all the anodising.
   for (const sx of [-1, 1]) {
-    const block = new THREE.Mesh(roundedBox(blockW * MM, thick * MM, d * MM, 3 * MM),
-      metalE(endColor, 0.28, 0.62, glow));
+    if (collapsible) {
+      pick.push(...endBarInto(g, sx, { w, d, thick, barColor: plateColor, blockColor: endColor, glow }));
+      continue;
+    }
+    // Its top and bottom edges are eased 2.5mm (the casting's are rounded about that much in
+    // a001): two frames butted end to end then show their seam as a groove, where two sharp
+    // boxes ran together into one black slab. The outline stays the full block.
+    const block = new THREE.Mesh(easedBlock(blockW, thick, d, 2.5), metalE(endColor, 0.28, 0.62, glow));
     block.position.set(sx * (w - blockW) / 2 * MM, -thick / 2 * MM, 0);
     g.add(block); pick.push(block);
   }
   // The hook holes in the end pieces, where an extension's wire hooks drop in: two per end, at
   // the measured spacing. Always four -- the detector found only three of CK-149's, and a
   // frame has no end with one hole. A dark plug, a hair proud of the top face.
-  const zs = (hookHoles || []).map(hh => Math.abs(hh[1]));
-  const holeZ = zs.length ? zs.reduce((a, b) => a + b, 0) / zs.length : 143.9;
+  const holeZ = hookHoleZ(hookHoles);
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const hole = new THREE.Mesh(new THREE.CylinderGeometry(6 * MM, 6 * MM, 12 * MM, 10),
       metalE(0x0e0f12, 0.2, 0.8));
@@ -1144,31 +1217,147 @@ export function frameGroup({ w, d, thick, collapsible = false, section, hookHole
     g.add(hole);
   }
   // The leg sockets. On the standard frame there is NO plate: four rivets and the leg stud's
-  // hole sit in the rail's own top face, where the leg stands (CK-149 hero, CK-175 a001). The
-  // collapsible carries a silver hinge plate there instead.
+  // hole sit in the rail's own top face, where the leg stands (CK-149 hero, CK-175 a001).
+  // The collapsible's rail carries a 2mm silver plate there, riveted on: on the plan photo it
+  // runs 43 to 97mm from the frame's end (it starts where the rail does), 11 to 69 from the
+  // side, its hole 76 / 41 from the corner -- the planner's leg socket -- and its rivets 30
+  // apart round the hole. Drawn 54 across, not 58: this rail's flat top is 65.5 wide (the
+  // standard frame's section) and the plate must stop at the seat's step. (It was a 60 x 86
+  // plate over the whole corner of the ring, which is where the end bar is.)
   const sockX = w / 2 - legInset, sockZ = d / 2 - legSide;
-  const cornerX = w / 2 - 34, cornerZ = d / 2 - railWidth / 2;
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const cx = sx * sockX, cz = sz * sockZ;
+    const legged = !!legAt && legAt(sx, sz);
     if (collapsible) {
-      const plate = new THREE.Mesh(roundedBox(60 * MM, 4 * MM, (railWidth - 4) * MM, 2 * MM),
-        metalE(plateColor, 0.85, 0.35, glow));
-      plate.position.set(sx * cornerX * MM, 2 * MM, sz * cornerZ * MM);
-      g.add(plate);
-      rivetsInto(g, [
-        [sx * (cornerX - 16), sz * (cornerZ - 12)], [sx * (cornerX + 16), sz * (cornerZ - 12)],
-        [sx * (cornerX - 16), sz * (cornerZ + 12)], [sx * (cornerX + 16), sz * (cornerZ + 12)],
-      ], 3, plateColor);
+      railPlateInto(g, sx * (w / 2 - CBAR.w - 28), sz * (d / 2 - 37.5), cx, cz, { plateColor, glow, legged });
       continue;
     }
-    const cx = sx * sockX, cz = sz * sockZ;
     rivetsInto(g, [[cx - 17, cz - 12], [cx + 17, cz - 12], [cx - 17, cz + 12], [cx + 17, cz + 12]],
       -0.7, plateColor);
-    const stud = new THREE.Mesh(new THREE.CylinderGeometry(5.5 * MM, 5.5 * MM, 3 * MM, 12),
-      metalE(0x0e0f12, 0.2, 0.8));
-    stud.position.set(cx * MM, -1.3 * MM, cz * MM);
-    g.add(stud);
+    socketStudInto(g, cx, 0, cz, legged);
   }
   return { group: g, pick };
+}
+
+/** A box (mm, centred) whose top and bottom edges are chamfered `c` all round, the four upright
+ *  edges left sharp. Exactly w x h x d overall. */
+function easedBlock(w, h, d, c) {
+  const s = new THREE.Shape([[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]]
+    .map(([x, z]) => new THREE.Vector2(x * MM, z * MM)));
+  const geo = new THREE.ExtrudeGeometry(s, { depth: (h - 2 * c) * MM, bevelEnabled: true,
+    bevelThickness: c * MM, bevelSize: c * MM, bevelOffset: -c * MM, bevelSegments: 1 });
+  geo.translate(0, 0, -(h / 2 - c) * MM);       // centre the extrusion, bevels included
+  geo.rotateX(Math.PI / 2);                     // the extrusion stands up: shape y -> z
+  return geo;
+}
+
+/** The z of a frame's hook holes: the mean of the measured centres, or the standard 143.9. */
+export function hookHoleZ(hookHoles) {
+  const zs = (hookHoles || []).map(hh => Math.abs(hh[1]));
+  return zs.length ? zs.reduce((a, b) => a + b, 0) / zs.length : 143.9;
+}
+
+/** What shows in a leg socket, in the face at height `top`: an empty socket is a dark hole;
+ *  with a leg in it, the leg's stud fills the hole (CK-175 a001 shows both, side by side). */
+function socketStudInto(g, x, top, z, legged) {
+  const stud = new THREE.Mesh(new THREE.CylinderGeometry(5.5 * MM, 5.5 * MM, 3 * MM, 12),
+    legged ? metalE(0xb4b8bc, 0.9, 0.3) : metalE(0x0e0f12, 0.2, 0.8));
+  stud.position.set(x * MM, (top - (legged ? 0.9 : 1.3)) * MM, z * MM);
+  g.add(stud);
+}
+
+/** The silver plate on the end of a collapsible rail: 54 x 54 x 2 centred at (px, pz), four
+ *  rivets 30 apart round the leg socket's hole at (cx, cz). Shared by the frame and by the
+ *  rail set sold on its own. */
+function railPlateInto(g, px, pz, cx, cz, { plateColor = ALU_, glow = 0x000000, legged = false } = {}) {
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(54 * MM, 2 * MM, 54 * MM),
+    metalE(plateColor, 0.8, 0.42, glow));
+  plate.position.set(px * MM, 1 * MM, pz * MM);
+  g.add(plate);
+  rivetsInto(g, [[cx - 15, cz - 15], [cx + 15, cz - 15], [cx - 15, cz + 15], [cx + 15, cz + 15]],
+    1.2, 0x9da1a6);
+  socketStudInto(g, cx, 2, cz, legged);
+}
+
+/** A knurled thumb knob standing on local y, its base at `y` (mm): a bright turned disc with a
+ *  darker, rougher band round its edge -- at planner distance that band is all knurling shows. */
+function knobInto(g, x, y, z, r, h) {
+  const face = cyl(g, r, r, h, 20, metal(0xcfd3d6, 0.8, 0.42), x, y + h / 2, z);
+  cyl(g, r + 0.3, r + 0.3, h * 0.7, 20, metal(0x878c92, 0.75, 0.6), x, y + h / 2, z);
+  return face;
+}
+
+/** An IGT leg (CK-109 / 112 / 113 / 114): a straight tube with a black height-adjuster foot --
+ *  measured, not styled. The leg heroes hold one diameter end to end (CK-113's tube scans 22-23px
+ *  across its whole 588px length), so a drawn taper would be invented. The foot is the adjuster
+ *  in CK-112's detail shots: a black sleeve on the tube a shade narrower at the waist, then a
+ *  wider knurled cap rounded off underneath -- 33mm of black in all (CK-109's hero at
+ *  0.584 mm/px: cap 29.2 across and 17.5 long, waist 23.4, against a 25mm tube). On top, the
+ *  stud that goes up into the frame's socket: 11.7 across and 6.7 long on CK-109's hero, 11.0
+ *  and 6.9 on CK-112's. The planner leaves the stud to the frame (frameGroup draws it in the
+ *  socket) and asks for the tube alone; the bench shows the whole leg.
+ *  `h` is the overall height drawn, stud included when asked for. Top at y = 0, foot at -h. */
+export function legGroup({ h, r = 13, color = 0xc0c4c8, stud = false }) {
+  const g = new THREE.Group();
+  const black = metalE(0x2a2d31, 0.1, 0.85);
+  const FOOT = 33, WAIST = 16, CAP = 12;         // the black stack, off CK-113's hero at 1.12mm/px
+  const STUD = stud ? 7 : 0, tubeL = h - FOOT - STUD;
+  const tube = cyl(g, r, r, tubeL, 16, metalE(color, 0.85, 0.3), 0, -STUD - tubeL / 2, 0);
+  // the adjuster's waist, a shade narrower than the tube (21.5px against the tube's 23)
+  cyl(g, r * 0.93, r * 0.93, WAIST, 14, black, 0, -h + FOOT - WAIST / 2, 0);
+  // the knurled cap, barely wider than the tube (27px against 23), rounded off underneath
+  cyl(g, r * 1.18, r * 1.18, CAP, 14, black, 0, -h + 7 + CAP / 2, 0);
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(r * 1.18 * MM, 12, 8), black);
+  tip.scale.y = 0.45;
+  tip.position.y = (-h + 7) * MM;
+  g.add(tip);
+  if (stud) cyl(g, 6, 6, STUD, 12, metalE(0xb4b8bc, 0.9, 0.3), 0, -STUD / 2, 0);
+  return { group: g, body: tube };
+}
+
+/** IGT Connection Hook (CK-175): the fitting that joins two frames end to end. Its one product
+ *  shot (gallery CK-175 03_c101) is a stainless U of round rod with a knurled knob on one leg;
+ *  its one in-use shot (00_a001) shows where the U goes: UNDER the two end pieces. The knob
+ *  stands on one frame's end piece over its hook hole, and the tip of the plain leg shows in
+ *  the neighbour's hole. Nothing crosses the seam on top.
+ *  Measured on c101 with the knob's published dia 28 as the ruler: rod dia 7, knob 10 tall on a
+ *  dia 19 boss. Published 28 x 53 x 40. The legs are drawn 33 apart -- two hook holes, each 16.5
+ *  in from its frame's end -- which makes the part 50.5 across against the published 53.
+ *  Built as installed: y = 0 is the end piece's top face, the knob's leg at the origin, the
+ *  plain leg `span` along +x. */
+export function connectionHookGroup({ span = 33 } = {}) {
+  const g = new THREE.Group();
+  const steel = metal(0xc3c7cb, 0.8, 0.42);            // satin stainless: the rail's light response
+  bentTube(g, [[0, 6, 0], [0, -20.5, 0], [span, -20.5, 0], [span, 1, 0]], 3.5, steel, { rad: 9, radial: 8 });
+  cyl(g, 3.5, 3.5, 0.6, 8, steel, span, 1, 0);          // the plain leg's cut end, seen in the hole
+  cyl(g, 9.5, 9.5, 6, 16, steel, 0, 3, 0);              // the knob's boss
+  const knob = knobInto(g, 0, 6, 0, 14, 10);
+  return { group: g, body: knob };
+}
+
+/** IGT Height Adjuster (CK-151; IGT段差ジョイント): the post a lower table hangs from. A stainless
+ *  tube the diameter of a leg (25.4; a001 shows it beside one) that hangs UNDER the higher
+ *  frame's end piece, held by a thumbscrew dropped through the hook hole into the tube's top.
+ *  Measured on a004, the tube's published 25.4 and the 320 overall as rulers (4.4 px/mm):
+ *  tube 294 long; two black rubber sleeves dia 37 x 44, starting 36 and 197 down; hook
+ *  windows cut in one side, their seats 81, 150 and 241 down, engraved 400-300, 830-660 and
+ *  660-400 -- a seat is 20 lower than its step, so the tube's top is 20 under the table top;
+ *  a dia 23 knurled thumbscrew on a dia 10.5 boss. (It was a dia 18 rod with three rings.)
+ *  The windows face +x. `gap` is how much thread shows between tube and knob: 16 as
+ *  photographed, 20 when it is through an end piece. Tube top at y = 0, hanging to -294. */
+export function heightAdjusterGroup({ gap = 16 } = {}) {
+  const g = new THREE.Group();
+  const steel = metal(0xc0c4c8, 0.85, 0.3), rubber = metal(0x1d1f22, 0.05, 0.85);   // a leg's tube, a leg's finish
+  const dark = metal(0x17181b, 0.3, 0.7);
+  const R = 12.7, L = 294;
+  const tube = cyl(g, R, R, L, 20, steel, 0, -L / 2, 0);
+  for (const y0 of [36, 197]) cyl(g, 18.5, 18.5, 44, 20, rubber, 0, -(y0 + 22), 0);
+  box(g, 1.2, 45, 9, 0, dark, R - 0.2, -127.5, 0);                    // the open window, 105 to 150
+  for (const s of [81, 150, 241]) box(g, 1.2, 6, 13, 0, dark, R - 0.2, -s, 0);   // the three seats
+  cyl(g, 2.4, 2.4, gap, 8, steel, 0, gap / 2, 0);                     // the thumbscrew's thread
+  cyl(g, 5.25, 5.25, 8, 12, steel, 0, gap + 4, 0);
+  knobInto(g, 0, gap + 8, 0, 11.5, 4);
+  return { group: g, body: tube };
 }
 
 /** A layout table or standalone IGT: a work surface on four tapered legs. `height` is the
@@ -2873,22 +3062,29 @@ export function caseGroup(w, d, h, color) {
   return { group: g, body };
 }
 
-/** A rail set sold on its own (CK-902-1 collapsible rails): a pair of rail profiles at the
- *  frame's spacing, no ends -- what you actually get in the box. */
+/** A rail set sold on its own (CK-902-1 / 903-1 / 904-1, the collapsible frames' rails): what
+ *  is in the box is TWO separate black rails, each the published 86 wide x 25 thick and 512 /
+ *  762 / 1012 long, a silver plate riveted on each end (gallery CK-903 03_* and 04_*). `w` is
+ *  the rail's length, `d` ONE rail's width. (This took the 86 for a frame's depth and built a
+ *  single slab with the two rails folded through each other.) Laid side by side the way they
+ *  go in the frame, seats facing, a hand's width apart. Tops at y = 0. */
 export function railsGroup({ w, d, thick, section, color = BLK_ }) {
   const g = new THREE.Group();
-  const railWidth = section.rail_width_mm;
-  const prof = {
-    outerWall: (d / 2 - section.channel_mm[1]) * MM,
-    channel: (section.channel_mm[1] - section.channel_mm[0]) * MM,
-    lip: (section.lip_mm[1] - section.lip_mm[0]) * MM,
-  };
+  const gap = 60;
+  // the frame's own section, its seat narrowed so the rail is the published width: the flat
+  // top stays the frame's 65.5, which is what the plate sits on
+  const lipW = section.lip_mm[1] - section.lip_mm[0], chan = section.channel_mm[1] - section.channel_mm[0];
+  const flat = section.rail_width_mm - lipW;
+  const prof = { outerWall: (flat - chan) * MM, channel: chan * MM, lip: (d - flat) * MM };
   for (const s of [-1, 1]) {
-    const railMat = metalE(color, 0.8, 0.42);
+    const railMat = metalE(color, 0.3, 0.6);       // matte black anodising, as on the frame
     railMat.vertexColors = true;   // same baked seat crease as the frame's rails
     const r = new THREE.Mesh(railProfile(w * MM, thick * MM, prof, s), railMat);
-    r.position.set(0, -thick / 2 * MM, s * (d / 2 - railWidth / 2) * MM);
+    r.position.set(0, -thick / 2 * MM, s * (gap / 2 + d / 2) * MM);
     g.add(r);
+    const edge = gap / 2 + d;                      // this rail's outer edge
+    for (const sx of [-1, 1])                      // the plate: 1 to 55 from the rail's end, as on the frame
+      railPlateInto(g, sx * (w / 2 - 28), s * (edge - 37.5), sx * (w / 2 - 33.5), s * (edge - 40.5));
   }
   return { group: g, body: g.children[0] };
 }
@@ -2904,6 +3100,50 @@ export function plateGroup(w, d, h, color) {
   g.add(plate);
   rivetsInto(g, [[-w / 4, 0], [w / 4, 0]], 1, color);
   return { group: g, body: plate };
+}
+
+/** Stainless Kitchen Table IGT Frame Connector (LV-312): a PAIR of folded stainless bars, each
+ *  the published 515 x 45 x 25 -- a 45-wide flange the frame's end rests on, a 25 web folded
+ *  down one long edge with three hook notches near each end, a tab folded down across each end
+ *  and a low lip along the other edge (hero; a003 the notches, a004 the tab and the slotted
+ *  hole in the flange). Notch centres off the hero, the 515 as the ruler: 49, 87, 113 and 369,
+ *  396, 438 from one end; each about 6 wide and 9 deep, round-topped. The set's knurled
+ *  thumbscrew and sleeve nut (a001, a002) stand in the flange's slotted hole; one per bar, at
+ *  the end a004 shows -- ASSUMED, no photo shows a whole flange from above. (It was one flat
+ *  strip.) The two bars lie side by side as in the hero. Flange tops at y = 0. */
+export function frameConnectorGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const steel = new THREE.MeshStandardMaterial({ color: new THREE.Color(color),
+    metalness: 0.8, roughness: 0.42, side: THREE.DoubleSide });   // satin, the rail's response
+  const t = 1.5, gap = 60;
+  // the web, drawn flat: the bar's length by its height, notches cut up from the free edge
+  const s = new THREE.Shape();
+  s.moveTo(0, 0);
+  for (const x of [49, 87, 113, 369, 396, 438]) {
+    s.lineTo((x - 3) * MM, 0); s.lineTo((x - 3) * MM, 6 * MM);
+    s.absarc(x * MM, 6 * MM, 3 * MM, Math.PI, 0, true);
+    s.lineTo((x + 3) * MM, 0);
+  }
+  s.lineTo(w * MM, 0); s.lineTo(w * MM, h * MM); s.lineTo(0, h * MM);
+  const webGeo = new THREE.ExtrudeGeometry(s, { depth: t * MM, bevelEnabled: false, curveSegments: 5 });
+  let body = null;
+  for (const k of [-1, 1]) {
+    const z0 = k * (gap + d) / 2;                                    // this bar's centre line
+    const flange = box(g, w, t, d, 0, steel, 0, -t / 2, z0);
+    body = body || flange;
+    const web = new THREE.Mesh(webGeo, steel);
+    web.position.set(-w / 2 * MM, -h * MM, (z0 + d / 2 - t) * MM);
+    g.add(web);
+    for (const sx of [-1, 1]) box(g, t, h, 28, 0, steel, sx * (w - t) / 2, -h / 2, z0 + d / 2 - 14);
+    box(g, w - 2 * t, 3, t, 0, steel, 0, -t - 1.5, z0 - d / 2 + t / 2);
+    // the thumbscrew through the flange's slotted hole, its sleeve nut underneath
+    const hx = -w / 2 + 70;
+    knobInto(g, hx, 1.5, z0, 6, 3.5);
+    cyl(g, 3, 3, 1.5, 10, steel, hx, 0.75, z0);
+    cyl(g, 4, 4, 13, 10, steel, hx, -t - 6.5, z0);
+    cyl(g, 6, 6, 3, 14, metal(0x878c92, 0.75, 0.6), hx, -t - 14.5, z0);
+  }
+  return { group: g, body };
 }
 
 /** A bamboo sliding extension (CK-153/154): a cantilevered bamboo board that mounts on the

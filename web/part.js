@@ -10,6 +10,7 @@ import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
          slideExtGroup, entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop, lv310Group,
          propGroup, shelterOf, shelterVerts, tarpPitchGroup, landLockGroup,
          pentaTarpGroup } from "./parts3d.js";
+import { legGroup, connectionHookGroup, heightAdjusterGroup, frameConnectorGroup } from "./parts3d.js";   // frames
 
 /* The bench.
  *
@@ -51,6 +52,11 @@ const UNDERSTOOD = await fetch("../catalog/understanding.json")
   .then(r => r.ok ? r.json() : {}).catch(() => ({}));
 
 const PARTS = Object.fromEntries(CAT.parts.map(p => [p.sku, p]));
+// A frame that is sold with a separate `<sku>-1` rail set is a collapsible one -- the same
+// derivation core.js makes for the planner. Without it the bench drew CK-902/903/904 as the
+// standard frame.
+for (const p of CAT.parts)
+  if (p.role === "frame" && PARTS[`${p.sku}-1`]) { p.requires_rails = `${p.sku}-1`; p.collapsible = true; }
 const swatchOf = sku => COLORS[sku]?.color_hex || "#8a929c";
 
 const texLoader = new THREE.TextureLoader();
@@ -254,8 +260,17 @@ function benchGeo(p, box) {
   if (role === "case") return caseGroup(w, d, h, color).group;
   if (role === "rails" && SECTION)
     return railsGroup({ w, d, thick: h, section: SECTION, color }).group;
+  // The frame hardware, each drawn as the thing it is. A leg is aluminium whatever its swatch says
+  // (two of the four sample pure black, off the foot cap), so it takes the planner's leg silver.
+  if (role === "leg") return legGroup({ h, stud: true }).group;
+  if (sku === "CK-151") return heightAdjusterGroup().group;            // the post, not a plate
+  if (sku === "LV-312") return frameConnectorGroup(w, d, h, color).group;   // the pair of notched bars
+  if (role === "frame_hook") {                                          // CK-175: the U-hook and its knob
+    const hook = connectionHookGroup().group;
+    hook.rotation.y = -Math.PI / 2;    // the catalogue's 53 is its d: lay the U along z
+    return hook;
+  }
   if (role === "joint") return plateGroup(w, d, h, color).group;
-  if (role === "frame_hook") return clampGroup(w, d, h, color).group;  // CK-175 connection hook
 
   // Thin grill accessories: S-029HA is an open woven NET (its hero is see-through --
   // grillNetGroup); solid cast plates (S-029HD) keep the ridged slab.
@@ -351,7 +366,10 @@ function drawPart() {
     }
   }
 
-  const r = Math.max(box.w, box.d) * MM;
+  // The far plane follows the part's LONGEST side, height included, and never less than the
+  // 400mm the framing radius starts from: on width and depth alone a 25mm leg got a 0.5m far
+  // plane with the camera 1.3m away, and nothing was drawn.
+  const r = Math.max(box.w, box.d, box.h || 0, 400) * MM;
   camera.far = r * 20;
   camera.updateProjectionMatrix();
   // Aim at what was actually BUILT, not at the slot-module convention. Boards hang from
@@ -555,11 +573,11 @@ const ROLE_MODEL = {
   hanger: "hangRackGroup / ringGroup / boxHangerGroup / clampGroup, by kind",
   edge_clamp: "a windscreen / bent-tube lantern pole / flat tube ring / round side tray / cartridge cup / cup ring / clamp, by SKU",
   case: "caseGroup -- a soft case volume",
-  rails: "railsGroup -- the rail cross-section, no top",
-  joint: "plateGroup -- a small connecting plate (hardware)",
+  rails: "railsGroup -- the two rails as sold: the rail cross-section, a silver plate on each end",
+  joint: "heightAdjusterGroup (CK-151: the slotted post, its sleeves and thumbscrew) / frameConnectorGroup (LV-312: the pair of notched bars)",
   rail_joint: "plateGroup -- a small connecting plate (hardware)",
-  frame_hook: "clampGroup -- a small hook",
-  leg: "not a surface -- shown at its height only",
+  frame_hook: "connectionHookGroup -- the stainless U-hook and its knurled knob",
+  leg: "legGroup -- one leg of the pair: the tube, its black adjuster foot, the stud that goes in the socket",
   accessory: "grillNetGroup for the woven S-029HA net; gridPlateGroup for solid thin plates; else moduleGroup, else an honest flat slab",
   storage: "moduleGroup -- a box sized in units",
   set: "not modelled as one object (it is a bundle)",

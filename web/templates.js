@@ -31,7 +31,8 @@ export const TEMPLATES = [
   },
   {
     // Two frames end to end, long bamboo at one end and a corner at the other: a kitchen with a
-    // double burner, the BBQ box, and a run of trays.
+    // double burner, the BBQ box, and a run of trays. The second frame shares the first one's
+    // legs at the joint (the default end to end), so the two stand on six legs, not eight.
     id: "kitchen",
     doc: doc("forest", [
       { i: 1, sku: "CK-150", leg: "CK-114", x: 0, z: 0, rot: 0, placements: [

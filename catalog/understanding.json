@@ -112,23 +112,25 @@
   "unknown": []
  },
  "CK-150": {
-  "what": "IGT Four Unit Frame: the rigid four-unit (1096mm) leg frame -- the backbone a run is built on. Silver corner plates carry the leg sockets; black end pieces carry the holes an extension's hooks drop into.",
-  "model": "frameGroup -- the frame cross-section swept to length, with the hook-holes along the ends and sockets at the corners.",
-  "fits": "The central node: takes legs at the corners, extensions hook onto its short ends, sliding boards clip on its long rails, and frames join frame-to-frame via the rail joint (XCK-128).",
+  "what": "IGT Four Unit Frame: the rigid four-unit (1096mm) leg frame -- the backbone a run is built on. Two silver rails between two solid black end pieces. The leg sockets are in the rails' own top face (four rivets round a stud hole, no plate); the end pieces carry the holes an extension's hooks drop into.",
+  "model": "frameGroup -- the rail cross-section swept between two 48mm end blocks (edges eased, so two frames butted together show their seam), the four hook holes in the blocks, the leg sockets in the rails. A socket shows a bright stud when a leg stands in it and a dark hole when it is empty.",
+  "fits": "The central node: takes legs at the corners, extensions hook onto its short ends, sliding boards clip on its long rails. A second frame joins END TO END with a pair of Connection Hooks (CK-175): the two frames then share the pair of legs at the joint -- the hooked frame leaves its two out -- unless it is told to keep its own four (sharedJoint: false). The planner draws the hooks' knobs on the host's end piece at the seam.",
   "confidence": "medium",
   "derived": [
    "1096mm = four units",
-   "hook-holes on the ends and leg sockets at corners, from the underside plan view"
+   "hook-holes on the ends and leg sockets at corners, from the underside plan view",
+   "shared legs at a frame-to-frame joint, from CK-175's in-use photograph (a001): one frame's joint-end sockets are empty, two legs stand under the seam"
   ],
   "assumed": [
-   "exact cross-section profile where read off a single photo"
+   "exact cross-section profile where read off a single photo",
+   "the end piece is drawn a solid 30mm block; the real one is shallower between the rails (about 20mm at the hook holes, by the Height Adjuster's seat spacing)"
   ],
   "unknown": []
  },
  "CK-149": {
   "what": "IGT Three Unit Frame: the 846mm rigid frame; CK-150 one size down.",
   "model": "frameGroup, three-unit length.",
-  "fits": "Same as CK-150: legs at corners, extensions on the ends, boards on the rails, joins to other frames.",
+  "fits": "Same as CK-150: legs at corners, extensions on the ends, boards on the rails, joins to other frames end to end with CK-175 (shared legs at the joint by default).",
   "confidence": "medium",
   "derived": [
    "846mm = three units"
@@ -139,16 +141,19 @@
   "unknown": []
  },
  "CK-904": {
-  "what": "Collapsible IGT 4 Unit Frame: the folding version of the four-unit frame -- rails that collapse for packing rather than a rigid weld.",
-  "model": "frameGroup with collapsible=true, four-unit length.",
-  "fits": "Same role as CK-150 (legs, extensions, rails, frame joints) but folds flat; pairs with the collapsible rails (CK-904-1).",
+  "what": "Collapsible IGT 4 Unit Frame: the take-apart version of the four-unit frame. Four pieces: two black rails (sold again on their own as CK-904-1) and two brushed-aluminium end bars, held together by a thumbscrew at each corner. Each end bar has a black nylon block at either end, which carries the hook hole and the thumbscrew; each rail has a silver plate riveted on either end, where the leg goes. CK-902 and CK-903 are the same frame at two and three units.",
+  "model": "frameGroup with collapsible=true: black rails w - 84 long (the length CK-904-1 is sold at) between two 42mm silver end bars that stop 10mm short of the frame's sides; the nylon blocks with their stepped outer corner, the four thumbscrews, a dark slot along each bar's outer face; a 54mm silver plate with four rivets round the leg socket on each rail end. Hook holes and leg sockets are where the rigid frame's are, so everything attaches the same way.",
+  "fits": "Same role as CK-150 (legs, extensions, rails, frame joints) but comes apart flat; needs its rails (CK-904-1, added to the bill).",
   "confidence": "medium",
   "derived": [
    "1096mm = four units",
-   "collapsible, from the title and the separate rails part"
+   "collapsible, from the title and the separate rails part",
+   "end bar 42 x 476, block 108 long with its hook hole 144 from the centre line and 16 from the end, plate 43-97mm from the end: measured on the plan photographs of CK-903 and CK-904 (0.553 px/mm, the published 496 as the ruler)",
+   "rail length w - 84 agrees with the rails' own published 512 / 762 / 1012"
   ],
   "assumed": [
-   "how the fold changes the rail cross-section vs the rigid frame"
+   "the rail wears the rigid frame's cross-section (89.5 wide, a 65.5 flat) where the real rail is the published 86 with a wider flat; the plate is drawn 54 across to fit it, the real one measures about 58",
+   "drawn 30 thick like every frame in the planner; published 28 (rails 25, end bars 28)"
   ],
   "unknown": []
  },

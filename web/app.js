@@ -27,6 +27,7 @@ import {
   selfIgtEdges, serializeLayout, slideBounds, slideOffset, slotX, slotsOf, spanOf, state,
   stepDropMm, stepRoom, steps, subtreeIds, topOf, turnOf, warnings, partInfo,
 } from "./core.js";
+import { endJoint, sharesJoint } from "./core.js";   // frames
 import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          jikaroGroup, jikaroBridge, hangRackGroup, slideExtGroup,
          entryIgtGroup, slimIgtGroup, extIgtGroup, igtWoodTop, lv310Group, LV310_TOP,
@@ -35,6 +36,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          takeChairGroup, shelterFootprint, BBQ_SURFACE_SKUS, takibiGroup, gs1000Group,
          propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox, burnerOf,
          tarpPitchGroup, landLockGroup, pentaTarpGroup, figureGroup, clothTarpGroup } from "./parts3d.js";
+import { legGroup, connectionHookGroup, heightAdjusterGroup, hookHoleZ } from "./parts3d.js";   // frames
 import { PATTERNS as TARP_PATTERNS, solvePitch, pitchOf, letterOf, MAIN_POLES, SUB_POLES, MID_POLES, LEANS, RIDGES, ridgeOf } from "./tarp.js";
 import { openTarpMode } from "./tarpmode.js";
 
@@ -641,82 +643,71 @@ function drawFrame(g, n) {
   const isSel = state.sel === n.id;
   const glow = isSel ? 0x0a1a3a : 0x000000;
 
-  // The frame SHELL -- rails, black end pieces, hook holes, corner plates, rivets -- is built
-  // by frameGroup in parts3d.js, so the part bench draws the identical frame (recess and all)
-  // instead of a slab. The two families wear the finishes the other way round (standard =
-  // silver rails + black ends; collapsible = black rails + silver corner hinges); frameGroup
-  // reads p.collapsible for it. Legs and modules are placement, and stay here.
-  const collapsible = !!p.collapsible;
-  const { group: shell, pick } = frameGroup({
-    w: f.w, d: f.d, thick: FRAME_THICK, collapsible,
-    section: SECTION, hookHoles: FRAMES[n.sku]?.hook_holes_mm, holeInset: HOLE_INSET, glow,
-  });
-  shell.position.y = top * MM;
-  for (const m of pick) { m.userData.node = n; nodeMeshes.push(m); }
-  g.add(shell);
-
-  // Legs: a straight tube with a black adjuster foot -- measured, not styled. The leg heroes
-  // (web/img/CK-112.jpg, CK-113.jpg, CK-114.jpg) hold one diameter end to end -- CK-113's tube
-  // scans 22-23px across its whole 588px length -- so a drawn taper would be invented, and with
-  // four-plus legs under every table a non-parallel silhouette shows at iso framing. The foot
-  // is the height adjuster in CK-112's JP detail shots: a black sleeve on the tube, a shade
-  // narrower at the waist, then a wider knurled cap rounded at the bottom -- ~33mm of black in
-  // all, barely wider than the tube. No socket collar at the top: the assembled shots
-  // (CK-150LOW.jpg, CK-149's JP gallery) show the tube meeting the frame's underside clean and
-  // constant-width to the last pixel before the rail, so none is drawn.
-  // The legs go in the sockets, and the sockets were measured off the frame's underside:
-  // CK-149's are at x=+/-347, z=+/-207.5. The old code put them 40mm in from each edge --
-  // right by luck in z, 36mm out in x.
+  // Where the legs stand. They go in the sockets, and the sockets were measured off the frame's
+  // underside: CK-149's are at x=+/-347, z=+/-207.5. The old code put them 40mm in from each
+  // edge -- right by luck in z, 36mm out in x.
   const leg = PARTS[n.leg];
+  let spots = [];
   if (leg?.height_mm) {
-    const h = leg.height_mm;
     const measured = FRAMES[n.sku]?.leg_sockets_mm;
     // Sockets are measured on the 3-unit frame; a longer frame moves them out with its
     // ends, so hold the inset from the end rather than the absolute x.
     const ref = FRAMES["CK-149"];
     const inset = ref ? (846 / 2) - Math.abs(ref.leg_sockets_mm[0][0]) : 40;
     const sideIn = ref ? (496 / 2) - Math.abs(ref.leg_sockets_mm[0][1]) : 40;
-    let spots = measured || [
+    spots = measured || [
       [-(f.w / 2 - inset), -(f.d / 2 - sideIn)], [-(f.w / 2 - inset), f.d / 2 - sideIn],
       [f.w / 2 - inset, -(f.d / 2 - sideIn)], [f.w / 2 - inset, f.d / 2 - sideIn],
     ];
-    // Frames joined with a CK-175 can SHARE the joint: the continuation drops the two legs at
-    // its joined end (the pair nearest the host). User's choice -- default keeps its own four.
-    const host2 = byId(n.host);
-    if (host2 && n.sharedJoint) {
-      const loc = rotv({ x: host2.x - n.x, z: host2.z - n.z }, -n.rot);   // host direction, frame-local
-      const jointX = Math.sign(loc.x);
-      spots = spots.filter(([lx]) => Math.sign(lx) !== jointX);
-    }
-    const FOOT = 33, WAIST = 16, CAP = 12;   // the black stack, off CK-113's hero at 1.12mm/px
-    // The tube stops 2mm under the rail's top face. Run to the very top it lay coplanar with the
-    // rail and flickered as a speckled disc; the socket's dark stud hole (frameGroup) sits over it.
-    const LEG_TOP = 2;
-    for (const [lx, lz] of spots) {
-      const shaft = stock(
-        new THREE.CylinderGeometry(LEG_R * MM, LEG_R * MM, (h - FOOT - LEG_TOP) * MM, 16),
-        new THREE.Color(legColorOf(n)), 0.85, 0.3,
-      );
-      shaft.position.set(lx, (h - LEG_TOP + FOOT) / 2, lz).multiplyScalar(MM);
-      g.add(shaft);
-      // the adjuster's waist, a shade narrower than the tube (21.5px against the tube's 23)
-      const waist = stock(
-        new THREE.CylinderGeometry(LEG_R * 0.93 * MM, LEG_R * 0.93 * MM, WAIST * MM, 14),
-        0x2a2d31, 0.1, 0.85,
-      );
-      waist.position.set(lx, FOOT - WAIST / 2, lz).multiplyScalar(MM);
-      g.add(waist);
-      // the knurled cap, barely wider than the tube (27px against 23), rounded off underneath
-      const cap = stock(
-        new THREE.CylinderGeometry(LEG_R * 1.18 * MM, LEG_R * 1.18 * MM, CAP * MM, 14),
-        0x2a2d31, 0.1, 0.85,
-      );
-      cap.position.set(lx, 7 + CAP / 2, lz).multiplyScalar(MM);
-      g.add(cap);
-      const tip = stock(new THREE.SphereGeometry(LEG_R * 1.18 * MM, 12, 8), 0x2a2d31, 0.1, 0.85);
-      tip.scale.y = 0.45;
-      tip.position.set(lx, 7, lz).multiplyScalar(MM);
-      g.add(tip);
+  }
+  // A frame hooked onto another SHARES the joint when sharesJoint says so (the default end to
+  // end): it drops the two legs at its joined end -- the pair nearest the host -- and hangs on
+  // the host's. CK-175 a001 is that joint: one frame's sockets empty, two legs under the seam.
+  const host2 = byId(n.host);
+  const jointX = host2
+    ? Math.sign(rotv({ x: host2.x - n.x, z: host2.z - n.z }, -n.rot).x)   // host direction, frame-local
+    : 0;
+  if (host2 && sharesJoint(n)) spots = spots.filter(([lx]) => Math.sign(lx) !== jointX);
+
+  // The frame SHELL -- rails, ends, hook holes, leg sockets -- is built by frameGroup in
+  // parts3d.js, so the part bench draws the identical frame (recess and all) instead of a slab.
+  // The two families are told apart by their ends (standard = silver rails between black end
+  // pieces; collapsible = black rails between silver end bars); frameGroup reads p.collapsible
+  // for it. Legs and modules are placement, and stay here.
+  const collapsible = !!p.collapsible;
+  const { group: shell, pick } = frameGroup({
+    w: f.w, d: f.d, thick: FRAME_THICK, collapsible,
+    section: SECTION, hookHoles: FRAMES[n.sku]?.hook_holes_mm, holeInset: HOLE_INSET, glow,
+    legAt: (sx, sz) => spots.some(([lx, lz]) => Math.sign(lx) === sx && Math.sign(lz) === sz),
+  });
+  shell.position.y = top * MM;
+  for (const m of pick) { m.userData.node = n; nodeMeshes.push(m); }
+  g.add(shell);
+
+  // Legs: legGroup (parts3d.js), the same leg the bench shows -- a straight tube on a black
+  // adjuster foot. No socket collar at the top: the assembled shots (CK-150LOW.jpg, CK-149's JP
+  // gallery) show the tube meeting the frame's underside clean and constant-width to the last
+  // pixel before the rail, so none is drawn.
+  // The tube stops 2mm under the rail's top face. Run to the very top it lay coplanar with the
+  // rail and flickered as a speckled disc; the socket's stud (frameGroup) sits over it.
+  const LEG_TOP = 2;
+  for (const [lx, lz] of spots) {
+    const one = legGroup({ h: leg.height_mm - LEG_TOP, r: LEG_R, color: legColorOf(n) }).group;
+    one.position.set(lx, leg.height_mm - LEG_TOP, lz).multiplyScalar(MM);
+    g.add(one);
+  }
+
+  // The joint itself, where this frame is hooked flush onto another frame's end: a pair of
+  // Connection Hooks (CK-175), one at each hook hole. The knob stands on the HOST's end piece
+  // -- the frame that keeps its legs there -- and the hook's plain end comes up in this
+  // frame's own hole, 33mm back across the seam.
+  if (host2 && endJoint(n)) {
+    const hz = hookHoleZ(FRAMES[n.sku]?.hook_holes_mm);
+    for (const sz of [-1, 1]) {
+      const hook = connectionHookGroup({ span: 2 * HOLE_INSET }).group;
+      hook.position.set(jointX * (f.w / 2 + HOLE_INSET), top, sz * hz).multiplyScalar(MM);
+      hook.rotation.y = jointX > 0 ? Math.PI : 0;       // its plain leg points back at this frame
+      g.add(hook);
     }
   }
 
@@ -1380,36 +1371,35 @@ function rebuild() {
   renderer.shadowMap.needsUpdate = true;
 
   // Step joints, where two touching tables stand at different heights. The CK-151 is a stainless
-  // post of FIXED length (~320mm) that screws to the HIGHER table and hangs down; the lower
-  // table's hook drops into whichever HOLE matches the step -- 830->660 = 170mm, 660->400 =
-  // 260mm, 400->300 = 100mm below the top. It comes as a PAIR (本体×2), so draw two on the seam.
-  const CK151_LEN = 320, CK151_HOLES = [100, 170, 260];   // hole depths from the top, mm
-  const SILVER = new THREE.Color(0xb9bdc2);
+  // post of FIXED length that hangs UNDER the edge of the HIGHER table, on a thumbscrew dropped
+  // through its hook hole (CK-151 a001); the lower table's hook goes into whichever of the
+  // post's three seats matches the step -- 400->300 = 100mm, 830->660 = 170mm, 660->400 = 260mm
+  // below the table top. It comes as a PAIR (本体×2), one under each hook hole.
+  // So the post stands HOLE_INSET inside the higher table's edge, not on the seam (where it ran
+  // down through the lower frame's end piece), its windows turned to the lower table. Its top is
+  // 20mm under the table top -- that is what puts the seats at 100 / 170 / 260 -- which is inside
+  // the end piece as drawn (a solid 30): the tube shows from the underside down. The same rule
+  // serves a seam that is not a frame's end (a rail, a board's edge), where no photo was read.
+  const CK151_TOP = 20;
   for (const [a, b] of steps()) {
+    const hi = topOf(a) >= topOf(b) ? a : b;
     const loT = Math.min(topOf(a), topOf(b)), hiT = Math.max(topOf(a), topOf(b));
     const rise = Math.round(hiT - loT);
     if (rise < 5) continue;
     const c = contactEdge(a, b);
     const ctr = (c.lo + c.hi) / 2;
     const off = Math.min(144, Math.max(0, (c.hi - c.lo) / 2 - 30));   // end-hole half-spacing, clamped to the seam
+    // the higher table's own face at the seam, and which way is into that table
+    const H = aabb(hi), [f0, f1] = c.axis === "z" ? [H.x0, H.x1] : [H.z0, H.z1];
+    const face = Math.abs(f0 - c.fixed) < Math.abs(f1 - c.fixed) ? f0 : f1, into = face === f0 ? 1 : -1;
+    const at = face + into * HOLE_INSET;
     for (const s of [-1, 1]) {
       const t = ctr + s * off;
-      const px = (c.axis === "z" ? c.fixed : t), pz = (c.axis === "z" ? t : c.fixed);
-      const post = stock(
-        new THREE.CylinderGeometry(9 * MM, 9 * MM, CK151_LEN * MM, 12), SILVER, 0.9, 0.28,
-      );
-      post.position.set(px * MM, (hiT - CK151_LEN / 2) * MM, pz * MM);   // hangs from the higher top
+      const post = heightAdjusterGroup({ gap: CK151_TOP }).group;
+      post.position.set((c.axis === "z" ? at : t) * MM, (hiT - CK151_TOP) * MM, (c.axis === "z" ? t : at) * MM);
+      // the builder's windows face +x; turn them out of the higher table, toward the lower
+      post.rotation.y = c.axis === "z" ? (into > 0 ? Math.PI : 0) : (into > 0 ? Math.PI / 2 : -Math.PI / 2);
       build.add(post);
-      // the three hole positions; the one that matches this step (== rise) is the join, drawn dark
-      for (const hole of CK151_HOLES) {
-        const used = Math.abs(hole - rise) < 8;
-        const ring = stock(
-          new THREE.CylinderGeometry(9.8 * MM, 9.8 * MM, 5 * MM, 12),
-          new THREE.Color(used ? 0x2b2f35 : 0x8b9096), 0.4, 0.6,
-        );
-        ring.position.set(px * MM, (hiT - hole) * MM, pz * MM);
-        build.add(ring);
-      }
     }
   }
 
@@ -1688,12 +1678,15 @@ function fillActions(box, n) {
         () => setStep(n, s)));
     }
   }
-  // A frame joined to another with a CK-175 can keep its own four legs (what the one connection
-  // photo shows) OR share the joint and drop the pair at the joined end. The user chooses.
+  // A frame joined to another shares the joint and drops the pair of legs at its joined end
+  // (what the one connection photo shows, and the default end to end) OR keeps its own four.
+  // The user chooses, and the choice is STORED either way -- an explicit false is what makes
+  // "4 legs" survive a save or a shared link now that sharing is what absence means.
   if (n.kind === "frame" && n.host) {
-    box.append(chip(t("joint.four"), !n.sharedJoint, t("joint.four.tip"),
+    const shared = sharesJoint(n);
+    box.append(chip(t("joint.four"), !shared, t("joint.four.tip"),
       () => { n.sharedJoint = false; render(); }));
-    box.append(chip(t("joint.two"), !!n.sharedJoint, t("joint.two.tip"),
+    box.append(chip(t("joint.two"), shared, t("joint.two.tip"),
       () => { n.sharedJoint = true; render(); }));
   }
 }

@@ -86,6 +86,10 @@ table hooked onto its right-hand end.
   Its place, rotation and legs are derived.
 - A frame takes `leg`: `CK-114` 830mm (standing), `CK-113` 660mm, `CK-112` 400mm (the low
   datum every Snow Peak low table shares), `CK-109` 300mm.
+- A frame hooked flush onto another frame's end (`host` + `end+x` / `end-x`) **shares the two
+  legs at the joint**: it leaves out its own pair there and the bill carries one leg set
+  fewer. Give it `"sharedJoint": false` to keep its own four. (At any other joint -- a rail
+  joint, a board's bracket, a step -- a frame keeps its own four.)
 
 **Edges.** What a host offers:
 
