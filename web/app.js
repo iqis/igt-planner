@@ -37,6 +37,7 @@ import { moduleGroup, flatBoardGeo as flatGeo, frameGroup, tableGroup,
          propGroup, shelterOf, SHELTER_FILL, shelterVerts, shelterBBox, burnerOf,
          tarpPitchGroup, landLockGroup, pentaTarpGroup, figureGroup, clothTarpGroup } from "./parts3d.js";
 import { legGroup, connectionHookGroup, heightAdjusterGroup, hookHoleZ } from "./parts3d.js";   // frames
+import { hookBoardGroup } from "./parts3d.js";   // boards
 import { PATTERNS as TARP_PATTERNS, solvePitch, pitchOf, letterOf, MAIN_POLES, SUB_POLES, MID_POLES, LEANS, RIDGES, ridgeOf } from "./tarp.js";
 import { openTarpMode } from "./tarpmode.js";
 
@@ -847,7 +848,7 @@ function drawSlideExt(g, n) {
   const host = byId(n.host);
   const top = host ? topOf(host) : (PARTS[n.leg]?.height_mm ?? 400) + FRAME_THICK;
   const w = railW(p), d = depthOf(p), h = p.assembled_mm?.h ?? 33;
-  const { group, body } = slideExtGroup(w, d, h, swatchOf(n.sku), loadTex(BAMBOO_GRAIN));
+  const { group, body } = slideExtGroup(w, d, h, swatchOf(n.sku), loadTex(BAMBOO_GRAIN), p.board_mm ?? 13);
   group.position.y = top * MM;
   body.userData.node = n; g.add(group); nodeMeshes.push(body);
 }
@@ -1024,6 +1025,7 @@ function drawTable(g, n) {
   const f = footprint(n);
   const top = topOf(n);
   const isSel = state.sel === n.id;
+  if (n.kind === "ext") return drawHookBoard(g, n, p, f, top, isSel);
   // The board's REAL thickness. A hook-on board was being drawn 30mm thick because that is
   // what the frame's rail is; the spec says 25mm, and the spec is right there.
   // A layout table that is NOT a board publishes its HEIGHT in h -- the Takibi My Table's is
@@ -1065,46 +1067,6 @@ function drawTable(g, n) {
     g.add(decal);
   }
 
-  if (n.kind === "ext") {
-    const legH = top - thick;
-    const legSku = n.leg;
-
-    // Two wire hooks on the edge that meets the host: they hang over it and drop into the
-    // bracket plates on the far side. That side needs no leg -- the host is holding it up.
-    for (const [px, pz] of TEXTURES[p.sku]?.hooks_mm || []) {
-      const pin = stock(new THREE.CylinderGeometry(4 * MM, 4 * MM, 26 * MM, 8), 0xc8ccd2, 0.9, 0.25);
-      pin.position.set(px, top - thick - 11, pz).multiplyScalar(MM);
-      g.add(pin);
-    }
-
-    // The legs go where the BRACKETS are, and the brackets were measured off the plan
-    // view. Placing them at the corners because that is where legs usually go would be a
-    // guess sitting right next to a measurement.
-    //
-    // The plate lies ON the board: the next board's hooks come down into it, and the leg
-    // screws up into it from below.
-    const seats = TEXTURES[p.sku]?.legs_mm || [];
-    const spots = seats.length
-      ? seats
-      : [[-(f.w / 2 - 45), -f.d * 0.3], [-(f.w / 2 - 45), f.d * 0.3]];
-
-    for (const [bx, bz] of spots) {
-      const bracket = stock(roundedBox(58 * MM, 6 * MM, 44 * MM, 1 * MM), 0xc8ccd2, 0.9, 0.3);
-      bracket.position.set(bx, top + 3, bz).multiplyScalar(MM);
-      g.add(bracket);
-
-      if (legSku && PARTS[legSku]?.height_mm) {
-        const leg = stock(
-          new THREE.CylinderGeometry(12.5 * MM, 10.5 * MM, legH * MM, 14),
-          new THREE.Color(legColorOf(n)), 0.85, 0.32,
-        );
-        leg.position.set(bx, legH / 2, bz).multiplyScalar(MM);
-        g.add(leg);
-      }
-    }
-    return;
-  }
-
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const leg = stock(
       new THREE.CylinderGeometry(10 * MM, 8 * MM, (top - thick) * MM, 14),
@@ -1113,6 +1075,51 @@ function drawTable(g, n) {
     leg.position.set(sx * (f.w / 2 - 35), (top - thick) / 2, sz * (f.d / 2 - 35)).multiplyScalar(MM);
     g.add(leg);
   }
+}
+
+/** A hook-on bamboo board (CK-116/117 TR and Light, the corners, the angle boards), hung at its
+ *  host's height. The board with its brackets and hooks is hookBoardGroup in parts3d.js, the same
+ *  object the bench draws; what is the planner's is where the top stands and the legs.
+ *
+ *  The published 25 mm is NOT the bamboo. It is the height over the aluminium casting under each
+ *  bracket; the bamboo is `board_mm` (14, or 9 on a Light board). It was drawn as 25 mm of solid
+ *  bamboo with a 58 x 6 x 44 slab for a plate and a loose 26 mm pin floating 13 mm off the edge. */
+function drawHookBoard(g, n, p, f, top, isSel) {
+  const t = TEXTURES[p.sku] || {};
+  const total = p.assembled_mm?.h ?? 25;
+  // The plan view is the TOP: Snow Peak's own studio shot (JP a099) has the two bracket plates
+  // ON the bamboo, and the next board's wire hooks come down into the casting from above. So the
+  // photograph, where this build has one, is laid on the work surface.
+  const grain = textureOf(p.sku, "grain"), tex = textureOf(p.sku);
+  const { group, body } = hookBoardGroup(p.role, t, f.w, f.d, {
+    boardMm: p.board_mm ?? 14, total,
+    mat: grain ? grainMaterial(p, COLORS, grain, f.w, f.d, isSel) : materialFor(p, COLORS, isSel),
+    decalMat: tex ? boardMaterial(p, COLORS, tex, f.w * MM, f.d * MM, isSel, t.board_frac) : null,
+  });
+  group.position.y = top * MM;
+  body.userData.node = n; g.add(group); nodeMeshes.push(body);
+
+  // The legs go where the BRACKETS are -- under each plate's leg hole, measured off the plan
+  // view -- and screw up into the casting, so they stop at the bottom of the 25 mm envelope.
+  // The hooked edge needs none: the host is holding it up.
+  if (!n.leg || !PARTS[n.leg]?.height_mm) return;
+  const seats = t.legs_mm?.length ? t.legs_mm : [[-(f.w / 2 - 45), -f.d * 0.3], [-(f.w / 2 - 45), f.d * 0.3]];
+  for (const [bx, bz] of seats) boardLeg(g, bx, bz, top - total, legColorOf(n));
+}
+
+/** One leg under a hook-on board: the frame's own leg, to the measurements drawFrame gives -- a
+ *  straight 26 mm tube on the black adjuster foot (33 mm of sleeve, a narrower waist, a knurled
+ *  cap rounded off underneath). These were bare tapered tubes with no foot. `h` = the leg's top. */
+function boardLeg(g, x, z, h, color) {
+  const FOOT = 33, WAIST = 16, CAP = 12, BLACK = 0x2a2d31;
+  const put = (mesh, y) => { mesh.position.set(x, y, z).multiplyScalar(MM); g.add(mesh); };
+  put(stock(new THREE.CylinderGeometry(LEG_R * MM, LEG_R * MM, (h - FOOT) * MM, 16), new THREE.Color(color), 0.85, 0.3),
+    (h + FOOT) / 2);
+  put(stock(new THREE.CylinderGeometry(LEG_R * 0.93 * MM, LEG_R * 0.93 * MM, WAIST * MM, 14), BLACK, 0.1, 0.85), FOOT - WAIST / 2);
+  put(stock(new THREE.CylinderGeometry(LEG_R * 1.18 * MM, LEG_R * 1.18 * MM, CAP * MM, 14), BLACK, 0.1, 0.85), 7 + CAP / 2);
+  const tip = stock(new THREE.SphereGeometry(LEG_R * 1.18 * MM, 12, 8), BLACK, 0.1, 0.85);
+  tip.scale.y = 0.45;
+  put(tip, 7);
 }
 
 /** An invisible slab lying along each open edge. Hovering it is how you say "here".

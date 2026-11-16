@@ -85,8 +85,170 @@ export function flatBoardGeo(role, t, w, d, thickMM) {
   if (hole)
     return flatRect(w * MM, d * MM, thickMM * MM, 6 * MM,
       { x: hole.x * MM, z: hole.z * MM, r: hole.r * MM });
+  // A hook-on RECTANGLE (CK-116/117, TR and Light): the published box, its corners and its two
+  // bracket notches, from millimetres. Its traced ring hung each long edge on two or three scan
+  // rows (7-10 mm of slant over a 400-600 mm edge) and read a white bracket plate as a hole.
+  if (t.legs_mm?.length && t.hooks_mm?.length)
+    return boardFromOutline(hookRectOutline(w, d, t), thickMM * MM);
   if (t.outline_mm) return boardFromOutline(t.outline_mm, thickMM * MM);   // bamboo, edge notch
   return flatRect(w * MM, d * MM, thickMM * MM, 6 * MM);
+}
+
+// ---- the hook-on bamboo boards: CK-116/117 (TR and Light), corners CK-118/119, angle CK-218/219 ----
+
+/** The ironmongery of a hook-on board, in millimetres. ONE bracket casting is on all eight boards:
+ *  rectified out of the eight plan photographs, sixteen brackets agree to about a millimetre (the
+ *  two Light boards' JP a001 shots are the sharpest, 0.75 mm/px).
+ *
+ *    bracket   a 62 x 59.5 plate lying ON the bamboo, 18.5 mm back from the board's edge, its leg
+ *              hole 49.5 mm in (48.0-50.1 measured). In front of it the board is NOTCHED, 70 long x
+ *              20 deep, and in the notch sits the edge bar of the casting under the board: 12 mm
+ *              wide, two holes in its top 12.5 mm in from the edge line and 35.6 apart.
+ *    sockets   those holes are what the NEXT board hooks into, and it uses the inner one of each
+ *              bracket: leg holes 325.8 apart less 35.6 is 290.2, and every board's two hooks are
+ *              288-292 apart.
+ *    hook      a 6 mm stainless wire from under the board, up across the edge, out and straight
+ *              down. Its outer face is 25.1-28.8 mm outside the edge in plan (sixteen hooks, mean
+ *              27.0), so the down leg's centre is 24 mm out; CK-218's JP a009 close-up has the leg
+ *              ending about eight wire diameters below the top of the bend.
+ *    corners   a rectangle's four corners are 15-20 mm radii (CK-117TL a001 against a 10 mm grid).
+ *
+ *  The envelope is the published 25 mm: bamboo (14 mm, or 9 on a Light board -- see board_mm in
+ *  the catalogue) plus the casting under each bracket. core.js places a hooked board with the
+ *  same two numbers (SOCKET_OUT = legIn - socketIn). */
+export const HOOK_BOARD = Object.freeze({
+  legIn: 49.5, plateL: 62, plateW: 59.5, plateT: 2,
+  notchL: 70, notchD: 20, notchR: 5,
+  barIn: 6.5, barW: 12, barTop: 6, socketIn: 12.5, socketHalf: 17.8,
+  wire: 6, hookOut: 24, hookDrop: 48, cornerR: 17,
+});
+
+/** A measured edge normal, as a unit vector; one within two degrees of an axis IS that axis (a
+ *  rectangle's and a corner's edges are square, whatever the photograph's last pixel says). */
+function edgeDir(v) {
+  const L = Math.hypot(v[0], v[1]) || 1;
+  let x = v[0] / L, z = v[1] / L;
+  if (Math.abs(x) > 0.9994) { x = Math.sign(x); z = 0; }
+  if (Math.abs(z) > 0.9994) { z = Math.sign(z); x = 0; }
+  return [x, z];
+}
+/** Which way a board's hook edge and bracket edge face (outward, board coordinates). The bracket
+ *  edge is the measured one where the photograph gave it; otherwise the hook edge turned through
+ *  the board's angle, the same rule core.js bracketNormal uses to place the next board. */
+function hookBoardEdges(t) {
+  const hook = edgeDir(t.hook_edge || [1, 0]);
+  const a = (t.turn || 0) * Math.PI / 180;
+  const turned = [-hook[0] * Math.cos(a) + hook[1] * Math.sin(a), -hook[0] * Math.sin(a) - hook[1] * Math.cos(a)];
+  return { hook, bracket: edgeDir(t.bracket_edge || turned) };
+}
+
+/** A ring of [x, z, r] corners with each one turned through an arc of its radius (0 = left sharp). */
+function filletRing(verts, segDeg = 18) {
+  const out = [], n = verts.length;
+  for (let i = 0; i < n; i++) {
+    const [vx, vz, r] = verts[i], P = verts[(i - 1 + n) % n], N = verts[(i + 1) % n];
+    let ax = P[0] - vx, az = P[1] - vz, bx = N[0] - vx, bz = N[1] - vz;
+    const la = Math.hypot(ax, az), lb = Math.hypot(bx, bz);
+    ax /= la; az /= la; bx /= lb; bz /= lb;
+    const th = Math.acos(Math.max(-1, Math.min(1, ax * bx + az * bz)));
+    if (!r || th > Math.PI - 1e-3) { out.push([vx, vz]); continue; }
+    const cut = r / Math.tan(th / 2), hx = ax + bx, hz = az + bz, hl = Math.hypot(hx, hz);
+    const cx = vx + hx / hl * r / Math.sin(th / 2), cz = vz + hz / hl * r / Math.sin(th / 2);
+    const a0 = Math.atan2(vz + az * cut - cz, vx + ax * cut - cx);
+    let da = Math.atan2(vz + bz * cut - cz, vx + bx * cut - cx) - a0;
+    da = Math.atan2(Math.sin(da), Math.cos(da));
+    const k = Math.max(2, Math.ceil(Math.abs(da) * 180 / Math.PI / segDeg));
+    for (let j = 0; j <= k; j++) out.push([cx + r * Math.cos(a0 + da * j / k), cz + r * Math.sin(a0 + da * j / k)]);
+  }
+  return out;
+}
+
+/** The outline of a hook-on rectangle: w x d, four rounded corners, and a notch in the bracket
+ *  edge in front of each leg hole. Millimetres, [x, z] pairs, the frame textures.json uses. */
+export function hookRectOutline(w, d, t) {
+  const H = HOOK_BOARD, { bracket } = hookBoardEdges(t);
+  const box = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]];
+  const ring = [];
+  for (let i = 0; i < 4; i++) {
+    const a = box[i], b = box[(i + 1) % 4];
+    ring.push([a[0], a[1], H.cornerR]);
+    const ex = Math.sign(b[0] - a[0]), ez = Math.sign(b[1] - a[1]);     // along this side; (ez, -ex) faces out of it
+    if (ez * bracket[0] - ex * bracket[1] < 0.99) continue;
+    const nx = ez, nz = -ex;                                             // this side carries the brackets
+    const at = (t.legs_mm || []).map(l => (l[0] - a[0]) * ex + (l[1] - a[1]) * ez).sort((p, q) => p - q);
+    for (const s of at) {
+      const m0 = [a[0] + ex * (s - H.notchL / 2), a[1] + ez * (s - H.notchL / 2)];
+      const m1 = [a[0] + ex * (s + H.notchL / 2), a[1] + ez * (s + H.notchL / 2)];
+      ring.push([m0[0], m0[1], 0], [m0[0] - nx * H.notchD, m0[1] - nz * H.notchD, H.notchR],
+                [m1[0] - nx * H.notchD, m1[1] - nz * H.notchD, H.notchR], [m1[0], m1[1], 0]);
+    }
+  }
+  return filletRing(ring);
+}
+
+/** Brackets and hooks onto a hook-on board's group (board top at y = 0), where textures.json has
+ *  them: legs_mm is each bracket's leg hole, hooks_mm each hook's down leg. `boardMm` is the
+ *  bamboo, `total` the published envelope the casting under each bracket makes up. */
+function hookBoardHardware(g, t, boardMm, total) {
+  const H = HOOK_BOARD, { hook, bracket } = hookBoardEdges(t);
+  // Satin aluminium, pale: the plates photograph near white (one keyed out as background). At
+  // metalness 0.9 they mirrored the dark room and read charcoal.
+  const alu = metal(0xd6d9dc, 0.35, 0.5), dark = metal(0x17191c, 0.2, 0.85);
+  const screw = metal(0xb9bdc2, 0.6, 0.35);
+  // Stainless rod, kept bright the same way: a 6 mm wire at 0.9 metal has nothing to reflect but
+  // the floor and drew as a black line against the bamboo.
+  const steel = metal(0xdadde1, 0.5, 0.32);
+
+  for (const [lx, lz] of t.legs_mm || []) {
+    // the bracket's own frame: +x out through the board's edge, origin on the leg hole
+    const b = new THREE.Group();
+    b.position.set(lx * MM, 0, lz * MM);
+    b.rotation.y = -Math.atan2(bracket[1], bracket[0]);
+    g.add(b);
+    const edge = H.legIn;                                    // the bamboo's edge line, from the leg hole
+    box(b, H.plateL, H.plateT, H.plateW, 0, alu, 0, H.plateT / 2, 0);                  // the plate, ON the bamboo
+    cyl(b, 6, 6, 0.5, 14, dark, 0, H.plateT + 0.1, 0);                                 // its leg hole
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])                                // four rivets, 48 x 33 apart
+      cyl(b, 3.2, 3.2, 1, 8, screw, sx * 24, H.plateT + 0.5, sz * 16.5);
+    // the casting under the board: a block the leg screws up into (its round socket and stud show
+    // from below until a leg is in it -- CK-116TR a001), and its bar standing in the notch
+    box(b, H.plateL, total - boardMm, H.plateW, 0, alu, 0, -(boardMm + total) / 2, 0);
+    cyl(b, 11, 11, 0.5, 18, dark, 0, -total - 0.1, 0);
+    cyl(b, 4.5, 4.5, 0.6, 10, screw, 0, -total - 0.3, 0);
+    const barX = edge - H.barIn - H.barW / 2, barH = total - 3 - H.barTop;
+    box(b, H.barW, barH, H.plateW, 0, alu, barX, -H.barTop - barH / 2, 0);
+    for (const sz of [-1, 1])                                                          // the two hook sockets
+      cyl(b, 4, 4, 0.5, 12, dark, edge - H.socketIn, -H.barTop + 0.1, sz * H.socketHalf);
+  }
+
+  // The hooks. Each lies under the board, climbs the edge, runs out about level with the top and
+  // turns straight down: the down leg is what drops into a frame's end hole or a bracket's socket.
+  // The level run is drawn with its crown 2 mm proud (CK-116TR a002 has it arching just clear of
+  // the two boards); flush, it ran wholly inside a frame's end piece and the hook vanished.
+  const r = H.wire / 2, run = 2 - r;
+  for (const [hx, hz] of t.hooks_mm || []) {
+    const at = (s, y) => [hx + hook[0] * (s - H.hookOut), y, hz + hook[1] * (s - H.hookOut)];   // s = mm outside the edge
+    bentTube(g, [at(-34, -boardMm - r), at(3, -boardMm - r), at(8, run), at(H.hookOut, run), at(H.hookOut, -H.hookDrop)],
+      r, steel, { rad: [0, 4, 4, 7, 0], radial: 8 });
+  }
+}
+
+/** A hook-on bamboo board, whole: the slab (flatBoardGeo's shape, `boardMm` thick), the plan
+ *  photograph laid on it where the build has one (`decalMat`), its two brackets and its two hooks.
+ *  Top face at y = 0, the casting under each bracket reaching down to -`total`. The legs are not
+ *  this part -- they are their own SKU, and the planner stands them under the leg holes.
+ *  `mat` is the bamboo's material (the caller owns grain and selection glow). */
+export function hookBoardGroup(role, t, w, d, { boardMm = 14, total = 25, mat, decalMat = null } = {}) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(flatBoardGeo(role, t, w, d, boardMm), mat);
+  g.add(body);
+  if (decalMat) {
+    const decal = new THREE.Mesh(flatBoardGeo(role, t, w, d, 0.4), decalMat);
+    decal.position.y = 0.5 * MM;
+    g.add(decal);
+  }
+  hookBoardHardware(g, t || {}, boardMm, Math.max(total, boardMm + 6));
+  return { group: g, body };
 }
 
 /** LI Stove Joint Kit (GP-040; JP IGT剛炎ジョイントフレーム): the 1.5-unit frame that puts the
@@ -3384,21 +3546,29 @@ export function frameConnectorGroup(w, d, h, color) {
   return { group: g, body };
 }
 
-/** A bamboo sliding extension (CK-153/154): a cantilevered bamboo board that mounts on the
- *  frame's LONG side and reaches outward. Two silver brackets on ONE long edge hook over the
- *  rail; the board's top finishes about level with the frame top. Photographed, not guessed
- *  (JP a002/a003 show the two hinged brackets gripping the rail, the board reaching out).
- *  Board top at y = 0; the mounting edge is at -z, so the board reaches toward +z. */
-export function slideExtGroup(w, d, h, color, grainTex = null) {
+/** A bamboo sliding extension (CK-153/154): a cantilevered bamboo board on the frame's LONG side.
+ *  Board top at y = 0, flush with the frame; the mounting edge is at -z, the board reaches +z.
+ *
+ *  From above it is a clean board with two small silver tabs at the rail edge (the US plan shot
+ *  alt_02: tabs at +/-111 of the 423, 22 wide, reaching 21 mm past the board's edge; CK-154's
+ *  gallery is CK-153's photographs, so its tabs take the same fraction of its width, assumed).
+ *  Everything else is UNDER it (JP a003, a004): beneath each tab a triangular aluminium gusset --
+ *  a flange screwed to the underside about 95 mm out, a strut back down from its far end -- on
+ *  the hook profile that clips the rail's outer grooves. The published 33 mm is board plus that
+ *  bracket; the board is `boardMm` (about 13: its edge is 0.46 of the frame's 30 mm end piece in
+ *  a004). The board's edge stands `SLIDE_STANDOFF` off the rail, the profile between them (a001).
+ *
+ *  It was a 16 mm board with two dark L-brackets standing 18 mm proud ON TOP of it. */
+export const SLIDE_STANDOFF = 12;   // board edge to rail face; core.js SLIDE_GAP places it by the same number
+export function slideExtGroup(w, d, h, color, grainTex = null, boardMm = 13) {
   const g = new THREE.Group();
   const wood = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), metalness: 0.05, roughness: 0.7 });
-  const board = 16;                                   // the bamboo itself; h(33) is board + bracket
-  const top = new THREE.Mesh(roundedBox(w * MM, board * MM, d * MM, 6 * MM), wood);
-  top.position.y = -board / 2 * MM;
-  g.add(top);
+  const R = 16;                                       // corner radius in plan, off alt_02
+  const top = new THREE.Mesh(flatRect(w * MM, d * MM, boardMm * MM, R * MM), wood);
+  g.add(top);                                         // flatRect hangs from its top face: y = 0
 
-  // The bamboo grain, laid on the top face as a thin decal (the roundedBox has no clean UVs
-  // to map onto). It is the same bamboo as every other board, so it wears the same grain.
+  // The board's own top, rectified from its photograph, laid on as a thin decal cut to the same
+  // rounded outline (a plain rectangle's corners stood out past the board's).
   if (grainTex) {
     // A photograph is sRGB. Left untagged it was read as linear light and the board came out
     // near white beside every other bamboo part.
@@ -3406,25 +3576,35 @@ export function slideExtGroup(w, d, h, color, grainTex = null) {
       grainTex.colorSpace = THREE.SRGBColorSpace;
       if (grainTex.image) grainTex.needsUpdate = true;
     }
-    const decal = new THREE.Mesh(new THREE.PlaneGeometry(w * MM, d * MM),
-      new THREE.MeshStandardMaterial({ map: grainTex, metalness: 0.03, roughness: 0.72 }));
+    const s = new THREE.Shape(filletRing([[-w / 2, -d / 2, R], [w / 2, -d / 2, R], [w / 2, d / 2, R], [-w / 2, d / 2, R]])
+      .map(([x, y]) => new THREE.Vector2(x * MM, y * MM)));
+    const geo = new THREE.ShapeGeometry(s);
+    // The photograph over the whole board -- less the white it carries at its two ends (16 and 11
+    // of its 640 px), which lay on the board as a pale strip down each short edge.
+    const pos = geo.attributes.position, uv = geo.attributes.uv, u0 = 0.028, u1 = 0.980;
+    for (let i = 0; i < pos.count; i++)
+      uv.setXY(i, u0 + (pos.getX(i) / (w * MM) + 0.5) * (u1 - u0), pos.getY(i) / (d * MM) + 0.5);
+    const decal = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: grainTex, metalness: 0.03, roughness: 0.72 }));
     decal.rotation.x = -Math.PI / 2;                  // lay it flat, facing up
     decal.position.y = 0.3 * MM;                      // just above the board top (y=0)
     g.add(decal);
   }
 
-  // Two slide brackets on the mounting (-z) long edge: a foot lying on the board and an
-  // upstand at the very edge that hooks over the rail. Spaced like the hero shot.
-  const steel = metalE(0xc8ccd2, 0.9, 0.28);
-  const edgeZ = -(d / 2);
-  const bx = Math.min(w * 0.22, 110);
+  const alu = metal(0xd6d9dc, 0.35, 0.5);             // the same pale satin aluminium as the board brackets
+  const edgeZ = -d / 2, tabW = 22, bx = w * 0.26;
+  const drop = h - boardMm;                           // the bracket's reach below the board: 20
   for (const sx of [-1, 1]) {
-    const foot = new THREE.Mesh(roundedBox(32 * MM, 4 * MM, 46 * MM, 1 * MM), steel);
-    foot.position.set(sx * bx * MM, 2 * MM, (edgeZ + 28) * MM);
-    g.add(foot);
-    const lip = new THREE.Mesh(roundedBox(32 * MM, 20 * MM, 7 * MM, 1 * MM), steel);
-    lip.position.set(sx * bx * MM, 8 * MM, (edgeZ + 4) * MM);
-    g.add(lip);
+    const x = sx * bx;
+    // the tab: all that shows from above -- 12 mm onto the board, 21 past its edge onto the rail
+    box(g, tabW, 1.5, 33, 0, alu, x, 0.75, edgeZ - 4.5);
+    // the hook profile, in the gap between board and rail, down to the bottom of the bracket
+    box(g, tabW, h, 5, 0, alu, x, -h / 2, edgeZ - SLIDE_STANDOFF / 2);
+    // the gusset: its flange against the underside, and the strut from the flange's far end back
+    // down to the foot of the profile
+    box(g, tabW, 3, 95, 0, alu, x, -boardMm - 1.5, edgeZ + 47.5);
+    const run = 95 + SLIDE_STANDOFF / 2, len = Math.hypot(run, drop - 3);
+    const strut = box(g, tabW - 6, 3, len, 0, alu, x, -boardMm - 1.5 - (drop - 3) / 2, edgeZ + 95 - run / 2);
+    strut.rotation.x = -Math.atan2(drop - 3, run);
   }
   return { group: g, body: top };
 }

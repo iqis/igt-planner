@@ -12,6 +12,7 @@ import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
          pentaTarpGroup } from "./parts3d.js";
 import { legGroup, connectionHookGroup, heightAdjusterGroup, frameConnectorGroup } from "./parts3d.js";   // frames
 import { unitClampGroup } from "./parts3d.js";   // standalone
+import { hookBoardGroup } from "./parts3d.js";   // boards
 
 /* The bench.
  *
@@ -257,7 +258,7 @@ function benchGeo(p, box) {
   }
 
   // A bamboo sliding extension (CK-153/154): mounts on the frame's long side, reaches out.
-  if (role === "extension") return slideExtGroup(w, d, h, color, loadTex(BAMBOO_GRAIN)).group;
+  if (role === "extension") return slideExtGroup(w, d, h, color, loadTex(BAMBOO_GRAIN), p.board_mm ?? 13).group;
 
   if (role === "case") return caseGroup(w, d, h, color).group;
   if (role === "rails" && SECTION)
@@ -321,6 +322,15 @@ function drawPart() {
 
   if (!isBoard) {
     stage.add(benchGeo(p, box));
+  } else if (t.hooks_mm?.length && t.legs_mm?.length) {
+    // A hook-on bamboo board: the planner's own object (drawHookBoard) -- bamboo of its real
+    // thickness, the two brackets with the casting under them, the two wire hooks.
+    const tex = show.photo ? textureOf(sku) : null;
+    stage.add(hookBoardGroup(p.role, t, box.w, box.d, {
+      boardMm: p.board_mm ?? 14, total: thick,
+      mat: grain ? grainMaterial(p, COLORS, grain, box.w, box.d, false) : materialFor(p, COLORS, false),
+      decalMat: tex ? boardMaterial(p, COLORS, tex, box.w * MM, box.d * MM, false, t.board_frac) : null,
+    }).group);
   } else {
     const board = new THREE.Mesh(flatBoardGeo(p.role, t, box.w, box.d, thick), grain
       ? grainMaterial(p, COLORS, grain, box.w, box.d, false)

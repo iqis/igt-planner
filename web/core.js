@@ -31,6 +31,10 @@ export const TOUCH = 30;       // two tables closer than this are connected
 // a002/a003) -- so it needs no rail joint, takes no legs, and it SLIDES: it tiles the long
 // side in slots one board wide (two CK-154 span a four-unit side exactly, 548x2 = 1096).
 export const isSlide = p => p?.attach === "slide_in";
+// How far a sliding extension's board stands off the rail's outer face: about 12mm, the depth of
+// the hook profile between them (CK-153TR a001; medium confidence). parts3d.js SLIDE_STANDOFF
+// draws the profile to the same number.
+export const SLIDE_GAP = 12;
 
 export let CAT, GRID, LAYOUT, CONN, HALF, PARTS, BY_ROLE, COLORS, TEXTURES, FRAMES, HOOKABLE, SLIDE_IN, SECTION;
 // A layout is a set of tables. An IGT frame is one kind of table -- the kind with a
@@ -278,6 +282,13 @@ export function bracketNormal(sku) {
  *  which is what actually drops into what. */
 export const hookAnchor = sku => mean(TEXTURES[sku]?.hooks_mm || [[0, 0]]);
 export const bracketAnchor = sku => mean(TEXTURES[sku]?.legs_mm || [[0, 0]]);
+// The hook SOCKETS of a board's bracket edge, measured from its leg holes (legs_mm) straight out
+// toward the edge. The leg hole is 49.5mm in from the bamboo's edge and the two holes the next
+// board's hooks drop into are 12.5mm in (CK-116TL's plan view at 0.75mm/px; the same casting on
+// all eight boards) -- so 37mm. A hook's down leg hangs 24mm outside its own board (hooks_mm), which
+// leaves the 11.5mm between two hooked boards that the aerial shot CK-116TR a003 shows (12-14mm)
+// and 7.5mm between a board and a frame's end. parts3d.js HOOK_BOARD draws the same numbers.
+export const SOCKET_OUT = 37;
 
 /** The half of the joint that THIS node brings, in its own coordinates.
  *
@@ -294,8 +305,11 @@ export function hookGeometry(n) {
   // A sliding extension has no measured wire hooks -- it mounts by the brackets along one
   // whole long edge. So its "hook" is that edge: anchored at the edge midpoint, facing out.
   // parts3d's slideExtGroup draws the brackets on -z and the board reaching +z, to match.
+  // The board does not touch the rail: its hook profile stands between them (CK-153TR a001), so
+  // the edge that mates is SLIDE_GAP outside the board's own. Along the rail nothing changes --
+  // two CK-154 still tile a four-unit side, 548 x 2 = 1096.
   if (isSlide(PARTS[n.sku]))
-    return { normal: { x: 0, z: -1 }, anchor: { x: 0, z: -depthOf(PARTS[n.sku]) / 2 } };
+    return { normal: { x: 0, z: -1 }, anchor: { x: 0, z: -(depthOf(PARTS[n.sku]) / 2 + SLIDE_GAP) } };
   return { normal: hookNormal(n.sku), anchor: hookAnchor(n.sku) };
 }
 
@@ -355,8 +369,10 @@ export function hostEdge(n, key, guest = "ext") {
   // holes a board hooks into, long rails at +/-d/2. The self-IGT stands at the datum, so a board
   // on it inherits the datum the same way a frame's board does.
   if (n.kind === "frame" || selfIgt(n.sku)) {
-    // A BOARD's wire hooks drop INTO the holes, 16.5mm in from the end face, so the board
-    // ends up resting 4mm onto the end piece. A FRAME does not: with CK-175 the two end
+    // A BOARD's wire hooks drop INTO the holes, 16.5mm in from the end face, and a hook's down
+    // leg hangs 24mm outside its board, so the board ends up 7.5mm clear of the end piece (it was
+    // taken to rest 4mm onto it, when hooks_mm was the middle of the wire and not its down leg).
+    // A FRAME does not: with CK-175 the two end
     // pieces butt FACE TO FACE and the fitting spans them. Two guests, two anchors, one
     // edge -- and aligning a frame to the hole line instead would bury it 33mm into its
     // neighbour, which is what the first version did.
@@ -369,11 +385,14 @@ export function hostEdge(n, key, guest = "ext") {
     if (key === "rail-z") return { anchor: { x: 0, z: -f.d / 2 }, normal: { x: 0, z: -1 }, len: f.w, rail: true };
   }
   if (n.kind === "ext" && key === "bracket") {
-    // The bracket plates ARE the sockets: the next board's wire hooks come down into them.
+    // The next board's wire hooks come down into the SOCKETS, at the board's edge -- not into
+    // the middle of the plates, where the legs are. Anchored on the plates' centroid, a board
+    // hooked to a board was buried 28-34mm into it.
     const lg = TEXTURES[n.sku]?.legs_mm;
+    const at = bracketAnchor(n.sku), out = bracketNormal(n.sku);
     return {
-      anchor: bracketAnchor(n.sku),
-      normal: bracketNormal(n.sku),
+      anchor: { x: at.x + out.x * SOCKET_OUT, z: at.z + out.z * SOCKET_OUT },
+      normal: out,
       len: lg ? Math.hypot(lg[0][0] - lg[1][0], lg[0][1] - lg[1][1]) * 1.35 : 400,
     };
   }

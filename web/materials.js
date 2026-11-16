@@ -322,7 +322,7 @@ export function angleBoard(length, depth, thickness, setback = 200) {
  *  alpha channel carries the silhouette, which is why the corner's quarter round does not
  *  have to be believed -- it can just be seen.
  */
-export function boardMaterial(p, colors, texture, w, d, selected) {
+export function boardMaterial(p, colors, texture, w, d, selected, frac = null) {
   const r = responseFor(p.material);
   texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -340,8 +340,15 @@ export function boardMaterial(p, colors, texture, w, d, selected) {
   // It was -1/d, so the photograph was laid on every board FLIPPED IN z. A bamboo table is
   // nearly symmetric and hid it completely; the corner is not, and it showed up there as
   // the arc of the painted photo running one way and the arc of the board the other.
-  texture.repeat.set(1 / w, 1 / d);
-  texture.offset.set(0.5, 0.5);
+  //
+  // `frac` is where the BOARD lies inside the image, [x0, y0, x1, y1] as fractions from its top
+  // left (textures.json board_frac). A hook-on board's photograph is cropped to board AND hooks,
+  // so the board is only part of it; laid over the board whole, the picture was squeezed and its
+  // last 23-27 mm at the hooked edge showed white background (alpha-cut, so the body colour).
+  // The board's w x d covers frac's share of the image, centred on frac's centre.
+  const [fx0, fy0, fx1, fy1] = frac || [0, 0, 1, 1];
+  texture.repeat.set((fx1 - fx0) / w, (fy1 - fy0) / d);
+  texture.offset.set((fx0 + fx1) / 2, 1 - (fy0 + fy1) / 2);
   // Only if the image is here: needsUpdate on a still-loading texture makes the renderer
   // warn "no image data found" once per material. A texture that arrives later uploads
   // with these wrap/colour settings anyway -- the flag buys nothing before then.
@@ -354,7 +361,11 @@ export function boardMaterial(p, colors, texture, w, d, selected) {
     roughness: r.roughness,
     emissive: new THREE.Color(selected ? 0x0a1a3a : 0x000000),
     transparent: true,
-    alphaTest: 0.5,
+    // The cut-out background is WHITE under its zero alpha, and filtering blends it into the
+    // photograph's last pixel: cut at one half, every board wore a dashed white rim once the
+    // picture was laid in register. The body underneath is the same shape, so cutting late
+    // loses nothing.
+    alphaTest: 0.85,
   });
 }
 

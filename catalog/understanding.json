@@ -38,16 +38,20 @@
  },
  "CK-153TR": {
   "what": "Renewed Bamboo IGT Sliding Extension (short): a small bamboo board (423x220) that grips the frame's long rail and cantilevers outward, adding a shelf beside the table.",
-  "model": "slideExtGroup -- a bamboo slab with two under-brackets that clip over the rail; the board top carries the real grain/logo texture (from the alt_02 top-view photo).",
-  "fits": "Clips onto the frame's LONG side (the rail), not the short end. Slides freely along the rail (the planner snaps it in 25mm steps). Two CK-153TR end to end span the same length as a Three Unit Frame (846mm).",
+  "model": "slideExtGroup -- a 13mm bamboo board with rounded corners, clean on top but for two small silver tabs at the rail edge; under each tab a triangular aluminium gusset (a 95mm flange on the underside, a strut back down from its end) on the hook profile that clips the rail's outer grooves. The published 33mm is board plus that bracket. The board top carries the real grain/logo texture (from the alt_02 top-view photo).",
+  "fits": "Clips onto the frame's LONG side (the rail), not the short end, its top flush with the frame and its edge about 12mm off the rail. Slides freely along the rail (the planner snaps it in 25mm steps). Two CK-153TR end to end span the same length as a Three Unit Frame (846mm).",
   "confidence": "medium",
   "derived": [
-   "dimensions 423x220x33 from the catalogue",
+   "dimensions 423x220x33 from the catalogue; 423x220 is the board alone, the tabs reach 21mm past it",
+   "tabs at +/-111mm, 22 wide, off the alt_02 top view",
+   "gusset under the board, hook profile at the rail: JP a003, a004",
+   "board about 13mm: its edge is 0.46 of the frame's 30mm end piece in a004",
    "top texture is the real alt_02 orthographic top view",
    "mounts on the long rail (manual/photo)"
   ],
   "assumed": [
-   "bracket shape and the 220mm cantilever reach",
+   "the 12mm stand-off from the rail (one oblique photo, a001)",
+   "the gusset's 20mm drop is the published 33 less the board; its strut is drawn as one flat bar",
    "25mm slide snap is a planner convenience, not a real detent"
   ],
   "unknown": [
@@ -56,7 +60,7 @@
  },
  "CK-154TR": {
   "what": "Renewed Bamboo IGT Sliding Extension Long: the longer sibling of CK-153TR (548x220), same idea -- a bamboo board that grips the rail and reaches out.",
-  "model": "slideExtGroup, same builder as CK-153TR, longer board.",
+  "model": "slideExtGroup, same builder as CK-153TR, longer board: clean top, two tabs, the gussets underneath.",
   "fits": "Clips onto the frame's LONG rail and slides. Two CK-154TR end to end span the same length as a Four Unit Frame (1096mm).",
   "confidence": "medium",
   "derived": [
@@ -64,7 +68,8 @@
    "two of them = Four Unit Frame length (1096mm)"
   ],
   "assumed": [
-   "bracket shape and cantilever reach, shared with CK-153TR"
+   "tab spacing: the same fraction of the width as CK-153TR's (its gallery is CK-153TR's photographs)",
+   "bracket shape, stand-off and board thickness, shared with CK-153TR"
   ],
   "unknown": [
    "overlap/spacing rule when several share one rail"
@@ -72,42 +77,57 @@
  },
  "CK-117TR": {
   "what": "Renewed Bamboo IGT Table Long: a full-length (1096mm) bamboo tabletop that hooks onto a frame end and runs the length out -- the four-unit extension surface.",
-  "model": "tableGroup -- a flat bamboo slab, with the plan-view photo laid under it in the same frame so the hook and bracket positions can be checked against the board.",
-  "fits": "Hooks onto the frame's SHORT end (its hooks drop into the black end pieces) and carries straight on for four units. Takes its host frame's leg SKU.",
+  "model": "hookBoardGroup -- the 1096x496 rectangle built from millimetres (17mm corners) of 14mm bamboo (the published 25mm is the height over the casting under each bracket, not the board), with the plan-view photo laid on top where the build has one. Two brackets: a 62x59.5 plate ON the bamboo, the board notched 70x20 in front of it, the casting's edge bar in the notch with the two hook sockets, the leg block underneath. Two 6mm wire hooks from under the board, over the edge and straight down.",
+  "fits": "Hooks onto the frame's SHORT end (its hooks drop into the black end pieces, the board 7.5mm clear of them) and carries straight on for four units. Takes its host frame's leg SKU.",
   "confidence": "medium",
   "derived": [
    "1096mm = four units (250*4+96) from the dimension",
-   "hooks on the short end, from the frame-fittings plan view"
+   "hooks on the short end, from the frame-fittings plan view",
+   "bamboo 14mm: edge against the 6mm hook wire (CK-218 a009), against the frame's 30mm end piece (CK-119TR a001), and by weight at the inserts' density",
+   "bracket and notch measured on sixteen brackets rectified out of the eight plan photographs (they agree to about 1mm)",
+   "hook down leg 24mm outside the edge: the wire's outer face is 25-29mm out on all sixteen hooks",
+   "the next board hooks into the INNER socket of each bracket: leg holes 325.8 apart less 35.6 = 290.2, hooks 289.2 apart"
   ],
   "assumed": [
-   "exact hook mm positions where not yet measured off a photo"
+   "the casting under the board: its 60x60 block and the bar's height are drawn to fill the 25mm envelope, from one underside photo (CK-116TR a001)",
+   "hook and bracket positions written as the symmetric numbers; the photographs centre them to +/-1mm"
   ],
   "unknown": []
  },
  "CK-116TR": {
   "what": "Renewed Bamboo IGT Table Regular: the 846mm (three-unit) bamboo tabletop; same as CK-117TR one size down.",
-  "model": "tableGroup -- flat bamboo slab with the plan view underlaid.",
-  "fits": "Hooks onto the frame's short end and carries on for three units.",
+  "model": "hookBoardGroup -- the 846x496 rectangle built from millimetres (17mm corners) of 14mm bamboo (the published 25mm is the height over the casting under each bracket, not the board), with the plan-view photo laid on top where the build has one. Two brackets: a 62x59.5 plate ON the bamboo, the board notched 70x20 in front of it, the casting's edge bar in the notch with the two hook sockets, the leg block underneath. Two 6mm wire hooks from under the board, over the edge and straight down.",
+  "fits": "Hooks onto the frame's short end and carries on for three units, standing 7.5mm clear of the end piece; the next board hooks into its brackets 11.5mm away.",
   "confidence": "medium",
   "derived": [
-   "846mm = three units (250*3+96)"
+   "846mm = three units (250*3+96)",
+   "bamboo 14mm: edge against the 6mm hook wire (CK-218 a009), against the frame's 30mm end piece (CK-119TR a001), and by weight at the inserts' density",
+   "bracket and notch measured on sixteen brackets rectified out of the eight plan photographs (they agree to about 1mm)",
+   "hook down leg 24mm outside the edge: the wire's outer face is 25-29mm out on all sixteen hooks",
+   "the next board hooks into the INNER socket of each bracket: leg holes 325.8 apart less 35.6 = 290.2, hooks 289.2 apart"
   ],
   "assumed": [
-   "exact hook positions where unmeasured"
+   "the casting under the board: its 60x60 block and the bar's height are drawn to fill the 25mm envelope, from one underside photo (CK-116TR a001)",
+   "hook and bracket positions written as the symmetric numbers; the photographs centre them to +/-1mm"
   ],
   "unknown": []
  },
  "CK-119TR": {
-  "what": "Bamboo Right Corner Extension: a 496mm square bamboo board that turns the run 90 degrees at a corner (the LEFT-hand version is CK-118TR).",
-  "model": "tableGroup -- a square flat slab. The corner turn is what makes it special: its hook edge and bracket edge are PERPENDICULAR, so the layout changes direction through it.",
+  "what": "Bamboo Right Corner Extension: a quarter-round bamboo board in a 496mm square that turns the run 90 degrees at a corner (the LEFT-hand version is CK-118TR).",
+  "model": "hookBoardGroup -- a quarter round -- two straight edges meeting square and a rim that is a quarter circle of the full 496 about that corner (fitted off both corners' photographs: R 497 and 499, 0.14mm rms) -- of 14mm bamboo (the published 25mm is the height over the casting under each bracket, not the board), with the plan-view photo laid on top where the build has one. Two brackets: a 62x59.5 plate ON the bamboo, the board notched 70x20 in front of it, the casting's edge bar in the notch with the two hook sockets, the leg block underneath. Two 6mm wire hooks from under the board, over the edge and straight down. The corner turn is what makes it special: its hook edge and bracket edge are PERPENDICULAR, so the layout changes direction through it.",
   "fits": "Hooks on one edge, offers brackets on an adjacent (not opposite) edge, so the run leaves at 90 degrees. Left/right decides which way it turns.",
   "confidence": "medium",
   "derived": [
-   "496mm square from the catalogue",
-   "corner (perpendicular hook vs bracket edge) from the role and the plan view"
+   "496mm square box from the catalogue",
+   "corner (perpendicular hook vs bracket edge) from the role and the plan view",
+   "bamboo 14mm: edge against the 6mm hook wire (CK-218 a009), against the frame's 30mm end piece (CK-119TR a001), and by weight at the inserts' density",
+   "bracket and notch measured on sixteen brackets rectified out of the eight plan photographs (they agree to about 1mm)",
+   "hook down leg 24mm outside the edge: the wire's outer face is 25-29mm out on all sixteen hooks",
+   "the next board hooks into the INNER socket of each bracket: leg holes 325.8 apart less 35.6 = 290.2, hooks 289.2 apart"
   ],
   "assumed": [
-   "which physical edge is hook vs bracket for R vs L, where not yet measured"
+   "the casting under the board: its 60x60 block and the bar's height are drawn to fill the 25mm envelope, from one underside photo (CK-116TR a001)",
+   "hook and bracket positions written as the symmetric numbers; the photographs centre them to +/-1mm"
   ],
   "unknown": []
  },

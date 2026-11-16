@@ -1910,6 +1910,30 @@
   "weight_g": 90,
   "reason": "IGTコネクションフック -- what joins two frames END TO END. A frame's end already has the HOLES (measured on CK-149: x = +/-406.5, z = +/-143.9); CK-175 supplies the other half by turning the neighbouring end into a HOOK. It is JP-only, has no manual, and exactly ONE real photograph in its gallery -- which happens to be of exactly this: two frames butted end to end, black end pieces face to face, two knurled knobs on ONE frame's end piece at the seam (the hook is a stainless U that runs UNDER the two end pieces: its plain end shows in the other frame's hook hole), and exactly TWO legs under the joint: that frame's sockets carry leg studs, the other frame's two joint-end sockets are EMPTY holes. So the frames SHARE the pair of legs at the joint, and the planner makes that the default for a frame hooked flush onto another frame's end (store sharedJoint: false on the hooked frame to give it back its own four). Corrected 2026-11-15: this note read the same photograph as 'two pairs of legs bunched at it ... each keeps its own four', which it does not show. The JP spec table says セット内容 本体×2 and 45g(本体一つあたり) -- a pair, 45g EACH -- so one set makes one joint (one hook per hole) and the SET weighs 90g. The scraper took the 45 as the item weight, which is what the page literally says and is not what it means."
  },
+ "CK-116TR": {
+  "board_mm": 14,
+  "reason": "THICKNESS: the published 25mm is not the bamboo. It is the height over the aluminium casting under each bracket -- the block a leg screws up into. The bamboo itself is about 14mm (board_mm): in the JP a009 close-up CK-218's edge is 2.2x its own 6mm hook wire; in CK-119TR's JP a001 the board's edge is 0.41 of the frame's 30mm end piece; and at the inserts' density (CK-125TR is 250x360x12 and 800g) CK-116TR's 4.6kg is 14.0mm of board. assembled_mm keeps the 25, which is how far the part reaches below its own top."
+ },
+ "CK-117TR": {
+  "board_mm": 14,
+  "reason": "THICKNESS: the published 25mm is not the bamboo. It is the height over the aluminium casting under each bracket -- the block a leg screws up into. The bamboo itself is about 14mm (board_mm): in the JP a009 close-up CK-218's edge is 2.2x its own 6mm hook wire; in CK-119TR's JP a001 the board's edge is 0.41 of the frame's 30mm end piece; and at the inserts' density (CK-125TR is 250x360x12 and 800g) CK-116TR's 4.6kg is 14.0mm of board. assembled_mm keeps the 25, which is how far the part reaches below its own top."
+ },
+ "CK-118TR": {
+  "board_mm": 14,
+  "reason": "THICKNESS: the published 25mm is not the bamboo. It is the height over the aluminium casting under each bracket -- the block a leg screws up into. The bamboo itself is about 14mm (board_mm): in the JP a009 close-up CK-218's edge is 2.2x its own 6mm hook wire; in CK-119TR's JP a001 the board's edge is 0.41 of the frame's 30mm end piece; and at the inserts' density (CK-125TR is 250x360x12 and 800g) CK-116TR's 4.6kg is 14.0mm of board. assembled_mm keeps the 25, which is how far the part reaches below its own top."
+ },
+ "CK-119TR": {
+  "board_mm": 14,
+  "reason": "THICKNESS: the published 25mm is not the bamboo. It is the height over the aluminium casting under each bracket -- the block a leg screws up into. The bamboo itself is about 14mm (board_mm): in the JP a009 close-up CK-218's edge is 2.2x its own 6mm hook wire; in CK-119TR's JP a001 the board's edge is 0.41 of the frame's 30mm end piece; and at the inserts' density (CK-125TR is 250x360x12 and 800g) CK-116TR's 4.6kg is 14.0mm of board. assembled_mm keeps the 25, which is how far the part reaches below its own top."
+ },
+ "CK-116TL": {
+  "board_mm": 9,
+  "reason": "THICKNESS: the published 25mm is not the bamboo. It is the height over the casting under each bracket -- the block a leg screws up into. The Light board's bamboo is about 9mm (board_mm): at the inserts' density (CK-125TR is 250x360x12 and 800g) CK-116TL's 3.0kg is 8.9mm of board against 14.0 for the 4.6kg CK-116TR, and its edge is visibly the thinner one in the US hero and JP c101. assembled_mm keeps the 25."
+ },
+ "CK-117TL": {
+  "board_mm": 9,
+  "reason": "THICKNESS: the published 25mm is not the bamboo. It is the height over the casting under each bracket -- the block a leg screws up into. The Light board's bamboo is about 9mm (board_mm): at the inserts' density (CK-125TR is 250x360x12 and 800g) CK-116TL's 3.0kg is 8.9mm of board against 14.0 for the 4.6kg CK-116TR, and its edge is visibly the thinner one in the US hero and JP c101. assembled_mm keeps the 25."
+ },
  "CK-218": {
   "attach": "hook_on",
   "assembled_mm": {
@@ -1917,7 +1941,8 @@
    "d": 465.0,
    "h": 25.0
   },
-  "reason": "ATTACH: the copy never says how the angle extensions attach, and their plan view shows the hooks only if you look for them on the SLANTED edge -- which the detector could not, because it tested for protrusion past the BOUNDING BOX. Two sources settle it. LV-381's manual, in English: 'it is possible to connect this product with a Bamboo IGT Table Regular / Long, Bamboo Left/Right Angle Extension, Bamboo Left / Right Corner Extension (CK-117TR, CK-218, CK-219, CK-118TR, CK-119TR)'. And the owner pointed at the hooks in the top view and at the close-up (JP a009): the same stainless wire hook, let into a slot in the board's edge, arching out and bending straight down. DEPTH: Snow Peak publishes 990x496, but that aspect (1.996) contradicts its own photograph (2.13) by 7% -- on BOTH mirror products, from two independent shots, while CK-117TR and CK-119TR agree with theirs to 0.6% and 0.3%. The hook spacing settles which number is wrong: it must match the frame's end holes (287.8mm), and it is 288-292mm on every other bamboo board. At the published scale CK-218's hooks come out 304mm apart -- a 5% outlier that would not enter the holes. At 990x465 they come out 289mm, the scale is isotropic (1.3866 vs 1.3881 mm/px), and the published WIDTH is reproduced to 0.4%. So 990 is real and 496 is not the bounding box; what Snow Peak means by it, I do not know, and am not going to invent. This matters because the ANGLE is measured in this frame: at the published scale the leg reads 61.2deg (turn 57.6), and at the true one 59.7deg (TURN 60.0)."
+  "board_mm": 14,
+  "reason": "ATTACH: the copy never says how the angle extensions attach, and their plan view shows the hooks only if you look for them on the SLANTED edge -- which the detector could not, because it tested for protrusion past the BOUNDING BOX. Two sources settle it. LV-381's manual, in English: 'it is possible to connect this product with a Bamboo IGT Table Regular / Long, Bamboo Left/Right Angle Extension, Bamboo Left / Right Corner Extension (CK-117TR, CK-218, CK-219, CK-118TR, CK-119TR)'. And the owner pointed at the hooks in the top view and at the close-up (JP a009): the same stainless wire hook, let into a slot in the board's edge, arching out and bending straight down. DEPTH: Snow Peak publishes 990x496, but that aspect (1.996) contradicts its own photograph (2.13) by 7% -- on BOTH mirror products, from two independent shots, while CK-117TR and CK-119TR agree with theirs to 0.6% and 0.3%. The hook spacing settles which number is wrong: it must match the frame's end holes (287.8mm), and it is 288-292mm on every other bamboo board. At the published scale CK-218's hooks come out 304mm apart -- a 5% outlier that would not enter the holes. At 990x465 they come out 289mm, the scale is isotropic (1.3866 vs 1.3881 mm/px), and the published WIDTH is reproduced to 0.4%. So 990 is real and 496 is not the bounding box; what Snow Peak means by it, I do not know, and am not going to invent. This matters because the ANGLE is measured in this frame: at the published scale the leg reads 61.2deg (turn 57.6), and at the true one 59.7deg (TURN 60.0). THICKNESS: the published 25mm is not the bamboo. It is the height over the aluminium casting under each bracket -- the block a leg screws up into. The bamboo itself is about 14mm (board_mm): in the JP a009 close-up CK-218's edge is 2.2x its own 6mm hook wire; in CK-119TR's JP a001 the board's edge is 0.41 of the frame's 30mm end piece; and at the inserts' density (CK-125TR is 250x360x12 and 800g) CK-116TR's 4.6kg is 14.0mm of board. assembled_mm keeps the 25, which is how far the part reaches below its own top."
  },
  "CK-219": {
   "attach": "hook_on",
@@ -1926,7 +1951,16 @@
    "d": 465.0,
    "h": 25.0
   },
-  "reason": "Mirror of CK-218; same evidence and the same 6.4% aspect discrepancy in its own photograph, independently shot. Measured turn: 60.6deg."
+  "board_mm": 14,
+  "reason": "Mirror of CK-218; same evidence and the same 6.4% aspect discrepancy in its own photograph, independently shot. Measured turn: 60.6deg. THICKNESS: the published 25mm is not the bamboo. It is the height over the aluminium casting under each bracket -- the block a leg screws up into. The bamboo itself is about 14mm (board_mm): in the JP a009 close-up CK-218's edge is 2.2x its own 6mm hook wire; in CK-119TR's JP a001 the board's edge is 0.41 of the frame's 30mm end piece; and at the inserts' density (CK-125TR is 250x360x12 and 800g) CK-116TR's 4.6kg is 14.0mm of board. assembled_mm keeps the 25, which is how far the part reaches below its own top."
+ },
+ "CK-153TR": {
+  "board_mm": 13,
+  "reason": "THICKNESS: the published 33mm is board plus bracket -- the two aluminium gussets under the board that clip the rail's outer grooves. The bamboo is about 13mm (board_mm): in JP a004 its edge measures 0.46 of the frame's 30mm end piece beside it. assembled_mm keeps the 33."
+ },
+ "CK-154TR": {
+  "board_mm": 13,
+  "reason": "THICKNESS: the published 33mm is board plus bracket -- the two aluminium gussets under the board that clip the rail's outer grooves. The bamboo is about 13mm (board_mm): in JP a004 its edge measures 0.46 of the frame's 30mm end piece beside it. assembled_mm keeps the 33."
  },
  "GS-450R": {
   "span": 2,
