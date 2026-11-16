@@ -221,7 +221,7 @@
    "CK-090": {
     "name": "Extension IGT",
     "default": "expanded",
-    "note": "Two laminated-bamboo tabletops on one aluminium stand that slide apart. Closed it is a plain ~3-unit-long table; slid fully open it exposes a central 2-Unit IGT bay (500x360) between the two tops. Catalogue title carries a 'Risk of tipping over' warning -- the open span is cantilevered.",
+    "note": "Two laminated-bamboo tabletops on one aluminium stand that slide apart. Closed it is a plain ~3-unit-long table; slid fully open it exposes a central 2-Unit IGT bay (500x360) between the two tops. The stand (828 long) and its legs never move; a unit in the bay sits on the stand's rails, 18mm below the bamboo. The manual also shows ONE top slid (a 1-Unit bay); that state is not modelled. Catalogue title carries a 'Risk of tipping over' warning -- the open span is cantilevered.",
     "configs": {
      "expanded": {
       "name": "expanded (open)",
@@ -278,7 +278,7 @@
     "units": 3,
     "top": "bamboo",
     "bay_d_mm": 360,
-    "note": "Entry IGT. Tops = 2x one-unit + 2x half-unit bamboo (manual set-contents); 833x440 body, ~41mm end margins round the 750mm 3-unit run."
+    "note": "Entry IGT. Tops = 2x one-unit + 2x half-unit bamboo (manual set-contents); 833x440 frame; its 40mm end plates bracket the 750mm 3-unit run."
    },
    "CK-080R-EC": {
     "units": 3,
@@ -290,7 +290,7 @@
     "units": 3,
     "top": "teak",
     "bay_d_mm": 360,
-    "note": "IGT Slim. SIX removable half-unit teak panels = a 3-unit frame; any panel lifts out for a stovetop or workspace. 940x403 body."
+    "note": "IGT Slim. SIX removable half-unit teak panels = a 3-unit frame; any panel lifts out for a stovetop or workspace. The top is 824x403; the published 940 is the span over the legs' feet."
    }
   },
   "connections": {

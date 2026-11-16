@@ -1380,88 +1380,159 @@ export function tableGroup(w, d, height, thick, color, legColor = null) {
   return { group: g, body: top };
 }
 
-// A folding leg at one short end: two struts dropping from the pivot under the frame to the
-// ground, the way the built-in legs of the self-contained IGTs fold down. ex = which end (±1).
-// The pair lives at ±zEdge and stays PARALLEL in depth unless zSplay pushes the feet wider;
-// the fold direction is the LENGTH -- pivot at w/2 - inset, feet raked out to w/2 + splay.
-// `barY` places the cross bar as a fraction of the way down the strut: 1 is a bar lying at
-// the feet (the Entry's ground U-loop, and the default so the old calls draw unchanged),
-// ~0.6 a mid-height rung (the Extension). `stay` > 0 adds the thin kickstand cylinder from
-// the bar's midpoint up-inboard to the frame underside `stay` mm inside the pivot -- the
-// fold lock the photos show in the leg's opening.
-function foldLeg(g, { ex, w, d, top, footY, mat, r, splay, inset, zIn, feet = false,
-                      barY = 1, stay = 0, zSplay = 0 }) {
-  const strut = (a, b, rr) => {
-    const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(rr * MM, rr * MM, va.distanceTo(vb) || MM, 10), mat);
-    m.position.copy(va).add(vb).multiplyScalar(0.5);
-    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
-    g.add(m);
-  };
-  const topX = ex * (w / 2 - inset), footX = ex * (w / 2 + splay), zEdge = d / 2 - zIn;
-  const foot = [];
-  for (const sz of [-1, 1]) {
-    strut([topX, top, sz * zEdge], [footX, footY, sz * (zEdge + zSplay)], r);   // an upright
-    foot.push([footX, footY, sz * (zEdge + zSplay)]);
-  }
-  // the cross bar sits ON the struts at barY -- at 1 it is the old foot bar exactly
-  const bar = sz => [topX + (footX - topX) * barY, top + (footY - top) * barY,
-                     sz * (zEdge + zSplay * barY)];
-  strut(bar(-1), bar(1), r * 0.85);
-  if (stay) strut(bar(0), [topX - ex * stay, top, 0], r * 0.4);   // the kickstand, up-inboard
-  if (feet) for (const f of foot) {
-    const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.3 * MM, r * 1.5 * MM, 12 * MM, 10),
-      metalE(0x27292d, 0.1, 0.85));
-    cap.position.set(f[0] * MM, f[1] * MM, f[2] * MM); g.add(cap);
-  }
+// ---- the self-contained tables (Entry IGT, IGT Slim, Extension IGT): shared small pieces ----
+
+/** A flat plate cut to an outline. `pts` is the outline in mm as [a, b] in the plate's own
+ *  plane; `ea` and `eb` are the world directions of those two axes (perpendicular), `at` the
+ *  world point (mm) the outline's origin sits on, and the plate is `thk` mm thick, centred on
+ *  that plane. With ea = z and eb = y it is a bar of constant section running along x. */
+function plate(g, pts, thk, mat, at, ea, eb) {
+  const s = new THREE.Shape();
+  pts.forEach(([a, b], i) => (i ? s.lineTo(a * MM, b * MM) : s.moveTo(a * MM, b * MM)));
+  const geo = new THREE.ExtrudeGeometry(s, { depth: thk * MM, bevelEnabled: false });
+  geo.translate(0, 0, -thk / 2 * MM);
+  const m = new THREE.Mesh(geo, mat);
+  const A = new THREE.Vector3(...ea).normalize(), B = new THREE.Vector3(...eb).normalize();
+  m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(A, B, new THREE.Vector3().crossVectors(A, B)));
+  m.position.set(at[0] * MM, at[1] * MM, at[2] * MM);
+  g.add(m);
+  return m;
 }
 
-/** Entry IGT (CK-080R): a self-contained 3-unit IGT frame -- an aluminium ring on two built-in
- *  folding TUBE legs. Its bamboo top is REMOVABLE (2x one-unit + 2x half-unit pieces, no SKU) so
- *  IGT units drop in; the top itself is drawn by igtWoodTop, per free half-unit, so this builds
- *  only the frame + legs. Top at y = 0. */
+/** A flat link bar from a to b (mm), `wid` wide in the vertical plane it lies in and `thk` thick
+ *  across it -- the stays that lock a folding leg open. a and b share one z. */
+function flatLink(g, a, b, wid, thk, mat) {
+  const va = new THREE.Vector3(...a).multiplyScalar(MM), vb = new THREE.Vector3(...b).multiplyScalar(MM);
+  const m = new THREE.Mesh(new THREE.BoxGeometry(wid * MM, va.distanceTo(vb), thk * MM), mat);
+  m.position.copy(va).add(vb).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
+  g.add(m);
+  return m;
+}
+
+/** Lay a wood texture on a board as seen from ABOVE: each vertex takes its uv from where it sits
+ *  in plan -- `fn(x, z)` in mm, mesh-local, returns [u, v]. A box's own unwrap runs u along x on
+ *  the top face, and every wood texture here (photo crop or proctex canvas) runs its grain along
+ *  u, so left alone the grain always follows the table's LENGTH; the Entry's boards and the
+ *  Slim's slats run the DEPTH. The thin edges take the streak under them, which is what an edge
+ *  of long-grain wood shows. */
+function planUV(geo, fn) {
+  const p = geo.attributes.position, uv = geo.attributes.uv;
+  for (let i = 0; i < p.count; i++) {
+    const [u, v] = fn(p.getX(i) / MM, p.getZ(i) / MM);
+    uv.setXY(i, u, v);
+  }
+  uv.needsUpdate = true;
+  return geo;
+}
+
+// The Slim's teak panels are thinner than the Entry's bamboo boards; its pipes hang under them.
+const SLIM_PANEL = 10, ENTRY_BOARD = 12;
+
+/** Entry IGT (CK-080R; CK-080R-EC is the same table powder-coated black): a 3-unit IGT frame of
+ *  two aluminium extrusions and two end plates on two folding U-bent tube legs. Its bamboo top
+ *  is REMOVABLE (2x one-unit + 2x half-unit pieces, no SKU) so IGT units drop in; the top is
+ *  drawn by igtWoodTop per free half-unit, so this builds only the frame + legs. Top at y = 0.
+ *
+ *  Measured off Snow Peak's own shots against the published 833 x 440 x 400:
+ *  - PLAN (CK-080R-EC 08527, straight down, 0.90 mm/px): long rails 37-38 wide, end plates 37-39,
+ *    bamboo 756 x 365 between them. So the rails are 40 with their inner edges 360 apart -- the
+ *    IGT seat -- and the boards FILL the frame. (It used to be a 12mm ring with a 28mm
+ *    see-through gap all round the boards.)
+ *  - SIDE (04987 front, 1.41 mm/px): the rail face is 44-47 tall, a proud top lip over a set-back
+ *    web. Bare frame (04978): a shelf runs down the inside of each rail a board's thickness below
+ *    the top; boards and unit rims rest on it.
+ *  - The END PLATE is a sheet lying ON the rail ends, folded down over the end as a skirt about
+ *    36 tall with clipped lower corners (04992 end-on). Its two hook holes measure 14 in and 147
+ *    either side of centre in the plan shot -- the standard frame's 16.5 and 143.9 to within the
+ *    photo's 3 px, and the same extension tables hook into both, so the standard numbers are used.
+ *  - LEGS (04977 hero, 04987, 04992): one bent tube per end, about 16 through. The uprights are
+ *    ~340 apart (they stand under the rails' inner edges, not out at the corners), leave the frame
+ *    45 inside the end and reach the ground 15 inside it -- 833 is the frame and nothing passes
+ *    it (the feet used to land 18 OUTSIDE, 886 over all). The run between the feet lifts in a
+ *    shallow arch; a black block with a levelling screw sits under each bend (05047); a flat
+ *    stay locks each upright to the rail (05038).
+ *  The photo's frame sides read #c0bfba; at metalness 0.85 with nothing to reflect they drew
+ *  #676a6f, so the bare aluminium is 0.5 here. */
 export function entryIgtGroup(w, d, height, { black = false } = {}) {
   const g = new THREE.Group();
-  // CK-080R-EC is the same table anodised black throughout -- frame, end plates and legs.
-  const alu = black ? metalE(0x26282c, 0.3, 0.6) : metalE(0xd0d3d7, 0.85, 0.35);
-  const thick = 26, bar = 12;
-  // the aluminium frame: a shallow ring of four bars round the top edge
-  for (const sz of [-1, 1]) {
-    const b = new THREE.Mesh(roundedBox(w * MM, thick * MM, bar * MM, 1.5 * MM), alu);
-    b.position.set(0, -thick / 2 * MM, sz * (d / 2 - bar / 2) * MM); g.add(b);
+  const alu = black ? metalE(0x26282c, 0.3, 0.6) : metalE(0xd0d3d7, 0.5, 0.42);
+  const railW = 40, railH = 45, shelf = 14;
+  const zo = d / 2, zi = zo - railW;                 // 220 / 180: the rail's outer face, its inner edge
+  // the two rails, full length: lip, set-back web, and the shelf inside
+  for (const s of [-1, 1])
+    plate(g, [[zo, 0], [zo, -18], [zo - 4, -18], [zo - 4, -railH], [zi + 4, -railH],
+              [zi + 4, -ENTRY_BOARD - 6], [zi - shelf, -ENTRY_BOARD - 6], [zi - shelf, -ENTRY_BOARD],
+              [zi, -ENTRY_BOARD], [zi, 0]].map(([z, y]) => [s * z, y]),
+      w, alu, [0, 0, 0], [0, 0, 1], [0, 1, 0]);
+  // end plates: a 3mm sheet on the rail ends (1mm proud, as a sheet laid on is), its skirt, its holes
+  const hole = metalE(0x0e0f12, 0.2, 0.8);
+  for (const ex of [-1, 1]) {
+    box(g, railW, 3, d, 0, alu, ex * (w / 2 - railW / 2), -0.5, 0);
+    plate(g, [[-zo, -2], [zo, -2], [zo - 20, -38], [-(zo - 20), -38]], 3, alu,
+      [ex * (w / 2 - 1.5), 0, 0], [0, 0, 1], [0, 1, 0]);
+    for (const sz of [-1, 1]) cyl(g, 4.5, 4.5, 3.6, 10, hole, ex * (w / 2 - 16.5), -0.6, sz * 143.9);
   }
-  for (const sx of [-1, 1]) {
-    const b = new THREE.Mesh(roundedBox(bar * MM, thick * MM, d * MM, 1.5 * MM), alu);
-    b.position.set(sx * (w / 2 - bar / 2) * MM, -thick / 2 * MM, 0); g.add(b);
+  // the legs: bent tube, uprights raked out from 45 inside the end to 15 inside it
+  const legMat = black ? metalE(0x1e2024, 0.3, 0.6) : metalE(0xc9ccd0, 0.55, 0.38);
+  const stayMat = black ? legMat : metalE(0xb4b7bb, 0.6, 0.35);
+  const footMat = metalE(0x1b1c1f, 0.1, 0.85);
+  const zs = zo - 48, xt = w / 2 - 45, xf = w / 2 - 15;       // uprights 344 apart
+  const yT = -(railH - 8), yB = -(height - 22);                // tube centre: in the rail / at the bend
+  for (const ex of [-1, 1]) {
+    bentTube(g, [[ex * xt, yT, -zs], [ex * xf, yB, -zs], [ex * xf, yB + 26, -(zs - 110)],
+                 [ex * xf, yB + 26, zs - 110], [ex * xf, yB, zs], [ex * xt, yT, zs]],
+      8, legMat, { rad: [0, 30, 110, 110, 30, 0], radial: 8 });
+    for (const sz of [-1, 1]) {
+      box(g, 20, 22, 26, 0, footMat, ex * xf, -(height - 23), sz * (zs - 9));     // the foot block
+      cyl(g, 10, 10, 8, 12, footMat, ex * xf, -(height - 4), sz * (zs - 9));      // its levelling screw
+      cyl(g, 3, 3, 6, 8, footMat, ex * xf, -(height - 10), sz * (zs - 9));
+      const ys = -railH - 33, xs = xt + (xf - xt) * (yT - ys) / (yT - yB);        // 33 down the upright
+      flatLink(g, [ex * xs, ys, sz * (zs + 11)], [ex * (xs - 70), -railH + 3, sz * (zs + 11)], 10, 2, stayMat);
+    }
   }
-  // two built-in folding tube legs
-  const legMat = black ? metalE(0x1e2024, 0.3, 0.6) : metalE(0xc6c9cd, 0.85, 0.32);
-  for (const ex of [-1, 1])
-    foldLeg(g, { ex, w, d, top: -thick, footY: -(height - 6), mat: legMat, r: 6, splay: 18, inset: 34, zIn: 26, feet: true });
   return { group: g, body: g.children[0] };
 }
 
 /** The removable custom top of a self-contained IGT (Entry/Slim): wood boards over the FREE
  *  half-units of the 3-unit run, so a dropped module simply takes a board's place -- which is
- *  exactly how the real tops lift out. `skip` = occupied half-slot indices; `color` bamboo/teak;
- *  `d` the body depth (the tile spans the IGT depth, centred). `pieces` is the real piece split
- *  as half-unit spans: the Entry top is [1, 2, 1, 2] -- a half, a one-unit, a half, a one-unit,
- *  THREE seams -- counted off CK-080R's plan and front product shots (the plan view measures
- *  ~115/256/125/254mm across the 750 run), not the five equal seams one-board-per-half gives.
- *  A piece draws as ONE board while every half under it is free and falls back to its halves
- *  when a module lands mid-piece, so lift-out-per-half still works. No `pieces` = one board
- *  per half-unit, which is the Slim's six panels. Tiles hang just below y = 0. */
-export function igtWoodTop({ units, color, skip = [], d, thick = 14, tex = null, pieces = null }) {
+ *  exactly how the real tops lift out. `skip` = occupied half-slot indices; `wood` "bamboo" or
+ *  "teak"; `color` the untextured bamboo fallback; `d` the body depth. `pieces` is the real piece
+ *  split as half-unit spans: the Entry top is [1, 2, 1, 2] -- a half, a one-unit, a half, a
+ *  one-unit, THREE seams (CK-080R-EC's plan shot measures 127 / 251 / 127 / 250 mm across the
+ *  run). A piece draws as ONE board while every half under it is free and falls back to its
+ *  halves when a module lands mid-piece, so lift-out-per-half still works. No `pieces` = one
+ *  board per half-unit, which is the Slim's six panels.
+ *
+ *  The boards BUTT: the loose pieces in CK-080R 05012 lie edge to edge and the plan shots show a
+ *  hairline, so the joint is 1.5mm (it was 4), and each board is 358 deep in the 360 seat.
+ *  GRAIN: bamboo strips run the DEPTH of every Entry board (the plan shot). One tile covers a
+ *  board's depth, and across the strips a tile is 320mm (as on every other bamboo board in the
+ *  planner), each board starting far enough into it that no tile edge falls inside a board --
+ *  the photo crop does not repeat cleanly and its edge showed as a line. Teak: each Slim panel is TWO
+ *  slats running the depth (CK-180 alt04/alt05 -- twelve slats across the six panels). The teak
+ *  texture, photo or canvas, is five planks along u with a groove at every v = k/5, so a panel
+ *  takes 0.4 of v: two planks, a groove down its middle and one at each edge. (It was one tile
+ *  across and two up the depth: grain along the table, and a band across the middle of every
+ *  panel that read as a 6 x 2 grid.) Tiles hang just below y = 0. */
+export function igtWoodTop({ units, color, skip = [], d, wood = "bamboo", thick = null, tex = null, pieces = null }) {
   const g = new THREE.Group();
+  const teak = wood === "teak";
+  thick = thick ?? (teak ? SLIM_PANEL : ENTRY_BOARD);
   // `tex` is a crop of the wood itself and already carries its colour, so a textured top takes NO
   // tint -- multiplying bamboo by a bamboo `color` squared it to orange. `color` is the untextured
   // fallback only.
-  const wood = new THREE.MeshStandardMaterial({ color: tex ? 0xffffff : color, map: tex || null, roughness: 0.62, metalness: 0.03 });
-  const HALF = 125, run = units * 250, tileD = Math.min(d - 40, 360), gap = 4;
+  const mat = new THREE.MeshStandardMaterial({ color: tex ? 0xffffff : (teak ? 0x986d50 : color),
+    map: tex || null, roughness: 0.62, metalness: 0.03 });
+  const HALF = 125, run = units * 250, tileD = Math.min(d - 40, 360) - 2, gap = 1.5, TILE = 320;
   const skipSet = new Set(skip);
   const board = (i, span) => {                        // one board over half-slots i..i+span-1
     const cx = -run / 2 + (i + span / 2) * HALF;
-    const tile = new THREE.Mesh(roundedBox((span * HALF - gap) * MM, thick * MM, tileD * MM, 1 * MM), wood);
+    const geo = roundedBox((span * HALF - gap) * MM, thick * MM, tileD * MM, 1 * MM);
+    if (tex) planUV(geo, teak
+      ? (x, z) => [z / tileD + 0.5, (i + x / HALF + span / 2) * 0.4]
+      : (x, z) => [z / tileD + 0.5, 0.02 + (i % 3) * 0.1 + (x / HALF + span / 2) * HALF / TILE]);
+    const tile = new THREE.Mesh(geo, mat);
     tile.position.set(cx * MM, -thick / 2 * MM, 0); g.add(tile);
   };
   // a split that does not cover the run exactly is a caller bug; fall back to per-half
@@ -1479,99 +1550,142 @@ export function igtWoodTop({ units, color, skip = [], d, thick = 14, tex = null,
   return { group: g };
 }
 
-/** Slim IGT (CK-180): a self-contained 3-unit IGT frame -- two chunky TEAK end bars joined by a
- *  bright stainless pipe under each long edge, on two folding THIN-WIRE legs. The manual's
- *  material line leads with the stainless (ステンレス、天然木（チーク）、スチール カチオン電着塗装)
- *  and its warnings pin the black 電着塗装 to the 脚部 -- so the pipes are stainless, the bars
- *  teak, and only the LEGS are black; the bare-frame product photo (images.json alt02) shows
- *  exactly that. The pipes are panel supports, not system rails -- nothing hooks on them (the
- *  owner-confirmed "no side rails" in the catalog is about CONNECTION, and still stands). Its
- *  top is SIX removable half-unit teak panels (any lifts out for a stovetop) -- drawn by
- *  igtWoodTop -- so this builds only the bars, pipes and legs. `tex` = the teak grain the top
- *  wears, shared onto the end bars. Top at y = 0. */
+/** IGT Slim (CK-180): a 3-unit run of six lift-out teak panels between two teak end bars, on
+ *  stainless pipes, standing on two black wire legs. The manual's material line is ステンレス、
+ *  天然木（チーク）、スチール（カチオン電着塗装）: pipes stainless, bars and panels teak, legs
+ *  black-coated steel. Nothing hooks onto it (no end holes, no rail). The panels are drawn by
+ *  igtWoodTop; this builds the bars, pipes and legs. `tex` = the teak the top wears. Top at y = 0.
+ *
+ *  `w` is the published 940, and that is the span over the FEET, not the top: the manual gives
+ *  サイズ 940 x 403 x 408 and 収納サイズ 852 x 403 x 80 -- it packs SHORTER than it stands. (The
+ *  top used to be built 940 long with the legs raking a further 44 out each end: 1037.)
+ *  - PLAN (alt04, straight down; the bars' 403 = 288 px, 1.40 mm/px): bar to bar 823; each teak
+ *    bar 31 wide; the six panels run 744. The bare frame from above (JP a001, 0.76 mm/px) gives
+ *    829 and 34. So the top is 824 and the bars 31, with a steel bracket plate on each bar's
+ *    inner face (the silver line between bar and panels in alt04, the silver flank in alt02).
+ *    (The bars were 50 wide and stood 45 clear of the panels with bare pipe between.)
+ *  - BAR height 37: its end face in the JP lifestyle shot 2, 43 px against the 403's 465.
+ *  - PIPES: a pair under each long edge, about 12 through, 18 apart (a001). In plan only the
+ *    outer one shows, 7-14 inside the bar ends; the inner one carries the panel ends.
+ *  - LEGS (hero, alt02, JP shot 2 end-on, a001 folded): one bent wire per end. It leaves the
+ *    bracket under the bar as a short stub pointing outward, turns down just outside the bar,
+ *    and rakes out to a V-shaped foot; the uprights are 284 apart at the top and 350 at the
+ *    feet. Between the two feet the wire steps UP 30 and runs straight (186 long), so the table
+ *    stands on four points. The V-points are what reach +/-470.
+ *  The bars sample darker than the slats (alt04: #714d34 against #966a4c), so they take the
+ *  same teak tinted down. */
 export function slimIgtGroup(w, d, height, { tex = null } = {}) {
   const g = new THREE.Group();
-  const thick = 16, cap = 50, railR = 8;
-  // teak end bars, the outermost thing in the footprint: the hero measures them ~50x42 in
-  // section against the published 940 width. Same surface response as igtWoodTop's panels; the
-  // grain is tinted DOWN (the hero's bars sample ~0.78 of the slat tone) -- teak-brown untextured.
-  const teak = new THREE.MeshStandardMaterial({ color: tex ? 0xc6c2be : 0x987c66,
+  const topL = 824, barW = 31, barH = 37, plateT = 4;
+  const teak = new THREE.MeshStandardMaterial({ color: tex ? 0xb8b4b0 : 0x714d34,
     map: tex || null, roughness: 0.62, metalness: 0.03 });
   for (const sx of [-1, 1]) {
-    const c = new THREE.Mesh(roundedBox(cap * MM, 42 * MM, d * MM, 3 * MM), teak);
-    c.position.set(sx * (w / 2 - cap / 2) * MM, -21 * MM, 0); g.add(c);
+    const geo = roundedBox(barW * MM, barH * MM, d * MM, 3 * MM);
+    // one plank of the teak texture down the bar's length, clear of its grooves
+    if (tex) planUV(geo, (x, z) => [z / d + 0.5, (sx > 0 ? 0.63 : 0.03) + (x / barW + 0.5) * 0.14]);
+    const c = new THREE.Mesh(geo, teak);
+    c.position.set(sx * (topL / 2 - barW / 2) * MM, -barH / 2 * MM, 0); g.add(c);
   }
-  // a BRIGHT stainless pipe under each long edge, bar to bar -- the silver line the hero leads
-  // with. It measures ~phi16 against the 940 width; top tangent at the panels' underside (14mm
-  // igtWoodTop tiles), outer face flush with the body edge. The real frame runs a PAIR per edge
-  // (alt02) -- the inboard twin is hidden under the panels, so only the edge pipe is drawn.
-  const rail = metalE(0xc8ccd2, 0.85, 0.28);
-  for (const sz of [-1, 1]) {
-    const r = new THREE.Mesh(new THREE.CylinderGeometry(railR * MM, railR * MM, (w - 2 * cap) * MM, 12), rail);
+  const steel = metalE(0xc8ccd2, 0.6, 0.32);
+  const inner = topL / 2 - barW - plateT;               // where pipes and panels start: 377
+  for (const sx of [-1, 1])                             // the bracket plate on each bar's inner face
+    box(g, plateT, barH - 3, d - 6, 0, steel, sx * (inner + plateT / 2), -(3 + (barH - 3) / 2), 0);
+  const pipeR = 6;
+  for (const sz of [-1, 1]) for (const zIn of [12.5, 30.5]) {
+    const r = new THREE.Mesh(new THREE.CylinderGeometry(pipeR * MM, pipeR * MM, 2 * inner * MM, 12), steel);
     r.rotation.z = Math.PI / 2;
-    r.position.set(0, -(14 + railR) * MM, sz * (d / 2 - railR) * MM); g.add(r);
+    r.position.set(0, -(SLIM_PANEL + pipeR) * MM, sz * (d / 2 - zIn) * MM); g.add(r);
   }
-  // two built-in folding thin-wire legs, splayed wide -- the one part that IS the black steel
-  const wire = metalE(0x1c1e22, 0.4, 0.5);
+  // the wire legs -- the one part that IS the black steel
+  const wire = metalE(0x1c1e22, 0.4, 0.5), wr = 3;
+  // The V is a bend, not a point: its fillet rounds off about 0.5 of the reach and 1.6 of the drop, so
+  // the corner is set that much further out for the WIRE to touch +/-w/2 and the ground.
+  const xs = topL / 2 + 12, xv = w / 2 - wr + 0.5;      // upright top, just outside the bar; the V-point
+  const yS = -(barH + 6), yV = -(height - wr) - 1.6, lift = 30;
+  const zt = 142, zv = 175, zb = 93;
+  const xb = xv - (xv - xs) * lift / (yS - yV);         // the raised run stays in the leg's plane
   for (const ex of [-1, 1])
-    foldLeg(g, { ex, w, d, top: -thick, footY: -(height - 6), mat: wire, r: 3, splay: 44, inset: 13, zIn: 12, feet: true });
+    bentTube(g, [[ex * (xs - 34), yS, -zt], [ex * xs, yS, -zt], [ex * xv, yV, -zv],
+                 [ex * xb, yV + lift, -zb], [ex * xb, yV + lift, zb],
+                 [ex * xv, yV, zv], [ex * xs, yS, zt], [ex * (xs - 34), yS, zt]],
+      wr, wire, { rad: [0, 12, 5, 14, 14, 5, 12, 0] });
   return { group: g, body: g.children[0] };
 }
 
-/** Extension IGT (CK-090): two laminated-bamboo tops on an aluminium stand that SLIDE APART.
- *  Closed it is a plain table; slid open it exposes a central IGT bay between the two tops.
- *  `w` is the CURRENT footprint width (1348 open / 840 closed); `bayW` the gap opened between
- *  the tops (0 when closed) -- silver IGT rails show across that gap. Fixed folding tube legs.
- *  Top at y = 0. Returns { group, body, bay } -- bay = {w,d} of the exposed slot, or null. */
+/** Extension IGT (CK-090): two laminated-bamboo tops on a black aluminium stand, each sliding
+ *  one unit outward to open a 2-unit IGT bay over the stand's middle. `w` is the length over the
+ *  TOPS (840 closed / 1348 open), `bayW` the unit run the open bay hosts (0 when closed). Top at
+ *  y = 0. Returns { group, body, bay } -- bay = { w, d, y } of the exposed slot (y = where a
+ *  unit's top face sits, relative to the bamboo), or null.
+ *
+ *  The STAND never changes: the legs belong to it, and open, each top cantilevers about 170 past
+ *  the feet. (Until 2026-11 the legs hung off the ends of the current top width -- 1550 over the
+ *  feet when open -- inside a black ring drawn round the whole footprint, with silver lipped
+ *  rails framing the bay. None of the three exists.) Measured off the product elevations,
+ *  scaled by the published 1348 / 840 / 498 / 400:
+ *  - alt_10 (open, side-on, 1.85 mm/px): tops 421 each with 509 between them; the stand's beam
+ *    828 long and 44 tall directly under the 18 bamboo; foot centres 1009 apart. alt_09 (closed,
+ *    0.68 mm/px in the crop): the same feet, 84 beyond each end of the 840.
+ *  - alt_11 (end-on, 0.43 mm/px): bamboo 18 thick and the widest thing there is; a grey end
+ *    apron 47 tall, 439 wide at its top edge and 417 at its foot; the leg's two struts 340 apart
+ *    and 21 across; the rung a flat bar 26 tall with a gusset at each end, about half way down.
+ *    Outside the apron, hard under the bamboo, the black end of the runner each top slides on
+ *    (11 x 22): alt_10 shows it running the length of each top, which is the black line under
+ *    the cantilevered bamboo in every 3/4 view.
+ *  - alt_07 / alt_02 (the open bay from above): the bamboo edges are bare, and the bay is
+ *    framed by the stand's own two black rails -- a flat top about 40 wide with a shallow step
+ *    down its inner edge. That step is the unit seat: the rails' inner edges are the IGT 360
+ *    apart. alt_04, alt_08 and alt_03 (burners installed) show where a unit ends up: its rim
+ *    level with the black rails, a bamboo-thickness BELOW the table top -- which is why the
+ *    table ships two metal guards for the bamboo edges (天板保護パーツ; not drawn).
+ *  - The struts are flat bar, 34 across at the top tapering to 17 at the foot, raked from 44
+ *    inside the closed table's end at the stand to 86 outside it on the ground; a short flat
+ *    stay (the manual's 補強バー, four of them) ties each to the stand. */
 export function extIgtGroup(w, d, height, { bayW = 0, bayD = 360, tex = null } = {}) {
   const g = new THREE.Group();
-  const alu = metalE(0x26282c, 0.7, 0.45);   // BLACK frame -- the real CK-090 stand is matte black
+  const SLAB = 420, TOP = 18, STAND = 828, RAIL_H = 45;
   const bamboo = new THREE.MeshStandardMaterial({ color: tex ? 0xffffff : 0xd8bd86, map: tex || null, roughness: 0.62, metalness: 0.03 });   // a map carries the colour; see igtWoodTop
-  const thick = 22, bar = 12;
-  const topW = (w - bayW) / 2;                        // each bamboo top's slice of the width
-  // aluminium stand: a shallow ring of four bars round the whole footprint
-  for (const sz of [-1, 1]) {
-    const b = new THREE.Mesh(roundedBox(w * MM, thick * MM, bar * MM, 1.5 * MM), alu);
-    b.position.set(0, -thick / 2 * MM, sz * (d / 2 - bar / 2) * MM); g.add(b);
-  }
+  const black = metalE(0x1c1d20, 0.3, 0.6);          // the stand and legs are painted matte black
+  const zi = bayD / 2, zo = zi + 40;                 // 180 / 220: a stand rail's inner edge and outer face
+  // the two bamboo tops, bare, the outermost thing in plan; and the runner under each long edge
   for (const sx of [-1, 1]) {
-    const b = new THREE.Mesh(roundedBox(bar * MM, thick * MM, d * MM, 1.5 * MM), alu);
-    b.position.set(sx * (w / 2 - bar / 2) * MM, -thick / 2 * MM, 0); g.add(b);
+    const cx = sx * (w / 2 - SLAB / 2);
+    const slab = box(g, SLAB, TOP, d, 1, bamboo, cx, -TOP / 2, 0);
+    // the strips run the table's length (alt_11 shows their end grain on the short edge): one
+    // tile along each top, so no seam crosses the grain, and two across
+    if (tex) planUV(slab.geometry, (x, z) => [x / SLAB + 0.5, z / (d / 2) + (sx > 0 ? 0.37 : 0)]);
+    for (const sz of [-1, 1]) box(g, SLAB, 22, 11, 0, black, cx, -TOP - 11, sz * (zo + 5.5));
   }
-  // the two bamboo tops, one each side of the centre bay
-  const panelD = d - 2 * bar, panelW = topW - 8;
-  for (const sx of [-1, 1]) {
-    const cx = sx * (bayW / 2 + topW / 2);
-    const p = new THREE.Mesh(roundedBox(panelW * MM, (thick - 6) * MM, panelD * MM, 1 * MM), bamboo);
-    p.position.set(cx * MM, -(thick - 6) / 2 * MM - 3 * MM, 0); g.add(p);
+  // the stand: two rails with the unit seat down their inner edges, closed by the grey end aprons
+  for (const s of [-1, 1]) {
+    const railMat = metalE(0x1c1d20, 0.3, 0.6);
+    railMat.vertexColors = true;                     // the baked seat-crease shadow railProfile carries
+    const r = new THREE.Mesh(railProfile(STAND * MM, RAIL_H * MM,
+      { outerWall: 6 * MM, channel: 34 * MM, lip: 12 * MM }, s), railMat);
+    r.position.set(0, -(TOP + RAIL_H / 2) * MM, s * (zo - 26) * MM);
+    g.add(r);
   }
-  // the exposed IGT bay: two silver rails bridging the gap, at the datum, framing the slot
-  if (bayW > 0) {
-    const rail = metalE(0xbfc3c7, 0.9, 0.3);
-    for (const sz of [-1, 1]) {
-      const r = new THREE.Mesh(roundedBox((bayW + 16) * MM, (thick - 4) * MM, 16 * MM, 1.5 * MM), rail);
-      r.position.set(0, -(thick - 4) / 2 * MM, sz * (bayD / 2) * MM); g.add(r);
-    }
-    for (const sx of [-1, 1]) {                       // short end lips closing the slot
-      const e = new THREE.Mesh(roundedBox(14 * MM, (thick - 4) * MM, bayD * MM, 1.5 * MM), rail);
-      e.position.set(sx * (bayW / 2) * MM, -(thick - 4) / 2 * MM, 0); g.add(e);
-    }
-  }
-  // two built-in folding legs at the ends -- black, matching the frame. Measured off the JP
-  // elevations (img.snowpeak.co.jp SNP0121A0087 a003 front-on, a004/a005 end-on, scaled by the
-  // published 1348/498/400): the pair stands NARROW -- strut centres ~330mm apart on the 498
-  // depth (zIn 82) -- and the end views hold the struts plumb in depth to a couple of pixels
-  // over the whole drop, so no zSplay; the fold rake is in the LENGTH, pivot ~12mm inside the
-  // table end and feet ~88mm past it. The rung ties the pair at ~0.58 of the way down (there
-  // is no ground bar on this table), and the thin stay runs from it up-inboard to the
-  // underside. The 3/4 hero's 'legs splayed in depth' look is this length-rake seen at an
-  // angle. r 9: the struts are ~20mm flat bars in the end views, drawn as this file's
-  // cylinders.
-  const legMat = metalE(0x1e2024, 0.6, 0.5);
+  const apron = metalE(0x606164, 0.25, 0.6);         // alt_11 samples #4d4c4d against the legs' black
   for (const ex of [-1, 1])
-    foldLeg(g, { ex, w, d, top: -thick, footY: -(height - 6), mat: legMat, r: 9,
-                 splay: 88, inset: 12, zIn: 82, feet: true, barY: 0.58, stay: 170 });
-  return { group: g, body: g.children[0], bay: bayW > 0 ? { w: bayW, d: bayD } : null };
+    plate(g, [[-zo, -TOP], [zo, -TOP], [zo - 11, -TOP - 47], [-(zo - 11), -TOP - 47]], 3, apron,
+      [ex * (STAND / 2 - 1.5), 0, 0], [0, 0, 1], [0, 1, 0]);
+  // the legs, on the stand: flat tapered struts, a gusseted rung, a stay to each strut
+  const footMat = metalE(0x141517, 0.1, 0.85);
+  const yT = -(TOP + RAIL_H), yB = -(height - 10), zs = 170;
+  for (const ex of [-1, 1]) {
+    const xT = 376, xB = 506;                        // strut centreline: under the stand / at the foot
+    for (const sz of [-1, 1]) {
+      plate(g, [[ex * (xT - 17), yT], [ex * (xT + 17), yT], [ex * (xB + 8.5), yB], [ex * (xB - 8.5), yB]],
+        21, black, [0, 0, sz * zs], [1, 0, 0], [0, 1, 0]);
+      box(g, 24, 12, 25, 0, footMat, ex * xB, -(height - 6), sz * zs);
+      const xs = xT + (xB - xT) * 32 / (yT - yB);    // the stay: 32 down the strut, 88 inboard
+      flatLink(g, [ex * xs, yT - 32, sz * (zs + 13)], [ex * (xs - 88), yT + 2, sz * (zs + 13)], 10, 3, black);
+    }
+    const len = Math.hypot(xB - xT, yT - yB), b0 = len * 0.45, zr = zs - 10.5;
+    plate(g, [[-zr, b0], [zr, b0], [zr, b0 + 60], [zr - 62, b0 + 26], [-(zr - 62), b0 + 26], [-zr, b0 + 60]],
+      10, black, [ex * xT, yT, 0], [0, 0, 1], [ex * (xB - xT), yB - yT, 0]);
+  }
+  return { group: g, body: g.children[0], bay: bayW > 0 ? { w: bayW, d: bayD, y: -TOP } : null };
 }
 
 /** Snow Peak Folding Chair (LV-077): a director's chair -- a black aluminium X-frame (it folds
@@ -2851,26 +2965,30 @@ export function boxHangerGroup(w, d, h, color) {
 }
 
 /** TTA Side Tray (CK-304): a 200mm round stainless tray, not a clamp. The hero: a flat disc
- *  with a short rolled edge, and standing in its centre boss the black-sleeved fixing shaft
- *  (the シリコンゴム of the materials line; JP a002 shows the same shaft dropped through the
- *  table-edge clip in use -- the clip is mounting, not the read, and is not modelled).
- *  Measured against the published phi200: boss ~phi36, the capped shaft topping out ~50mm
- *  over the floor. The published h=28 is dish + boss; the shaft is packed loose and stands
- *  past it. Lip at y = 0, dish floor at -8, the post rising above -- the burners' exception,
- *  built in. */
+ *  with a short rolled edge, and standing on a boss the black-gripped fixing shaft (the
+ *  シリコンゴム of the materials line; JP a002 shows the same shaft dropped through the
+ *  table-edge clamp in use -- the clamp is mounting, not the read, and is not modelled).
+ *  The post is OFF-CENTRE: the tray hangs from the table edge by it, so it stands near the rim
+ *  -- about 50mm from the middle in the side-on JP a001 (44 px at 1.14 mm/px, plus what the
+ *  camera cannot see in depth), 47mm in the hero; 55 here. (It used to stand dead centre.)
+ *  Measured against the published phi200: boss phi28 x 16, shaft ~phi7, grip phi12 x 35, the
+ *  grip's top 86mm over the floor in a001 (it was ~50). The published h=28 is dish + boss;
+ *  the shaft is packed loose and stands past it. Lip at y = 0, dish floor at -8, the post
+ *  rising above -- the burners' exception, built in. */
 export function sideTrayGroup(w, d, h, color) {
   const g = new THREE.Group();
   const R = Math.min(w, d) / 2;
   const steel = new THREE.MeshStandardMaterial({ color: new THREE.Color(color),
     metalness: 0.85, roughness: 0.3, side: THREE.DoubleSide });
   // the dish, lathed: floor, a rise to the lip, and the lip rolled back under itself
-  const prof = [[2, -8], [R - 14, -8], [R - 6, -5], [R - 1.5, -0.5], [R, 0], [R - 3, -2.5]]
+  const prof = [[0, -8], [R - 14, -8], [R - 6, -5], [R - 1.5, -0.5], [R, 0], [R - 3, -2.5]]
     .map(([px, py]) => new THREE.Vector2(px * MM, py * MM));
   const dish = new THREE.Mesh(new THREE.LatheGeometry(prof, 48), steel);
   g.add(dish);
-  cyl(g, 18, 18, 22, 24, metal(color, 0.85, 0.3), 0, 3, 0);            // the centre boss
-  cyl(g, 5, 5, 18, 12, metal(0xc6cacf, 0.85, 0.3), 0, 22, 0);          // the fixing shaft
-  cyl(g, 8, 8, 22, 14, metal(0x17181b, 0.05, 0.75), 0, 32, 0);         // its black sleeve
+  const pz = -55;                                                      // the post, toward the rim
+  cyl(g, 14, 14, 16, 24, metal(color, 0.85, 0.3), 0, 0, pz);           // the boss, on the floor
+  cyl(g, 3.5, 3.5, 38, 12, metal(0xc6cacf, 0.85, 0.3), 0, 26, pz);     // the fixing shaft
+  cyl(g, 6, 6, 35, 14, metal(0x17181b, 0.05, 0.75), 0, 59.5, pz);      // its black grip, top at +77
   return { group: g, body: dish };
 }
 
@@ -2919,21 +3037,72 @@ export function clampGroup(w, d, h, color) {
   return { group: g, body: back };
 }
 
-/** A folding windscreen: three thin upright panels in a shallow zigzag. */
+/** TTA Unit Clamp Tool (CK-300): the clamp every Table Top Architect part stands in. Polished
+ *  stainless, and nothing like a bent C-plate: TWO knurled barrels on one vertical axis -- the
+ *  upper one sits on the table top and takes an accessory's shaft, the lower one screws up
+ *  under the table -- carried in a yoke of two flat C-shaped cheeks joined down the back, which
+ *  wraps the table edge (hero 01404; in use 05971 / 05976).
+ *  Against the published 56 x 52 x 100: the yoke is the 56, the 52 runs from the back of the
+ *  yoke to the front of the barrels, the 100 is cap to cap. In the hero each barrel measures
+ *  about phi30 x 34 with a grooved cap, the gap between them (the table) 32, and each cheek a
+ *  strap about 12 wide with its outer corners clipped. The barrels hang on a cross pin through
+ *  the cheeks. Metalness 0.3: with nothing to mirror, polished steel at 0.85 draws near black.
+ *  Top cap at y = 0, hanging to -h; the yoke's back at -z, the barrels toward +z (the table). */
+export function unitClampGroup(w, d, h, color) {
+  const g = new THREE.Group();
+  const steel = metal(color, 0.3, 0.3), bright = metal(0xd2d4d6, 0.3, 0.22);
+  const R = 15, bh = 34, zc = d / 2 - R;             // barrel radius and height; the barrels' axis
+  let body = null;
+  for (const [y0, cap] of [[0, -1], [-(h - bh), 1]]) {     // upper, lower; which end wears the cap
+    const b = cyl(g, R, R, bh - 6, 24, steel, 0, y0 - bh / 2 + cap * 3, zc);
+    body = body || b;
+    const yc = cap < 0 ? y0 - 3 : y0 - bh + 3;       // the cap: a groove, then a slightly proud disc
+    cyl(g, R - 2, R - 2, 2, 20, steel, 0, yc - cap * -2, zc);
+    cyl(g, R + 0.5, R + 0.5, 4, 24, bright, 0, cap < 0 ? y0 - 2 : y0 - bh + 2, zc);
+    const pin = cyl(g, 3, 3, w, 10, steel, 0, cap < 0 ? y0 - 11 : y0 - bh + 11, zc);
+    pin.rotation.z = Math.PI / 2;                    // the cross pin the barrel hangs on
+  }
+  // the yoke: two cheeks (C-shaped straps, 3 thick) and the web down their backs
+  const zb = -d / 2, zf = zc + 7, s = 12, yT = -5, yB = -(h - 5);
+  const cee = [[zf, yT], [zb + 9, yT], [zb, yT - 9], [zb, yB + 9], [zb + 9, yB], [zf, yB],
+               [zf, yB + s], [zb + s + 3, yB + s], [zb + s, yB + s + 3], [zb + s, yT - s - 3],
+               [zb + s + 3, yT - s], [zf, yT - s]];
+  for (const sx of [-1, 1]) plate(g, cee, 3, steel, [sx * (w / 2 - 1.5), 0, 0], [0, 0, 1], [0, 1, 0]);
+  box(g, w - 6, h - 34, 2, 0, steel, 0, -h / 2, zb + 1);
+  return { group: g, body };
+}
+
+/** TTA Windscreen (CK-301): FOUR galvalume panels hinged edge to edge -- two wide centre
+ *  panels and a narrow wing at each end -- with a black clip over the top of each of the three
+ *  hinges. Laid flat (hero 09981, 760 = 1150 px, 0.66 mm/px) the panels measure 132 | 249 |
+ *  249 | 132, 225 tall; each wing's top outer corner is cut away on a long diagonal, from 20
+ *  out along the top edge down to 122 below it on the outer edge, and each wing carries two
+ *  black keyhole grommets 42 from its hinge. (It was three equal 253 panels with gaps, in dark
+ *  grey.) Drawn the way it stands in use (06031 / 06040): the centre pair in one plane, the
+ *  wings swung forward about 0.6 rad -- so it builds about 714 x 226 x 76 against the published
+ *  flat 760 x 26 x 226. Bright spangled zinc, kept at low metalness so it reads as bright.
+ *  Clips' tops at y = 0, hanging to -h; the wings come toward +z. */
 export function screenGroup(w, d, h, color) {
   const g = new THREE.Group();
-  const mat = metalE(color, 0.8, 0.4);
-  const pw = w / 3, t = 2;
-  const angles = [0.35, 0, -0.35];
-  let x = -w / 2 + pw / 2;
-  for (const a of angles) {
-    const panel = new THREE.Mesh(roundedBox(pw * MM, h * MM, t * MM, 0.5 * MM), mat);
-    panel.position.set(x * MM, -h / 2 * MM, 0);
-    panel.rotation.y = a;
-    g.add(panel);
-    x += pw * Math.cos(a);
+  const zinc = metalE(0xd6d9dc, 0.4, 0.5), black = metalE(0x17181b, 0.1, 0.8);
+  const wing = 131, mid = (w - 2 * wing) / 2, H = h - 4, t = 1.5, fold = 0.6, y0 = -h;
+  let body = null;
+  for (const sx of [-1, 1]) {
+    const c = plate(g, [[0, 0], [mid - 1, 0], [mid - 1, H], [0, H]], t, zinc, [sx > 0 ? 1 : -mid, y0, 0], [1, 0, 0], [0, 1, 0]);
+    body = body || c;
+    const out = [sx * Math.cos(fold), 0, Math.sin(fold)];        // the wing's own outward direction
+    plate(g, [[1, 0], [wing - 8, 0], [wing, 8], [wing, H - 122], [20, H], [1, H]], t, zinc,
+      [sx * mid, y0, 0], out, [0, 1, 0]);
+    for (const up of [50, 109]) {                                // the two keyhole grommets
+      const k = cyl(g, 7, 7, t + 2, 12, black, sx * mid + out[0] * 42, y0 + up, out[2] * 42);
+      k.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-out[2], 0, out[0]));
+    }
   }
-  return { group: g, body: g.children[0] };
+  for (const x of [-mid, 0, mid]) {                              // hinge pins and their clips
+    cyl(g, 1.6, 1.6, H, 6, zinc, x, y0 + H / 2, 0);
+    box(g, 38, 17, 8, 0, black, x, -8.5, 0);
+  }
+  return { group: g, body };
 }
 
 /** TTA Lantern Hanger (CK-302): ONE continuous bent line, not a pole with parts bolted on.
@@ -2986,23 +3155,19 @@ export function lanternHangerGroup(w, d, h, color) {
  *  Clamp Tools"). d=12 in assembled_mm is the TUBE, not a plan depth -- the old rim-on-legs
  *  read of (w,d,h) is what made it a ladder on stilts. Built VERTICAL in x-y, hanging from
  *  y = 0 like the rest of the TTA family; the four ferrules sit on the side runs where the
- *  hero shows them (just below the top corners, just above the bottom ones). Mostly air ->
- *  a faint ghost box carries picking. */
+ *  hero shows them (just below the top corners, just above the bottom ones). The sides are
+ *  STRAIGHT and the corners a tight bend, about R25 in the hero and in the bare top U (01304).
+ *  (It was a spline through the corner points, which bowed every side outward: 370 x 507.)
+ *  Mostly air -> a faint ghost box carries picking. */
 export function ttaFrameGroup(w, d, h, color) {
   const g = new THREE.Group();
   const steel = metal(color, 0.9, 0.25);
   const r = Math.min(d, 12) / 2;                    // the published d=12 IS the tube
-  const R = 35;                                     // corner radius, read off the hero
-  const x1 = w / 2 - r, yT = -r, yB = -(h - r);
-  const pts = [
-    [x1, yB + R, 0], [x1, yT - R, 0], [x1 - R, yT, 0], [-x1 + R, yT, 0],
-    [-x1, yT - R, 0], [-x1, yB + R, 0], [-x1 + R, yB, 0], [x1 - R, yB, 0],
-  ];
-  g.add(new THREE.Mesh(new THREE.TubeGeometry(
-    new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0] * MM, p[1] * MM, p[2] * MM)), true),
-    96, r * MM, 8, true), steel));
+  const fr = r * 1.5;                               // the knurled ferrules, 1.5 tubes across (01304)
+  const x1 = w / 2 - fr, yT = -r, yB = -(h - r);    // they are the widest thing: 333 is over them
+  bentTube(g, [[x1, yB, 0], [x1, yT, 0], [-x1, yT, 0], [-x1, yB, 0]], r, steel, { rad: 25, closed: true, radial: 8 });
   for (const sx of [-1, 1]) for (const fy of [-0.11 * h, -0.90 * h])   // the ferrule joints
-    cyl(g, r * 1.7, r * 1.7, 26, 12, metal(color, 0.85, 0.3), sx * x1, fy, 0);
+    cyl(g, fr, fr, 26, 12, metal(color, 0.85, 0.3), sx * x1, fy, 0);
   const ghost = box(g, w, h, Math.max(d, 26), 2,
     new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06, depthWrite: false }),
     0, -h / 2, 0);
@@ -3010,31 +3175,41 @@ export function ttaFrameGroup(w, d, h, color) {
 }
 
 /** A ring holder (CK-306 Sierra cup holder / DB-005 garbage frame): a flat wire ring. CK-306
- *  hangs off a small horizontal clamp BARREL with a thumb-knob capping its end -- the hero
- *  (web/img/CK-306.jpg) shows the ring's wire running INTO the barrel, no flat tab anywhere --
- *  so `clamp` draws that; DB-005 keeps the plain tab. */
+ *  carries a short straight STEM standing radially off the ring, and on the stem, in line with
+ *  it, a slotted clamp barrel with a knurled knob on its outboard end (07198 hero, 07202 plan,
+ *  07208) -- so `clamp` draws that; DB-005 keeps the plain tab. The published 160 x 125 x 18 is
+ *  stem-and-barrel length x ring x barrel: ring OD 125 of 5mm wire, barrel phi18, and the 35 left
+ *  over is a 12 stem and a 23 barrel-with-knob. (The barrel used to lie TANGENT on the ring,
+ *  which built 119 long.) The plan photo itself would make stem + barrel nearer 45 against a
+ *  125 ring; the published length is kept. */
 export function ringGroup(w, d, h, color, { clamp = false } = {}) {
   const g = new THREE.Group();
   const mat = metalE(color, 0.85, 0.32);
   const R = Math.min(w, d) / 2;
+  if (clamp) {
+    // ring, stem, barrel, knob, in a row along x; the ring sits off-centre so the whole is w long
+    const wr = 2.5, br = h / 2, stem = 12, knobL = 9, y = -h / 2;
+    const cx = -w / 2 + R, bodyL = w - 2 * R - stem - knobL;      // ring centre; barrel body length
+    const steel = metalE(color, 0.5, 0.3);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry((R - wr) * MM, wr * MM, 10, 48), steel);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(cx * MM, y * MM, 0);
+    g.add(ring);
+    const along = (rr, len, x0, m, seg = 16) => {                 // a cylinder lying along x from x0
+      const c = cyl(g, rr, rr, len, seg, m, x0 + len / 2, y, 0);
+      c.rotation.z = Math.PI / 2;
+      return c;
+    };
+    along(wr, stem + 2, cx + R - 2, steel, 8);
+    along(br, bodyL, cx + R + stem, steel);
+    along(br, knobL - 1, cx + R + stem + bodyL + 1, metalE(color, 0.5, 0.45), 20);   // the knurled knob, a hair off the body
+    return { group: g, body: ring };
+  }
   const ring = new THREE.Mesh(new THREE.TorusGeometry((R - 6) * MM, 3 * MM, 10, 28), mat);
   ring.rotation.x = Math.PI / 2;
   ring.position.y = -h / 2 * MM;
   g.add(ring);
-  if (clamp) {
-    // The clamp barrel: φ14 x 22, measured on the hero against the ring OD (~0.125 of it
-    // across, ~0.19 long), lying tangent at the back where the ring's wire enters it. The
-    // knob is the darker machined end -- the clamp thumbscrew's own steel.
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(7 * MM, 7 * MM, 22 * MM, 14), mat);
-    barrel.rotation.z = Math.PI / 2;
-    barrel.position.set(0, -h / 2 * MM, -(R - 4) * MM);
-    g.add(barrel);
-    const knob = new THREE.Mesh(new THREE.CylinderGeometry(4 * MM, 4 * MM, 10 * MM, 12),
-      metalE(0x1c1f24, 0.5, 0.5));
-    knob.rotation.z = Math.PI / 2;
-    knob.position.set(16 * MM, -h / 2 * MM, -(R - 4) * MM);
-    g.add(knob);
-  } else {
+  {
     const tab = new THREE.Mesh(roundedBox(18 * MM, Math.max(h, 10) * MM, 4 * MM, 1 * MM), mat);
     tab.position.set(0, -h / 2 * MM, -(R - 2) * MM);
     g.add(tab);

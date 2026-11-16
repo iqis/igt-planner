@@ -158,26 +158,29 @@
   "unknown": []
  },
  "CK-080R": {
-  "what": "Entry IGT: an all-in-one starter IGT (833x440x400) that is really a 3-UNIT IGT FRAME in a fixed body. Aluminium frame on TWO built-in folding TUBE legs; its bamboo top LIFTS OUT (2x one-unit + 2x half-unit pieces, custom, no SKU) so standard IGT units drop into the frame -- which is what makes it an IGT. Fixed height; the legs fold, they don't come off.",
-  "model": "entryIgtGroup builds the aluminium frame ring + two folding tube legs; the removable bamboo top is drawn by igtWoodTop, one tile per FREE half-unit across the 3-unit run, so a dropped module simply takes a tile's place. Modules render via the shared drawModules.",
-  "fits": "Standalone unit with its own legs (no separate leg SKU). It IS a 3-unit frame: select it and the module palette + slot [+] handles light up; drop a burner/tray and the bamboo there lifts out. ~41mm end margins round the 750mm 3-unit run. CONNECTS like a frame (owner-confirmed 2026-07-15): holes at BOTH ends take an IGT extension (ext_table, a board hooks in and inherits the 400 datum), and BOTH long sides carry rails -- a sliding extension tiles along them, a hanging rack hooks over. hosts entry gives ext_table@end + side_rail@rail + hanging@rail + slot@bay. CK-080R-EC (black) is identical.",
+  "what": "Entry IGT: an all-in-one starter IGT (833x440x400) that is really a 3-UNIT IGT FRAME in a fixed body. Two 40mm aluminium extrusions joined by two end plates, on TWO built-in folding legs of bent tube; its bamboo top LIFTS OUT (2x one-unit + 2x half-unit pieces, custom, no SKU) so standard IGT units drop into the frame -- which is what makes it an IGT. Fixed height; the legs fold, they don't come off.",
+  "model": "entryIgtGroup builds the frame from the photographs: two full-length rails 40 wide and 45 tall (a proud top lip over a set-back web, a shelf inside a board's thickness down), an end plate laid on each pair of rail ends with its folded skirt and two hook holes, and per end ONE bent tube -- uprights 344 apart, leaving the frame 45 inside the end and reaching the ground 15 inside it, a shallow arch between the feet, a black levelling foot under each bend, a flat stay to each upright. 833 is the frame; nothing passes it. The removable bamboo top is drawn by igtWoodTop in its real split (half / one-unit / half / one-unit), boards butted and filling the frame, grain running the depth; a dropped module takes a board's place and a piece it lands on falls back to its halves. Modules render via the shared drawModules.",
+  "fits": "Standalone unit with its own legs (no separate leg SKU). It IS a 3-unit frame: select it and the module palette + slot [+] handles light up; drop a burner/tray and the bamboo there lifts out. The 40mm end plates bracket the 750mm 3-unit run. CONNECTS like a frame (owner-confirmed 2026-07-15): holes at BOTH ends take an IGT extension (ext_table, a board hooks in and inherits the 400 datum), and BOTH long sides carry rails -- a sliding extension tiles along them, a hanging rack hooks over. hosts entry gives ext_table@end + side_rail@rail + hanging@rail + slot@bay. CK-080R-EC (black) is identical.",
   "confidence": "medium",
   "derived": [
-   "aluminium frame + bamboo top + two folding tube legs (photo 04977 / frame-only 04978)",
+   "plan (CK-080R-EC 08527, straight down, 0.90 mm/px): long rails 37-38 wide, end plates 37-39, bamboo 756 x 365 between; boards 127 / 251 / 127 / 250",
+   "front (04987, 1.41 mm/px): rail face 44-47 tall; leg tops ~42-48 inside the end, feet ~13-20 inside (after correcting for the camera)",
+   "end-on (04992): uprights ~335-345 apart; the run between the feet arches; the end plate's skirt ~36 tall with clipped corners",
    "833x440x400 from the catalogue",
    "3 units, removable tops = 2x one-unit + 2x half-unit bamboo, and 'IGTユニットサイズの製品がテーブルフレーム内に組み込めます' (units fit inside the frame) -- from CK-080R's manual set-contents"
   ],
   "assumed": [
-   "the top is tiled per half-unit for the model (the real pieces are 2 full + 2 half); leg splay ~18mm out / 34mm inset, eyeballed"
+   "the rail's inner shelf sits a board's thickness (12mm) down and unit rims rest on it -- read off the bare-frame photo, not measured",
+   "tube ~16mm through, drawn round (the real tube is slightly flattened); bend radius and the height of the arch are by eye",
+   "the hook holes are put at the standard frame's 16.5mm in / 143.9mm off centre (they measure 14 / 147 in the plan photo, within its error)"
   ],
   "unknown": [
-   "the exact folding-leg bend and hinge detail",
-   "how the units seat (rail ledge vs the frame lip) -- modelled resting in the frame"
+   "the hinge bracket inside the rail and how the stay unlocks"
   ]
  },
  "CK-080R-EC": {
-  "what": "Entry IGT in Black: the CK-080R in a black finish. Same all-in-one 3-unit IGT frame with a removable bamboo top, on two built-in folding tube legs.",
-  "model": "entryIgtGroup + igtWoodTop (shared with CK-080R).",
+  "what": "Entry IGT in Black: the CK-080R powder-coated black throughout -- frame, end plates and legs. Same all-in-one 3-unit IGT frame with a removable bamboo top, on two built-in folding bent-tube legs.",
+  "model": "entryIgtGroup with black: true + igtWoodTop (shared with CK-080R; its plan photo 08527 is where the frame's plan numbers were measured).",
   "fits": "Standalone 3-unit frame with its own folding legs; a black-finish variant of CK-080R. Same removable-top hosting.",
   "confidence": "medium",
   "derived": [
@@ -189,40 +192,47 @@
   "unknown": []
  },
  "CK-180": {
-  "what": "IGT Slim: the slim, light IGT (940x403x408) that is a 3-UNIT IGT FRAME -- NO long-side rails, two dark teak end caps and thin support rods, on TWO built-in folding THIN-WIRE legs. Its top is SIX removable half-unit teak panels; any panel lifts out for a stovetop or workspace. Fixed height; the wire legs fold.",
-  "model": "slimIgtGroup builds the dark end caps + support rods + two folding wire legs; the SIX removable teak panels are drawn by igtWoodTop (one tile per free half-unit across the 3-unit run, ACROSS the width -- an earlier version wrongly ran seven slats lengthwise). Modules render via drawModules.",
+  "what": "IGT Slim: the slim, light IGT that is a 3-UNIT IGT FRAME -- NO long-side rails, two teak end bars joined by a pair of stainless pipes under each long edge, on TWO built-in folding legs of bent black wire. Its top is SIX removable half-unit teak panels (two slats each); any panel lifts out for a stovetop or workspace. The published 940x403x408 is measured over the spread FEET: the top itself is 824 long, and it packs to 852. Fixed height; the wire legs fold.",
+  "model": "slimIgtGroup builds the two teak bars (31 wide, 37 tall, a steel bracket plate on each inner face), the four pipes and the two wire legs: each wire leaves the bracket as a stub, turns down just outside the bar and rakes out to a V-shaped foot at +/-470, and between its two feet the wire steps up 30 and runs straight, so the table stands on four points. The SIX panels are drawn by igtWoodTop, one per free half-unit, each wearing two slats of teak that run the DEPTH. Modules render via drawModules. The planner stands it at the 400 datum (its own 408 is within tolerance); the bench shows 408.",
   "fits": "Standalone 3-unit frame with its own legs. SLOT ONLY: owner-confirmed 2026-07-15 that IGT Slim has NO end holes and NO long-side rails -- it does not connect to any external IGT part. Its ONLY host role is its own 3-unit bay: a teak panel lifts out per half-unit and an IGT unit/module drops in. hosts entry = slot@bay only, so no connection edges appear -- just the slot [+] handles. (408mm reads as the 400 datum, but that tolerance is moot since nothing hooks on.)",
   "confidence": "medium",
   "derived": [
-   "no long-side rail; dark teak end caps; thin black wire folding legs (hero photo)",
-   "940x403x408 from the catalogue",
+   "manual: サイズ 940x403x408, 収納サイズ 852x403x80 -- it packs shorter than it stands, so 940 is the leg span",
+   "plan (alt04, 1.40 mm/px off the bars' 403): bar to bar 823; teak bars 31 wide; panel run 744; twelve slats, two to a panel",
+   "bare frame from above (JP a001, 0.76 mm/px): 829 over the bars; pipes in pairs ~18 apart; the folded wire legs' outline",
+   "end-on (JP lifestyle shot 2): bar end face 37 tall; uprights ~290 apart at the top and ~355 at the feet; the raised run ~30 up and ~190 long",
+   "material line ステンレス、天然木（チーク）、スチール（カチオン電着塗装）: pipes stainless, bars and panels teak, legs black",
    "a 3-unit frame with SIX removable half-unit teak panels, any of which lifts out for a stovetop/workspace (Snow Peak product copy)"
   ],
   "assumed": [
-   "wire-leg splay ~44mm out, eyeballed off the hero",
-   "how the units seat given there is no long rail -- modelled resting between the end supports"
+   "panel thickness 10mm and pipe diameter 12mm, by eye",
+   "how the units seat given there is no long rail -- modelled resting between the bars, on the pipes",
+   "the teak texture is five slats cut from the plan photo; which slat lands on which panel is not the real table's"
   ],
   "unknown": [
-   "the exact wire-leg shape and how the short ends carry the panels"
+   "the leg's pivot inside the bracket, and how the panels locate on the pipes"
   ]
  },
  "CK-090": {
-  "what": "Extension IGT: a self-contained table of TWO laminated-bamboo tops on one aluminium stand, on built-in folding tube legs. RECONFIGURABLE by sliding: closed it is a plain ~3-unit table (840x498); slid fully open (1348x498) the two tops part to expose a central 2-Unit IGT bay (500x360) between them. The catalogue title carries a 'Risk of tipping over' warning -- the open span is cantilevered.",
-  "model": "extIgtGroup -- an aluminium frame ring + two bamboo tops (one each side of the centre), fixed folding tube legs at the ends. When expanded, two silver rails bridge the gap to frame the 2-Unit bay; when collapsed the tops meet and there is no bay. footprint and bay follow the chosen config (layout.expandables.CK-090).",
+  "what": "Extension IGT: a self-contained table of TWO laminated-bamboo tops (420x498x18 each) on one black aluminium stand with built-in folding legs. RECONFIGURABLE by sliding: closed it is a plain table (840x498); each top slides one unit outward, and with both out (1348x498) a 2-Unit IGT bay (500x360) lies open over the middle of the stand. The stand and its legs never move -- open, each top cantilevers about 170 past the feet, which is the catalogue's 'Risk of tipping over'.",
+  "model": "extIgtGroup: the two bare bamboo slabs are the outermost thing in plan, each riding a black runner under its long edges; under them the fixed stand -- two black rails 828 long with the unit seat stepped into their inner edges (360 apart), closed by a grey apron at each end -- and on the stand the legs: flat tapered struts 340 apart, raked from 44 inside the closed table's end to 86 outside it on the ground, a gusseted rung, a short stay to each strut. In the open bay a unit sits on the stand's rails, so its top is a bamboo-thickness (18mm) BELOW the table top, as in the installed-burner photos; the builder returns that drop (bay.y) and the planner seats the modules by it. footprint and bay follow the chosen config (layout.expandables.CK-090).",
   "fits": "Standalone unit with its own legs (no separate leg SKU). Expanded, its centre bay hosts IGT unit accessories -- the point of the part. Stands at the 400mm datum, so it joins the layout as a node.",
   "confidence": "medium",
   "derived": [
-   "two bamboo tops on an aluminium stand with folding legs (hero 04977 + alt 06)",
-   "max 1348x498 / min 840x498 and the central (2ユニット=W)500x360 bay -- straight from the manual set-contents",
-   "the 508mm the tops travel = exactly the 2-Unit (500mm) opening; 840~=3 units, 1348~=5 units by W=250n+96"
+   "open elevation (alt_10, 1.85 mm/px off the 1348): tops 421 each, 509 between; stand beam 828 x 44 under 18 of bamboo; foot centres 1009 apart",
+   "closed elevation (alt_09): the same feet, 84 beyond each end of the 840 -- so the legs belong to the stand",
+   "end-on (alt_11, 0.43 mm/px off the 498): grey end apron 47 tall, 439 wide at the top; struts 340 apart and 21 across; the rung and its gussets",
+   "the open bay from above (alt_07, alt_02): bare bamboo edges, two black rails with a step down the inner edge",
+   "units sit below the bamboo, level with the rails (alt_04, alt_08, alt_03 with burners installed)",
+   "max 1348x498 / min 840x498 and the (2ユニット=W)500x360 bay; each top travels one unit and locks with a pin (manual, 天板の開閉)"
   ],
   "assumed": [
-   "two-panel split with the bay dead-centre; leg splay reused from the entry IGT, eyeballed",
-   "the collapsed form is a usable flat table (vs merely a carry state)"
+   "the rail's seat is drawn 10mm deep so a unit's rim fills it flush with the rail top; the photos show the step, not its depth",
+   "strut and rung thicknesses; the stay's exact pivots"
   ],
   "unknown": [
-   "the exact slide/stand mechanism and how the tops lock at each end of travel",
-   "whether intermediate opening widths are usable or only the two detents"
+   "the manual's third state -- ONE top slid, a 1-Unit bay off-centre -- is real and is not in the data (only closed and fully open are)",
+   "the two bamboo-edge guards (天板保護パーツ) that ship with it for use beside a burner are not drawn"
   ]
  },
  "ST-051": {

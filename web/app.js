@@ -86,7 +86,7 @@ const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
 // shared cache so their tiling (repeat) does not fight the sliding extension, which draws the
 // same bamboo photo at a different size. One instance per (key), repeat baked in once.
 const WOOD_GRAIN = "tex/CK-116TR_grain.jpg";   // a clean bamboo crop -- no printed logo, unlike the _top photo
-const TEAK_GRAIN = "tex/CK-180_teak.jpg";       // real teak, rectified from the CK-180 product photo
+const TEAK_GRAIN = "tex/CK-180_slats.jpg";      // real teak: five slats off the CK-180 plan photo, laid as planks along u
 const STEEL_TEX = "tex/brushed_steel.jpg";      // brushed stainless (拉丝) for the Jikaro bridge
 const woodTexCache = {};
 function woodGrain(key, rx, ry, path = WOOD_GRAIN) {
@@ -982,11 +982,13 @@ function drawTable(g, n) {
   if (n.sku === "CK-090") {
     const f = footprint(n), tp = topOf(n);
     const c = expCfg(n);
-    const built = extIgtGroup(f.w, f.d, tp, { bayW: c?.bay_w_mm || 0, bayD: c?.bay_d_mm || 360, tex: woodGrain("ext", 2, 2) });
+    const built = extIgtGroup(f.w, f.d, tp, { bayW: c?.bay_w_mm || 0, bayD: c?.bay_d_mm || 360, tex: woodGrain("ext", 1, 1) });
     built.group.position.y = tp * MM;
     built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(built.group);
-    if (bayUnits(n)) drawModules(g, n, tp);   // the opened centre bay hosts modules
+    // The opened centre bay hosts modules. They hang on the STAND's rails, so a unit's top sits a
+    // bamboo-thickness below the table top (built.bay.y) -- the installed-burner photographs.
+    if (bayUnits(n)) drawModules(g, n, tp + (built.bay?.y || 0));
     return;
   }
 
@@ -997,7 +999,7 @@ function drawTable(g, n) {
   if (si) {
     const f = footprint(n), tp = topOf(n);
     const built = n.sku === "CK-180"
-      ? slimIgtGroup(f.w, f.d, tp, { tex: woodGrain("teak", 1, 2, TEAK_GRAIN) })   // the same grain instance its top wears
+      ? slimIgtGroup(f.w, f.d, tp, { tex: woodGrain("teak", 1, 1, TEAK_GRAIN) })   // the same grain instance its top wears
       : entryIgtGroup(f.w, f.d, tp, { black: n.sku === "CK-080R-EC" });
     built.group.position.y = tp * MM;
     built.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
@@ -1008,9 +1010,9 @@ function drawTable(g, n) {
     const teak = si.top === "teak";
     // Entry tops are a half / one-unit / half / one-unit from the left (CK-080R's plan shot);
     // the Slim's teak really is one panel per half-unit, so it takes no pieces split.
-    const top = igtWoodTop({ units: si.units, color: teak ? 0xffffff : 0xd8bd86,
+    const top = igtWoodTop({ units: si.units, wood: si.top, color: 0xd8bd86,
       pieces: teak ? null : [1, 2, 1, 2],
-      skip, d: f.d, tex: teak ? woodGrain("teak", 1, 2, TEAK_GRAIN) : woodGrain("tile", 1, 2) });
+      skip, d: f.d, tex: teak ? woodGrain("teak", 1, 1, TEAK_GRAIN) : woodGrain("tile", 1, 1) });
     top.group.position.y = tp * MM;
     top.group.traverse(o => { if (o.isMesh) { o.userData.node = n; nodeMeshes.push(o); } });
     g.add(top.group);

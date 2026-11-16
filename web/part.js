@@ -11,6 +11,7 @@ import { moduleGroup, flatBoardGeo, frameGroup, tableGroup, jikaroGroup,
          propGroup, shelterOf, shelterVerts, tarpPitchGroup, landLockGroup,
          pentaTarpGroup } from "./parts3d.js";
 import { legGroup, connectionHookGroup, heightAdjusterGroup, frameConnectorGroup } from "./parts3d.js";   // frames
+import { unitClampGroup } from "./parts3d.js";   // standalone
 
 /* The bench.
  *
@@ -72,7 +73,7 @@ const loadTex = path => (texCache[path] ??= texLoader.load(path, benchDirty));
 const BAMBOO_GRAIN = "tex/CK-153TR_top.jpg";
 // Dedicated grain instances for the self-IGT wood tops (own tiling, kept off the shared cache).
 const WOOD_GRAIN = "tex/CK-116TR_grain.jpg";   // clean bamboo crop, no printed logo
-const TEAK_GRAIN = "tex/CK-180_teak.jpg";       // real teak, from the CK-180 photo
+const TEAK_GRAIN = "tex/CK-180_slats.jpg";      // real teak: five slats off the CK-180 plan photo
 const woodTexCache = {};
 function woodGrain(key, rx, ry, path = WOOD_GRAIN) {
   if (woodTexCache[key]) return woodTexCache[key];
@@ -211,19 +212,19 @@ function benchGeo(p, box) {
     const si = (CAT.layout?.self_igt || {})[sku] || { units: 3, top: sku === "CK-180" ? "teak" : "bamboo" };
     const wrap = new THREE.Group();
     wrap.add((sku === "CK-180"
-      ? slimIgtGroup(w, d, h, { tex: woodGrain("teak", 1, 2, TEAK_GRAIN) })   // the same grain instance its top wears
+      ? slimIgtGroup(w, d, h, { tex: woodGrain("teak", 1, 1, TEAK_GRAIN) })   // the same grain instance its top wears
       : entryIgtGroup(w, d, h, { black: sku === "CK-080R-EC" })).group);
     const teak = si.top === "teak";
-    wrap.add(igtWoodTop({ units: si.units, color: teak ? 0xffffff : 0xd8bd86,
+    wrap.add(igtWoodTop({ units: si.units, wood: si.top, color: 0xd8bd86,
       pieces: teak ? null : [1, 2, 1, 2],   // the Entry's real piece split -- see igtWoodTop
-      skip: [], d, tex: teak ? woodGrain("teak", 1, 2, TEAK_GRAIN) : woodGrain("tile", 1, 2) }).group);
+      skip: [], d, tex: teak ? woodGrain("teak", 1, 1, TEAK_GRAIN) : woodGrain("tile", 1, 1) }).group);
     return wrap;
   }
   // Extension IGT: two bamboo tops that slide apart. The bench shows the expanded form (its
   // assembled_mm is the open 1348), so the central 2-Unit bay is visible.
   if (sku === "CK-090") {
     const e = (CAT.layout?.expandables || {})["CK-090"], c = e && e.configs[e.default];
-    return extIgtGroup(w, d, h, { bayW: c?.bay_w_mm || 500, bayD: c?.bay_d_mm || 360, tex: woodGrain("ext", 2, 2) }).group;
+    return extIgtGroup(w, d, h, { bayW: c?.bay_w_mm || 500, bayD: c?.bay_d_mm || 360, tex: woodGrain("ext", 1, 1) }).group;
   }
 
   // Stainless Kitchen Table (LV-310): an open A-frame stand -- worktop at y=0 with the hanger
@@ -251,7 +252,8 @@ function benchGeo(p, box) {
     if (sku === "CK-305") return cylinderStandGroup(w, d, h, color).group; // the cartridge cup
     if (sku === "CK-303") return ttaFrameGroup(w, d, h, color).group;      // the flat tube ring
     if (sku === "CK-306") return ringGroup(w, d, h, color, { clamp: true }).group;  // Sierra cup holder -- ring + clamp barrel
-    return clampGroup(w, d, h, color).group;                          // CK-300 unit clamp
+    if (sku === "CK-300") return unitClampGroup(w, d, h, color).group;     // two barrels in a yoke
+    return clampGroup(w, d, h, color).group;
   }
 
   // A bamboo sliding extension (CK-153/154): mounts on the frame's long side, reaches out.
