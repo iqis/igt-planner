@@ -533,7 +533,7 @@ const wallSpan = d => Math.min(d, RAIL_SPAN);
  *      quarter of the width in from each end (+/-90 on 360), tops ~8mm below the collar.
  *      The webbing ends land ON them.
  *    - handles: one webbing U per wide face -- up from both recesses, along the top through
- *      a pale PVC grip sleeve. a001 lays one handle FLAT on the lid, and flat is the state
+ *      a mid-grey PVC grip sleeve. a001 lays one handle FLAT on the lid, and flat is the state
  *      drawn here: in the frame the only other place for a strap is dangling down a face
  *      the rails own (a002, the install photo, shows exactly that), which would clip every
  *      neighbouring module.
@@ -561,7 +561,10 @@ export function gearBagGroup(w, d, h, { color = 0xa8acac } = {}) {
   const lidTop  = metal(0x232528, 0, 0.95);        // the PVC-mesh lid face, duller still
   const webbing = metal(0x141518, 0, 0.9);
   const zipMat  = metal(0x45484d, 0, 0.8);
-  const sleeve  = metal(0xc6c9cb, 0, 0.5);         // the pale PVC grip wrap
+  // The PVC grip wrap is the body's own mid-grey: #a6a7a9 where it lies flat on the lid in
+  // UG-472's hero, against #a8acad for the wall beside it. It was drawn near white (0xc6c9cb).
+  // A touch under the wall's value because it lies face-up, where the light is.
+  const sleeve  = metal(0x9a9ea0, 0, 0.5);
 
   // The grey tub and the black collar over it, one soft rounded form -- corner radius ~20
   // is what welded EVA panels pull themselves into. The tub tucks 2mm up behind the collar
@@ -2246,103 +2249,163 @@ export function jikaroBridge({ opening, units = 2, tex = null }) {
  *  each side with a solid full-drop sheet, and under a tabletop the rack read as a cabinet;
  *  web/img/CK-220.jpg shows daylight everywhere -- flat bar, plates, punched holes.
  *
- *  Both hang the same way. A side frame stands at each END (x = +/-w/2), spans the table's
- *  DEPTH, and lands hooks on the rails. The CK-230 manual's 断面図 draws the hook as a flat
- *  finger in the panel's own plane laying an arm outward on top of the rail, and counts
- *  左右合計4か所のフック; CK-220's counts the same four. The rails' lips sit at |z|
- *  158.5..182.5 (railProfile), so every hook here lives at |z| ~170 and its arm's underside
- *  lands at -10 -- the measured recess modules rest in. Everything else hangs BETWEEN the
- *  two side frames; nothing closes the sides.
+ *  Both hang the same way. A side frame stands at each END, spans the table's DEPTH between
+ *  the rails, and lands four hooks on them (左右合計4か所のフック, both manuals). The rails'
+ *  lips sit at |z| 158.5..182.5 (railProfile) with the clear opening inside them, so a side
+ *  frame's body stays inside +/-158 and only its hook arms reach out over the lip, underside
+ *  on the -10 recess modules rest in, tips at |z| = d/2 = 177. (The arms were drawn out to
+ *  198, 16mm past the lip.) Everything else hangs BETWEEN the two side frames.
  *
- *      CK-220  セット内容: メインフレーム x2, サイドフレーム x2. Each side frame is a band
- *              below the rail line (~92mm against the hero's 372, an oblong hand slot
- *              through it, logo out) with a flat-bar leg dropping from each end and a column
- *              of フック穴 down the leg. The MAIN frames are bare tier rims -- no floor, the
- *              trays and boxes hang THROUGH them -- hooked into those holes at 4 corners
- *              each. Tier tops -150/-340, measured off the hero at ~1px:1mm against the 372;
- *              372 itself is unpublished, so the translucent "estimated" dress stays.
+ *      CK-220  セット内容: メインフレーム x2, サイドフレーム x2 (manual, 各部の名称).
+ *              SIDE FRAME: a closed rectangle. On top a 55mm band with an oblong hand slot,
+ *              its two top corners notched into the rail hooks; each band end folds OUT into
+ *              a tab, and a 17mm flat-bar leg is riveted to the tab (two rivets) with its
+ *              face to the table's LONG side; a bottom bar joins the two feet. Each leg has
+ *              THREE vertical slots (メインフレーム用フック穴), 125mm apart. The legs were
+ *              drawn a quarter turn round (4mm wide from the long side) with six round
+ *              holes, and the band 92 tall.
+ *              MAIN FRAME: a bare tier rim, no floor -- trays and boxes hang THROUGH it.
+ *              Two long angle bars (24 tall, a 12mm flange turned in at the top, the ledge
+ *              a tray's rim rests on) between two plain end bars; the end bars run on
+ *              through the leg slots and turn down, four hooks a tier.
+ *              SIZE is not published (only the packed 539 x 368 x 55), so it is measured,
+ *              and the catalogue keeps it flagged estimated. Ruler: the deep mesh trays
+ *              hanging in it, whose end wall is 14 wires + 2 corner posts across 234.6mm
+ *              (CK-225's orthographic top view puts the long walls at +/-117.3), i.e. a
+ *              16.76mm wire pitch. In the frontal in-use photo (gallery 05_19) the legs
+ *              stand 33.2 pitches apart outside to outside, in CK-250's frontal `switch2`
+ *              33.3: 555mm. That is the packed 539 (the main frame, end bar to end bar on
+ *              the legs' centre lines) plus one 17mm leg, which is the cross-check. Depth
+ *              354 over the leg faces (the sibling CK-230's published depth; the tier hooks
+ *              poke 7mm past each, which is the packed 368). Leg, tab top to foot: 25.9
+ *              pitches = 432; frame top to foot in `switch2` 449: drop 450. Tier rims top
+ *              out 172 and 426 below the table. It used to be 510 x 354 x 372 and, because
+ *              that was a guess, translucent; a see-through rack read as a fault, so it is
+ *              solid steel now and `estimated` only travels in the data.
  *      CK-230  本体 x1: a perforated base plate whose side panels fold up to 90 degrees,
- *              each a triangulated plate -- top rail, end posts leaning inward on the way
- *              down, a V of braces meeting over the shelf's centre (the embossed logo sits
- *              under that meeting). Published 510 x 354 x 242.
+ *              each one stamped plate -- top rail, two upright end posts, a V of braces
+ *              meeting over the shelf's centre (the embossed logo sits under that meeting),
+ *              a black strip along the foot. Published 510 x 354 x 242, but the folded
+ *              pack is 503 x 315 x 20: plate and panels are 315 deep and pass BETWEEN the
+ *              rails, and only the four hook links -- an L on a pivot at each post top,
+ *              swung out and up (photos 08/09) -- reach the 354. The body was drawn ~350
+ *              deep, through both rails. Post tops and pivots ~30 below the hook top and
+ *              the top rail ~56 below, off the close-up (photo 04) against the 242.
  *
- *  Mostly air now, so a faint ghost box carries picking (the meshTrayGroup deal). Top at
+ *  Mostly air, so a faint ghost box carries picking (the meshTrayGroup deal). Top at
  *  y = 0, hangs to -drop. Returns { group, body }. */
-export function hangRackGroup({ w, d, drop, tiers = 1, hasSurface = false, color, estimated = false }) {
+export function hangRackGroup({ w, d, drop, tiers = 1, hasSurface = false, color }) {
   const g = new THREE.Group();
-  const steel = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(color), metalness: 0.9, roughness: 0.28,
-    transparent: estimated, opacity: estimated ? 0.78 : 1,
-  });
+  const steel = metal(color, 0.9, 0.28);
   const dark = metalE(0x0e0f12, 0.2, 0.8);      // punched holes -- frameGroup's own fake
   const bar = (bw, bh, bd, x, y, z) => box(g, bw, bh, bd, 1, steel, x, y, z);
-  const px = w / 2 - 2;                         // the side frames' plane, one per end
+  const LIP = 10;                               // the rails' recess: a hook arm's underside
+  const zr = d / 2;                             // hook tips, on the lip
 
   // The ghost pick box: the full envelope, faint, and the only mesh the planner tags.
   const ghost = box(g, w, drop, d, 2,
     new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06, depthWrite: false }),
     0, -drop / 2, 0);
 
-  // Four rail hooks, two per side frame: a riser in the panel's plane, an arm laid outward
-  // over the rail (underside on the -10 lip), a small down-step at the tip. Drawn a hair
-  // thicker than the plates they grow from so the overlaps don't shimmer.
-  const hookZ = Math.min(d / 2 - 8, 170);
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    bar(4, 26, 18, sx * px, -17, sz * hookZ);
-    bar(4, 6, 34, sx * px, -7, sz * (hookZ + 12));
-    bar(4, 10, 4, sx * px, -9, sz * (hookZ + 27));
-  }
-
   if (!hasSurface) {
-    // CK-220. The side frame: a full-depth band below the rail line, the hand slot punched
-    // through it (a dark plug a hair proud of both faces), and a leg off each end carrying
-    // the hook-hole column the tier frames adjust on. Open everywhere below the band.
+    // CK-220.
+    const T = 1.6;                              // sheet gauge
+    const LEG = 17, TAB = 21;                   // leg bar; the folded tab it is riveted to
+    const xLeg = w / 2 - LEG / 2;               // legs' centre lines; outer edges on w/2
+    const zLeg = d / 2 - 1;                     // 2mm bar, outer face on d/2
+    const xBand = w / 2 - TAB;                  // the band's plane: where the tab folds out
+    const BAND = 55, top = -1;
+    const RIM = 24;                             // tier bar, on edge
+    const first = Math.min(172, (drop - RIM) / 2), last = drop - RIM;   // tier rims' tops
+    const tierTop = i => (tiers === 1 ? last : first + (i * (last - first)) / (tiers - 1));
+    const slots = [first + 3, (first + last) / 2 + 3, last + 3];        // a rim tops out 3 above its slot's centre
+
+    // The band, cut from one sheet: straight top edge, a hook at each top corner (the arm
+    // on the lip, a notch under it for the lip's edge), and the hand slot clean through.
+    const s = new THREE.Shape();
+    const zb = zr - 2, zn = zr - 13;
+    [[-zr, top], [zr, top], [zr, -LIP], [zn, -LIP], [zn, -LIP - 7], [zb, -LIP - 7], [zb, top - BAND],
+     [-zb, top - BAND], [-zb, -LIP - 7], [-zn, -LIP - 7], [-zn, -LIP], [-zr, -LIP]]
+      .forEach(([z, y], i) => (i ? s.lineTo(z * MM, y * MM) : s.moveTo(z * MM, y * MM)));
+    s.closePath();
+    const hand = new THREE.Path(), hl = 60, hr = 10, hy = -28;      // 140 x 20, off the hero
+    hand.moveTo(-hl * MM, (hy + hr) * MM);
+    hand.lineTo(hl * MM, (hy + hr) * MM);
+    hand.absarc(hl * MM, hy * MM, hr * MM, Math.PI / 2, -Math.PI / 2, true);
+    hand.lineTo(-hl * MM, (hy - hr) * MM);
+    hand.absarc(-hl * MM, hy * MM, hr * MM, -Math.PI / 2, Math.PI / 2, true);
+    s.holes.push(hand);
+    const bandGeo = new THREE.ExtrudeGeometry(s, { depth: T * MM, bevelEnabled: false, curveSegments: 6 });
+
     for (const sx of [-1, 1]) {
-      bar(3, 92, d, sx * px, -58, 0);
-      box(g, 4.5, 14, 100, 2, dark, sx * px, -58, 0);
+      const band = new THREE.Mesh(bandGeo, steel);
+      band.rotation.y = -Math.PI / 2;           // the sheet's own x runs along the table's depth
+      band.position.x = (sx * xBand + T / 2) * MM;
+      g.add(band);
       for (const sz of [-1, 1]) {
-        bar(4, drop - 104, 16, sx * px, -(104 + (drop - 104) / 2), sz * (d / 2 - 9));
-        for (let k = 0; k < 6; k++)
-          cyl(g, 3.2, 3.2, 6, 10, dark, sx * px, -(140 + k * 40), sz * (d / 2 - 9))
-            .rotation.z = Math.PI / 2;
+        bar(TAB, 46, T, sx * (xBand + TAB / 2), -41, sz * (zLeg - 1 - T / 2));
+        bar(LEG, drop - 20, 2, sx * xLeg, -(20 + (drop - 20) / 2), sz * zLeg);
+        for (const ry of [30, 46]) cyl(g, 3, 3, 1.6, 8, steel, sx * xLeg, -ry, sz * (d / 2 + 0.4), Math.PI / 2);
+        for (const sy of slots) box(g, 4.5, 33, 2.8, 1, dark, sx * xLeg, -sy, sz * zLeg);
       }
+      bar(T, 16, d - 4, sx * (w / 2 - T / 2), -(drop - 8), 0);       // the bar joining the feet
     }
-    // The tier rims: flat bar on edge with a narrow flange turned INWARD at the top -- the
-    // ledge the mesh trays' rims rest on in the catalogue shots. The corner hooks into the
-    // leg holes are real but sub-planner-distance, so they are not drawn.
+
+    // The tier rims (main frames), hooked into the top and bottom slots.
+    const zL = d / 2 - 4;                       // long bars, just inside the legs
     for (let i = 0; i < tiers; i++) {
-      const ty = tiers === 1 ? drop - 32 : 150 + (i * (drop - 32 - 150)) / (tiers - 1);
+      const ty = tierTop(i);
       for (const sz of [-1, 1]) {
-        bar(w - 10, 20, 4, 0, -(ty + 10), sz * (d / 2 - 8));
-        bar(w - 10, 3, 12, 0, -(ty + 1.5), sz * (d / 2 - 16));
+        bar(2 * xLeg, RIM, T, 0, -(ty + RIM / 2), sz * zL);
+        bar(2 * xLeg - 4, T, 12, 0, -(ty + T / 2), sz * (zL - 6.8));
       }
-      for (const sx of [-1, 1]) bar(4, 20, d - 16, sx * (w / 2 - 5), -(ty + 10), 0);
+      for (const sx of [-1, 1]) {
+        bar(T, RIM, 2 * zL, sx * xLeg, -(ty + RIM / 2), 0);
+        for (const sz of [-1, 1]) {             // out through the leg slot, and turned down
+          bar(T, 13, 11, sx * xLeg, -(ty + 9.5), sz * (zL + 5.5));
+          bar(T, 10, 3, sx * xLeg, -(ty + 19), sz * (d / 2 + 5.5));
+        }
+      }
     }
   } else {
-    // CK-230. Side panels: top rail, end posts leaning ~6 degrees inward on the way down
-    // (the taper the photos show), a V of braces to the shelf's centre. All flat strap.
+    // CK-230. The plate and the folded panels are the packed 503 x 315; the caller's d is
+    // the 354 over the hooks.
+    const SW = Math.min(503, w), SD = Math.min(315, d), hz = SD / 2;
+    const px = SW / 2 - 1.5;                    // the panels' plane, at the plate's ends
+    const zp = hz - 10;                         // post centre lines
     const shelfTop = drop - 18;
+    const railY = 56, railH = 26, footH = 28;   // top rail; the panel's foot rail
+    const black = metal(0x1c1e22, 0.1, 0.65);
+    const bead = metal(new THREE.Color(color).multiplyScalar(0.72), 0.9, 0.35);
     for (const sx of [-1, 1]) {
-      bar(3, 20, d - 16, sx * px, -40, 0);
-      for (const hz of [-110, 0, 110])
-        cyl(g, 2.5, 2.5, 6, 10, dark, sx * px, -40, hz).rotation.z = Math.PI / 2;
+      const X = sx * px;
+      bar(3, railH, SD, X, -(railY + railH / 2), 0);
+      box(g, 3.6, 3, SD - 70, 1, bead, X, -(railY + railH / 2), 0);            // its pressed bead
+      bar(3, footH, SD, X, -(shelfTop - footH / 2), 0);
       for (const sz of [-1, 1]) {
-        const run = shelfTop - 50;
-        bar(4, run, 18, sx * px, -(50 + run / 2), sz * (d / 2 - 12)).rotation.x = sz * 0.10;
-        const zT = d / 2 - 27, zB = 12, rise = shelfTop - 14 - 55;
-        bar(4, Math.hypot(rise, zT - zB), 18, sx * px, -(55 + rise / 2), sz * ((zT + zB) / 2))
+        bar(4, shelfTop - 30, 20, X, -(30 + (shelfTop - 30) / 2), sz * zp);     // the post, upright
+        cyl(g, 10, 10, 4.2, 14, steel, X, -30, sz * zp).rotation.z = Math.PI / 2;   // its pivot lug
+        // The V brace: from under the top rail beside the post to the foot's centre.
+        const zT = hz - 34, zB = 16, y0 = railY + railH - 2, rise = shelfTop - footH + 2 - y0;
+        bar(3.5, Math.hypot(rise, zT - zB), 20, X, -(y0 + rise / 2), sz * ((zT + zB) / 2))
           .rotation.x = sz * Math.atan2(zT - zB, rise);
+        // The hook link, outboard of the panel on the pivot: a riser inside the rail opening
+        // and an arm laid out over the lip to |z| = d/2.
+        const xh = sx * (px + 3);
+        bar(3, 26, 14, xh, -(LIP + 13), sz * (hz - 7));
+        bar(3, LIP - 2, zr - (hz - 14), xh, -(2 + (LIP - 2) / 2), sz * ((zr + hz - 14) / 2));
+        cyl(g, 4.5, 4.5, 2.5, 10, steel, sx * (px + 3.75), -30, sz * zp).rotation.z = Math.PI / 2;   // pivot pin
       }
-      // the black trim strip riding the panel-shelf joint in every CK-230 photo
-      box(g, 6, 10, d - 20, 2, metal(0x1c1e22, 0.1, 0.65), sx * (w / 2 - 4), -(shelfTop - 3), 0);
+      // the black strip along the panel's foot, on the inside (every CK-230 photo)
+      box(g, 5, 20, SD - 6, 2, black, sx * (px - 4), -(shelfTop - 10), 0);
     }
     // The base plate: a shallow pan at the very bottom -- floor, long lips folded DOWN,
     // and the rows of dash perforations, drawn flush and dark (the through-hole fake).
-    box(g, w - 8, 3, d - 4, 1, steel, 0, -(shelfTop + 1.5), 0);
-    for (const sz of [-1, 1]) bar(w - 8, 18, 3, 0, -(shelfTop + 9), sz * (d / 2 - 3.5));
+    box(g, SW, 3, SD, 1, steel, 0, -(shelfTop + 1.5), 0);
+    for (const sz of [-1, 1]) bar(SW, 15, 3, 0, -(shelfTop + 10.5), sz * (hz - 1.5));
     for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++)
       box(g, 26, 1.2, 5, 0.5, dark,
-        (c - 2 + (r % 2 ? 0.25 : -0.25)) * (w / 6.5), -(shelfTop - 0.3), (r - 1.5) * (d / 4.6));
+        (c - 2 + (r % 2 ? 0.25 : -0.25)) * (SW / 6.5), -(shelfTop - 0.3), (r - 1.5) * (SD / 4.6));
   }
   return { group: g, body: ghost };
 }

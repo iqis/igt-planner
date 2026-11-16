@@ -768,18 +768,18 @@ function drawModules(g, n, top) {
  *  drops one or two shelves down inside the frame's depth.
  *
  *  CK-230 brings its own base plate (a solid shelf); CK-220 hangs two OPEN frames meant to
- *  hold trays and boxes. The one fact the drawing must not fudge: CK-220's assembled height
- *  is NOT published -- only its packed size is -- so the drop is modelled, and it is drawn
- *  a little translucent to say "this height is an estimate, not a measurement".
+ *  hold trays and boxes. CK-220's assembled size is NOT published -- only its packed size
+ *  is -- so it is measured off photographs and flagged `assembled_estimated` in the data.
+ *  It is drawn solid all the same: a see-through rack read as a fault, not as a caveat.
  */
 function drawHangRack(g, n, pl, cx, top) {
   const p = PARTS[pl.sku];
   const a = p.assembled_mm;
   // Side frames, hooks and tiers come from hangRackGroup in parts3d.js -- one rack, both
   // renderers. It hangs from y=0 to -drop, so place it at the slot centre and the frame
-  // top. CK-220's assembled height is not published (only packed), so it is drawn a little
-  // translucent to say "estimated". The rack is mostly air now, so picking rides its faint
-  // ghost box (`body`) -- the same deal as the mesh trays.
+  // top. `estimated` is still handed over but no longer thins the rack (see hangRackGroup).
+  // The rack is mostly air, so picking rides its faint ghost box (`body`) -- the same deal
+  // as the mesh trays.
   const { group, body } = hangRackGroup({
     w: a.w, d: a.d, drop: a.h, tiers: p.tiers || 1,
     hasSurface: !!p.has_surface, color: swatchOf(p.sku), estimated: p.assembled_estimated,
