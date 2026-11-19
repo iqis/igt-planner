@@ -11,9 +11,12 @@
 > the tops. **Left open:** the Takibi inside the Jikaro still stands on the ground (the manual
 > wants a base plate and stand; the stand is not in the catalogue); the Jikaro's compact form is
 > 885 / 365 here and 890 / 370 in its manual; LV-091's width and depth may be swapped; the BBQ box's
-> "no mixed halves" rule; gear bags open or closed. **Skipped to save cost (bench pages only, no
-> visitor sees them):** BG-031/032, DB-005, UG-90x, CK-020, GR-006 and S-029HA on the bench, the lid
-> trays' folded sheet, GF-010, GF-015, GF-051/052, the Light boards' finer grain, the cushion seam.
+> "no mixed halves" rule; gear bags open or closed. **The bench-only parts skipped then were done on 2026-11-18** (after
+> v1.4.3; on dev): BG-031/032 as closed soft boxes, DB-005 as its wire hoop with three prongs,
+> UG-90x as soft rolls with wrap straps, CK-020 as a flat square U with its hooks, GR-006 as a pan
+> (also the planner's two copies), S-029HA and ST-032MAR as square-woven nets, the lid-trays as
+> folded sheet, GF-010 / GF-015 / GF-051 / GF-052, ST-032BP and ST-032S on the bench, the Light
+> boards' finer procedural grain (`bamboo-fine` in proctex.js), the cushion's seam.
 > `scripts/make_textures.py` would overwrite the hand-corrected board outlines, hooks and leg holes
 > in `catalog/textures.json` (each carries a `hand_note`): do not re-run it over those parts.
 >

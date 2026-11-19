@@ -36,12 +36,14 @@ function wrapped(fn, x, y, r) {
 /** Laminated bamboo: strips running along u, fine fibre lines, and the staggered dark knuckles of
  *  the culm's nodes. A near-grey mean is a stainless lid, not bamboo -- it gets the fibres (they
  *  read as brushing) and no nodes. */
-function drawBamboo(ctx, mean, rand) {
+function drawBamboo(ctx, mean, rand, fine = false) {
   ctx.fillStyle = rgb(mean); ctx.fillRect(0, 0, S, S);
   const sat = Math.max(...mean) - Math.min(...mean);
   // Strips: bands of slightly different tone, laid top to bottom so they tile in v.
   for (let y = 0; y < S;) {
-    const h = 26 + rand() * 40, k = 0.94 + rand() * 0.12;
+    // The Light (TL) boards are laminated from strips about a third the width of the regular
+    // ones, in a more even tone.
+    const h = fine ? 9 + rand() * 9 : 26 + rand() * 40, k = fine ? 0.96 + rand() * 0.07 : 0.94 + rand() * 0.12;
     ctx.fillStyle = rgb(mean, k, 0.55);
     ctx.fillRect(0, y, S, Math.min(h, S - y));
     y += h;
@@ -98,7 +100,8 @@ function canvasFor(kind, mean) {
   const c = document.createElement("canvas");
   c.width = c.height = S;
   const rand = rng(mean[0] * 65536 + mean[1] * 256 + mean[2] + (kind === "teak" ? 7 : 0));
-  (kind === "teak" ? drawTeak : drawBamboo)(c.getContext("2d"), mean, rand);
+  if (kind === "teak") drawTeak(c.getContext("2d"), mean, rand);
+  else drawBamboo(c.getContext("2d"), mean, rand, kind === "bamboo-fine");
   return (canvases[key] = c);
 }
 

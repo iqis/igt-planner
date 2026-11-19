@@ -1113,9 +1113,7 @@ export function bbqBoxGroup(w, d, h, { color = 0xb9bec4, bodyW = 500, bodyH = 80
   };
   if (surface === "plate") {
     // GR-006, 500 x 330 x 35: ONE plate over the whole top. Its 500 is the body's 500 exactly.
-    box(g, 500, 8, 330, 1.5, plateMat, 0, lift - 4, 0);
-    for (const sz of [-1, 1]) box(g, 500, 27, 4, 1, plateMat, 0, lift + 9.5, sz * 163);
-    for (const sx of [-1, 1]) box(g, 4, 27, 330, 1, plateMat, sx * 248, lift + 9.5, 0);
+    grillPanInto(g, lift + 23);                          // the same pan the bench draws
   } else if (surface === "halves") {
     // S-029HA x2, side by side: each lies 206 along the rails and 339 across. (They were turned
     // the other way, 339 along, and overlapped into one 551 x 206 strip.)
@@ -2435,12 +2433,17 @@ export function loungeCushionGroup(w, d, h, { fabric = 0xcf6a20, folded = false,
     g.add(pad);
     return { group: g, body: pad };
   }
-  // DEFAULT round form: a full disc lying flat, with a soft centre tuft
-  const pad = new THREE.Mesh(new THREE.CylinderGeometry(R * MM, R * MM, h * MM, 56), cloth);
+  // DEFAULT round form: a full disc lying flat, with the seam it folds along running across
+  // the diameter (TM-096GR alt02). It had a centre tuft, which the real pad does not. UVs x6, the
+  // chairs' weave scale: at 1 the canvas read as polka dots.
+  const padGeo = new THREE.CylinderGeometry(R * MM, R * MM, h * MM, 56);
+  const uv = padGeo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 6, uv.getY(i) * 6);
+  const pad = new THREE.Mesh(padGeo, cloth);
   pad.position.y = h / 2 * MM; g.add(pad);
-  const tuft = new THREE.Mesh(new THREE.CylinderGeometry(16 * MM, 16 * MM, (h + 3) * MM, 16),
-    new THREE.MeshStandardMaterial({ color: fabric, roughness: 0.7 }));
-  tuft.position.y = (h - 1.5) / 2 * MM; g.add(tuft);
+  const seam = new THREE.Mesh(new THREE.BoxGeometry((2 * R - 8) * MM, 1 * MM, 3 * MM),
+    new THREE.MeshStandardMaterial({ color: new THREE.Color(fabric).multiplyScalar(0.72), roughness: 0.9 }));
+  seam.position.y = (h + 0.2) * MM; g.add(seam);
   return { group: g, body: pad };
 }
 
@@ -3639,23 +3642,22 @@ export function landLockGroup(w = 6250, d = 4050, h = 2050,
  *  meshTrayGroup way. Hooks over the rail at y = 0; rail side -z, the bail reaching +z. */
 export function boxHangerGroup(w, d, h, color) {
   const g = new THREE.Group();
-  const steel = metal(color, 0.9, 0.25);
-  const rw = 2.5;
-  const wire = pts => g.add(new THREE.Mesh(new THREE.TubeGeometry(
-    new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0] * MM, p[1] * MM, p[2] * MM))),
-    pts.length * 8, rw * MM, 6, false), steel));
-  const hx = w / 2 - 8, zR = -(d / 2) + 12;         // hook axes / the rail line
-  // the two J-hooks, curling over the rail and tailing down its far side
-  for (const s of [-1, 1])
-    wire([[s * hx, -26, zR + 14], [s * hx, -2, zR + 9], [s * hx, 6, zR],
-          [s * hx, -1, zR - 8], [s * hx, -14, zR - 9]]);
-  // the bail: ONE wire, hook to hook -- down, kicked out, the full-width U, and back up
-  wire([[-hx, -20, zR + 12], [-hx, -h + 3, zR + 42], [-hx, -h, d / 2 - 22],
-        [-hx + 14, -h, d / 2 - 4], [hx - 14, -h, d / 2 - 4], [hx, -h, d / 2 - 22],
-        [hx, -h + 3, zR + 42], [hx, -20, zR + 12]]);
-  // the aluminium joint blocks, one at each hook, on the rail where a001 puts them
-  const alu = metal(0xc4c8ca, 0.85, 0.35);
-  for (const s of [-1, 1]) box(g, 22, 18, 16, 2, alu, s * (hx - 26), -9, zR + 2);
+  const steel = metal(color, 0.5, 0.35);
+  // One bent wire, hook to hook: a flat, square-cornered U bail, each arm jogging 12mm inward
+  // before it turns up into its hook -- up to the top, over, and down as the free leg that drops
+  // into the frame's end-piece hole. The bail hangs 26 below the hooks' tops; the published 41 is
+  // that free leg (hero, and the two photos of it carrying a box). It was a Catmull-Rom wire that
+  // sagged and bulged to 172 x 52.
+  const r = 2.5, x0 = w / 2 - r, x1 = x0 - 12;
+  const zH = -d / 2 + r + 12, zF = d / 2 - r;
+  const yTop = -r, yBail = -26 + r, yTip = -h + r;
+  const half = s => [[s * x1, yTip, zH - 12], [s * x1, yTop, zH - 12], [s * x1, yTop, zH], [s * x1, yBail, zH],
+                     [s * x1, yBail, zH + 22], [s * x0, yBail, zH + 36], [s * x0, yBail, zF]];
+  bentTube(g, [...half(-1), ...half(1).reverse()], r, steel,
+    { rad: [0, 5, 5, 5, 6, 6, 10, 10, 6, 6, 5, 5, 5, 0] });
+  // the two joint blocks that seat the hooks on the end piece
+  const alu = metal(0xc4c8ca, 0.5, 0.4);
+  for (const s of [-1, 1]) box(g, 22, 18, 16, 2, alu, s * x1, -11, zH - 6);
   const ghost = box(g, w, h, d, 2,
     new THREE.MeshStandardMaterial({ color: new THREE.Color(color), transparent: true, opacity: 0.06, depthWrite: false }),
     0, -h / 2, 0);
@@ -3919,19 +3921,27 @@ export function ringGroup(w, d, h, color, { clamp = false } = {}) {
  *  not an open bin. */
 export function caseGroup(w, d, h, color) {
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), metalness: 0.05, roughness: 0.85 });
-  const body = new THREE.Mesh(roundedBox(w * MM, h * MM, d * MM, Math.min(w, d, h) * 0.16 * MM), mat);
+  // A soft black roll, 110 x 90 in section, with a zip along the top and two webbing straps that
+  // wrap it 125mm either side of the middle (the same on all three lengths) and rise into a grip
+  // (UG-903 hero, UG-904 a099). It was a hard box with a lid seam and a half-sunk torus.
+  const cloth = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), metalness: 0, roughness: 0.92 });
+  const web = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.7), metalness: 0, roughness: 0.85 });
+  const rr = Math.min(d, h) * 0.3;
+  const body = new THREE.Mesh(roundedBox(w * MM, h * MM, d * MM, rr * MM), cloth);
   body.position.y = -h / 2 * MM;
   g.add(body);
-  // Lid seam -- a thin band a third of the way down.
-  const seam = new THREE.Mesh(roundedBox((w + 2) * MM, 4 * MM, (d + 2) * MM, 2 * MM),
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.7), metalness: 0.1, roughness: 0.8 }));
-  seam.position.y = -h / 3 * MM;
-  g.add(seam);
-  // An arch handle on top.
-  const handle = new THREE.Mesh(new THREE.TorusGeometry(Math.min(w, 60) * 0.4 * MM, 4 * MM, 8, 20, Math.PI), mat);
-  handle.position.set(0, 2 * MM, 0);
-  g.add(handle);
+  box(g, w - 2 * rr - 30, 1.6, 6, 0, web, 0, 0.3, 0);                    // the zip
+  const sx0 = Math.min(125, w / 2 - rr - 20);
+  for (const s of [-1, 1]) {
+    // a strap: a band round the section, drawn as a wire loop flattened along the bag
+    const band = bentTube(g, [[0, 1.5, -d / 2 - 1.5], [0, 1.5, d / 2 + 1.5], [0, -h - 1.5, d / 2 + 1.5], [0, -h - 1.5, -d / 2 - 1.5]],
+      1.6, web, { rad: rr, closed: true, radial: 4 });
+    band.scale.x = 8;                                                    // 26 wide, 3 thick
+    band.position.x = s * sx0 * MM;
+  }
+  bentTube(g, [[-sx0, 1, 0], [-sx0 * 0.5, 34, 0], [sx0 * 0.5, 34, 0], [sx0, 1, 0]], 5, web, { rad: 16 });
+  const grip = cyl(g, 8, 8, sx0 * 0.7, 12, web, 0, 34, 0);
+  grip.rotation.z = Math.PI / 2;
   return { group: g, body };
 }
 
@@ -4210,28 +4220,22 @@ const BRIDGE_RISE = 90;
  *  Net top at y = 0, feet reaching -h. */
 export function grillNetGroup(w, d, h, color) {
   const g = new THREE.Group();
-  const mat = metalE(color, 0.9, 0.25);
-  // The border: the φ5 frame rod, top face on the y = 0 datum.
+  const mat = metalE(color, 0.5, 0.4);
+  // The border: the dia 5 frame rod, top face on the y = 0 datum.
   for (const sz of [-1, 1]) box(g, w, 5, 5, 2, mat, 0, -2.5, sz * (d / 2 - 2.5));
   for (const sx of [-1, 1]) box(g, 5, 5, d - 10, 2, mat, sx * (w / 2 - 2.5), -2.5, 0);
-  // The weave: two families of φ2.5 runs at +/-45, clipped to the border. Each run is the
-  // chord of x - s*z = c across the inner rectangle; stepping c by 11 puts the crossings
-  // 11mm apart along the edge, which is what the hero counts out. The families stack a hair
-  // apart in y, which is all a weave is at this scale.
-  const hw = w / 2 - 5, hd = d / 2 - 5, step = 11;
-  for (const s of [1, -1]) {
-    const y = s > 0 ? -1.8 : -3.2;
-    for (let c = Math.ceil((-hw - hd) / step) * step; c <= hw + hd; c += step) {
-      const x0 = Math.max(-hw, c - hd), x1 = Math.min(hw, c + hd);
-      if (x1 - x0 < 6) continue;                 // a corner stub -- not worth a mesh
-      const cx = (x0 + x1) / 2, cz = s * (cx - c);
-      box(g, (x1 - x0) * Math.SQRT2, 2.2, 2.5, 1, mat, cx, y, cz, -s * Math.PI / 4);
-    }
-  }
-  // The feet: a φ5 rod under each LONG edge, inset like the hero's, its ends rising back
-  // into the frame; they are what the published 18 measures.
+  // The weave: square to the frame at a 15mm pitch -- S-029HA's true plan view (gallery 08_a007)
+  // puts a column every 62px across the 1412px that is its 339mm. (It was drawn on the diagonal at
+  // 11mm, off the hero's oblique view.) The two families stack a hair apart, which is all a
+  // weave is at this scale.
+  const iw = w - 10, id = d - 10, pitch = 15;
+  const nx = Math.round(iw / pitch), nz = Math.round(id / pitch);
+  for (let j = 1; j < nx; j++) box(g, 2.5, 2.2, id, 0, mat, -iw / 2 + (j * iw) / nx, -1.8, 0);
+  for (let j = 1; j < nz; j++) box(g, iw, 2.2, 2.5, 0, mat, 0, -3.2, -id / 2 + (j * id) / nz);
+  // The feet: a dia 5 rod under each LONG edge, its ends rising back into the frame; they are
+  // what the published 18 measures.
   for (const sz of [-1, 1]) {
-    const fz = sz * (d / 2 - 16);
+    const fz = sz * (d / 2 - 2.5);
     box(g, w - 56, 5, 5, 2, mat, 0, -(h - 2.5), fz);
     for (const sx of [-1, 1]) cyl(g, 2.5, 2.5, h - 5, 10, mat, sx * (w / 2 - 30), -h / 2, fz);
   }
@@ -4268,9 +4272,7 @@ function surfaceInto(g, kind, y) {
   // were turned the other way and overlapped into one strip)
   if (kind === "halves") { net(206, 339, -106); net(206, 339, 106); return; }
   if (kind === "plate") {
-    box(g, 500, 8, 330, 1.5, plateMat, 0, y - 4, 0);
-    for (const sz of [-1, 1]) box(g, 500, 27, 4, 1, plateMat, 0, y + 9.5, sz * 163);
-    for (const sx of [-1, 1]) box(g, 4, 27, 330, 1, plateMat, sx * 248, y + 9.5, 0);
+    grillPanInto(g, y + 23);                             // the same pan the bench draws
   }
 }
 
@@ -4917,4 +4919,213 @@ export function clothTarpGroup(sol, { color = 0x8a7460, letters = false } = {}) 
     g.add(sprite);
   }
   return { group: g };
+}
+
+// ---- Parts the planner never places alone: drawn on the part bench -------------------------------
+// (2026-11: each of these had been a generic stand-in -- an open metal bin for a soft bag, a round
+// ring for a rectangular wire frame, a ridged slab for a pan.)
+
+/** GR-006 Grill Plate: a black steel pan -- smooth floor, a flared wall about 30 high, rounded
+ *  corners, a handle tab with a hanging hole at each short end (the product's one photograph).
+ *  The tabs sit inside the published 500, so the pan itself is about 430 x 330; that split is read
+ *  off one oblique photo and is the least certain number here. `top` = the rim's height. */
+function grillPanInto(g, top, x = 0, z = 0) {
+  const steel = metal(0x2a2c2f, 0.35, 0.6);
+  const pan = panInto(g, steel, { w: 430, d: 330, fw: 392, fd: 292, h: 30, r: 28, top, x, z });
+  bentTube(g, [[x + 213, top, z - 163], [x + 213, top, z + 163], [x - 213, top, z + 163], [x - 213, top, z - 163]],
+    2, steel, { rad: 26, closed: true });                       // the rolled rim
+  for (const sx of [-1, 1]) {
+    box(g, 37, 3, 96, 1, steel, x + sx * 232, top - 1.5, z);
+    cyl(g, 4, 4, 3.6, 10, metal(0x0e0f12, 0.2, 0.8), x + sx * 238, top - 1.5, z);
+  }
+  return pan;
+}
+export function grillPanGroup() {
+  const g = new THREE.Group();
+  return { group: g, body: grillPanInto(g, 0) };
+}
+
+/** DB-005 Garbage Frame: one bent wire. A rectangular hoop that holds a bag open, standing out
+ *  from a table's edge; both of its long runs step up over their middle third (the published 44),
+ *  and three black-capped prongs reach back from the run at the table: the two outer ones under
+ *  the top (their tips turned up), the short middle one over it -- that grip is all that holds it
+ *  (hero, and the photo of it on a bamboo board). The published 255 is hoop + prongs, measured
+ *  out from the edge; the 320 runs along the edge. Here x is out from the table, z along it. */
+export function garbageFrameGroup(w = 255, d = 320, h = 44, color = 0xc9cdd2) {
+  const g = new THREE.Group();
+  const steel = metal(color, 0.5, 0.35), cap = metal(0x18191b, 0.05, 0.7);
+  const r = 2.5, prong = 105;
+  const x0 = -w / 2 + prong, x1 = w / 2 - r;             // the run at the table edge / the far run
+  const hz = d / 2 - r, sz = d / 6;
+  const yL = -h + r, yH = -r;
+  bentTube(g, [
+    [x0, yL, -hz], [x0, yL, -sz - 10], [x0, yH, -sz + 10], [x0, yH, sz - 10], [x0, yL, sz + 10], [x0, yL, hz],
+    [x1, yL, hz], [x1, yL, sz + 10], [x1, yH, sz - 10], [x1, yH, -sz + 10], [x1, yL, -sz - 10], [x1, yL, -hz],
+  ], r, steel, { rad: 8, closed: true });
+  const tip = (x, y, z) => { const m = new THREE.Mesh(new THREE.SphereGeometry(5 * MM, 10, 8), cap);
+    m.position.set(x * MM, y * MM, z * MM); g.add(m); };
+  for (const s of [-1, 1]) {
+    bentTube(g, [[x0, yL, s * hz], [-w / 2 + 30, yL, s * hz], [-w / 2 + 5, yL + 25, s * hz]], r, steel, { rad: 12 });
+    tip(-w / 2 + 5, yL + 25, s * hz);
+  }
+  bentTube(g, [[x0, yH, 0], [x0 - 36, yH, 0]], r, steel);
+  tip(x0 - 36, yH, 0);
+  const ghost = box(g, w, h, d, 2,
+    new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.04, depthWrite: false }), 0, -h / 2, 0);
+  return { group: g, body: ghost };
+}
+
+/** BG-031 / BG-032 Waterproof Gear Box: a closed soft box in matte black fabric -- a zip-round
+ *  lid, a webbing strap with a buckle down each quarter of the two long faces, the straps
+ *  carrying on up into two handles that meet in a grip over the middle, and a grab loop on each
+ *  end (hero). The published size is the INNER cavity; it is drawn at that size. Top at y = 0. */
+export function softBoxGroup(w, d, h) {
+  const g = new THREE.Group();
+  const cloth = metal(0x1d1e21, 0, 0.92), web = metal(0x111214, 0, 0.85), trim = metal(0x45484d, 0.15, 0.65);
+  const body = new THREE.Mesh(roundedBox(w * MM, h * MM, d * MM, 16 * MM), cloth);
+  body.position.y = -h / 2 * MM;
+  g.add(body);
+  for (const s of [-1, 1]) {                             // the lid's zip, a seam ~45 down
+    box(g, w - 34, 3, 2, 0, trim, 0, -45, s * (d / 2 + 0.4));
+    box(g, 2, 3, d - 34, 0, trim, s * (w / 2 + 0.4), -45, 0);
+  }
+  const xs = w * 0.24;
+  for (const sz of [-1, 1]) {
+    const zf = sz * (d / 2 + 1.2);
+    for (const sx of [-1, 1]) {
+      box(g, 26, h * 0.72, 2.4, 0, web, sx * xs, -4 - h * 0.36, zf);
+      box(g, 30, 22, 9, 1, trim, sx * xs, -h * 0.44, sz * (d / 2 + 4));
+    }
+    bentTube(g, [[-xs, -4, zf], [-xs, 44, sz * (d / 2 - 34)], [-xs * 0.45, 80, sz * 13],
+                 [xs * 0.45, 80, sz * 13], [xs, 44, sz * (d / 2 - 34)], [xs, -4, zf]], 6, web, { rad: 30 });
+  }
+  box(g, xs * 0.9, 17, 46, 0, web, 0, 80, 0);            // the grip wrapped round both handles
+  for (const sx of [-1, 1])
+    bentTube(g, [[sx * (w / 2 + 1), -72, -46], [sx * (w / 2 + 17), -62, -30], [sx * (w / 2 + 17), -62, 30],
+                 [sx * (w / 2 + 1), -72, 46]], 5, web, { rad: 12 });
+  return { group: g, body };
+}
+
+/** GF-010 Garden Unit Table Wood Insert: eight half-round slats lying along the 360, on two
+ *  cross battens (hero, a001). Slats 27 wide on a 31 pitch across the 250. Top at y = 0. */
+export function slatInsertGroup(w = 250, d = 360, h = 24, color = 0xb08a5a) {
+  const g = new THREE.Group();
+  const wood = metal(color, 0.02, 0.7);
+  const n = 8, pitch = w / n, sw = pitch - 4, batten = 10, slat = h - batten;
+  let body = null;
+  for (let i = 0; i < n; i++) {
+    const x = -w / 2 + (i + 0.5) * pitch;
+    const base = box(g, sw, slat - 5, d, 0, wood, x, -5 - (slat - 5) / 2, 0);
+    body = body || base;
+    // the half-round crown: a half cylinder turned to lie along z with its flat side down,
+    // then pressed to 5mm high
+    const cg = new THREE.CylinderGeometry(sw / 2 * MM, sw / 2 * MM, d * MM, 12, 1, false, 0, Math.PI);
+    cg.rotateY(Math.PI / 2); cg.rotateX(Math.PI / 2);
+    const crown = new THREE.Mesh(cg, wood);
+    crown.scale.y = 5 / (sw / 2);
+    crown.position.set(x * MM, -5 * MM, 0);
+    g.add(crown);
+  }
+  for (const s of [-1, 1]) box(g, w - 6, batten, 22, 0, wood, 0, -h + batten / 2, s * d * 0.33);
+  return { group: g, body };
+}
+
+/** GF-015 Garden Unit Table Set: a slatted wooden top with an IGT opening down its middle, on
+ *  four square stainless legs. The manual gives the top as 900 x 1420 x 65 and the legs as
+ *  41 x 41 x 675; the opening (about 1000 x 360, four units) is read off its drawing. Top at y = 0. */
+export function gardenUnitTableGroup(w = 900, d = 1420, h = 700) {
+  const g = new THREE.Group();
+  const wood = metal(0xb08a5a, 0.02, 0.7), groove = metal(0x6f5234, 0, 0.8), steel = metal(0xd2d5d8, 0.35, 0.45);
+  const T = 65, ow = 360, od = 1000;                     // top thickness; the opening
+  const sideW = (w - ow) / 2, endD = (d - od) / 2;
+  let body = null;
+  for (const s of [-1, 1]) {
+    const m = box(g, sideW, T, d, 0, wood, s * (ow / 2 + sideW / 2), -T / 2, 0);   // the two long sides
+    body = body || m;
+    box(g, ow, T, endD, 0, wood, 0, -T / 2, s * (od / 2 + endD / 2));                 // the two ends
+    for (let k = 1; k < 9; k++)                           // slat seams along the long sides
+      box(g, 2, 1, d, 0, groove, s * (ow / 2 + (k * sideW) / 9), 0.2, 0);
+    for (let k = 1; k < 12; k++)                          // ...and across the ends
+      box(g, 2, 1, endD, 0, groove, -ow / 2 + (k * ow) / 12, 0.2, s * (od / 2 + endD / 2));
+    box(g, 3, T - 8, od, 0, steel, s * (ow / 2 - 1.5), -T / 2, 0);                  // the opening's steel lining
+    box(g, ow, T - 8, 3, 0, steel, 0, -T / 2, s * (od / 2 - 1.5));
+  }
+  for (const sx of [-1, 1]) for (const sz of [-1, 1])
+    box(g, 41, h - T, 41, 0, steel, sx * (w / 2 - 50), -T - (h - T) / 2, sz * (d / 2 - 50));
+  return { group: g, body };
+}
+
+/** GF-051 / GF-052 Takibi Garden Table: a square ring of four stainless panels round a square
+ *  fire opening, its outer corners clipped, an apron folded down the outer edges, on four wide
+ *  folded-sheet legs that splay out from under the opening's corners (heroes, alt_04 / alt_05).
+ *  The opening is about 540 on the 1200 table, scaled off the Takibi L standing in it -- low
+ *  precision, and the 1500 table is drawn in the same proportion. Top at y = 0, feet at -h. */
+export function gardenRingTableGroup(w = 1200, d = 1200, h = 400) {
+  const g = new THREE.Group();
+  const steel = metal(0xd2d5d8, 0.3, 0.5), seam = metal(0x7d8186, 0.3, 0.6);
+  steel.side = THREE.DoubleSide;
+  const R = w / 2, o = w * 0.225, c = w * 0.15;
+  const s = new THREE.Shape();
+  s.moveTo(R - c, -R); s.lineTo(R, -R + c); s.lineTo(R, R - c); s.lineTo(R - c, R);
+  s.lineTo(-R + c, R); s.lineTo(-R, R - c); s.lineTo(-R, -R + c); s.lineTo(-R + c, -R); s.closePath();
+  const hole = new THREE.Path();
+  hole.moveTo(-o, -o); hole.lineTo(-o, o); hole.lineTo(o, o); hole.lineTo(o, -o); hole.closePath();
+  s.holes.push(hole);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 3, bevelEnabled: false });
+  geo.rotateX(-Math.PI / 2); geo.translate(0, -3, 0); geo.scale(MM, MM, MM);
+  const top = new THREE.Mesh(geo, steel);
+  g.add(top);
+  for (const sg of [-1, 1]) {
+    box(g, 2 * (R - c), 90, 3, 0, steel, 0, -45, sg * (R - 1.5));          // the outer apron
+    box(g, 3, 90, 2 * (R - c), 0, steel, sg * (R - 1.5), -45, 0);
+    box(g, 2 * o, 60, 3, 0, steel, 0, -30, sg * (o + 1.5));                 // the fold round the opening
+    box(g, 3, 60, 2 * o, 0, steel, sg * (o + 1.5), -30, 0);
+  }
+  const L = Math.hypot(h - 3, 170), tilt = -Math.atan2(170, h - 3);
+  for (let k = 0; k < 4; k++) {
+    const a = Math.PI / 4 + k * Math.PI / 2, ca = Math.cos(a), sa = Math.sin(a);
+    const mid = (o * Math.SQRT2 + (R - c / 2) * Math.SQRT2) / 2;
+    box(g, (R - c / 2 - o) * Math.SQRT2, 0.8, 3, 0, seam, mid * ca, 0.3, mid * sa, -a);   // the panel seams
+    const rm = o * Math.SQRT2 + 70 + 85;                 // leg: top 70 outside the opening's corner, foot 170 further
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(240 * MM, L * MM, 4 * MM), steel);
+    leg.rotation.order = "YXZ";
+    leg.rotation.y = Math.PI / 2 - a;
+    leg.rotation.x = tilt;
+    leg.position.set(rm * ca * MM, -(h + 3) / 2 * MM, rm * sa * MM);
+    g.add(leg);
+  }
+  return { group: g, body: top };
+}
+
+/** ST-032BP Fireplace Base Plate L: a shallow black tray with a rolled rim and four slots, one
+ *  toward each corner, each parallel to an edge (hero). Top (the rim) at y = 0. */
+export function basePlateGroup(w = 450, d = 450, h = 9) {
+  const g = new THREE.Group();
+  const iron = metal(0x1c1e21, 0.3, 0.6);
+  iron.side = THREE.DoubleSide;
+  const hw = w / 2 - 3, hd = d / 2 - 3, r = 30;
+  const s = new THREE.Shape();
+  s.moveTo(-hw + r, -hd); s.lineTo(hw - r, -hd); s.quadraticCurveTo(hw, -hd, hw, -hd + r);
+  s.lineTo(hw, hd - r); s.quadraticCurveTo(hw, hd, hw - r, hd); s.lineTo(-hw + r, hd);
+  s.quadraticCurveTo(-hw, hd, -hw, hd - r); s.lineTo(-hw, -hd + r); s.quadraticCurveTo(-hw, -hd, -hw + r, -hd);
+  const a = w * 0.25;
+  for (const [cx, cz, alongX] of [[a, a, true], [-a, -a, true], [a, -a, false], [-a, a, false]]) {
+    const lx = alongX ? 50 : 10, lz = alongX ? 10 : 50, slot = new THREE.Path();
+    slot.moveTo(cx - lx, cz - lz); slot.lineTo(cx - lx, cz + lz); slot.lineTo(cx + lx, cz + lz);
+    slot.lineTo(cx + lx, cz - lz); slot.closePath();
+    s.holes.push(slot);
+  }
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 2, bevelEnabled: false });
+  geo.rotateX(-Math.PI / 2); geo.translate(0, -h, 0); geo.scale(MM, MM, MM);
+  const floor = new THREE.Mesh(geo, iron);
+  g.add(floor);
+  bentTube(g, [[hw, -3, -hd], [hw, -3, hd], [-hw, -3, hd], [-hw, -3, -hd]], 3, iron, { rad: r, closed: true });
+  return { group: g, body: floor };
+}
+
+/** ST-032S Fireplace Coal Bed L, alone: the slotted cast grate the Takibi carries (coalBedInto). */
+export function coalBedGroup(w = 310) {
+  const g = new THREE.Group();
+  coalBedInto(g, w, 0);
+  return { group: g, body: g.children[0] };
 }

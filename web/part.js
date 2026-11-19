@@ -15,6 +15,8 @@ import { unitClampGroup } from "./parts3d.js";   // standalone
 import { hookBoardGroup } from "./parts3d.js";   // boards
 import { burnerGroup, gs230Group, burnerOf } from "./parts3d.js";   // cooking
 import { myTableGroup, grillBridgeGroup, connTableGroup } from "./parts3d.js";   // fire
+import { garbageFrameGroup, gardenRingTableGroup, grillPanGroup, softBoxGroup, slatInsertGroup,
+         gardenUnitTableGroup, basePlateGroup, coalBedGroup } from "./parts3d.js";   // bench-only parts
 
 /* The bench.
  *
@@ -239,6 +241,7 @@ function benchGeo(p, box) {
   if (sku === "ST-032GBR") return grillBridgeGroup(w, d, h).group;      // the bridge frame, not an open bin
   if (sku === "LV-381") return connTableGroup(w, d, h).group;           // clipped charcoal top, crossing leg frames
 
+  if (sku === "GF-051" || sku === "GF-052") return gardenRingTableGroup(w, d, h).group;   // a ring of panels on blade legs
   if (role === "layout_table" || role === "standalone")
     return tableGroup(w, d, h, 30, color).group;
 
@@ -248,7 +251,7 @@ function benchGeo(p, box) {
     if (sku === "CK-220" || sku === "CK-230")
       return hangRackGroup({ w, d, drop: h, tiers: p.tiers || 1,
         hasSurface: !!p.has_surface, color, estimated: p.assembled_estimated }).group;
-    if (sku === "DB-005") return ringGroup(w, d, h, color).group;   // a ring that holds a bag
+    if (sku === "DB-005") return garbageFrameGroup(w, d, h, color).group;   // a wire hoop with three prongs
     if (sku === "CK-020") return boxHangerGroup(w, d, h, color).group;  // the wire bail, not a clamp
     return clampGroup(w, d, h, color).group;
   }
@@ -284,6 +287,14 @@ function benchGeo(p, box) {
 
   // Thin grill accessories: S-029HA is an open woven NET (its hero is see-through --
   // grillNetGroup); solid cast plates (S-029HD) keep the ridged slab.
+  // Parts the planner never places alone: each its own builder, not the generic bin or slab.
+  if (sku === "GR-006") return grillPanGroup().group;                    // a black steel pan
+  if (role === "storage") return softBoxGroup(w, d, h).group;            // BG-031/032: a closed soft box
+  if (sku === "GF-010") return slatInsertGroup(w, d, h, color).group;    // eight half-round slats
+  if (sku === "GF-015") return gardenUnitTableGroup(w, d, h).group;      // slatted top, IGT opening, square legs
+  if (sku === "ST-032BP") return basePlateGroup(w, d, h).group;          // black tray with four slots
+  if (sku === "ST-032S") return coalBedGroup(w).group;                   // the slotted cast grate
+  if (role === "takibi_surface") return grillNetGroup(w, d, h, color).group;   // ST-032MAR: a net, not a slab
   if (role === "accessory" && !moduleGroup(p, w, d, h, color) && h < 40)
     return (sku === "S-029HA" ? grillNetGroup(w, d, h, color) : gridPlateGroup(w, d, h, color)).group;
 
@@ -349,11 +360,21 @@ function drawPart() {
       decalMat: tex ? boardMaterial(p, COLORS, tex, box.w * MM, box.d * MM, false, t.board_frac) : null,
     }).group);
   } else {
-    const board = new THREE.Mesh(flatBoardGeo(p.role, t, box.w, box.d, thick), grain
+    // A stainless lid-tray (it has a finger hole) is 1mm sheet with a skirt folded down all
+    // round, hollow underneath (CK-085 a001) -- not the solid 15mm slab it was drawn as here.
+    const lid = !!t.finger_hole_mm, sheet = 1.5;
+    const boardMat = grain
       ? grainMaterial(p, COLORS, grain, box.w, box.d, false)
-      : materialFor(p, COLORS, false));
+      : materialFor(p, COLORS, false);
+    const board = new THREE.Mesh(flatBoardGeo(p.role, t, box.w, box.d, lid ? sheet : thick), boardMat);
     board.position.y = 0;                       // hangs from the top face
     stage.add(board);
+    if (lid) for (const [sw, sd, sx, sz] of [[box.w, 1.2, 0, box.d / 2 - 0.6], [box.w, 1.2, 0, -(box.d / 2 - 0.6)],
+                                            [1.2, box.d, box.w / 2 - 0.6, 0], [1.2, box.d, -(box.w / 2 - 0.6), 0]]) {
+      const skirt = new THREE.Mesh(new THREE.BoxGeometry(sw * MM, (thick - sheet) * MM, sd * MM), boardMat);
+      skirt.position.set(sx * MM, -(sheet + (thick - sheet) / 2) * MM, sz * MM);
+      stage.add(skirt);
+    }
 
     const tex = textureOf(sku);
     if (show.photo && tex) {

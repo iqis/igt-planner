@@ -72,7 +72,7 @@ const texCache = {};
 const PHOTO_FREE = ["tex/brushed_steel.jpg", "tex/canvas.jpg", "tex/chair_mesh.png"];   // generated, ours
 function loadImageTex(path) {
   if (!PUBLIC || PHOTO_FREE.includes(path)) return texLoader.load(path, invalidate);
-  return proceduralGrain(path === TEAK_GRAIN ? "teak" : "bamboo", GRAIN_MEANS[path]);
+  return proceduralGrain(path === TEAK_GRAIN ? "teak" : /TL_grain/.test(path) ? "bamboo-fine" : "bamboo", GRAIN_MEANS[path]);
 }
 const textureOf = (sku, key = "file") => {
   const path = TEXTURES[sku]?.[key];

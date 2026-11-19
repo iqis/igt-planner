@@ -6,6 +6,10 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+- **Small things.** The Light bamboo boards show their finer strips. The lounge cushion has the
+  seam it folds along, and a finer weave. The grill plate on the BBQ box and the Takibi is a pan
+  with its two handle tabs.
+
 ## [1.4.3] — 2026-11-18
 
 - **Burners.** The Flat Burner is a burner: an open bowl with the head in it under a wire grate,
