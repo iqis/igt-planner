@@ -6,6 +6,8 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+## [1.4.3] — 2026-11-18
+
 - **Burners.** The Flat Burner is a burner: an open bowl with the head in it under a wire grate,
   on a one-unit plate (its published 270 x 410 is the stove standing on its own wire legs). The
   Grill Burner sits level with the table, its water tray and stand hanging below; it had floated on

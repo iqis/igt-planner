@@ -1,9 +1,9 @@
 # Status — 2026-08-02, end of the launch/modeling phase
-> **2026-11-15: model audit, batch 2 merged (on dev; prod is still v1.4.2).** Every planner-visible
+> **2026-11-18: model audit, batch 2 released as v1.4.3** (merged 2026-11-15). Every planner-visible
 > finding of the 2026-11-11 audit is now fixed: seven family branches (frames, boards, cooking,
 > racks, fire and layout tables, self-contained tables, seating), each rebuilt against the
 > photographs in its own worktree and squashed onto main as one commit per family. See CHANGELOG
-> [Unreleased]. Decisions taken on the evidence, the owner's to overturn: the shared joint is the
+> [1.4.3]. Decisions taken on the evidence, the owner's to overturn: the shared joint is the
 > default for frames joined end to end (`sharedJoint !== false`); GS-450R's plate is 250 x 360
 > (`plate_mm`); boards are 14 / 9 mm (`board_mm`); the GS-230 has no windscreen in a frame;
 > SET-200 is 1598 x 749 x 795 and LV-085 470 wide, vendor numbers kept as `published_mm`; CK-220 is
