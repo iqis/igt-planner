@@ -6,6 +6,9 @@ a new feature bumps the minor number, a fix the patch. Released versions are on
 
 ## [Unreleased]
 
+- **Stainless lid-trays read as silver.** At most angles they came out gunmetal, darker than the
+  frame they sit in.
+
 ## [1.4.4] — 2026-11-18
 
 - **Small things.** The Light bamboo boards show their finer strips. The lounge cushion has the

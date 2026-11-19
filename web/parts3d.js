@@ -3919,29 +3919,64 @@ export function ringGroup(w, d, h, color, { clamp = false } = {}) {
 
 /** A soft carrying case: a closed rounded box with a lid seam and an arch handle -- a bag,
  *  not an open bin. */
+/** A soft cloth body: a superellipse section (n = 2 an ellipse, higher a softer rectangle) swept
+ *  along x, each end a flat cap with its edge rounded over `end` mm. Indexed, so its normals are
+ *  smooth: an extruded rounded box shades every facet flat, which reads as a hard case. mm in,
+ *  metres out, centred on the origin. */
+function softRollGeo(len, h, d, { n = 5, end = 16, seg = 32, rings = 5 } = {}) {
+  const e = Math.min(end, len / 2), rho = Math.min(0.95, e / (Math.min(h, d) / 2));
+  const half = [[0, 0]];                                 // [distance in from the end, section scale]
+  for (let k = 0; k <= rings; k++) {
+    const a = (k / rings) * Math.PI / 2;
+    half.push([e * (1 - Math.cos(a)), 1 - rho * (1 - Math.sin(a))]);
+  }
+  const st = [...half.map(([x, s]) => [-len / 2 + x, s]), ...half.map(([x, s]) => [len / 2 - x, s]).reverse()];
+  const pos = [], uv = [], idx = [], q = 2 / n;
+  st.forEach(([x, s], i) => {
+    for (let j = 0; j < seg; j++) {
+      const t = (j / seg) * Math.PI * 2, c = Math.cos(t), sn = Math.sin(t);
+      pos.push(x * MM, s * (h / 2) * Math.sign(sn) * Math.abs(sn) ** q * MM, s * (d / 2) * Math.sign(c) * Math.abs(c) ** q * MM);
+      uv.push(i / (st.length - 1), j / seg);
+    }
+  });
+  for (let i = 0; i < st.length - 1; i++)
+    for (let j = 0; j < seg; j++) {
+      const a = i * seg + j, b = (i + 1) * seg + j, a1 = i * seg + (j + 1) % seg, b1 = (i + 1) * seg + (j + 1) % seg;
+      idx.push(a, b, a1, b, b1, a1);
+    }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return geo;
+}
+
 export function caseGroup(w, d, h, color) {
   const g = new THREE.Group();
-  // A soft black roll, 110 x 90 in section, with a zip along the top and two webbing straps that
-  // wrap it 125mm either side of the middle (the same on all three lengths) and rise into a grip
-  // (UG-903 hero, UG-904 a099). It was a hard box with a lid seam and a half-sunk torus.
+  // A soft black wrap case, 110 x 90 in section with soft edges and squarish ends. Two webbing
+  // straps wrap it either side of the middle, and a flat webbing handle runs between them on
+  // each side of the top, lying slack (UG-902 and UG-903 heroes, UG-904 a099). No zip: it closes
+  // as a wrap, the flap's edge showing as a line low on the front. It was a faceted rounded box
+  // with a zip, round rope straps and a rigid arched grip.
   const cloth = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), metalness: 0, roughness: 0.92 });
   const web = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.7), metalness: 0, roughness: 0.85 });
-  const rr = Math.min(d, h) * 0.3;
-  const body = new THREE.Mesh(roundedBox(w * MM, h * MM, d * MM, rr * MM), cloth);
+  const body = new THREE.Mesh(softRollGeo(w, h, d), cloth);
   body.position.y = -h / 2 * MM;
   g.add(body);
-  box(g, w - 2 * rr - 30, 1.6, 6, 0, web, 0, 0.3, 0);                    // the zip
-  const sx0 = Math.min(125, w / 2 - rr - 20);
+  const sx0 = Math.min(125, w * 0.18);
   for (const s of [-1, 1]) {
-    // a strap: a band round the section, drawn as a wire loop flattened along the bag
-    const band = bentTube(g, [[0, 1.5, -d / 2 - 1.5], [0, 1.5, d / 2 + 1.5], [0, -h - 1.5, d / 2 + 1.5], [0, -h - 1.5, -d / 2 - 1.5]],
-      1.6, web, { rad: rr, closed: true, radial: 4 });
-    band.scale.x = 8;                                                    // 26 wide, 3 thick
-    band.position.x = s * sx0 * MM;
+    const band = new THREE.Mesh(softRollGeo(26, h + 3, d + 3, { end: 1, rings: 1 }), web);
+    band.position.set(s * sx0 * MM, -h / 2 * MM, 0);
+    g.add(band);
   }
-  bentTube(g, [[-sx0, 1, 0], [-sx0 * 0.5, 34, 0], [sx0 * 0.5, 34, 0], [sx0, 1, 0]], 5, web, { rad: 16 });
-  const grip = cyl(g, 8, 8, sx0 * 0.7, 12, web, 0, 34, 0);
-  grip.rotation.z = Math.PI / 2;
+  for (const [z, rise] of [[-16, 22], [16, 12]]) {       // the two handles: 22 wide webbing, slack
+    const hd = bentTube(g, [[-sx0, 1.5, 0], [-sx0 * 0.6, rise, 0], [sx0 * 0.6, rise, 0], [sx0, 1.5, 0]],
+      1.6, web, { rad: 18, radial: 4 });
+    hd.scale.z = 7;
+    hd.position.z = z * MM;
+  }
+  box(g, w - 44, 1, 1.2, 0, web, 0, -h * 0.64, d / 2 + 0.2);     // the wrap flap's edge
   return { group: g, body };
 }
 

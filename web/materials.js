@@ -322,8 +322,15 @@ export function angleBoard(length, depth, thickness, setback = 200) {
  *  alpha channel carries the silhouette, which is why the corner's quarter round does not
  *  have to be believed -- it can just be seen.
  */
+/** A flat sheet that carries a photograph or a grain crop (the stainless lid-trays). The picture
+ *  already is the brushed face as a camera saw it under studio light. At the alloy's own 0.85
+ *  metalness a flat plate mirrors the dark half of the room at any raking view, and the lids read
+ *  gunmetal beside the frame's silver rails -- the opposite of the real pair. A brushed sheet is
+ *  mostly diffuse; this is that. Wood (metalness 0) passes through untouched. */
+const sheetResponse = r => (r.metalness > 0.7 ? { ...r, metalness: 0.62, roughness: 0.42 } : r);
+
 export function boardMaterial(p, colors, texture, w, d, selected, frac = null) {
-  const r = responseFor(p.material);
+  const r = sheetResponse(responseFor(p.material));
   texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.colorSpace = THREE.SRGBColorSpace;
 
@@ -472,7 +479,7 @@ function slab(shape, thickness, bevel = 0.14) {
  *  one photograph; neither shows the other's hardware.
  */
 export function grainMaterial(p, colors, grain, wMM, dMM, selected, tileMM = 320) {
-  const r = responseFor(p.material);
+  const r = sheetResponse(responseFor(p.material));
   grain.wrapS = grain.wrapT = THREE.RepeatWrapping;
   grain.colorSpace = THREE.SRGBColorSpace;
   grain.repeat.set(Math.max(1, wMM / tileMM), Math.max(1, dMM / tileMM));

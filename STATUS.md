@@ -17,6 +17,9 @@
 > (also the planner's two copies), S-029HA and ST-032MAR as square-woven nets, the lid-trays as
 > folded sheet, GF-010 / GF-015 / GF-051 / GF-052, ST-032BP and ST-032S on the bench, the Light
 > boards' finer procedural grain (`bamboo-fine` in proctex.js), the cushion's seam.
+> After 1.4.4 (on dev): the cases are smooth cloth (`softRollGeo` in parts3d.js) with wrap straps and
+> flat handles; textured stainless sheets use `sheetResponse` in materials.js (0.62 / 0.42), which
+> is what stopped the lid-trays reading gunmetal in the planner and on the bench.
 > `scripts/make_textures.py` would overwrite the hand-corrected board outlines, hooks and leg holes
 > in `catalog/textures.json` (each carries a `hand_note`): do not re-run it over those parts.
 >
